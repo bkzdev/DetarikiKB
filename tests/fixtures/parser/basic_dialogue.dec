@@ -1,0 +1,35 @@
+// DKB Parser Test Fixture - basic_dialogue.dec
+// @ChTalk, @ChTalkMono, msg, name, @ScenarioCos, $num, branch/#if/#endif の基本動作確認
+
+$num0 = 26
+$num1 = 1
+@ScenarioCos 2 29
+
+@ChTalk 0
+というわけで、本日付けで異形生物対策班作戦参謀に任命されましたレインです。
+
+name レイン（心の声）
+@ChTalkMono 0
+（任務開始だ。）
+
+msg
+異形生物対策班　本部
+
+@ChTalkSoundOff 2
+レイヴェル、今回のジャマーの特徴を皆に説明してやってくれ。
+
+@ChTalkSoundOffMono 1
+（朝から班長殿にお会いできるなんて、
+今日はきっといい一日になるはず！）
+
+@ChTalkName 0 美海＆恵茉 Story/64/m64_1_186
+ジャマー召喚！
+
+branch 大丈夫、必ずできるよ！ 仕事だから、頑張ろう
+#if $branch
+@ChTalk 0
+大丈夫、必ずできるよ！
+#elseif $branch
+@ChTalk 0
+仕事だから、頑張ろう。
+#endif

@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "0.1",
+  "documentType": "script_compatibility_report",
+  "generatedAt": "2026-07-01T14:05:52.602440+00:00",
+  "targetFiles": [
+    "tests\\fixtures\\parser\\unknown_char.dec"
+  ],
+  "summary": {
+    "totalFiles": 1,
+    "totalLines": 18,
+    "parserCompatibility": "warning",
+    "unknownCommandCount": 1,
+    "newSpeechCommandCount": 0,
+    "unknownCharacterIdCount": 1,
+    "controlCharsRemoved": 0
+  },
+  "files": [
+    {
+      "file": "unknown_char.dec",
+      "filePath": "tests\\fixtures\\parser\\unknown_char.dec",
+      "parserCompatibility": "warning",
+      "lineCount": 18,
+      "unknownCommands": [
+        {
+          "command": "@UnknownNewCommand",
+          "count": 1,
+          "sampleLines": [
+            {
+              "lineNumber": 15,
+              "raw": "@UnknownNewCommand 0 1 2"
+            }
+          ]
+        }
+      ],
+      "newSpeechCommands": [],
+      "changedCommandPatterns": [],
+      "unknownCharacterIds": [
+        {
+          "sourceCharacterId": "234",
+          "count": 2,
+          "sampleLines": [
+            {
+              "lineNumber": 4,
+              "raw": "$num1 = 234"
+            },
+            {
+              "lineNumber": 5,
+              "raw": "@ScenarioCos 1 234"
+            }
+          ]
+        }
+      ],
+      "branchIssues": [],
+      "controlCharsRemoved": 0,
+      "caseVariants": [],
+      "hyphenOptionLines": 0
+    }
+  ]
+}
