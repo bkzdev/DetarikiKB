@@ -23,3 +23,7 @@ data/extracted/**/*.json
 data/reports/**/*.json
 data/reports/**/*.md
 !data/**/.gitkeep
+
+# Real full-text game scripts must never live in tests/fixtures/ —
+# only small handcrafted samples belong there.
+tests/fixtures/parser/CAB-csl_script_*.dec
