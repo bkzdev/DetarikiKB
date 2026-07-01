@@ -5,13 +5,17 @@ episode_extraction JSON が schemas/extraction.schema.json に準拠している
 
 import copy
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 from jsonschema import Draft7Validator
 
-SCHEMA_PATH = Path(__file__).parent.parent.parent / "schemas" / "extraction.schema.json"
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+SCHEMA_PATH = PROJECT_ROOT / "schemas" / "extraction.schema.json"
 FIXTURES_DIR = Path(__file__).parent.parent / "fixtures" / "extraction"
+VALIDATOR_SCRIPT = PROJECT_ROOT / "scripts" / "validate_extraction_json.py"
 
 
 @pytest.fixture
@@ -124,3 +128,34 @@ def test_evidence_index_entries_validated(validator, minimal_instance):
 
     errors = list(validator.iter_errors(instance))
     assert errors, "evidenceIndex内のEvidenceRefもconfidence制約を受けるべき"
+
+
+def test_cli_accepts_valid_fixture():
+    # jsonschemaを直接叩くテストだけでは、CLIのprint文が実際のコンソールで
+    # クラッシュしないかまでは検証できない (例: Windows cp932でのUnicodeEncodeError)。
+    # subprocessで実プロセスとして起動し、標準出力まで含めて検証する。
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(VALIDATOR_SCRIPT),
+            "--input",
+            str(FIXTURES_DIR / "minimal_episode_extraction.json"),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+
+
+def test_cli_rejects_invalid_fixture():
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(VALIDATOR_SCRIPT),
+            "--input",
+            str(FIXTURES_DIR / "invalid_missing_evidence.json"),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 1

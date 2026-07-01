@@ -117,7 +117,7 @@ def main() -> int:
             all_valid = False
 
     if not args.quiet:
-        status = "✅ すべて成功" if all_valid else "❌ 失敗あり"
+        status = "すべて成功" if all_valid else "失敗あり"
         print(f"[DKB] 検証結果: {status} ({len(targets)} ファイル)")
 
     return 0 if all_valid else 1
