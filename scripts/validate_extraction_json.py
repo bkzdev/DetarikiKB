@@ -26,7 +26,9 @@ from pathlib import Path
 
 from jsonschema import Draft7Validator
 
-DEFAULT_SCHEMA_PATH = Path(__file__).parent.parent / "schemas" / "extraction.schema.json"
+DEFAULT_SCHEMA_PATH = (
+    Path(__file__).parent.parent / "schemas" / "extraction.schema.json"
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -61,7 +63,9 @@ def parse_args() -> argparse.Namespace:
 
 def load_schema(schema_path: Path) -> dict:
     if not schema_path.exists():
-        print(f"[エラー] スキーマファイルが見つかりません: {schema_path}", file=sys.stderr)
+        print(
+            f"[エラー] スキーマファイルが見つかりません: {schema_path}", file=sys.stderr
+        )
         raise SystemExit(2)
     with open(schema_path, encoding="utf-8") as f:
         return json.load(f)
@@ -108,7 +112,10 @@ def main() -> int:
 
     targets = collect_target_files(input_path)
     if not targets:
-        print(f"[警告] 検証対象のJSONファイルが見つかりません: {input_path}", file=sys.stderr)
+        print(
+            f"[警告] 検証対象のJSONファイルが見つかりません: {input_path}",
+            file=sys.stderr,
+        )
         return 0
 
     all_valid = True
