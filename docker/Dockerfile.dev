@@ -1,0 +1,27 @@
+# Use fixed Python version for reproducible builds
+FROM python:3.12.4-slim-bookworm
+
+# Set working directory
+WORKDIR /workspace
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/workspace
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv for fast package management
+COPY --from=ghcr.io/astral-sh/uv:0.2.14 /uv /bin/uv
+
+# (Optional) We could copy pyproject.toml here to pre-install dependencies, 
+# but for local dev with Dev Containers, we typically mount the workspace 
+# and install dependencies dynamically or at container start.
+# This keeps the image generic and fast.
+
+# Keep container running for Dev Container to attach
+CMD ["sleep", "infinity"]
