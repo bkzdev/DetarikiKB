@@ -14,3 +14,12 @@ venv/
 # Editor / OS
 .DS_Store
 Thumbs.db
+
+# Data (raw script / generated pipeline output)
+data/raw/**/*.dec
+data/raw/**/*.txt
+data/normalized/**/*.json
+data/extracted/**/*.json
+data/reports/**/*.json
+data/reports/**/*.md
+!data/**/.gitkeep
