@@ -10,8 +10,6 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterator
-
 
 # ----------------------------------------------------------------
 # 制御文字パターン (U+0000-U+0008, U+000B, U+000C, U+000E-U+001F, U+007F)
@@ -34,21 +32,23 @@ JAPANESE_PATTERN = re.compile(r"[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uff00-\
 # Token 種別
 # ----------------------------------------------------------------
 
+
 class TokenType:
-    COMMAND = "command"          # @ChTalk など @ 始まりコマンド
-    VARIABLE = "variable"        # $numX = ID / $valueX = ID
-    KEYWORD = "keyword"          # msg / name / branch / #if など
-    TEXT = "text"                # 日本語本文
-    EMPTY = "empty"              # 空行
-    COMMENT = "comment"          # // で始まるコメント行
+    COMMAND = "command"  # @ChTalk など @ 始まりコマンド
+    VARIABLE = "variable"  # $numX = ID / $valueX = ID
+    KEYWORD = "keyword"  # msg / name / branch / #if など
+    TEXT = "text"  # 日本語本文
+    EMPTY = "empty"  # 空行
+    COMMENT = "comment"  # // で始まるコメント行
     CONTROL_CHAR = "control_char"  # 制御文字が含まれていた行
     HYPHEN_OPTION = "hyphen_option"  # - speed 0.1 などの演出補助行
-    UNKNOWN = "unknown"          # 上記に分類できない行
+    UNKNOWN = "unknown"  # 上記に分類できない行
 
 
 # ----------------------------------------------------------------
 # ScriptToken
 # ----------------------------------------------------------------
+
 
 @dataclass
 class ScriptToken:
@@ -118,24 +118,27 @@ class ScriptToken:
 # Tokenizer
 # ----------------------------------------------------------------
 
+
 class Tokenizer:
     """Raw Script ファイルを ScriptToken のリストに変換する"""
 
     # 既知のキーワード (コマンドではないが特殊扱いする先頭トークン)
-    KEYWORD_TOKENS: frozenset[str] = frozenset({
-        "msg",
-        "name",
-        "branch",
-        "#if",
-        "#elseif",
-        "#else",
-        "#endif",
-        "bg",
-        "bgm",
-        "se",
-        "segmentCorrection",
-        "visibleAccessory",
-    })
+    KEYWORD_TOKENS: frozenset[str] = frozenset(
+        {
+            "msg",
+            "name",
+            "branch",
+            "#if",
+            "#elseif",
+            "#else",
+            "#endif",
+            "bg",
+            "bgm",
+            "se",
+            "segmentCorrection",
+            "visibleAccessory",
+        }
+    )
 
     def __init__(
         self,
@@ -335,6 +338,7 @@ class Tokenizer:
 # ----------------------------------------------------------------
 # Utility
 # ----------------------------------------------------------------
+
 
 def tokenize_file(file_path: str | Path, **kwargs) -> list[ScriptToken]:
     """ファイルをトークン化するショートカット関数"""

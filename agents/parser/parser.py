@@ -10,16 +10,14 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
 
-from .tokenizer import ScriptToken, TokenType, Tokenizer
 from .resolver import (
     CharacterDictionary,
     Speaker,
     SpeakerAssignmentRecord,
     SpeakerResolver,
 )
-
+from .tokenizer import ScriptToken, Tokenizer, TokenType
 
 # ----------------------------------------------------------------
 # Stage Direction 分類マップ
@@ -61,13 +59,17 @@ CASE_VARIANTS_MAP: dict[str, str] = {
 }
 
 # 既知の stage_direction コマンドセット
-STAGE_DIRECTION_COMMANDS: frozenset[str] = frozenset(DIRECTION_TYPE_MAP.keys()) | frozenset(CASE_VARIANTS_MAP.keys())
+STAGE_DIRECTION_COMMANDS: frozenset[str] = frozenset(
+    DIRECTION_TYPE_MAP.keys()
+) | frozenset(CASE_VARIANTS_MAP.keys())
 
 # 既知の speaker_assignment コマンドセット
-SPEAKER_ASSIGNMENT_COMMANDS: frozenset[str] = frozenset({
-    "@ScenarioCos",
-    "@ScenarioCosLoad",
-})
+SPEAKER_ASSIGNMENT_COMMANDS: frozenset[str] = frozenset(
+    {
+        "@ScenarioCos",
+        "@ScenarioCosLoad",
+    }
+)
 
 # $numX パターン
 NUM_VAR_PATTERN = re.compile(r"^\$num(\d+)$")
@@ -83,6 +85,7 @@ SCENARIO_COS_LOAD_PATTERN = re.compile(r"^@ScenarioCosLoad\s+(\d+)\s+(\$[\w\d]+)
 # ----------------------------------------------------------------
 # 中間ブロック構造
 # ----------------------------------------------------------------
+
 
 @dataclass
 class BlockData:
@@ -161,6 +164,7 @@ class ParseResult:
 # Parser
 # ----------------------------------------------------------------
 
+
 class StoryParser:
     """
     Tokenizer の出力 (ScriptToken リスト) から ParseResult を生成する。
@@ -196,7 +200,9 @@ class StoryParser:
         control_chars_removed = sum(t.control_chars_removed for t in tokens)
         return self._parse_tokens(tokens, control_chars_removed, source_file)
 
-    def parse_tokens(self, tokens: list[ScriptToken], source_file: str = "inline") -> ParseResult:
+    def parse_tokens(
+        self, tokens: list[ScriptToken], source_file: str = "inline"
+    ) -> ParseResult:
         """トークンリストを受け取って ParseResult を返す"""
         control_chars_removed = sum(t.control_chars_removed for t in tokens)
         return self._parse_tokens(tokens, control_chars_removed, source_file)
@@ -278,7 +284,9 @@ class StoryParser:
                     source_file=source_file,
                     line_start=text_line_start,
                     line_end=text_line_end,
-                    raw_line=pending_speech_command.raw if pending_speech_command else None,
+                    raw_line=pending_speech_command.raw
+                    if pending_speech_command
+                    else None,
                     parser_rule=_speech_parser_rule(block_type, pending_has_voice),
                     confidence=1.0,
                 )
@@ -370,12 +378,14 @@ class StoryParser:
                     flush_text()
                     slot = token.args[0] if token.args else "0"
                     pending_speech_type = "dialogue"
-                    pending_has_voice = (cmd == "@ChTalk")
+                    pending_has_voice = cmd == "@ChTalk"
                     if cmd == "@ChTalkName":
                         # @ChTalkName slot speakerName path
                         speaker_name = token.args[1] if len(token.args) > 1 else None
                         if speaker_name:
-                            pending_speaker = resolver.resolve_from_command_name(speaker_name, slot)
+                            pending_speaker = resolver.resolve_from_command_name(
+                                speaker_name, slot
+                            )
                         else:
                             pending_speaker = resolver.resolve_slot(slot)
                         pending_has_voice = None  # unknown
@@ -388,13 +398,16 @@ class StoryParser:
                     flush_text()
                     slot = token.args[0] if token.args else "0"
                     pending_speech_type = "monologue"
-                    pending_has_voice = (cmd == "@ChTalkMono")
+                    pending_has_voice = cmd == "@ChTalkMono"
                     pending_speaker = resolver.resolve_slot(slot)
                     pending_speech_command = token
                     continue
 
                 # stage_direction (既知)
-                if normalized_cmd in STAGE_DIRECTION_COMMANDS or cmd in STAGE_DIRECTION_COMMANDS:
+                if (
+                    normalized_cmd in STAGE_DIRECTION_COMMANDS
+                    or cmd in STAGE_DIRECTION_COMMANDS
+                ):
                     flush_text()
                     if self.preserve_stage_directions:
                         direction_type = DIRECTION_TYPE_MAP.get(
@@ -404,7 +417,9 @@ class StoryParser:
                             block_type="stage_direction",
                             direction_type=direction_type,
                             raw_command=cmd,
-                            normalized_command=normalized_cmd if normalized_cmd != cmd else cmd,
+                            normalized_command=normalized_cmd
+                            if normalized_cmd != cmd
+                            else cmd,
                             command_args=token.args,
                             source_file=source_file,
                             line_start=token.line_number,
@@ -418,7 +433,9 @@ class StoryParser:
                 # 未知コマンド
                 if self.preserve_unknown:
                     flush_text()
-                    result.unknown_commands[cmd] = result.unknown_commands.get(cmd, 0) + 1
+                    result.unknown_commands[cmd] = (
+                        result.unknown_commands.get(cmd, 0) + 1
+                    )
                     block = BlockData(
                         block_type="unknown",
                         raw_text=token.raw,
@@ -450,7 +467,11 @@ class StoryParser:
                 # name → 強制話者名
                 if kw == "name":
                     flush_text()
-                    forced_name_override = token.text or " ".join(token.args)
+                    forced_name = token.text or " ".join(token.args)
+                    # 空の name 行は強制話者名の解除を意味する (flush_text は
+                    # forced_name_override を None 判定で有効化するため、
+                    # 空文字列のまま代入すると解決済みスロット話者を空名で潰してしまう)
+                    forced_name_override = forced_name if forced_name else None
                     resolver.set_forced_name(forced_name_override or "")
                     continue
 
@@ -469,10 +490,12 @@ class StoryParser:
                         parser_rule="branch_choice",
                     )
                     for i, opt_text in enumerate(branch_options):
-                        current_choice.options.append({
-                            "optionText": opt_text,
-                            "blocks": [],
-                        })
+                        current_choice.options.append(
+                            {
+                                "optionText": opt_text,
+                                "blocks": [],
+                            }
+                        )
                     scene.blocks.append(current_choice)
                     continue
 
@@ -506,10 +529,15 @@ class StoryParser:
 
                 # bg / bgm / se などの stage_direction キーワード
                 normalized_kw = CASE_VARIANTS_MAP.get(kw, kw)
-                if kw in STAGE_DIRECTION_COMMANDS or normalized_kw in STAGE_DIRECTION_COMMANDS:
+                if (
+                    kw in STAGE_DIRECTION_COMMANDS
+                    or normalized_kw in STAGE_DIRECTION_COMMANDS
+                ):
                     flush_text()
                     if self.preserve_stage_directions:
-                        direction_type = DIRECTION_TYPE_MAP.get(normalized_kw, DIRECTION_TYPE_MAP.get(kw, "unknown"))
+                        direction_type = DIRECTION_TYPE_MAP.get(
+                            normalized_kw, DIRECTION_TYPE_MAP.get(kw, "unknown")
+                        )
                         block = BlockData(
                             block_type="stage_direction",
                             direction_type=direction_type,
@@ -599,7 +627,9 @@ class StoryParser:
             if token.token_type == TokenType.UNKNOWN:
                 flush_text()
                 if self.preserve_unknown:
-                    result.unknown_commands[token.raw[:30]] = result.unknown_commands.get(token.raw[:30], 0) + 1
+                    result.unknown_commands[token.raw[:30]] = (
+                        result.unknown_commands.get(token.raw[:30], 0) + 1
+                    )
                     block = BlockData(
                         block_type="unknown",
                         raw_text=token.raw,
@@ -626,6 +656,7 @@ class StoryParser:
 # ----------------------------------------------------------------
 # Utility functions
 # ----------------------------------------------------------------
+
 
 def _add_block(
     scene: SceneData,

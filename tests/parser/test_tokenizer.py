@@ -3,18 +3,15 @@ tests/parser/test_tokenizer.py
 Tokenizer のユニットテスト
 """
 
-import pytest
 from agents.parser.tokenizer import (
-    ScriptToken,
     TokenType,
-    Tokenizer,
     tokenize_text,
 )
-
 
 # ----------------------------------------------------------------
 # 基本的なトークン分類
 # ----------------------------------------------------------------
+
 
 class TestBasicTokenTypes:
     def test_empty_line_excluded_by_default(self):
@@ -112,6 +109,7 @@ class TestBasicTokenTypes:
 # 会話コマンド
 # ----------------------------------------------------------------
 
+
 class TestSpeechCommands:
     def test_ch_talk(self):
         tokens = tokenize_text("@ChTalk 0\n")
@@ -152,6 +150,7 @@ class TestSpeechCommands:
 # @ScenarioCos / @ScenarioCosLoad
 # ----------------------------------------------------------------
 
+
 class TestScenarioCommands:
     def test_scenario_cos(self):
         tokens = tokenize_text("@ScenarioCos 0 26\n")
@@ -170,6 +169,7 @@ class TestScenarioCommands:
 # ----------------------------------------------------------------
 # 制御文字
 # ----------------------------------------------------------------
+
 
 class TestControlChars:
     def test_control_char_removed(self):
@@ -191,6 +191,7 @@ class TestControlChars:
 # 行番号の保持
 # ----------------------------------------------------------------
 
+
 class TestLineNumbers:
     def test_line_numbers_are_correct(self):
         script = "@ChTalk 0\nこんにちは\nmsg\nナレーション\n"
@@ -209,13 +210,16 @@ class TestLineNumbers:
 # raw 保持
 # ----------------------------------------------------------------
 
+
 class TestRawPreservation:
     def test_raw_line_preserved(self):
         tokens = tokenize_text("@ChTalk 0\n")
         assert tokens[0].raw == "@ChTalk 0"
 
     def test_japanese_raw_preserved(self):
-        line = "というわけで、本日付けで異形生物対策班作戦参謀に任命されましたレインです。"
+        line = (
+            "というわけで、本日付けで異形生物対策班作戦参謀に任命されましたレインです。"
+        )
         tokens = tokenize_text(line + "\n")
         assert tokens[0].text == line
         assert tokens[0].raw == line
@@ -224,6 +228,7 @@ class TestRawPreservation:
 # ----------------------------------------------------------------
 # 複数行スクリプト統合テスト
 # ----------------------------------------------------------------
+
 
 class TestMultilineScript:
     def test_basic_conversation(self):

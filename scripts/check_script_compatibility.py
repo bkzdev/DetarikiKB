@@ -23,7 +23,6 @@ Output:
 
 import argparse
 import json
-import os
 import re
 import sys
 from collections import defaultdict
@@ -33,14 +32,17 @@ from typing import Any
 
 import yaml
 
-
 # ----------------------------------------------------------------
 # Constants
 # ----------------------------------------------------------------
 
 SCHEMA_VERSION = "0.1"
-DEFAULT_COMMANDS_CONFIG = Path(__file__).parent.parent / "config" / "script_commands.yaml"
-DEFAULT_CHARACTERS_PATH = Path(__file__).parent.parent / "reference" / "parser" / "characters_reference.json"
+DEFAULT_COMMANDS_CONFIG = (
+    Path(__file__).parent.parent / "config" / "script_commands.yaml"
+)
+DEFAULT_CHARACTERS_PATH = (
+    Path(__file__).parent.parent / "reference" / "parser" / "characters_reference.json"
+)
 DEFAULT_OUTPUT_DIR = Path(__file__).parent.parent / "data" / "reports"
 
 # 制御文字パターン (U+0000-U+0008, U+000B, U+000C, U+000E-U+001F, U+007F)
@@ -59,12 +61,15 @@ SCENARIO_COS_PATTERN = re.compile(r"^@ScenarioCos\s+(\d+)\s+(\d+)")
 SCENARIO_COS_LOAD_PATTERN = re.compile(r"^@ScenarioCosLoad\s+(\d+)\s+(\$[\w\d]+)")
 
 # 日本語文字を含む行の検出 (会話本文の可能性)
-JAPANESE_TEXT_PATTERN = re.compile(r"[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uff00-\uffef]")
+JAPANESE_TEXT_PATTERN = re.compile(
+    r"[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uff00-\uffef]"
+)
 
 
 # ----------------------------------------------------------------
 # Config Loader
 # ----------------------------------------------------------------
+
 
 def load_command_config(config_path: Path) -> dict[str, Any]:
     """script_commands.yaml を読み込む"""
@@ -127,7 +132,10 @@ def get_new_speech_hints(config: dict[str, Any]) -> list[str]:
 # File Scanner
 # ----------------------------------------------------------------
 
-def collect_files(target: Path, extensions: tuple[str, ...] = (".dec", ".txt")) -> list[Path]:
+
+def collect_files(
+    target: Path, extensions: tuple[str, ...] = (".dec", ".txt")
+) -> list[Path]:
     """ディレクトリまたは単一ファイルから対象ファイルを収集する"""
     if target.is_file():
         return [target]
@@ -141,6 +149,7 @@ def collect_files(target: Path, extensions: tuple[str, ...] = (".dec", ".txt")) 
 # Single File Checker
 # ----------------------------------------------------------------
 
+
 class FileCompatibilityResult:
     """1ファイルの互換性チェック結果"""
 
@@ -151,13 +160,17 @@ class FileCompatibilityResult:
         self.parse_error: str | None = None
 
         # 検出項目
-        self.unknown_commands: dict[str, dict] = {}   # command -> {count, sample_lines}
+        self.unknown_commands: dict[str, dict] = {}  # command -> {count, sample_lines}
         self.new_speech_commands: list[dict] = []
         self.changed_command_patterns: list[dict] = []
-        self.unknown_character_ids: dict[str, dict] = {}  # char_id -> {count, sample_lines}
+        self.unknown_character_ids: dict[
+            str, dict
+        ] = {}  # char_id -> {count, sample_lines}
         self.branch_issues: list[dict] = []
         self.control_chars_removed: int = 0
-        self.case_variants: dict[str, set] = defaultdict(set)  # normalized -> {variants}
+        self.case_variants: dict[str, set] = defaultdict(
+            set
+        )  # normalized -> {variants}
         self.hyphen_option_lines: int = 0
 
         # 最終ステータス
@@ -249,12 +262,14 @@ def check_file(
             opts = line.replace("branch", "", 1).strip().split()
             branch_options = opts
             if not opts:
-                result.branch_issues.append({
-                    "type": "empty_branch",
-                    "lineNumber": line_number,
-                    "raw": line,
-                    "severity": "medium",
-                })
+                result.branch_issues.append(
+                    {
+                        "type": "empty_branch",
+                        "lineNumber": line_number,
+                        "raw": line,
+                        "severity": "medium",
+                    }
+                )
             pending_speech = False
             continue
 
@@ -265,23 +280,27 @@ def check_file(
 
         if first_token == "#elseif":
             if not branch_stack:
-                result.branch_issues.append({
-                    "type": "orphan_elseif",
-                    "lineNumber": line_number,
-                    "raw": line,
-                    "severity": "high",
-                })
+                result.branch_issues.append(
+                    {
+                        "type": "orphan_elseif",
+                        "lineNumber": line_number,
+                        "raw": line,
+                        "severity": "high",
+                    }
+                )
             pending_speech = False
             continue
 
         if first_token == "#else":
             if not branch_stack:
-                result.branch_issues.append({
-                    "type": "orphan_else",
-                    "lineNumber": line_number,
-                    "raw": line,
-                    "severity": "high",
-                })
+                result.branch_issues.append(
+                    {
+                        "type": "orphan_else",
+                        "lineNumber": line_number,
+                        "raw": line,
+                        "severity": "high",
+                    }
+                )
             pending_speech = False
             continue
 
@@ -289,12 +308,14 @@ def check_file(
             if branch_stack:
                 branch_stack.pop()
             else:
-                result.branch_issues.append({
-                    "type": "orphan_endif",
-                    "lineNumber": line_number,
-                    "raw": line,
-                    "severity": "high",
-                })
+                result.branch_issues.append(
+                    {
+                        "type": "orphan_endif",
+                        "lineNumber": line_number,
+                        "raw": line,
+                        "severity": "high",
+                    }
+                )
             pending_speech = False
             continue
 
@@ -342,12 +363,14 @@ def check_file(
 
     # 11. 分岐スタックが残っている → missing #endif
     for open_line in branch_stack:
-        result.branch_issues.append({
-            "type": "missing_endif",
-            "lineNumber": open_line,
-            "raw": "#if (unclosed)",
-            "severity": "high",
-        })
+        result.branch_issues.append(
+            {
+                "type": "missing_endif",
+                "lineNumber": open_line,
+                "raw": "#if (unclosed)",
+                "severity": "high",
+            }
+        )
 
     # 12. 最終ステータス決定
     result.parser_compatibility = _determine_compatibility(result)
@@ -412,13 +435,15 @@ def _record_new_speech_command(
     """新規会話コマンド候補を記録する (重複は1件のみ)"""
     existing = {e["command"] for e in result.new_speech_commands}
     if command not in existing:
-        result.new_speech_commands.append({
-            "command": command,
-            "reason": f"Command name contains speech-related keyword.",
-            "severity": "high",
-            "suggestedType": "dialogue",
-            "sampleLine": {"lineNumber": line_number, "raw": raw},
-        })
+        result.new_speech_commands.append(
+            {
+                "command": command,
+                "reason": "Command name contains speech-related keyword.",
+                "severity": "high",
+                "suggestedType": "dialogue",
+                "sampleLine": {"lineNumber": line_number, "raw": raw},
+            }
+        )
 
 
 def _determine_compatibility(result: FileCompatibilityResult) -> str:
@@ -438,9 +463,7 @@ def _determine_compatibility(result: FileCompatibilityResult) -> str:
         return "needs_update"
     if result.changed_command_patterns:
         return "needs_update"
-    has_high_branch = any(
-        i.get("severity") in ("high",) for i in result.branch_issues
-    )
+    has_high_branch = any(i.get("severity") in ("high",) for i in result.branch_issues)
     if has_high_branch:
         return "needs_update"
 
@@ -461,6 +484,7 @@ def _determine_compatibility(result: FileCompatibilityResult) -> str:
 # Report Builder
 # ----------------------------------------------------------------
 
+
 def build_json_report(
     target_files: list[Path],
     results: list[FileCompatibilityResult],
@@ -470,7 +494,9 @@ def build_json_report(
     STATUS_ORDER = ["compatible", "warning", "needs_update", "blocked"]
     overall_status = "compatible"
     for r in results:
-        if STATUS_ORDER.index(r.parser_compatibility) > STATUS_ORDER.index(overall_status):
+        if STATUS_ORDER.index(r.parser_compatibility) > STATUS_ORDER.index(
+            overall_status
+        ):
             overall_status = r.parser_compatibility
 
     total_lines = sum(r.line_count for r in results)
@@ -540,11 +566,16 @@ def build_markdown_report(report: dict[str, Any]) -> str:
 
     # サマリー
     status = summary["parserCompatibility"]
-    status_emoji = {"compatible": "✅", "warning": "⚠️", "needs_update": "🔶", "blocked": "🚫"}.get(status, "❓")
+    status_emoji = {
+        "compatible": "✅",
+        "warning": "⚠️",
+        "needs_update": "🔶",
+        "blocked": "🚫",
+    }.get(status, "❓")
     lines.append("## サマリー")
     lines.append("")
-    lines.append(f"| 項目 | 値 |")
-    lines.append(f"|---|---|")
+    lines.append("| 項目 | 値 |")
+    lines.append("|---|---|")
     lines.append(f"| 総合互換性 | {status_emoji} **{status}** |")
     lines.append(f"| ファイル数 | {summary['totalFiles']} |")
     lines.append(f"| 総行数 | {summary['totalLines']} |")
@@ -557,11 +588,18 @@ def build_markdown_report(report: dict[str, Any]) -> str:
     # ファイル別
     lines.append("## ファイル別結果")
     lines.append("")
-    lines.append("| ファイル | 互換性 | 行数 | 未知Cmd | 新規会話 | 未登録ID | 制御文字 |")
+    lines.append(
+        "| ファイル | 互換性 | 行数 | 未知Cmd | 新規会話 | 未登録ID | 制御文字 |"
+    )
     lines.append("|---|---|---:|---:|---:|---:|---:|")
     for f in report["files"]:
         st = f["parserCompatibility"]
-        em = {"compatible": "✅", "warning": "⚠️", "needs_update": "🔶", "blocked": "🚫"}.get(st, "❓")
+        em = {
+            "compatible": "✅",
+            "warning": "⚠️",
+            "needs_update": "🔶",
+            "blocked": "🚫",
+        }.get(st, "❓")
         lines.append(
             f"| {f['file']} | {em} {st} | {f['lineCount']} | "
             f"{len(f['unknownCommands'])} | {len(f['newSpeechCommands'])} | "
@@ -578,10 +616,14 @@ def build_markdown_report(report: dict[str, Any]) -> str:
     if all_new_speech:
         lines.append("## 🔶 新規会話コマンド候補")
         lines.append("")
-        lines.append("これらのコマンドは本文抽出に影響する可能性があります。辞書への追加を検討してください。")
+        lines.append(
+            "これらのコマンドは本文抽出に影響する可能性があります。辞書への追加を検討してください。"
+        )
         lines.append("")
         for cmd, info in all_new_speech.items():
-            lines.append(f"- `{cmd}` — {info['reason']} (severity: **{info['severity']}**)")
+            lines.append(
+                f"- `{cmd}` — {info['reason']} (severity: **{info['severity']}**)"
+            )
         lines.append("")
 
     # 未知コマンド (全ファイル集計)
@@ -613,17 +655,26 @@ def build_markdown_report(report: dict[str, Any]) -> str:
         for char_info in f["unknownCharacterIds"]:
             cid = char_info["sourceCharacterId"]
             if cid not in all_unknown_chars:
-                all_unknown_chars[cid] = {"sourceCharacterId": cid, "count": 0, "files": set(), "sampleLines": []}
+                all_unknown_chars[cid] = {
+                    "sourceCharacterId": cid,
+                    "count": 0,
+                    "files": set(),
+                    "sampleLines": [],
+                }
             all_unknown_chars[cid]["count"] += char_info["count"]
             all_unknown_chars[cid]["files"].add(f["file"])
             if len(all_unknown_chars[cid]["sampleLines"]) < 2:
-                all_unknown_chars[cid]["sampleLines"].extend(char_info.get("sampleLines", []))
+                all_unknown_chars[cid]["sampleLines"].extend(
+                    char_info.get("sampleLines", [])
+                )
     if all_unknown_chars:
         lines.append("## ⚠️ 未登録キャラクターID")
         lines.append("")
         lines.append("| キャラクターID | 出現回数 | サンプル行 |")
         lines.append("|---|---:|---|")
-        for cid, info in sorted(all_unknown_chars.items(), key=lambda x: int(x[0]) if x[0].isdigit() else 0):
+        for cid, info in sorted(
+            all_unknown_chars.items(), key=lambda x: int(x[0]) if x[0].isdigit() else 0
+        ):
             sample = ""
             if info["sampleLines"]:
                 sl = info["sampleLines"][0]
@@ -633,7 +684,9 @@ def build_markdown_report(report: dict[str, Any]) -> str:
 
     lines.append("---")
     lines.append("")
-    lines.append("*このレポートは DKB Script Compatibility Checker が自動生成しました。*")
+    lines.append(
+        "*このレポートは DKB Script Compatibility Checker が自動生成しました。*"
+    )
     lines.append("")
 
     return "\n".join(lines)
@@ -642,6 +695,7 @@ def build_markdown_report(report: dict[str, Any]) -> str:
 # ----------------------------------------------------------------
 # Main
 # ----------------------------------------------------------------
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -659,12 +713,14 @@ def parse_args() -> argparse.Namespace:
         help="チェック対象のファイルまたはディレクトリ",
     )
     parser.add_argument(
-        "--output", "-o",
+        "--output",
+        "-o",
         default=str(DEFAULT_OUTPUT_DIR),
         help=f"レポート出力先ディレクトリ (デフォルト: {DEFAULT_OUTPUT_DIR})",
     )
     parser.add_argument(
-        "--commands", "-c",
+        "--commands",
+        "-c",
         default=str(DEFAULT_COMMANDS_CONFIG),
         help=f"コマンド辞書YAMLのパス (デフォルト: {DEFAULT_COMMANDS_CONFIG})",
     )
@@ -679,7 +735,8 @@ def parse_args() -> argparse.Namespace:
         help="Markdownレポートを出力しない",
     )
     parser.add_argument(
-        "--quiet", "-q",
+        "--quiet",
+        "-q",
         action="store_true",
         help="進捗メッセージを抑制する",
     )
@@ -706,7 +763,7 @@ def main() -> int:
     speech_hints = get_new_speech_hints(config)
 
     if not args.quiet:
-        print(f"[DKB] Script Compatibility Checker")
+        print("[DKB] Script Compatibility Checker")
         print(f"[DKB] 対象: {target}")
         print(f"[DKB] 既知コマンド数: {len(known_commands)}")
         print(f"[DKB] 登録キャラクター数: {len(char_map)}")

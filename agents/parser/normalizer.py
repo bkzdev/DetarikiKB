@@ -26,6 +26,7 @@ PARSER_VERSION = "0.2.0"
 # ID Generator
 # ----------------------------------------------------------------
 
+
 class IdGenerator:
     """
     Identifier_Specification.md に準拠した ID を生成する。
@@ -75,6 +76,7 @@ class IdGenerator:
 # Normalizer
 # ----------------------------------------------------------------
 
+
 class Normalizer:
     """
     ParseResult → Normalized Story JSON (dict) へ変換する。
@@ -111,7 +113,9 @@ class Normalizer:
         self.source_path = source_path
         self.preserve_stage_directions = preserve_stage_directions
 
-    def normalize(self, parse_result: ParseResult, line_count: int | None = None) -> dict[str, Any]:
+    def normalize(
+        self, parse_result: ParseResult, line_count: int | None = None
+    ) -> dict[str, Any]:
         """ParseResult を Normalized Story JSON の dict へ変換する"""
 
         episodes_json = self._normalize_episodes(parse_result.episodes)
@@ -202,7 +206,11 @@ class Normalizer:
     def _normalize_episodes(self, episodes: list[EpisodeData]) -> list[dict]:
         results = []
         for ep_number, episode in enumerate(episodes, start=1):
-            ep_id = self.episode_id if ep_number == 1 else f"{self.story_id}_E{ep_number:02d}"
+            ep_id = (
+                self.episode_id
+                if ep_number == 1
+                else f"{self.story_id}_E{ep_number:02d}"
+            )
             results.append(self._normalize_episode(episode, ep_id, ep_number))
         return results
 
@@ -218,10 +226,7 @@ class Normalizer:
         assignments_json = [rec.to_dict() for rec in episode.speaker_assignments]
 
         # scenes
-        scenes_json = [
-            self._normalize_scene(scene, id_gen)
-            for scene in episode.scenes
-        ]
+        scenes_json = [self._normalize_scene(scene, id_gen) for scene in episode.scenes]
 
         ep_meta: dict[str, Any] = {
             "episodeTitle": None,
@@ -246,10 +251,7 @@ class Normalizer:
     def _normalize_scene(self, scene: SceneData, id_gen: IdGenerator) -> dict[str, Any]:
         scene_id = id_gen.next_scene_id()
 
-        blocks_json = [
-            self._normalize_block(block, id_gen)
-            for block in scene.blocks
-        ]
+        blocks_json = [self._normalize_block(block, id_gen) for block in scene.blocks]
 
         location: dict[str, Any] = {
             "locationId": None,
@@ -344,14 +346,15 @@ class Normalizer:
         for i, opt in enumerate(block.options, start=1):
             opt_id = id_gen.next_choice_option_id(block_id, i)
             inner_blocks = [
-                self._normalize_block(b, id_gen)
-                for b in opt.get("blocks", [])
+                self._normalize_block(b, id_gen) for b in opt.get("blocks", [])
             ]
-            options_json.append({
-                "optionId": opt_id,
-                "optionText": opt.get("optionText", ""),
-                "blocks": inner_blocks,
-            })
+            options_json.append(
+                {
+                    "optionId": opt_id,
+                    "optionText": opt.get("optionText", ""),
+                    "blocks": inner_blocks,
+                }
+            )
 
         return {
             "id": block_id,

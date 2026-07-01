@@ -13,18 +13,14 @@ Phase 1 モジュール:
     exporter   - JSON ファイル出力
 """
 
-from .tokenizer import (
-    ScriptToken,
-    TokenType,
-    Tokenizer,
-    tokenize_file,
-    tokenize_text,
+from .exporter import (
+    Exporter,
+    export_json,
 )
-from .resolver import (
-    CharacterDictionary,
-    Speaker,
-    SpeakerAssignmentRecord,
-    SpeakerResolver,
+from .normalizer import (
+    PARSER_VERSION,
+    IdGenerator,
+    Normalizer,
 )
 from .parser import (
     BlockData,
@@ -33,14 +29,18 @@ from .parser import (
     SceneData,
     StoryParser,
 )
-from .normalizer import (
-    IdGenerator,
-    Normalizer,
-    PARSER_VERSION,
+from .resolver import (
+    CharacterDictionary,
+    Speaker,
+    SpeakerAssignmentRecord,
+    SpeakerResolver,
 )
-from .exporter import (
-    Exporter,
-    export_json,
+from .tokenizer import (
+    ScriptToken,
+    Tokenizer,
+    TokenType,
+    tokenize_file,
+    tokenize_text,
 )
 
 __all__ = [

@@ -8,15 +8,14 @@ Phase 5 (Parser_Implementation_Plan.md)
 from __future__ import annotations
 
 import json
-import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-
 
 # ----------------------------------------------------------------
 # Speaker データクラス
 # ----------------------------------------------------------------
+
 
 @dataclass
 class Speaker:
@@ -47,7 +46,9 @@ class Speaker:
         }
 
     @classmethod
-    def unknown(cls, slot: str | None = None, source_character_id: str | None = None) -> "Speaker":
+    def unknown(
+        cls, slot: str | None = None, source_character_id: str | None = None
+    ) -> "Speaker":
         """未解決話者を生成する"""
         if source_character_id:
             name = f"不明人物(ID:{source_character_id})"
@@ -67,6 +68,7 @@ class Speaker:
 # ----------------------------------------------------------------
 # CharacterDictionary
 # ----------------------------------------------------------------
+
 
 class CharacterDictionary:
     """
@@ -123,6 +125,7 @@ class CharacterDictionary:
 # SpeakerAssignment 記録
 # ----------------------------------------------------------------
 
+
 @dataclass
 class SpeakerAssignmentRecord:
     """話者スロット割り当て記録 (Episode.speakerAssignments 用)"""
@@ -155,6 +158,7 @@ class SpeakerAssignmentRecord:
 # ----------------------------------------------------------------
 # SpeakerResolver
 # ----------------------------------------------------------------
+
 
 class SpeakerResolver:
     """
@@ -314,7 +318,9 @@ class SpeakerResolver:
         """
         return self._slot_map.get(str(slot), Speaker.unknown(slot=str(slot)))
 
-    def resolve_from_command_name(self, speaker_name: str, slot: str | None = None) -> Speaker:
+    def resolve_from_command_name(
+        self, speaker_name: str, slot: str | None = None
+    ) -> Speaker:
         """
         @ChTalkName コマンドから直接話者名を取得する場合。
         speakerId は null、isResolved は False とする。
@@ -334,7 +340,9 @@ class SpeakerResolver:
     # 内部ヘルパー
     # ----------------------------------------------------------------
 
-    def _resolve_character_id(self, source_character_id: str, slot: str | None = None) -> Speaker:
+    def _resolve_character_id(
+        self, source_character_id: str, slot: str | None = None
+    ) -> Speaker:
         """
         source_character_id から Speaker を生成する。
         辞書に存在すれば is_resolved=True、なければ False。

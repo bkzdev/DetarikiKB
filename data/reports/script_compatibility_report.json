@@ -1,20 +1,871 @@
 {
   "schemaVersion": "0.1",
   "documentType": "script_compatibility_report",
-  "generatedAt": "2026-07-01T14:05:52.602440+00:00",
+  "generatedAt": "2026-07-01T15:02:56.762552+00:00",
   "targetFiles": [
+    "tests\\fixtures\\parser\\basic_dialogue.dec",
+    "tests\\fixtures\\parser\\CAB-csl_script_charastory_character234-episode1.dec",
+    "tests\\fixtures\\parser\\CAB-csl_script_event_260504_childwb_event-episode1.dec",
+    "tests\\fixtures\\parser\\CAB-csl_script_event_260609_tukasahome-episode1.dec",
+    "tests\\fixtures\\parser\\CAB-csl_script_event_260624_cosplay_event-episode1.dec",
+    "tests\\fixtures\\parser\\CAB-csl_script_mainstory_chapter68-main1.dec",
+    "tests\\fixtures\\parser\\CAB-csl_script_surprise_character234Surprise_1.dec",
     "tests\\fixtures\\parser\\unknown_char.dec"
   ],
   "summary": {
-    "totalFiles": 1,
-    "totalLines": 18,
-    "parserCompatibility": "warning",
-    "unknownCommandCount": 1,
-    "newSpeechCommandCount": 0,
-    "unknownCharacterIdCount": 1,
-    "controlCharsRemoved": 0
+    "totalFiles": 8,
+    "totalLines": 9993,
+    "parserCompatibility": "needs_update",
+    "unknownCommandCount": 34,
+    "newSpeechCommandCount": 8,
+    "unknownCharacterIdCount": 17,
+    "controlCharsRemoved": 19
   },
   "files": [
+    {
+      "file": "basic_dialogue.dec",
+      "filePath": "tests\\fixtures\\parser\\basic_dialogue.dec",
+      "parserCompatibility": "compatible",
+      "lineCount": 35,
+      "unknownCommands": [],
+      "newSpeechCommands": [],
+      "changedCommandPatterns": [],
+      "unknownCharacterIds": [],
+      "branchIssues": [],
+      "controlCharsRemoved": 0,
+      "caseVariants": [],
+      "hyphenOptionLines": 0
+    },
+    {
+      "file": "CAB-csl_script_charastory_character234-episode1.dec",
+      "filePath": "tests\\fixtures\\parser\\CAB-csl_script_charastory_character234-episode1.dec",
+      "parserCompatibility": "needs_update",
+      "lineCount": 1331,
+      "unknownCommands": [
+        {
+          "command": "@IsLoading",
+          "count": 5,
+          "sampleLines": [
+            {
+              "lineNumber": 28,
+              "raw": "@IsLoading"
+            },
+            {
+              "lineNumber": 31,
+              "raw": "@IsLoading"
+            },
+            {
+              "lineNumber": 34,
+              "raw": "@IsLoading"
+            }
+          ]
+        },
+        {
+          "command": "@MotionWait",
+          "count": 73,
+          "sampleLines": [
+            {
+              "lineNumber": 39,
+              "raw": "@MotionWait c_idle_103"
+            },
+            {
+              "lineNumber": 47,
+              "raw": "@MotionWait c_idle_306"
+            },
+            {
+              "lineNumber": 53,
+              "raw": "@MotionWait c_idle_315"
+            }
+          ]
+        },
+        {
+          "command": "@TalkCamera3",
+          "count": 1,
+          "sampleLines": [
+            {
+              "lineNumber": 56,
+              "raw": "@TalkCamera3"
+            }
+          ]
+        },
+        {
+          "command": "@TalkFadeIn",
+          "count": 1,
+          "sampleLines": [
+            {
+              "lineNumber": 78,
+              "raw": "@TalkFadeIn"
+            }
+          ]
+        },
+        {
+          "command": "@FadeOutWhite",
+          "count": 1,
+          "sampleLines": [
+            {
+              "lineNumber": 1327,
+              "raw": "@FadeOutWhite"
+            }
+          ]
+        }
+      ],
+      "newSpeechCommands": [
+        {
+          "command": "@TalkCamera3",
+          "reason": "Command name contains speech-related keyword.",
+          "severity": "high",
+          "suggestedType": "dialogue",
+          "sampleLine": {
+            "lineNumber": 56,
+            "raw": "@TalkCamera3"
+          }
+        },
+        {
+          "command": "@TalkFadeIn",
+          "reason": "Command name contains speech-related keyword.",
+          "severity": "high",
+          "suggestedType": "dialogue",
+          "sampleLine": {
+            "lineNumber": 78,
+            "raw": "@TalkFadeIn"
+          }
+        }
+      ],
+      "changedCommandPatterns": [],
+      "unknownCharacterIds": [
+        {
+          "sourceCharacterId": "234",
+          "count": 1,
+          "sampleLines": [
+            {
+              "lineNumber": 5,
+              "raw": "$num1 = 234"
+            }
+          ]
+        },
+        {
+          "sourceCharacterId": "225",
+          "count": 1,
+          "sampleLines": [
+            {
+              "lineNumber": 7,
+              "raw": "$num2 = 225"
+            }
+          ]
+        },
+        {
+          "sourceCharacterId": "222",
+          "count": 1,
+          "sampleLines": [
+            {
+              "lineNumber": 9,
+              "raw": "$num3 = 222"
+            }
+          ]
+        }
+      ],
+      "branchIssues": [],
+      "controlCharsRemoved": 7,
+      "caseVariants": [
+        {
+          "normalizedCommand": "@ChCameraOff",
+          "variants": [
+            "@ChCameraoff"
+          ],
+          "count": 1
+        }
+      ],
+      "hyphenOptionLines": 0
+    },
+    {
+      "file": "CAB-csl_script_event_260504_childwb_event-episode1.dec",
+      "filePath": "tests\\fixtures\\parser\\CAB-csl_script_event_260504_childwb_event-episode1.dec",
+      "parserCompatibility": "warning",
+      "lineCount": 2274,
+      "unknownCommands": [
+        {
+          "command": "@IsLoading",
+          "count": 13,
+          "sampleLines": [
+            {
+              "lineNumber": 61,
+              "raw": "@IsLoading"
+            },
+            {
+              "lineNumber": 64,
+              "raw": "@IsLoading"
+            },
+            {
+              "lineNumber": 67,
+              "raw": "@IsLoading"
+            }
+          ]
+        },
+        {
+          "command": "@MotionWait",
+          "count": 121,
+          "sampleLines": [
+            {
+              "lineNumber": 90,
+              "raw": "@MotionWait c_idle_315"
+            },
+            {
+              "lineNumber": 96,
+              "raw": "@MotionWait c_idle_306"
+            },
+            {
+              "lineNumber": 103,
+              "raw": "@MotionWait c_idle_202"
+            }
+          ]
+        },
+        {
+          "command": "@DoubleScreen",
+          "count": 1,
+          "sampleLines": [
+            {
+              "lineNumber": 253,
+              "raw": "@DoubleScreen 3 0"
+            }
+          ]
+        },
+        {
+          "command": "@ChBlueMan/BlueMan2",
+          "count": 1,
+          "sampleLines": [
+            {
+              "lineNumber": 344,
+              "raw": "@ChBlueMan/BlueMan2 0 1 22"
+            }
+          ]
+        },
+        {
+          "command": "@FadeOutWhite",
+          "count": 1,
+          "sampleLines": [
+            {
+              "lineNumber": 2270,
+              "raw": "@FadeOutWhite"
+            }
+          ]
+        }
+      ],
+      "newSpeechCommands": [],
+      "changedCommandPatterns": [],
+      "unknownCharacterIds": [
+        {
+          "sourceCharacterId": "257",
+          "count": 1,
+          "sampleLines": [
+            {
+              "lineNumber": 8,
+              "raw": "$num1 = 257"
+            }
+          ]
+        },
+        {
+          "sourceCharacterId": "258",
+          "count": 1,
+          "sampleLines": [
+            {
+              "lineNumber": 10,
+              "raw": "$num2 = 258"
+            }
+          ]
+        },
+        {
+          "sourceCharacterId": "230",
+          "count": 1,
+          "sampleLines": [
+            {
+              "lineNumber": 20,
+              "raw": "$num8 = 230"
+            }
+          ]
+        },
+        {
+          "sourceCharacterId": "222",
+          "count": 1,
+          "sampleLines": [
+            {
+              "lineNumber": 24,
+              "raw": "$num6 = 222"
+            }
+          ]
+        },
+        {
+          "sourceCharacterId": "228",
+          "count": 1,
+          "sampleLines": [
+            {
+              "lineNumber": 26,
+              "raw": "$num7 = 228"
+            }
+          ]
+        }
+      ],
+      "branchIssues": [],
+      "controlCharsRemoved": 8,
+      "caseVariants": [
+        {
+          "normalizedCommand": "@ChCameraOff",
+          "variants": [
+            "@ChCameraoff"
+          ],
+          "count": 1
+        },
+        {
+          "normalizedCommand": "@ChCharaEyeOff",
+          "variants": [
+            "@ChCharaEyeoff"
+          ],
+          "count": 1
+        },
+        {
+          "normalizedCommand": "@VisibleOff",
+          "variants": [
+            "@Visibleoff"
+          ],
+          "count": 1
+        },
+        {
+          "normalizedCommand": "@SmartphoneOff",
+          "variants": [
+            "@Smartphoneoff"
+          ],
+          "count": 1
+        }
+      ],
+      "hyphenOptionLines": 1
+    },
+    {
+      "file": "CAB-csl_script_event_260609_tukasahome-episode1.dec",
+      "filePath": "tests\\fixtures\\parser\\CAB-csl_script_event_260609_tukasahome-episode1.dec",
+      "parserCompatibility": "needs_update",
+      "lineCount": 2095,
+      "unknownCommands": [
+        {
+          "command": "@IsLoading",
+          "count": 12,
+          "sampleLines": [
+            {
+              "lineNumber": 41,
+              "raw": "@IsLoading"
+            },
+            {
+              "lineNumber": 44,
+              "raw": "@IsLoading"
+            },
+            {
+              "lineNumber": 47,
+              "raw": "@IsLoading"
+            }
+          ]
+        },
+        {
+          "command": "@MotionWait",
+          "count": 110,
+          "sampleLines": [
+            {
+              "lineNumber": 61,
+              "raw": "@MotionWait c_idle_11"
+            },
+            {
+              "lineNumber": 67,
+              "raw": "@MotionWait c_idle_305"
+            },
+            {
+              "lineNumber": 73,
+              "raw": "@MotionWait c_idle_1007"
+            }
+          ]
+        },
+        {
+          "command": "@TalkCamera3",
+          "count": 1,
+          "sampleLines": [
+            {
+              "lineNumber": 96,
+              "raw": "@TalkCamera3"
+            }
+          ]
+        },
+        {
+          "command": "@TalkFadeIn",
+          "count": 1,
+          "sampleLines": [
+            {
+              "lineNumber": 131,
+              "raw": "@TalkFadeIn"
+            }
+          ]
+        },
+        {
+          "command": "@DoubleScreen",
+          "count": 1,
+          "sampleLines": [
+            {
+              "lineNumber": 1326,
+              "raw": "@DoubleScreen 3 1"
+            }
+          ]
+        },
+        {
+          "command": "@FadeOutWhite",
+          "count": 1,
+          "sampleLines": [
+            {
+              "lineNumber": 2092,
+              "raw": "@FadeOutWhite"
+            }
+          ]
+        }
+      ],
+      "newSpeechCommands": [
+        {
+          "command": "@TalkCamera3",
+          "reason": "Command name contains speech-related keyword.",
+          "severity": "high",
+          "suggestedType": "dialogue",
+          "sampleLine": {
+            "lineNumber": 96,
+            "raw": "@TalkCamera3"
+          }
+        },
+        {
+          "command": "@TalkFadeIn",
+          "reason": "Command name contains speech-related keyword.",
+          "severity": "high",
+          "suggestedType": "dialogue",
+          "sampleLine": {
+            "lineNumber": 131,
+            "raw": "@TalkFadeIn"
+          }
+        }
+      ],
+      "changedCommandPatterns": [],
+      "unknownCharacterIds": [
+        {
+          "sourceCharacterId": "234",
+          "count": 1,
+          "sampleLines": [
+            {
+              "lineNumber": 5,
+              "raw": "$num1 = 234"
+            }
+          ]
+        },
+        {
+          "sourceCharacterId": "230",
+          "count": 1,
+          "sampleLines": [
+            {
+              "lineNumber": 10,
+              "raw": "$num3 = 230"
+            }
+          ]
+        },
+        {
+          "sourceCharacterId": "85",
+          "count": 1,
+          "sampleLines": [
+            {
+              "lineNumber": 12,
+              "raw": "$num4 = 85"
+            }
+          ]
+        },
+        {
+          "sourceCharacterId": "86",
+          "count": 1,
+          "sampleLines": [
+            {
+              "lineNumber": 14,
+              "raw": "$num5 = 86"
+            }
+          ]
+        },
+        {
+          "sourceCharacterId": "225",
+          "count": 1,
+          "sampleLines": [
+            {
+              "lineNumber": 16,
+              "raw": "$num6 = 225"
+            }
+          ]
+        }
+      ],
+      "branchIssues": [],
+      "controlCharsRemoved": 0,
+      "caseVariants": [
+        {
+          "normalizedCommand": "@ChCameraOff",
+          "variants": [
+            "@ChCameraoff"
+          ],
+          "count": 1
+        },
+        {
+          "normalizedCommand": "@VisibleOff",
+          "variants": [
+            "@Visibleoff"
+          ],
+          "count": 1
+        }
+      ],
+      "hyphenOptionLines": 1
+    },
+    {
+      "file": "CAB-csl_script_event_260624_cosplay_event-episode1.dec",
+      "filePath": "tests\\fixtures\\parser\\CAB-csl_script_event_260624_cosplay_event-episode1.dec",
+      "parserCompatibility": "needs_update",
+      "lineCount": 2159,
+      "unknownCommands": [
+        {
+          "command": "@IsLoading",
+          "count": 17,
+          "sampleLines": [
+            {
+              "lineNumber": 44,
+              "raw": "@IsLoading"
+            },
+            {
+              "lineNumber": 47,
+              "raw": "@IsLoading"
+            },
+            {
+              "lineNumber": 50,
+              "raw": "@IsLoading"
+            }
+          ]
+        },
+        {
+          "command": "@MotionWait",
+          "count": 130,
+          "sampleLines": [
+            {
+              "lineNumber": 64,
+              "raw": "@MotionWait c_idle_6"
+            },
+            {
+              "lineNumber": 70,
+              "raw": "@MotionWait c_idle_10"
+            },
+            {
+              "lineNumber": 76,
+              "raw": "@MotionWait c_idle_15"
+            }
+          ]
+        },
+        {
+          "command": "@TalkCamera3",
+          "count": 1,
+          "sampleLines": [
+            {
+              "lineNumber": 99,
+              "raw": "@TalkCamera3"
+            }
+          ]
+        },
+        {
+          "command": "@ChBlueMan/BlueMan2",
+          "count": 1,
+          "sampleLines": [
+            {
+              "lineNumber": 1472,
+              "raw": "@ChBlueMan/BlueMan2 0 1 22"
+            }
+          ]
+        },
+        {
+          "command": "@ChColor2",
+          "count": 2,
+          "sampleLines": [
+            {
+              "lineNumber": 1842,
+              "raw": "@ChColor2 50"
+            },
+            {
+              "lineNumber": 2111,
+              "raw": "@ChColor2 25"
+            }
+          ]
+        },
+        {
+          "command": "@ChColor2off",
+          "count": 1,
+          "sampleLines": [
+            {
+              "lineNumber": 1921,
+              "raw": "@ChColor2off 50"
+            }
+          ]
+        },
+        {
+          "command": "@FadeOutWhite",
+          "count": 1,
+          "sampleLines": [
+            {
+              "lineNumber": 2155,
+              "raw": "@FadeOutWhite"
+            }
+          ]
+        }
+      ],
+      "newSpeechCommands": [
+        {
+          "command": "@TalkCamera3",
+          "reason": "Command name contains speech-related keyword.",
+          "severity": "high",
+          "suggestedType": "dialogue",
+          "sampleLine": {
+            "lineNumber": 99,
+            "raw": "@TalkCamera3"
+          }
+        }
+      ],
+      "changedCommandPatterns": [],
+      "unknownCharacterIds": [
+        {
+          "sourceCharacterId": "83",
+          "count": 1,
+          "sampleLines": [
+            {
+              "lineNumber": 15,
+              "raw": "$num4 = 83"
+            }
+          ]
+        },
+        {
+          "sourceCharacterId": "232",
+          "count": 1,
+          "sampleLines": [
+            {
+              "lineNumber": 17,
+              "raw": "$num5 = 232"
+            }
+          ]
+        }
+      ],
+      "branchIssues": [],
+      "controlCharsRemoved": 0,
+      "caseVariants": [
+        {
+          "normalizedCommand": "@VisibleOff",
+          "variants": [
+            "@Visibleoff"
+          ],
+          "count": 1
+        }
+      ],
+      "hyphenOptionLines": 0
+    },
+    {
+      "file": "CAB-csl_script_mainstory_chapter68-main1.dec",
+      "filePath": "tests\\fixtures\\parser\\CAB-csl_script_mainstory_chapter68-main1.dec",
+      "parserCompatibility": "needs_update",
+      "lineCount": 1862,
+      "unknownCommands": [
+        {
+          "command": "@IsLoading",
+          "count": 3,
+          "sampleLines": [
+            {
+              "lineNumber": 27,
+              "raw": "@IsLoading"
+            },
+            {
+              "lineNumber": 30,
+              "raw": "@IsLoading"
+            },
+            {
+              "lineNumber": 33,
+              "raw": "@IsLoading"
+            }
+          ]
+        },
+        {
+          "command": "@MotionWait",
+          "count": 100,
+          "sampleLines": [
+            {
+              "lineNumber": 38,
+              "raw": "@MotionWait c_idle_101"
+            },
+            {
+              "lineNumber": 44,
+              "raw": "@MotionWait c_idle_12"
+            },
+            {
+              "lineNumber": 50,
+              "raw": "@MotionWait c_idle_314"
+            }
+          ]
+        },
+        {
+          "command": "@TalkCamera4",
+          "count": 1,
+          "sampleLines": [
+            {
+              "lineNumber": 105,
+              "raw": "@TalkCamera4"
+            }
+          ]
+        },
+        {
+          "command": "@TalkFadeIn",
+          "count": 1,
+          "sampleLines": [
+            {
+              "lineNumber": 113,
+              "raw": "@TalkFadeIn"
+            }
+          ]
+        },
+        {
+          "command": "@FadeOutWhite",
+          "count": 1,
+          "sampleLines": [
+            {
+              "lineNumber": 1856,
+              "raw": "@FadeOutWhite"
+            }
+          ]
+        }
+      ],
+      "newSpeechCommands": [
+        {
+          "command": "@TalkCamera4",
+          "reason": "Command name contains speech-related keyword.",
+          "severity": "high",
+          "suggestedType": "dialogue",
+          "sampleLine": {
+            "lineNumber": 105,
+            "raw": "@TalkCamera4"
+          }
+        },
+        {
+          "command": "@TalkFadeIn",
+          "reason": "Command name contains speech-related keyword.",
+          "severity": "high",
+          "suggestedType": "dialogue",
+          "sampleLine": {
+            "lineNumber": 113,
+            "raw": "@TalkFadeIn"
+          }
+        }
+      ],
+      "changedCommandPatterns": [],
+      "unknownCharacterIds": [],
+      "branchIssues": [],
+      "controlCharsRemoved": 2,
+      "caseVariants": [],
+      "hyphenOptionLines": 5
+    },
+    {
+      "file": "CAB-csl_script_surprise_character234Surprise_1.dec",
+      "filePath": "tests\\fixtures\\parser\\CAB-csl_script_surprise_character234Surprise_1.dec",
+      "parserCompatibility": "needs_update",
+      "lineCount": 219,
+      "unknownCommands": [
+        {
+          "command": "@IsLoading",
+          "count": 1,
+          "sampleLines": [
+            {
+              "lineNumber": 21,
+              "raw": "@IsLoading"
+            }
+          ]
+        },
+        {
+          "command": "@MotionWait",
+          "count": 11,
+          "sampleLines": [
+            {
+              "lineNumber": 26,
+              "raw": "@MotionWait m_norm_walk"
+            },
+            {
+              "lineNumber": 87,
+              "raw": "@MotionWait tukasa_idle"
+            },
+            {
+              "lineNumber": 102,
+              "raw": "@MotionWait c_idle_18"
+            }
+          ]
+        },
+        {
+          "command": "@TalkCamera3",
+          "count": 1,
+          "sampleLines": [
+            {
+              "lineNumber": 30,
+              "raw": "@TalkCamera3"
+            }
+          ]
+        },
+        {
+          "command": "@ChColor2",
+          "count": 1,
+          "sampleLines": [
+            {
+              "lineNumber": 204,
+              "raw": "@ChColor2 25"
+            }
+          ]
+        },
+        {
+          "command": "@FadeOutWhite",
+          "count": 1,
+          "sampleLines": [
+            {
+              "lineNumber": 215,
+              "raw": "@FadeOutWhite"
+            }
+          ]
+        }
+      ],
+      "newSpeechCommands": [
+        {
+          "command": "@TalkCamera3",
+          "reason": "Command name contains speech-related keyword.",
+          "severity": "high",
+          "suggestedType": "dialogue",
+          "sampleLine": {
+            "lineNumber": 30,
+            "raw": "@TalkCamera3"
+          }
+        }
+      ],
+      "changedCommandPatterns": [],
+      "unknownCharacterIds": [
+        {
+          "sourceCharacterId": "234",
+          "count": 1,
+          "sampleLines": [
+            {
+              "lineNumber": 5,
+              "raw": "$num1 = 234"
+            }
+          ]
+        }
+      ],
+      "branchIssues": [],
+      "controlCharsRemoved": 2,
+      "caseVariants": [
+        {
+          "normalizedCommand": "@ChCameraOff",
+          "variants": [
+            "@ChCameraoff"
+          ],
+          "count": 1
+        }
+      ],
+      "hyphenOptionLines": 1
+    },
     {
       "file": "unknown_char.dec",
       "filePath": "tests\\fixtures\\parser\\unknown_char.dec",

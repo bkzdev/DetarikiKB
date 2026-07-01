@@ -49,7 +49,9 @@ from agents.parser import (
     StoryParser,
 )
 
-DEFAULT_CHARACTERS_PATH = _PROJECT_ROOT / "reference" / "parser" / "characters_reference.json"
+DEFAULT_CHARACTERS_PATH = (
+    _PROJECT_ROOT / "reference" / "parser" / "characters_reference.json"
+)
 DEFAULT_SCHEMA_PATH = _PROJECT_ROOT / "schemas" / "story.schema.json"
 DEFAULT_COMMANDS_CONFIG = _PROJECT_ROOT / "config" / "script_commands.yaml"
 
@@ -57,6 +59,7 @@ DEFAULT_COMMANDS_CONFIG = _PROJECT_ROOT / "config" / "script_commands.yaml"
 # ----------------------------------------------------------------
 # Argument Parser
 # ----------------------------------------------------------------
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -82,7 +85,8 @@ def parse_args() -> argparse.Namespace:
 
     # 必須引数
     parser.add_argument(
-        "--input", "-i",
+        "--input",
+        "-i",
         required=True,
         help="変換する Raw Script ファイルのパス (.dec / .txt)",
     )
@@ -94,7 +98,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--category",
         required=True,
-        choices=["MAIN", "EVT", "RAID", "OTHER", "CHAR_MAIN", "CHAR_EXTRA", "CHAR_DATE"],
+        choices=[
+            "MAIN",
+            "EVT",
+            "RAID",
+            "OTHER",
+            "CHAR_MAIN",
+            "CHAR_EXTRA",
+            "CHAR_DATE",
+        ],
         help="ストーリーカテゴリ",
     )
 
@@ -105,7 +117,8 @@ def parse_args() -> argparse.Namespace:
         help="Episode ID (省略時は --story-id + _E01 を自動設定)",
     )
     parser.add_argument(
-        "--output", "-o",
+        "--output",
+        "-o",
         default=str(_PROJECT_ROOT / "data" / "normalized"),
         help="出力先ディレクトリ (デフォルト: data/normalized/)",
     )
@@ -120,7 +133,8 @@ def parse_args() -> argparse.Namespace:
         help=f"キャラクター辞書 JSON (デフォルト: {DEFAULT_CHARACTERS_PATH})",
     )
     parser.add_argument(
-        "--validate", "-v",
+        "--validate",
+        "-v",
         action="store_true",
         help="出力 JSON を story.schema.json で検証する",
     )
@@ -160,7 +174,8 @@ def parse_args() -> argparse.Namespace:
         help="--category に応じたサブディレクトリへ出力する (main/ event/ など)",
     )
     parser.add_argument(
-        "--quiet", "-q",
+        "--quiet",
+        "-q",
         action="store_true",
         help="進捗メッセージを抑制する",
     )
@@ -171,6 +186,7 @@ def parse_args() -> argparse.Namespace:
 # ----------------------------------------------------------------
 # Main
 # ----------------------------------------------------------------
+
 
 def main() -> int:
     args = parse_args()
@@ -184,7 +200,7 @@ def main() -> int:
     preserve_stage = not args.no_stage_directions
 
     if not args.quiet:
-        print(f"[DKB] normalize_story")
+        print("[DKB] normalize_story")
         print(f"[DKB] 入力ファイル: {input_path}")
         print(f"[DKB] story_id:     {args.story_id}")
         print(f"[DKB] episode_id:   {episode_id}")
@@ -208,16 +224,19 @@ def main() -> int:
     # ----------------------------------------------------------------
     if args.check_compat:
         if not args.quiet:
-            print(f"[DKB] 互換性チェック実行中...")
+            print("[DKB] 互換性チェック実行中...")
         try:
             import subprocess
+
             result = subprocess.run(
                 [
                     sys.executable,
                     str(_PROJECT_ROOT / "scripts" / "check_script_compatibility.py"),
                     str(input_path),
-                    "--commands", args.commands,
-                    "--characters", args.characters,
+                    "--commands",
+                    args.commands,
+                    "--characters",
+                    args.characters,
                     "--quiet",
                 ],
                 capture_output=True,
@@ -226,7 +245,10 @@ def main() -> int:
             if result.stdout:
                 print(result.stdout)
             if result.returncode == 2:
-                print("[エラー] 互換性チェック結果: blocked — 処理を中断します", file=sys.stderr)
+                print(
+                    "[エラー] 互換性チェック結果: blocked — 処理を中断します",
+                    file=sys.stderr,
+                )
                 return 2
         except Exception as e:
             print(f"[警告] 互換性チェックの実行に失敗しました: {e}", file=sys.stderr)
@@ -235,7 +257,7 @@ def main() -> int:
     # Parse
     # ----------------------------------------------------------------
     if not args.quiet:
-        print(f"[DKB] 解析中...")
+        print("[DKB] 解析中...")
 
     story_parser = StoryParser(
         char_dict=char_dict,
@@ -249,6 +271,7 @@ def main() -> int:
     except Exception as e:
         print(f"[エラー] 解析中にエラーが発生しました: {e}", file=sys.stderr)
         import traceback
+
         traceback.print_exc()
         return 1
 
@@ -256,7 +279,7 @@ def main() -> int:
     # Normalize
     # ----------------------------------------------------------------
     if not args.quiet:
-        print(f"[DKB] 正規化中...")
+        print("[DKB] 正規化中...")
 
     story_metadata: dict = {}
     if args.story_title:
@@ -286,6 +309,7 @@ def main() -> int:
     except Exception as e:
         print(f"[エラー] 正規化中にエラーが発生しました: {e}", file=sys.stderr)
         import traceback
+
         traceback.print_exc()
         return 1
 
@@ -305,6 +329,7 @@ def main() -> int:
     except Exception as e:
         print(f"[エラー] 出力中にエラーが発生しました: {e}", file=sys.stderr)
         import traceback
+
         traceback.print_exc()
         return 1
 
@@ -316,7 +341,7 @@ def main() -> int:
     # ----------------------------------------------------------------
     if args.validate:
         if not args.quiet:
-            print(f"[DKB] JSON Schema 検証中...")
+            print("[DKB] JSON Schema 検証中...")
         exit_code = validate_schema(story_json, Path(args.schema), args.quiet)
         if exit_code != 0:
             return exit_code
@@ -339,8 +364,8 @@ def main() -> int:
             for sc in ep.get("scenes", []):
                 total_blocks += len(sc.get("blocks", []))
 
-        print(f"")
-        print(f"[DKB] 完了:")
+        print("")
+        print("[DKB] 完了:")
         print(f"  互換性:       {status_label}")
         print(f"  エピソード数: {len(story_json.get('episodes', []))}")
         print(f"  総ブロック数: {total_blocks}")
@@ -357,12 +382,17 @@ def validate_schema(story_json: dict, schema_path: Path, quiet: bool = False) ->
     try:
         import jsonschema
     except ImportError:
-        print("[警告] jsonschema がインストールされていません。スキップします。", file=sys.stderr)
+        print(
+            "[警告] jsonschema がインストールされていません。スキップします。",
+            file=sys.stderr,
+        )
         print("       pip install jsonschema でインストールできます。", file=sys.stderr)
         return 0
 
     if not schema_path.exists():
-        print(f"[警告] スキーマファイルが見つかりません: {schema_path}", file=sys.stderr)
+        print(
+            f"[警告] スキーマファイルが見つかりません: {schema_path}", file=sys.stderr
+        )
         return 0
 
     try:
@@ -373,17 +403,22 @@ def validate_schema(story_json: dict, schema_path: Path, quiet: bool = False) ->
         errors = list(validator.iter_errors(story_json))
 
         if errors:
-            print(f"[エラー] JSON Schema 検証失敗: {len(errors)} 件のエラー", file=sys.stderr)
+            print(
+                f"[エラー] JSON Schema 検証失敗: {len(errors)} 件のエラー",
+                file=sys.stderr,
+            )
             for err in errors[:5]:  # 最大5件表示
                 print(f"  - {err.json_path}: {err.message}", file=sys.stderr)
             return 1
         else:
             if not quiet:
-                print(f"[DKB] JSON Schema 検証: ✅ 成功")
+                print("[DKB] JSON Schema 検証: ✅ 成功")
             return 0
 
     except Exception as e:
-        print(f"[エラー] JSON Schema 検証中にエラーが発生しました: {e}", file=sys.stderr)
+        print(
+            f"[エラー] JSON Schema 検証中にエラーが発生しました: {e}", file=sys.stderr
+        )
         return 1
 
 
