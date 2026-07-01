@@ -45,7 +45,8 @@ Extraction Result Schemaが前提とする入力は `Extraction_Pipeline.md` §2
 ## 3.1 対象ドキュメント
 
 本文書がフィールドを定義する対象は、`Extraction_Pipeline.md` §3.1 の二段階構成のうち、主にStage A（`data/extracted/_raw/{episodeId}.extraction.json`）に格納される候補オブジェクト群である。
-Stage B（マージ済みエンティティ）のフィールド構造は、Stage Aの候補オブジェクトが持つ `fields`（§4.3 FieldValue）をそのまま引き継ぐため、本文書ではStage A側の定義を正とし、Stage B固有のフィールド（`mergedFrom`/`lastMergedAt` 等）は `Extraction_Pipeline.md` §3.3 を参照する。
+Stage B（マージ済みエンティティ）のフィールド構造は、Stage Aの候補オブジェクトが持つ `fields`（§4.3 FieldValue）をそのまま引き継ぐため、本文書ではStage A側の定義を正とし、
+Stage B固有のフィールド（`mergedFrom`/`lastMergedAt` 等）は `Extraction_Pipeline.md` §3.3 を参照する。
 
 ## 3.2 episode_extraction ドキュメント構造の確定
 
@@ -92,7 +93,8 @@ Stage B（マージ済みエンティティ）のフィールド構造は、Stag
 
 # 4. 共通フィールド
 
-§6〜§13で定義するCandidateオブジェクト（CharacterCandidate / LocationCandidate / OrganizationCandidate / ItemCandidate / LoreCandidate / EventCandidate / RelationshipCandidate / TimelineCandidate）は、すべて以下の共通フィールドを持つ。
+§6〜§13で定義するCandidateオブジェクト（CharacterCandidate / LocationCandidate / OrganizationCandidate / ItemCandidate / LoreCandidate / EventCandidate / RelationshipCandidate / TimelineCandidate）は、
+すべて以下の共通フィールドを持つ。
 これを **CandidateEnvelope** と呼ぶ。
 
 ## 4.1 フィールド定義
@@ -601,7 +603,8 @@ data/reports/
 ```
 
 `RelationshipCandidate`用の`_unresolved/`ディレクトリは設けない。
-理由: Relationshipは`sourceCandidate`/`targetCandidate`双方が解決されて初めて意味を持つため、いずれかが未解決の間はStage Aの`relationships`配列内に留め置き、Stage Bマージ処理側で「両端が解決済みのRelationshipCandidateのみ`relationships/`へ昇格させる」というゲート条件を設ける（`Extraction_Pipeline.md` §9.2の`_unresolved/`方針を拡張）。
+理由: Relationshipは`sourceCandidate`/`targetCandidate`双方が解決されて初めて意味を持つため、いずれかが未解決の間はStage Aの`relationships`配列内に留め置き、
+Stage Bマージ処理側で「両端が解決済みのRelationshipCandidateのみ`relationships/`へ昇格させる」というゲート条件を設ける（`Extraction_Pipeline.md` §9.2の`_unresolved/`方針を拡張）。
 
 `data/extracted/`・`data/reports/extraction_errors/`はいずれも生成物であり、`.gitignore`の対象とする（`Extraction_Pipeline.md` §9.3と同じ方針）。
 

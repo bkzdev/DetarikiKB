@@ -64,15 +64,11 @@ AI Extraction / Knowledge Graph / Wiki Generation
 
 ## 3.1 現在のフェーズ
 
-**Parser Phase 1は完了した。**
+**Parser Phase 1は完了した**（`agents/parser/` 一式・`schemas/story.schema.json`・compatibility checker・テスト、`.dec` サンプルでの検証まで実装済み。mainへマージ済み）。
 
-`schemas/story.schema.json`、`config/script_commands.yaml`、`scripts/check_script_compatibility.py`、`agents/parser/`（tokenizer / resolver / parser / normalizer / exporter）、`scripts/normalize_story.py`、`tests/parser/` はすべて実装済みで、サンプル `.dec` ファイルによる検証も完了している（`feature/parser-phase1` としてmainへマージ済み）。
+現在は **Extraction Phaseの設計段階**。`Extraction_Pipeline.md`（パイプライン全体設計）・`Extraction_Result_Schema.md`（出力フィールド設計）の2文書で設計を固め終え、次は `schemas/extraction.schema.json` 系の実装に進む。
 
-現在は **Extraction Phaseの設計段階** にある。
-
-- `docs/architecture/06_AI/Extraction_Pipeline.md`: Extraction Phase全体の設計（抽出対象・処理単位・LLM providerの使い分け・保存方針）を作成済み
-- `docs/architecture/06_AI/Extraction_Result_Schema.md`: Extraction Phase出力のフィールドレベル設計（CandidateEnvelope・各Candidate型・EvidenceRef・ExtractionError）を作成済み
-- `agents/extractor/`、`schemas/extraction.schema.json` 等の **実装はまだ着手していない**（CLAUDE.md の方針により、明示的に指示があるまで着手しない）
+`agents/extractor/` の実装は、CLAUDE.mdの方針により明示的な指示があるまで着手しない。
 
 ## 3.2 このセクションの更新ルール
 
@@ -538,34 +534,10 @@ OpenAI API keyなどは `.env` または環境変数で管理する。
 
 # 14. 次にやること
 
-## 14.1 Parser Phase 1（完了済み）
+次の実装対象は `schemas/extraction.schema.json` 系（`evidence.schema.json` / `candidates/*_candidate.schema.json` / `extraction_error.schema.json` を含む）。
+ファイル構成の詳細は `Extraction_Result_Schema.md` §16.1を正とする（ここでは重複記載しない）。
 
-`Parser_Implementation_Plan.md` に従って以下をすべて実装済み。
-
-1. `schemas/story.schema.json`
-2. `config/script_commands.yaml`
-3. `scripts/check_script_compatibility.py`
-4. `agents/parser/tokenizer.py`
-5. `agents/parser/resolver.py`
-6. `agents/parser/parser.py`
-7. `agents/parser/normalizer.py`
-8. `agents/parser/exporter.py`
-9. `scripts/normalize_story.py`
-10. `tests/parser/`
-
-## 14.2 Extraction Phase（設計完了、実装未着手）
-
-`Extraction_Pipeline.md`・`Extraction_Result_Schema.md` の設計を反映したschema実装が次の対象になる（`Extraction_Result_Schema.md` §16.1参照）。ただし、CLAUDE.mdの方針により `agents/extractor/` の実装は明示的な指示があるまで着手しない。
-
-1. `schemas/evidence.schema.json`
-2. `schemas/candidates/candidate_envelope.schema.json`
-3. `schemas/candidates/field_value.schema.json`
-4. `schemas/candidates/*_candidate.schema.json`（character / location / organization / item / lore / event / relationship / timeline）
-5. `schemas/extraction_error.schema.json`
-6. `schemas/extraction.schema.json`（上記をまとめるルートschema）
-7. `agents/extractor/`（実装は指示待ち）
-
-着手前に解決しておくべき未確定事項は§16を参照。
+`agents/extractor/` の実装着手は指示待ち（§3.1）。着手前に解決しておくべき未確定事項は§16を参照。
 
 ---
 
@@ -605,25 +577,11 @@ AIエージェントへ渡す指示例:
 
 # 17. 現在の推奨判断
 
-Parser Phase 1は完了しているため、Parser本体への再着手は不要。
+Parser本体（`agents/parser/`）への再着手は不要（完了済み、§3.1）。
 
-Extraction Phaseは設計（`Extraction_Pipeline.md`・`Extraction_Result_Schema.md`）まで完了しており、次の自然な一歩はschema実装（§14.2）だが、以下は着手前に決めておいた方がよい。
+次の自然な一歩は `schemas/extraction.schema.json` 系の実装だが、着手前に以下を決めておく。
 
 - `relationshipType` の語彙（`Relationships.md`）を確定させるか、暫定的に自由文字列のまま実装するか
-- Extraction Phase実装（`agents/extractor/`）にいつ着手するかはユーザーの明示的な指示を待つ（CLAUDE.mdの方針）
+- `agents/extractor/` 本体の実装着手はユーザーの明示的な指示を待つ（CLAUDE.mdの方針）
 
-Parser Phase 1着手時に採った判断（参考）:
-
-```text
-schemas/story.schema.json
-config/script_commands.yaml
-scripts/check_script_compatibility.py
-```
-
-理由:
-
-- JSON出力の検証基準を先に作る
-- 新旧スクリプト差分を検知できるようにする
-- Parser実装時の破損を早期検出できる
-
-Extraction Phaseでも同じ考え方（検証基準を先に固める）を踏襲し、`schemas/extraction.schema.json` 系を`agents/extractor/`本体より先に作る（§14.2）。
+Parser Phase 1と同じ考え方（検証基準となるschemaを実体より先に作る）を踏襲する。
