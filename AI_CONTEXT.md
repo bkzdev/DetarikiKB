@@ -48,9 +48,7 @@ Knowledge Baseを唯一のSource of Truthとする。
 
 # 3. 現在の目的
 
-現在のフェーズは、Parser Phase 1の準備である。
-
-目標:
+目標のパイプライン全体:
 
 ```text
 Raw Script
@@ -64,16 +62,21 @@ JSON Schema Validation
 AI Extraction / Knowledge Graph / Wiki Generation
 ```
 
-今はまだ本格的なAI抽出やWiki生成には進まない。
+## 3.1 現在のフェーズ
 
-現在やるべきことは以下。
+**Parser Phase 1は完了した。**
 
-1. 設計書を読む
-2. `schemas/story.schema.json` を作る
-3. Script Compatibility Checkerを作る
-4. Parserの初期実装を作る
-5. サンプル `.dec` ファイルで検証する
-6. Unknown command / unknown character をレポートする
+`schemas/story.schema.json`、`config/script_commands.yaml`、`scripts/check_script_compatibility.py`、`agents/parser/`（tokenizer / resolver / parser / normalizer / exporter）、`scripts/normalize_story.py`、`tests/parser/` はすべて実装済みで、サンプル `.dec` ファイルによる検証も完了している（`feature/parser-phase1` としてmainへマージ済み）。
+
+現在は **Extraction Phaseの設計段階** にある。
+
+- `docs/architecture/06_AI/Extraction_Pipeline.md`: Extraction Phase全体の設計（抽出対象・処理単位・LLM providerの使い分け・保存方針）を作成済み
+- `docs/architecture/06_AI/Extraction_Result_Schema.md`: Extraction Phase出力のフィールドレベル設計（CandidateEnvelope・各Candidate型・EvidenceRef・ExtractionError）を作成済み
+- `agents/extractor/`、`schemas/extraction.schema.json` 等の **実装はまだ着手していない**（CLAUDE.md の方針により、明示的に指示があるまで着手しない）
+
+## 3.2 このセクションの更新ルール
+
+このセクションはプロジェクトの現在地を示す唯一の場所である。Phaseが完了する、または新しい設計書ができるたびに、このセクション（と§5の設計書一覧）を更新すること。更新を怠ると、次に参加するAIエージェントが古い前提（例: 「Parser Phase 1はまだ準備段階」）で作業を始めてしまう。
 
 ---
 
@@ -176,13 +179,20 @@ OpenAI APIは必要な補助用途のみ。
 
 # 5. 作成済み・配置済みの重要設計書
 
-以下の設計書がある前提で作業する。
+Parser関連（Phase 1で実装済み、以下の設計書がある前提で作業する）。
 
 ```text
 docs/architecture/05_Parser/Identifier_Specification.md
 docs/architecture/05_Parser/Story_Metadata.md
 docs/architecture/05_Parser/Normalized_Story_JSON.md
 docs/architecture/05_Parser/Script_Compatibility_Check.md
+```
+
+Extraction Phase関連（設計のみ完了、実装は未着手）。
+
+```text
+docs/architecture/06_AI/Extraction_Pipeline.md
+docs/architecture/06_AI/Extraction_Result_Schema.md
 ```
 
 必要に応じて以下も参照する。
@@ -193,6 +203,8 @@ docs/architecture/01_Project/00A_Architecture_Decisions.md
 docs/architecture/05_Parser/Parser.md
 docs/architecture/05_Parser/Story_Format.md
 ```
+
+`docs/architecture/06_AI/Agents.md`、`Models.md`、`Pipeline.md`、`Prompt_Design.md` は現時点で0バイトの空プレースホルダーであり、内容は存在しない。
 
 ---
 
@@ -526,9 +538,9 @@ OpenAI API keyなどは `.env` または環境変数で管理する。
 
 # 14. 次にやること
 
-次に実装する順番は `Parser_Implementation_Plan.md` に従う。
+## 14.1 Parser Phase 1（完了済み）
 
-推奨開始順:
+`Parser_Implementation_Plan.md` に従って以下をすべて実装済み。
 
 1. `schemas/story.schema.json`
 2. `config/script_commands.yaml`
@@ -540,6 +552,20 @@ OpenAI API keyなどは `.env` または環境変数で管理する。
 8. `agents/parser/exporter.py`
 9. `scripts/normalize_story.py`
 10. `tests/parser/`
+
+## 14.2 Extraction Phase（設計完了、実装未着手）
+
+`Extraction_Pipeline.md`・`Extraction_Result_Schema.md` の設計を反映したschema実装が次の対象になる（`Extraction_Result_Schema.md` §16.1参照）。ただし、CLAUDE.mdの方針により `agents/extractor/` の実装は明示的な指示があるまで着手しない。
+
+1. `schemas/evidence.schema.json`
+2. `schemas/candidates/candidate_envelope.schema.json`
+3. `schemas/candidates/field_value.schema.json`
+4. `schemas/candidates/*_candidate.schema.json`（character / location / organization / item / lore / event / relationship / timeline）
+5. `schemas/extraction_error.schema.json`
+6. `schemas/extraction.schema.json`（上記をまとめるルートschema）
+7. `agents/extractor/`（実装は指示待ち）
+
+着手前に解決しておくべき未確定事項は§16を参照。
 
 ---
 
@@ -572,14 +598,21 @@ AIエージェントへ渡す指示例:
 - JSON Schemaの厳密度
 - Neo4j Graph Model
 - Wiki Page Template
+- `relationshipType` の語彙（`docs/architecture/04_Knowledge_Graph/Relationships.md`、現在空プレースホルダー。`Extraction_Result_Schema.md` §16.4も参照）
+- Candidate ID暫定形式（`Extraction_Result_Schema.md` §4.2）の実運用検証
 
 ---
 
 # 17. 現在の推奨判断
 
-次は実装へ進んでよい。
+Parser Phase 1は完了しているため、Parser本体への再着手は不要。
 
-ただし、最初に作るべきはParser本体ではなく、以下である。
+Extraction Phaseは設計（`Extraction_Pipeline.md`・`Extraction_Result_Schema.md`）まで完了しており、次の自然な一歩はschema実装（§14.2）だが、以下は着手前に決めておいた方がよい。
+
+- `relationshipType` の語彙（`Relationships.md`）を確定させるか、暫定的に自由文字列のまま実装するか
+- Extraction Phase実装（`agents/extractor/`）にいつ着手するかはユーザーの明示的な指示を待つ（CLAUDE.mdの方針）
+
+Parser Phase 1着手時に採った判断（参考）:
 
 ```text
 schemas/story.schema.json
@@ -592,3 +625,5 @@ scripts/check_script_compatibility.py
 - JSON出力の検証基準を先に作る
 - 新旧スクリプト差分を検知できるようにする
 - Parser実装時の破損を早期検出できる
+
+Extraction Phaseでも同じ考え方（検証基準を先に固める）を踏襲し、`schemas/extraction.schema.json` 系を`agents/extractor/`本体より先に作る（§14.2）。
