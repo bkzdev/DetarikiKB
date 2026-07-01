@@ -1,0 +1,18 @@
+// DKB Parser Test Fixture - unknown_char.dec
+// 未登録キャラクターID (234) を含むスクリプトのテスト
+
+$num1 = 234
+@ScenarioCos 1 234
+
+@ChTalkSoundOffMono 1
+（朝から班長殿にお会いできるなんて、
+今日はきっといい一日になるはず！）
+
+@ChTalk 1
+よろしくお願いします！
+
+// 未知コマンドも含む
+@UnknownNewCommand 0 1 2
+
+msg
+不明人物が登場した。

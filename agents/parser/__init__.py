@@ -1,0 +1,71 @@
+"""
+DKB Story Parser Package
+
+Usage:
+    from agents.parser import StoryParser, CharacterDictionary, Normalizer, Exporter
+    from agents.parser import tokenize_file, tokenize_text
+
+Phase 1 モジュール:
+    tokenizer  - Raw Script → ScriptToken 変換
+    resolver   - キャラクターID・話者スロット解決
+    parser     - Token → 中間構造 (ParseResult) 変換
+    normalizer - 中間構造 → Normalized Story JSON 変換
+    exporter   - JSON ファイル出力
+"""
+
+from .exporter import (
+    Exporter,
+    export_json,
+)
+from .normalizer import (
+    PARSER_VERSION,
+    IdGenerator,
+    Normalizer,
+)
+from .parser import (
+    BlockData,
+    EpisodeData,
+    ParseResult,
+    SceneData,
+    StoryParser,
+)
+from .resolver import (
+    CharacterDictionary,
+    Speaker,
+    SpeakerAssignmentRecord,
+    SpeakerResolver,
+)
+from .tokenizer import (
+    ScriptToken,
+    Tokenizer,
+    TokenType,
+    tokenize_file,
+    tokenize_text,
+)
+
+__all__ = [
+    # tokenizer
+    "ScriptToken",
+    "TokenType",
+    "Tokenizer",
+    "tokenize_file",
+    "tokenize_text",
+    # resolver
+    "CharacterDictionary",
+    "Speaker",
+    "SpeakerAssignmentRecord",
+    "SpeakerResolver",
+    # parser
+    "BlockData",
+    "EpisodeData",
+    "ParseResult",
+    "SceneData",
+    "StoryParser",
+    # normalizer
+    "IdGenerator",
+    "Normalizer",
+    "PARSER_VERSION",
+    # exporter
+    "Exporter",
+    "export_json",
+]

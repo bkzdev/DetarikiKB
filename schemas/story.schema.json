@@ -1,0 +1,562 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://detariki-kb/schemas/story.schema.json",
+  "title": "Normalized Story JSON",
+  "description": "DKB Parser が出力する正規化済みストーリーJSONのスキーマ (v0.2)",
+  "type": "object",
+  "required": ["schemaVersion", "documentType", "storyId", "storyCategory", "metadata", "parser", "source", "episodes"],
+  "additionalProperties": false,
+
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "description": "Normalized Story JSON のスキーマバージョン",
+      "const": "0.2"
+    },
+    "documentType": {
+      "type": "string",
+      "description": "固定値 normalized_story",
+      "const": "normalized_story"
+    },
+    "storyId": {
+      "type": "string",
+      "description": "Story ID (例: MAIN_S01_C02, EVT_0162)",
+      "pattern": "^[A-Z][A-Z0-9_-]+$"
+    },
+    "storyCategory": {
+      "type": "string",
+      "description": "ストーリー種別",
+      "enum": ["MAIN", "EVT", "RAID", "OTHER", "CHAR_MAIN", "CHAR_EXTRA", "CHAR_DATE"]
+    },
+    "metadata": {
+      "$ref": "#/definitions/StoryMetadata"
+    },
+    "parser": {
+      "$ref": "#/definitions/ParserInfo"
+    },
+    "source": {
+      "$ref": "#/definitions/SourceInfo"
+    },
+    "compatibilityReport": {
+      "$ref": "#/definitions/CompatibilityReport"
+    },
+    "episodes": {
+      "type": "array",
+      "description": "Episode の配列",
+      "items": {
+        "$ref": "#/definitions/Episode"
+      }
+    }
+  },
+
+  "definitions": {
+
+    "StoryMetadata": {
+      "type": "object",
+      "description": "ストーリーメタデータ (Story_Metadata.md 準拠)",
+      "additionalProperties": true,
+      "properties": {
+        "storyTitle": { "type": ["string", "null"] },
+        "displayTitle": { "type": ["string", "null"] },
+        "season": { "type": ["integer", "null"] },
+        "chapter": { "type": ["integer", "null"] },
+        "displayOrder": { "type": ["integer", "null"] },
+        "releaseOrder": { "type": ["integer", "null"] },
+        "canonicalOrder": { "type": ["integer", "null"] }
+      }
+    },
+
+    "ParserInfo": {
+      "type": "object",
+      "description": "Parser 自身の情報",
+      "required": ["parserName", "parserVersion", "parserMode", "preserveStageDirections"],
+      "additionalProperties": true,
+      "properties": {
+        "parserName": {
+          "type": "string",
+          "description": "Parser 名称"
+        },
+        "parserVersion": {
+          "type": "string",
+          "description": "Parser バージョン"
+        },
+        "parserMode": {
+          "type": "string",
+          "description": "解析モード",
+          "enum": ["game_script", "merged_text", "manual"]
+        },
+        "preserveStageDirections": {
+          "type": "boolean",
+          "description": "演出命令を保存したか"
+        },
+        "createdAt": {
+          "type": ["string", "null"],
+          "description": "変換日時 (ISO 8601)"
+        }
+      }
+    },
+
+    "SourceInfo": {
+      "type": "object",
+      "description": "元ファイル情報",
+      "required": ["sourceFile", "sourceFormat"],
+      "additionalProperties": true,
+      "properties": {
+        "sourceFile": {
+          "type": "string",
+          "description": "元ファイル名"
+        },
+        "sourcePath": {
+          "type": ["string", "null"],
+          "description": "元ファイルパス"
+        },
+        "sourceFormat": {
+          "type": "string",
+          "description": "元ファイル形式",
+          "enum": ["game_script", "merged_text", "manual"]
+        },
+        "encoding": {
+          "type": ["string", "null"],
+          "description": "文字コード"
+        },
+        "lineCount": {
+          "type": ["integer", "null"],
+          "description": "元ファイルの行数"
+        }
+      }
+    },
+
+    "CompatibilityReport": {
+      "type": "object",
+      "description": "Script Compatibility Check 結果",
+      "additionalProperties": true,
+      "properties": {
+        "parserCompatibility": {
+          "type": "string",
+          "enum": ["compatible", "warning", "needs_update", "blocked"]
+        },
+        "unknownCommands": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "command": { "type": "string" },
+              "count": { "type": "integer" },
+              "sampleLines": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "lineNumber": { "type": "integer" },
+                    "raw": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "newSpeechCommands": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "command": { "type": "string" },
+              "reason": { "type": "string" },
+              "severity": { "type": "string" },
+              "suggestedType": { "type": "string" }
+            }
+          }
+        },
+        "unknownCharacterIds": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "sourceCharacterId": { "type": "string" },
+              "sampleLines": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "lineNumber": { "type": "integer" },
+                    "raw": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "controlCharsRemoved": {
+          "type": "integer",
+          "description": "制御文字除去件数"
+        },
+        "branchIssues": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string" },
+              "lineNumber": { "type": "integer" },
+              "raw": { "type": "string" },
+              "severity": { "type": "string" }
+            }
+          }
+        },
+        "caseVariants": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "normalizedCommand": { "type": "string" },
+              "variants": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "count": { "type": "integer" }
+            }
+          }
+        }
+      }
+    },
+
+    "Episode": {
+      "type": "object",
+      "description": "1エピソード",
+      "required": ["episodeId", "episodeNumber", "metadata", "scenes"],
+      "additionalProperties": false,
+      "properties": {
+        "episodeId": {
+          "type": "string",
+          "description": "Episode ID (例: MAIN_S01_C02_E01)",
+          "pattern": "^[A-Z][A-Z0-9_-]+$"
+        },
+        "episodeNumber": {
+          "type": "integer",
+          "description": "Story 内でのエピソード番号"
+        },
+        "metadata": {
+          "$ref": "#/definitions/EpisodeMetadata"
+        },
+        "speakerAssignments": {
+          "type": "array",
+          "description": "スクリプト中の話者割り当て記録",
+          "items": {
+            "$ref": "#/definitions/SpeakerAssignment"
+          }
+        },
+        "scenes": {
+          "type": "array",
+          "description": "Scene の配列",
+          "items": {
+            "$ref": "#/definitions/Scene"
+          }
+        }
+      }
+    },
+
+    "EpisodeMetadata": {
+      "type": "object",
+      "description": "エピソードメタデータ",
+      "additionalProperties": true,
+      "properties": {
+        "episodeTitle": { "type": ["string", "null"] },
+        "episodeSubtitle": { "type": ["string", "null"] },
+        "displayTitle": { "type": ["string", "null"] },
+        "sortKey": { "type": ["string", "null"] }
+      }
+    },
+
+    "SpeakerAssignment": {
+      "type": "object",
+      "description": "話者スロット割り当て記録",
+      "required": ["slot"],
+      "additionalProperties": true,
+      "properties": {
+        "slot": {
+          "type": "string",
+          "description": "スクリプト上の話者スロット番号"
+        },
+        "sourceCharacterId": {
+          "type": ["string", "null"],
+          "description": "元スクリプト上のキャラクター番号"
+        },
+        "speakerId": {
+          "type": ["string", "null"],
+          "description": "解決済み Character ID"
+        },
+        "speakerName": {
+          "type": ["string", "null"],
+          "description": "表示用話者名"
+        },
+        "source": {
+          "$ref": "#/definitions/BlockSource"
+        }
+      }
+    },
+
+    "Scene": {
+      "type": "object",
+      "description": "1シーン",
+      "required": ["sceneId", "sceneNumber", "blocks"],
+      "additionalProperties": false,
+      "properties": {
+        "sceneId": {
+          "type": "string",
+          "description": "Scene ID (例: MAIN_S01_C02_E01_SC001)",
+          "pattern": "^[A-Z][A-Z0-9_-]+$"
+        },
+        "sceneNumber": {
+          "type": "integer",
+          "description": "Episode 内の Scene 番号"
+        },
+        "location": {
+          "$ref": "#/definitions/Location"
+        },
+        "blocks": {
+          "type": "array",
+          "description": "Block の配列",
+          "items": {
+            "$ref": "#/definitions/Block"
+          }
+        }
+      }
+    },
+
+    "Location": {
+      "type": "object",
+      "description": "場所情報",
+      "additionalProperties": true,
+      "properties": {
+        "locationId": { "type": ["string", "null"] },
+        "locationName": { "type": ["string", "null"] }
+      }
+    },
+
+    "Block": {
+      "description": "1ブロック (dialogue / monologue / narration / choice / stage_direction / unknown)",
+      "oneOf": [
+        { "$ref": "#/definitions/DialogueBlock" },
+        { "$ref": "#/definitions/MonologueBlock" },
+        { "$ref": "#/definitions/NarrationBlock" },
+        { "$ref": "#/definitions/ChoiceBlock" },
+        { "$ref": "#/definitions/StageDirectionBlock" },
+        { "$ref": "#/definitions/UnknownBlock" }
+      ]
+    },
+
+    "BlockCommon": {
+      "type": "object",
+      "description": "全 Block 共通フィールド",
+      "required": ["id", "type", "source"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Block ID",
+          "pattern": "^[A-Z][A-Z0-9_-]+$"
+        },
+        "type": {
+          "type": "string",
+          "description": "Block 種別"
+        },
+        "text": {
+          "type": ["string", "null"],
+          "description": "正規化済み本文"
+        },
+        "rawText": {
+          "type": ["string", "null"],
+          "description": "元テキスト"
+        },
+        "source": {
+          "$ref": "#/definitions/BlockSource"
+        },
+        "notes": {
+          "type": "array",
+          "description": "Parser メモ",
+          "items": { "type": "string" }
+        }
+      }
+    },
+
+    "BlockSource": {
+      "type": "object",
+      "description": "Evidence 用の元ファイル位置情報",
+      "additionalProperties": true,
+      "properties": {
+        "sourceFile": { "type": ["string", "null"] },
+        "lineStart": { "type": ["integer", "null"] },
+        "lineEnd": { "type": ["integer", "null"] },
+        "raw": { "type": ["string", "null"] },
+        "parserRule": { "type": ["string", "null"] },
+        "confidence": { "type": ["number", "null"] }
+      }
+    },
+
+    "Speaker": {
+      "type": "object",
+      "description": "話者情報",
+      "required": ["isResolved"],
+      "additionalProperties": true,
+      "properties": {
+        "speakerId": {
+          "type": ["string", "null"],
+          "description": "解決済み Character ID"
+        },
+        "speakerName": {
+          "type": ["string", "null"],
+          "description": "表示用話者名"
+        },
+        "sourceCharacterId": {
+          "type": ["string", "null"],
+          "description": "元スクリプト上のキャラクター番号"
+        },
+        "slot": {
+          "type": ["string", "null"],
+          "description": "スクリプト上の話者スロット"
+        },
+        "isResolved": {
+          "type": "boolean",
+          "description": "正規キャラクターへ解決できたか"
+        }
+      }
+    },
+
+    "Voice": {
+      "type": "object",
+      "description": "音声情報",
+      "additionalProperties": true,
+      "properties": {
+        "hasVoice": {
+          "type": ["boolean", "null"],
+          "description": "音声付きセリフかどうか"
+        }
+      }
+    },
+
+    "DialogueBlock": {
+      "allOf": [
+        { "$ref": "#/definitions/BlockCommon" },
+        {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "type": { "type": "string", "const": "dialogue" },
+            "speaker": { "$ref": "#/definitions/Speaker" },
+            "voice": { "$ref": "#/definitions/Voice" }
+          }
+        }
+      ]
+    },
+
+    "MonologueBlock": {
+      "allOf": [
+        { "$ref": "#/definitions/BlockCommon" },
+        {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "type": { "type": "string", "const": "monologue" },
+            "speaker": { "$ref": "#/definitions/Speaker" },
+            "voice": { "$ref": "#/definitions/Voice" }
+          }
+        }
+      ]
+    },
+
+    "NarrationBlock": {
+      "allOf": [
+        { "$ref": "#/definitions/BlockCommon" },
+        {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "type": { "type": "string", "const": "narration" },
+            "narrationType": {
+              "type": ["string", "null"],
+              "enum": ["location_label", "system", "mission_result", "ellipsis", "plain", "unknown", null]
+            }
+          }
+        }
+      ]
+    },
+
+    "ChoiceOption": {
+      "type": "object",
+      "required": ["optionId", "optionText"],
+      "additionalProperties": false,
+      "properties": {
+        "optionId": {
+          "type": "string",
+          "description": "Choice Option ID",
+          "pattern": "^[A-Z][A-Z0-9_-]+$"
+        },
+        "optionText": {
+          "type": "string",
+          "description": "選択肢テキスト"
+        },
+        "blocks": {
+          "type": "array",
+          "description": "分岐内のブロック",
+          "items": {
+            "$ref": "#/definitions/Block"
+          }
+        }
+      }
+    },
+
+    "ChoiceBlock": {
+      "allOf": [
+        { "$ref": "#/definitions/BlockCommon" },
+        {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "type": { "type": "string", "const": "choice" },
+            "choiceText": { "type": ["string", "null"] },
+            "options": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/ChoiceOption" }
+            }
+          }
+        }
+      ]
+    },
+
+    "StageDirectionBlock": {
+      "allOf": [
+        { "$ref": "#/definitions/BlockCommon" },
+        {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "type": { "type": "string", "const": "stage_direction" },
+            "directionType": {
+              "type": ["string", "null"],
+              "description": "演出種別 (background / bgm / se / camera / motion など)"
+            },
+            "rawCommand": {
+              "type": ["string", "null"],
+              "description": "元コマンド (表記ゆれを含む)"
+            },
+            "normalizedCommand": {
+              "type": ["string", "null"],
+              "description": "正規化後コマンド"
+            }
+          }
+        }
+      ]
+    },
+
+    "UnknownBlock": {
+      "allOf": [
+        { "$ref": "#/definitions/BlockCommon" },
+        {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "type": { "type": "string", "const": "unknown" }
+          }
+        }
+      ]
+    }
+  }
+}
