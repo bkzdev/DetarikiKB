@@ -1,0 +1,546 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://detariki-kb/schemas/extraction.schema.json",
+  "title": "Extraction Result JSON (episode_extraction)",
+  "description": "Extraction PhaseのStage A出力 (episode_extraction) のスキーマ。docs/architecture/06_AI/Extraction_Result_Schema.md 準拠 (v0.1)",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "documentType",
+    "episodeId",
+    "storyId",
+    "storyCategory",
+    "extractionRun",
+    "evidenceIndex",
+    "characters",
+    "organizations",
+    "locations",
+    "items",
+    "lore",
+    "events",
+    "relationships",
+    "timelineCandidates",
+    "extractionErrors"
+  ],
+  "additionalProperties": false,
+
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "description": "episode_extraction のスキーマバージョン",
+      "const": "0.1"
+    },
+    "documentType": {
+      "type": "string",
+      "description": "固定値 episode_extraction",
+      "const": "episode_extraction"
+    },
+    "episodeId": {
+      "type": "string",
+      "description": "Episode ID (例: MAIN_S01_C02_E01)",
+      "pattern": "^[A-Z][A-Z0-9_-]+$"
+    },
+    "storyId": {
+      "type": "string",
+      "description": "Story ID (例: MAIN_S01_C02)",
+      "pattern": "^[A-Z][A-Z0-9_-]+$"
+    },
+    "storyCategory": {
+      "type": "string",
+      "description": "ストーリー種別",
+      "enum": ["MAIN", "EVT", "RAID", "OTHER", "CHAR_MAIN", "CHAR_EXTRA", "CHAR_DATE"]
+    },
+    "extractionRun": {
+      "$ref": "#/definitions/ExtractionRun"
+    },
+    "evidenceIndex": {
+      "type": "object",
+      "description": "sourceId をキーにした EvidenceRef の集合 (Extraction_Result_Schema.md §5.2)",
+      "additionalProperties": {
+        "$ref": "#/definitions/EvidenceRef"
+      }
+    },
+    "characters": {
+      "type": "array",
+      "description": "CharacterCandidate の配列",
+      "items": { "$ref": "#/definitions/CharacterCandidate" }
+    },
+    "organizations": {
+      "type": "array",
+      "description": "OrganizationCandidate の配列",
+      "items": { "$ref": "#/definitions/OrganizationCandidate" }
+    },
+    "locations": {
+      "type": "array",
+      "description": "LocationCandidate の配列",
+      "items": { "$ref": "#/definitions/LocationCandidate" }
+    },
+    "items": {
+      "type": "array",
+      "description": "ItemCandidate の配列",
+      "items": { "$ref": "#/definitions/ItemCandidate" }
+    },
+    "lore": {
+      "type": "array",
+      "description": "LoreCandidate の配列",
+      "items": { "$ref": "#/definitions/LoreCandidate" }
+    },
+    "events": {
+      "type": "array",
+      "description": "EventCandidate の配列",
+      "items": { "$ref": "#/definitions/EventCandidate" }
+    },
+    "relationships": {
+      "type": "array",
+      "description": "RelationshipCandidate の配列",
+      "items": { "$ref": "#/definitions/RelationshipCandidate" }
+    },
+    "timelineCandidates": {
+      "type": "array",
+      "description": "TimelineCandidate の配列 (Stage Bマージ対象外)",
+      "items": { "$ref": "#/definitions/TimelineCandidate" }
+    },
+    "extractionErrors": {
+      "type": "array",
+      "description": "ExtractionError の配列 (Extraction_Result_Schema.md §14)",
+      "items": { "$ref": "#/definitions/ExtractionError" }
+    }
+  },
+
+  "definitions": {
+
+    "SourceType": {
+      "type": "string",
+      "description": "情報源区分 (Extraction_Result_Schema.md §4.1, Extraction_Pipeline.md §7.1と同一語彙)",
+      "enum": ["official", "script", "ai_extracted", "ai_inferred", "manual", "unknown"]
+    },
+
+    "Confidence": {
+      "type": "number",
+      "description": "確からしさ (0.0〜1.0)",
+      "minimum": 0.0,
+      "maximum": 1.0
+    },
+
+    "CandidateId": {
+      "type": "string",
+      "description": "候補ID。Stage Aでは暫定候補ID形式、Stage B昇格後はcanonical ID (Extraction_Result_Schema.md §4.2)",
+      "pattern": "^[A-Z][A-Z0-9_-]+$"
+    },
+
+    "ExtractionRun": {
+      "type": "object",
+      "description": "抽出実行情報 (Extraction_Pipeline.md §3.2, Extraction_Result_Schema.md §3.2)",
+      "required": [
+        "extractionVersion",
+        "extractionMethod",
+        "modelProvider",
+        "modelName",
+        "promptVersion",
+        "extractedAt",
+        "parserCompatibilityAtExtraction"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "extractionVersion": {
+          "type": "string",
+          "description": "Extraction Pipelineのバージョン"
+        },
+        "extractionMethod": {
+          "type": "string",
+          "description": "抽出方式。現時点ではLLM抽出のみ定義",
+          "enum": ["llm"]
+        },
+        "modelProvider": {
+          "type": ["string", "null"],
+          "description": "LLM provider名。既定はローカルprovider (例: ollama, lmstudio)。外部Providerの例: openai / anthropic / gemini / openrouter (固定enumではなく設定で切り替え可能なprovider例)"
+        },
+        "modelName": {
+          "type": ["string", "null"],
+          "description": "モデル名 (例: qwen3:8b)"
+        },
+        "promptVersion": {
+          "type": ["string", "null"],
+          "description": "使用したプロンプトのバージョン識別子"
+        },
+        "extractedAt": {
+          "type": ["string", "null"],
+          "description": "抽出実行日時 (ISO 8601)"
+        },
+        "parserCompatibilityAtExtraction": {
+          "type": "string",
+          "description": "抽出実行時点でのParser互換性ステータス (Script_Compatibility_Check.md準拠)",
+          "enum": ["compatible", "warning", "needs_update", "blocked"]
+        }
+      }
+    },
+
+    "EvidenceRef": {
+      "type": "object",
+      "description": "根拠参照 (Extraction_Result_Schema.md §5.1, Identifier_Specification.md §8準拠)",
+      "required": ["sourceId", "storyId", "episodeId", "confidence"],
+      "additionalProperties": false,
+      "properties": {
+        "sourceId": {
+          "type": "string",
+          "description": "根拠Block ID (優先: Dialogue/Monologue/Narration/Choice Option。粗い場合はScene/Episode/Story ID)",
+          "pattern": "^[A-Z][A-Z0-9_-]+$"
+        },
+        "storyId": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_-]+$"
+        },
+        "episodeId": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_-]+$"
+        },
+        "sceneId": {
+          "type": ["string", "null"],
+          "pattern": "^[A-Z][A-Z0-9_-]+$"
+        },
+        "confidence": { "$ref": "#/definitions/Confidence" }
+      }
+    },
+
+    "FieldValue": {
+      "type": "object",
+      "description": "候補内の属性値。fact/inference分離用 (Extraction_Result_Schema.md §4.3)",
+      "required": ["value", "sourceType", "confidence"],
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "description": "属性値 (null可、型は属性ごとに異なるため制約しない)"
+        },
+        "sourceType": { "$ref": "#/definitions/SourceType" },
+        "confidence": { "$ref": "#/definitions/Confidence" },
+        "evidenceIds": {
+          "type": "array",
+          "description": "この属性値固有の根拠。省略時は候補全体のevidenceIdsを根拠とみなす",
+          "items": { "type": "string" }
+        }
+      }
+    },
+
+    "FieldsMap": {
+      "type": "object",
+      "description": "属性名をキーにしたFieldValueの辞書 (キー集合は固定しない)",
+      "additionalProperties": { "$ref": "#/definitions/FieldValue" }
+    },
+
+    "CandidateEnvelope": {
+      "type": "object",
+      "description": "全Candidate共通フィールド (Extraction_Result_Schema.md §4.1)",
+      "required": ["id", "type", "sourceType", "confidence", "evidenceIds", "extractionRun"],
+      "properties": {
+        "id": { "$ref": "#/definitions/CandidateId" },
+        "type": {
+          "type": "string",
+          "enum": [
+            "character_candidate",
+            "location_candidate",
+            "organization_candidate",
+            "item_candidate",
+            "lore_candidate",
+            "event_candidate",
+            "relationship_candidate",
+            "timeline_candidate"
+          ]
+        },
+        "sourceType": { "$ref": "#/definitions/SourceType" },
+        "confidence": { "$ref": "#/definitions/Confidence" },
+        "evidenceIds": {
+          "type": "array",
+          "description": "根拠となるEvidenceRef.sourceIdの配列。最低1件必須 (Extraction_Result_Schema.md §4.1, §6.1)",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "extractionRun": { "$ref": "#/definitions/ExtractionRun" }
+      }
+    },
+
+    "CharacterCandidate": {
+      "description": "Extraction_Result_Schema.md §6",
+      "allOf": [
+        { "$ref": "#/definitions/CandidateEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "nameCandidates"],
+          "properties": {
+            "type": { "const": "character_candidate" },
+            "existingCharacterId": {
+              "type": ["string", "null"],
+              "description": "解決済みcanonical Character ID (CHAR_*)"
+            },
+            "sourceCharacterId": {
+              "type": ["string", "null"],
+              "description": "元スクリプト上のキャラクター番号"
+            },
+            "nameCandidates": {
+              "type": "array",
+              "items": { "type": "string" },
+              "minItems": 1
+            },
+            "fields": { "$ref": "#/definitions/FieldsMap" }
+          }
+        }
+      ]
+    },
+
+    "LocationCandidate": {
+      "description": "Extraction_Result_Schema.md §7",
+      "allOf": [
+        { "$ref": "#/definitions/CandidateEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "nameCandidates", "sceneRefs"],
+          "properties": {
+            "type": { "const": "location_candidate" },
+            "existingLocationId": {
+              "type": ["string", "null"],
+              "description": "解決済みcanonical Location ID (LOC_*)"
+            },
+            "nameCandidates": {
+              "type": "array",
+              "items": { "type": "string" },
+              "minItems": 1
+            },
+            "sceneRefs": {
+              "type": "array",
+              "description": "この場所と紐づくScene IDの配列",
+              "items": { "type": "string" }
+            },
+            "fields": { "$ref": "#/definitions/FieldsMap" }
+          }
+        }
+      ]
+    },
+
+    "OrganizationCandidate": {
+      "description": "Extraction_Result_Schema.md §8",
+      "allOf": [
+        { "$ref": "#/definitions/CandidateEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "nameCandidates"],
+          "properties": {
+            "type": { "const": "organization_candidate" },
+            "existingOrganizationId": {
+              "type": ["string", "null"],
+              "description": "解決済みcanonical Organization ID (ORG_*)"
+            },
+            "nameCandidates": {
+              "type": "array",
+              "items": { "type": "string" },
+              "minItems": 1
+            },
+            "memberCandidates": {
+              "type": "array",
+              "description": "所属メンバー候補 (Character IDまたはCharacterCandidate id)。ai_inferred扱い",
+              "items": { "type": "string" }
+            },
+            "fields": { "$ref": "#/definitions/FieldsMap" }
+          }
+        }
+      ]
+    },
+
+    "ItemCandidate": {
+      "description": "Extraction_Result_Schema.md §9",
+      "allOf": [
+        { "$ref": "#/definitions/CandidateEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "nameCandidates"],
+          "properties": {
+            "type": { "const": "item_candidate" },
+            "existingItemId": {
+              "type": ["string", "null"],
+              "description": "解決済みcanonical Item ID (ITEM_*)"
+            },
+            "nameCandidates": {
+              "type": "array",
+              "items": { "type": "string" },
+              "minItems": 1
+            },
+            "fields": { "$ref": "#/definitions/FieldsMap" }
+          }
+        }
+      ]
+    },
+
+    "LoreCandidate": {
+      "description": "Extraction_Result_Schema.md §10",
+      "allOf": [
+        { "$ref": "#/definitions/CandidateEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "termCandidates"],
+          "properties": {
+            "type": { "const": "lore_candidate" },
+            "existingLoreId": {
+              "type": ["string", "null"],
+              "description": "解決済みcanonical Lore ID (LORE_*)"
+            },
+            "termCandidates": {
+              "type": "array",
+              "items": { "type": "string" },
+              "minItems": 1
+            },
+            "fields": { "$ref": "#/definitions/FieldsMap" }
+          }
+        }
+      ]
+    },
+
+    "EventCandidate": {
+      "description": "Extraction_Result_Schema.md §11",
+      "allOf": [
+        { "$ref": "#/definitions/CandidateEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "nameCandidates"],
+          "properties": {
+            "type": { "const": "event_candidate" },
+            "existingEventId": {
+              "type": ["string", "null"],
+              "description": "解決済みcanonical Event ID (EVENT_*)"
+            },
+            "nameCandidates": {
+              "type": "array",
+              "items": { "type": "string" },
+              "minItems": 1
+            },
+            "participantCandidates": {
+              "type": "array",
+              "description": "関与したCharacter ID / candidate idの配列",
+              "items": { "type": "string" }
+            },
+            "locationCandidates": {
+              "type": "array",
+              "description": "発生場所のLocation ID / candidate idの配列",
+              "items": { "type": "string" }
+            },
+            "fields": { "$ref": "#/definitions/FieldsMap" }
+          }
+        }
+      ]
+    },
+
+    "RelationshipCandidate": {
+      "description": "Extraction_Result_Schema.md §12",
+      "allOf": [
+        { "$ref": "#/definitions/CandidateEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "sourceCandidate", "targetCandidate", "relationshipType", "direction"],
+          "properties": {
+            "type": { "const": "relationship_candidate" },
+            "existingRelationshipId": {
+              "type": ["string", "null"],
+              "description": "解決済みcanonical Relationship ID (REL_*)"
+            },
+            "sourceCandidate": {
+              "type": "string",
+              "description": "関係の起点 (Entity IDまたは対応するCandidate id)"
+            },
+            "targetCandidate": {
+              "type": "string",
+              "description": "関係の終点"
+            },
+            "relationshipType": {
+              "type": "string",
+              "description": "語彙はdocs/architecture/04_Knowledge_Graph/Relationships.mdを正とする。同文書が未確定のため現時点では自由文字列を許容する (Extraction_Result_Schema.md §12, §16.4)"
+            },
+            "direction": {
+              "type": "string",
+              "enum": ["source_to_target", "target_to_source", "bidirectional"]
+            },
+            "temporalNote": {
+              "type": ["string", "null"],
+              "description": "関係が変化した場合の変化契機"
+            },
+            "fields": { "$ref": "#/definitions/FieldsMap" }
+          }
+        }
+      ]
+    },
+
+    "TimelineCandidate": {
+      "description": "Extraction_Result_Schema.md §13",
+      "allOf": [
+        { "$ref": "#/definitions/CandidateEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "kind"],
+          "properties": {
+            "type": { "const": "timeline_candidate" },
+            "kind": {
+              "type": "string",
+              "description": "候補の種類。現時点ではrelative_orderのみ定義",
+              "enum": ["relative_order"]
+            },
+            "relativeTo": {
+              "type": ["string", "null"],
+              "description": "kind: relative_orderのとき、比較対象のEpisode ID"
+            },
+            "relation": {
+              "type": ["string", "null"],
+              "enum": ["before", "after", "same_time", null]
+            },
+            "fields": { "$ref": "#/definitions/FieldsMap" }
+          }
+        }
+      ]
+    },
+
+    "ExtractionError": {
+      "type": "object",
+      "description": "抽出失敗レポート (Extraction_Result_Schema.md §14)",
+      "required": ["errorId", "episodeId", "errorType", "message", "extractionRun", "retryable"],
+      "additionalProperties": false,
+      "properties": {
+        "errorId": {
+          "type": "string",
+          "description": "形式 {episodeId}_ERR{number} (3桁ゼロ埋め)",
+          "pattern": "^[A-Z][A-Z0-9_-]+$"
+        },
+        "episodeId": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_-]+$"
+        },
+        "errorType": {
+          "type": "string",
+          "enum": [
+            "llm_call_failed",
+            "timeout",
+            "json_parse_failed",
+            "schema_validation_failed",
+            "evidence_missing",
+            "provider_unavailable"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "description": "人間可読なエラー内容"
+        },
+        "extractionRun": { "$ref": "#/definitions/ExtractionRun" },
+        "rawOutput": {
+          "type": ["string", "null"],
+          "description": "LLMの生出力。機密性の高いスクリプト全文を含みうるため取り扱いに注意"
+        },
+        "relatedCandidateType": {
+          "type": ["string", "null"],
+          "description": "失敗が特定のCandidate型に紐づく場合のtype値"
+        },
+        "occurredAt": {
+          "type": ["string", "null"],
+          "description": "ISO 8601タイムスタンプ"
+        },
+        "retryable": {
+          "type": "boolean",
+          "description": "再実行で解消しうるか"
+        }
+      }
+    }
+  }
+}

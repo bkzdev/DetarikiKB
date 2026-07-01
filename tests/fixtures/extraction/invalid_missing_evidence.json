@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "0.1",
+  "documentType": "episode_extraction",
+  "episodeId": "TEST_S01_C01_E01",
+  "storyId": "TEST_S01_C01",
+  "storyCategory": "MAIN",
+  "extractionRun": {
+    "extractionVersion": "0.1.0",
+    "extractionMethod": "llm",
+    "modelProvider": "ollama",
+    "modelName": "qwen3:8b",
+    "promptVersion": "episode_extraction_v0.1",
+    "extractedAt": null,
+    "parserCompatibilityAtExtraction": "compatible"
+  },
+  "evidenceIndex": {},
+  "characters": [
+    {
+      "id": "TEST_S01_C01_E01_CAND_CHAR001",
+      "type": "character_candidate",
+      "sourceType": "ai_inferred",
+      "confidence": 0.5,
+      "evidenceIds": [],
+      "extractionRun": {
+        "extractionVersion": "0.1.0",
+        "extractionMethod": "llm",
+        "modelProvider": "ollama",
+        "modelName": "qwen3:8b",
+        "promptVersion": "episode_extraction_v0.1",
+        "extractedAt": null,
+        "parserCompatibilityAtExtraction": "compatible"
+      },
+      "existingCharacterId": null,
+      "sourceCharacterId": "1",
+      "nameCandidates": ["テストキャラ"],
+      "fields": {}
+    }
+  ],
+  "organizations": [],
+  "locations": [],
+  "items": [],
+  "lore": [],
+  "events": [],
+  "relationships": [],
+  "timelineCandidates": [],
+  "extractionErrors": []
+}
