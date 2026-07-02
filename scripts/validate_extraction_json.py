@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """
 Validate Extraction JSON
-Extraction Phase の episode_extraction JSON を schemas/extraction.schema.json で検証する。
+Extraction Phase の episode_extraction JSON を
+schemas/extraction.schema.json で検証する。
 
 Usage:
     # 単一ファイル (JSON Schema検証のみ)
-    python scripts/validate_extraction_json.py --input data/extracted/_raw/MAIN_S01_C02_E01.extraction.json
+    python scripts/validate_extraction_json.py \\
+        --input data/extracted/_raw/MAIN_S01_C02_E01.extraction.json
 
     # ディレクトリ (再帰的に *.json を検証)
     python scripts/validate_extraction_json.py --input data/extracted/_raw/
@@ -14,7 +16,8 @@ Usage:
     python scripts/validate_extraction_json.py --input data/extracted/_raw/ --semantic
 
     # テスト用フィクスチャの検証
-    python scripts/validate_extraction_json.py --input tests/fixtures/extraction/minimal_episode_extraction.json
+    python scripts/validate_extraction_json.py \\
+        --input tests/fixtures/extraction/minimal_episode_extraction.json
 
 Exit codes:
     0: すべて検証成功
@@ -34,20 +37,23 @@ _PROJECT_ROOT = Path(__file__).parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
-from agents.extractor.validator import run_semantic_validation
+from agents.extractor.validator import run_semantic_validation  # noqa: E402
 
 DEFAULT_SCHEMA_PATH = _PROJECT_ROOT / "schemas" / "extraction.schema.json"
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="episode_extraction JSON を schemas/extraction.schema.json で検証します",
+        description=(
+            "episode_extraction JSON を schemas/extraction.schema.json で検証します"
+        ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 例:
   python scripts/validate_extraction_json.py --input data/extracted/_raw/
   python scripts/validate_extraction_json.py --input data/extracted/_raw/ --semantic
-  python scripts/validate_extraction_json.py --input tests/fixtures/extraction/minimal_episode_extraction.json
+  python scripts/validate_extraction_json.py \\
+      --input tests/fixtures/extraction/minimal_episode_extraction.json
 """,
     )
     parser.add_argument(
