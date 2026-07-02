@@ -4,8 +4,8 @@ Normalized Story JSON (schemas/story.schema.json) から
 episode_extraction (schemas/extraction.schema.json) の最小構造を生成する。
 
 LLM呼び出し・OpenAI/Anthropic/Ollama連携・prompt作成はまだ実装しない。
-候補配列 (characters/organizations/locations/items/lore/events/relationships/
-timelineCandidates) は空のまま出力する。
+rule-baseで生成するのはcharacters/locations/organizations/items/lore/events。
+relationships/timelineCandidatesは空のまま出力する。
 
 docs/architecture/06_AI/Extraction_Pipeline.md
 docs/architecture/06_AI/Extraction_Result_Schema.md
@@ -22,20 +22,35 @@ from .models import (
     CHARACTER_CANDIDATE_TYPE,
     DEFAULT_EVIDENCE_CONFIDENCE,
     DOCUMENT_TYPE,
+    EVENT_CANDIDATE_CONFIDENCE_NAME_ONLY,
+    EVENT_CANDIDATE_CONFIDENCE_RESOLVED,
+    EVENT_CANDIDATE_SOURCE_TYPE,
+    EVENT_CANDIDATE_TYPE,
     EVIDENCE_BLOCK_TYPES,
+    ITEM_CANDIDATE_CONFIDENCE_NAME_ONLY,
+    ITEM_CANDIDATE_CONFIDENCE_RESOLVED,
+    ITEM_CANDIDATE_SOURCE_TYPE,
+    ITEM_CANDIDATE_TYPE,
     LOCATION_CANDIDATE_CONFIDENCE_NAME_ONLY,
     LOCATION_CANDIDATE_CONFIDENCE_RESOLVED,
     LOCATION_CANDIDATE_SOURCE_TYPE,
     LOCATION_CANDIDATE_TYPE,
+    LORE_CANDIDATE_CONFIDENCE_NAME_ONLY,
+    LORE_CANDIDATE_CONFIDENCE_RESOLVED,
+    LORE_CANDIDATE_SOURCE_TYPE,
+    LORE_CANDIDATE_TYPE,
     ORGANIZATION_CANDIDATE_CONFIDENCE_NAME_ONLY,
     ORGANIZATION_CANDIDATE_CONFIDENCE_RESOLVED,
     ORGANIZATION_CANDIDATE_SOURCE_TYPE,
     ORGANIZATION_CANDIDATE_TYPE,
     SCHEMA_VERSION,
     CharacterCandidateAccumulator,
+    EventCandidateAccumulator,
     EvidenceRef,
     ExtractionRunInfo,
+    ItemCandidateAccumulator,
     LocationCandidateAccumulator,
+    LoreCandidateAccumulator,
     OrganizationCandidateAccumulator,
 )
 
@@ -93,12 +108,21 @@ class Extractor:
         organizations, organization_evidence_refs = self._build_organization_candidates(
             episode, story_id, episode_id, extraction_run_dict
         )
+        items, item_evidence_refs = self._build_item_candidates(
+            episode, story_id, episode_id, extraction_run_dict
+        )
+        lore = self._build_lore_candidates(episode, episode_id, extraction_run_dict)
+        events, event_evidence_refs = self._build_event_candidates(
+            episode, story_id, episode_id, extraction_run_dict
+        )
 
         evidence_index: dict[str, dict[str, Any]] = {}
         for ref in (
             *evidence_refs,
             *location_evidence_refs,
             *organization_evidence_refs,
+            *item_evidence_refs,
+            *event_evidence_refs,
         ):
             evidence_index.setdefault(ref["sourceId"], ref)
 
@@ -113,9 +137,9 @@ class Extractor:
             "characters": characters,
             "organizations": organizations,
             "locations": locations,
-            "items": [],
-            "lore": [],
-            "events": [],
+            "items": items,
+            "lore": lore,
+            "events": events,
             "relationships": [],
             "timelineCandidates": [],
             "extractionErrors": [],
@@ -612,6 +636,327 @@ class Extractor:
                     "evidenceIds": list(accumulator.evidence_ids),
                     "extractionRun": extraction_run,
                     "existingOrganizationId": accumulator.organization_id,
+                    "nameCandidates": list(accumulator.name_candidates),
+                    "fields": {},
+                }
+            )
+        return candidates
+
+    # ----------------------------------------------------------------
+    # ItemCandidate (rule-based, 構造的な手がかりのみ)
+    # ----------------------------------------------------------------
+
+    def _build_item_candidates(
+        self,
+        episode: dict[str, Any],
+        story_id: str,
+        episode_id: str,
+        extraction_run: dict[str, Any],
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        """明示的なitemId/itemNameからItemCandidateを生成する
+
+        本文の自然文から「アイテム名かもしれない」推定は行わず、以下の
+        構造的な手がかりのみを対象とする。
+        - dialogue/monologue/narration/choice Blockに明示された
+          itemId/itemName
+        - stage_direction Blockに明示された itemId/itemName
+          (item/prop/object相当の演出情報。BlockCommonはadditionalProperties
+          を許容するため、将来Parserが付与しうる拡張フィールドを想定する)
+
+        Sceneはschema上additionalPropertiesを許容しない
+        (schemas/story.schema.json Scene定義) ため、scene metadataからの
+        Item抽出は今回のスコープ外とする。
+        """
+        accumulators: dict[tuple[str, str], ItemCandidateAccumulator] = {}
+        order: list[tuple[str, str]] = []
+        extra_evidence: dict[str, dict[str, Any]] = {}
+
+        for scene in episode.get("scenes", []):
+            scene_id = scene.get("sceneId")
+            for block in scene.get("blocks", []):
+                self._record_block_item(
+                    accumulators,
+                    order,
+                    extra_evidence,
+                    block,
+                    scene_id,
+                    story_id,
+                    episode_id,
+                )
+
+        candidates = self._finalize_item_candidates(
+            accumulators, order, episode_id, extraction_run
+        )
+        return candidates, list(extra_evidence.values())
+
+    def _record_block_item(
+        self,
+        accumulators: dict[tuple[str, str], ItemCandidateAccumulator],
+        order: list[tuple[str, str]],
+        extra_evidence: dict[str, dict[str, Any]],
+        block: dict[str, Any],
+        scene_id: str | None,
+        story_id: str,
+        episode_id: str,
+    ) -> None:
+        """Blockに明示されたitemId/itemNameを記録する
+
+        block["id"]がEVIDENCE_BLOCK_TYPESであれば既にevidenceIndexに含まれる。
+        stage_directionなど対象外の場合のみevidence refを追加する。
+        """
+        key = _structured_identity_key(block.get("itemId"), block.get("itemName"))
+        if key is None:
+            return
+
+        if key not in accumulators:
+            accumulators[key] = ItemCandidateAccumulator(item_id=block.get("itemId"))
+            order.append(key)
+        accumulator = accumulators[key]
+        accumulator.add_name(block.get("itemName"))
+
+        block_id = block["id"]
+        accumulator.add_evidence(block_id)
+
+        if block.get("type") not in EVIDENCE_BLOCK_TYPES:
+            confidence = block.get("source", {}).get("confidence")
+            if confidence is None:
+                confidence = DEFAULT_EVIDENCE_CONFIDENCE
+            extra_evidence.setdefault(
+                block_id,
+                EvidenceRef(
+                    source_id=block_id,
+                    story_id=story_id,
+                    episode_id=episode_id,
+                    scene_id=scene_id,
+                    confidence=confidence,
+                ).to_dict(),
+            )
+
+    def _finalize_item_candidates(
+        self,
+        accumulators: dict[tuple[str, str], ItemCandidateAccumulator],
+        order: list[tuple[str, str]],
+        episode_id: str,
+        extraction_run: dict[str, Any],
+    ) -> list[dict[str, Any]]:
+        candidates: list[dict[str, Any]] = []
+        for index, key in enumerate(order, start=1):
+            accumulator = accumulators[key]
+            if not accumulator.name_candidates or not accumulator.evidence_ids:
+                continue
+
+            is_resolved = accumulator.item_id is not None
+            candidates.append(
+                {
+                    "id": f"{episode_id}_CAND_ITEM{index:03d}",
+                    "type": ITEM_CANDIDATE_TYPE,
+                    "sourceType": ITEM_CANDIDATE_SOURCE_TYPE,
+                    "confidence": (
+                        ITEM_CANDIDATE_CONFIDENCE_RESOLVED
+                        if is_resolved
+                        else ITEM_CANDIDATE_CONFIDENCE_NAME_ONLY
+                    ),
+                    "evidenceIds": list(accumulator.evidence_ids),
+                    "extractionRun": extraction_run,
+                    "existingItemId": accumulator.item_id,
+                    "nameCandidates": list(accumulator.name_candidates),
+                    "fields": {},
+                }
+            )
+        return candidates
+
+    # ----------------------------------------------------------------
+    # LoreCandidate (rule-based, かなり保守的に。Block由来のみ)
+    # ----------------------------------------------------------------
+
+    def _build_lore_candidates(
+        self,
+        episode: dict[str, Any],
+        episode_id: str,
+        extraction_run: dict[str, Any],
+    ) -> list[dict[str, Any]]:
+        """明示的なloreId/termNameからLoreCandidateを生成する
+
+        Loreは推定が混ざりやすいため、対象をdialogue/monologue/narration/choice
+        Blockに明示されたloreId/termNameのみに限定する (stage_directionや
+        speakerAssignments経由の抽出は行わない、最も保守的な抽出)。
+        本文中の専門用語らしき文字列の自然文推定は行わない。
+        """
+        accumulators: dict[tuple[str, str], LoreCandidateAccumulator] = {}
+        order: list[tuple[str, str]] = []
+
+        for scene in episode.get("scenes", []):
+            for block in scene.get("blocks", []):
+                self._record_block_lore(accumulators, order, block)
+
+        return self._finalize_lore_candidates(
+            accumulators, order, episode_id, extraction_run
+        )
+
+    def _record_block_lore(
+        self,
+        accumulators: dict[tuple[str, str], LoreCandidateAccumulator],
+        order: list[tuple[str, str]],
+        block: dict[str, Any],
+    ) -> None:
+        if block.get("type") not in EVIDENCE_BLOCK_TYPES:
+            return
+
+        key = _structured_identity_key(block.get("loreId"), block.get("termName"))
+        if key is None:
+            return
+
+        if key not in accumulators:
+            accumulators[key] = LoreCandidateAccumulator(lore_id=block.get("loreId"))
+            order.append(key)
+        accumulator = accumulators[key]
+        accumulator.add_term(block.get("termName"))
+        accumulator.add_evidence(block["id"])
+
+    def _finalize_lore_candidates(
+        self,
+        accumulators: dict[tuple[str, str], LoreCandidateAccumulator],
+        order: list[tuple[str, str]],
+        episode_id: str,
+        extraction_run: dict[str, Any],
+    ) -> list[dict[str, Any]]:
+        candidates: list[dict[str, Any]] = []
+        for index, key in enumerate(order, start=1):
+            accumulator = accumulators[key]
+            if not accumulator.term_candidates or not accumulator.evidence_ids:
+                continue
+
+            is_resolved = accumulator.lore_id is not None
+            candidates.append(
+                {
+                    "id": f"{episode_id}_CAND_LORE{index:03d}",
+                    "type": LORE_CANDIDATE_TYPE,
+                    "sourceType": LORE_CANDIDATE_SOURCE_TYPE,
+                    "confidence": (
+                        LORE_CANDIDATE_CONFIDENCE_RESOLVED
+                        if is_resolved
+                        else LORE_CANDIDATE_CONFIDENCE_NAME_ONLY
+                    ),
+                    "evidenceIds": list(accumulator.evidence_ids),
+                    "extractionRun": extraction_run,
+                    "existingLoreId": accumulator.lore_id,
+                    "termCandidates": list(accumulator.term_candidates),
+                    "fields": {},
+                }
+            )
+        return candidates
+
+    # ----------------------------------------------------------------
+    # EventCandidate (rule-based, 構造的な手がかりのみ)
+    # ----------------------------------------------------------------
+
+    def _build_event_candidates(
+        self,
+        episode: dict[str, Any],
+        story_id: str,
+        episode_id: str,
+        extraction_run: dict[str, Any],
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        """明示的なeventId/eventNameからEventCandidateを生成する
+
+        会話内容から「事件」「戦闘」「移動」等を推定する処理は行わず、以下の
+        構造的な手がかりのみを対象とする。
+        - dialogue/monologue/narration/choice Blockに明示された
+          eventId/eventName
+        - stage_direction Blockに明示された eventId/eventName
+          (イベント発火・演出イベントを示す拡張フィールドを想定する)
+
+        Sceneはschema上additionalPropertiesを許容しないため、scene metadata
+        からのEvent抽出は今回のスコープ外とする (ItemCandidateと同じ理由)。
+        """
+        accumulators: dict[tuple[str, str], EventCandidateAccumulator] = {}
+        order: list[tuple[str, str]] = []
+        extra_evidence: dict[str, dict[str, Any]] = {}
+
+        for scene in episode.get("scenes", []):
+            scene_id = scene.get("sceneId")
+            for block in scene.get("blocks", []):
+                self._record_block_event(
+                    accumulators,
+                    order,
+                    extra_evidence,
+                    block,
+                    scene_id,
+                    story_id,
+                    episode_id,
+                )
+
+        candidates = self._finalize_event_candidates(
+            accumulators, order, episode_id, extraction_run
+        )
+        return candidates, list(extra_evidence.values())
+
+    def _record_block_event(
+        self,
+        accumulators: dict[tuple[str, str], EventCandidateAccumulator],
+        order: list[tuple[str, str]],
+        extra_evidence: dict[str, dict[str, Any]],
+        block: dict[str, Any],
+        scene_id: str | None,
+        story_id: str,
+        episode_id: str,
+    ) -> None:
+        """Blockに明示されたeventId/eventNameを記録する"""
+        key = _structured_identity_key(block.get("eventId"), block.get("eventName"))
+        if key is None:
+            return
+
+        if key not in accumulators:
+            accumulators[key] = EventCandidateAccumulator(event_id=block.get("eventId"))
+            order.append(key)
+        accumulator = accumulators[key]
+        accumulator.add_name(block.get("eventName"))
+
+        block_id = block["id"]
+        accumulator.add_evidence(block_id)
+
+        if block.get("type") not in EVIDENCE_BLOCK_TYPES:
+            confidence = block.get("source", {}).get("confidence")
+            if confidence is None:
+                confidence = DEFAULT_EVIDENCE_CONFIDENCE
+            extra_evidence.setdefault(
+                block_id,
+                EvidenceRef(
+                    source_id=block_id,
+                    story_id=story_id,
+                    episode_id=episode_id,
+                    scene_id=scene_id,
+                    confidence=confidence,
+                ).to_dict(),
+            )
+
+    def _finalize_event_candidates(
+        self,
+        accumulators: dict[tuple[str, str], EventCandidateAccumulator],
+        order: list[tuple[str, str]],
+        episode_id: str,
+        extraction_run: dict[str, Any],
+    ) -> list[dict[str, Any]]:
+        candidates: list[dict[str, Any]] = []
+        for index, key in enumerate(order, start=1):
+            accumulator = accumulators[key]
+            if not accumulator.name_candidates or not accumulator.evidence_ids:
+                continue
+
+            is_resolved = accumulator.event_id is not None
+            candidates.append(
+                {
+                    "id": f"{episode_id}_CAND_EVENT{index:03d}",
+                    "type": EVENT_CANDIDATE_TYPE,
+                    "sourceType": EVENT_CANDIDATE_SOURCE_TYPE,
+                    "confidence": (
+                        EVENT_CANDIDATE_CONFIDENCE_RESOLVED
+                        if is_resolved
+                        else EVENT_CANDIDATE_CONFIDENCE_NAME_ONLY
+                    ),
+                    "evidenceIds": list(accumulator.evidence_ids),
+                    "extractionRun": extraction_run,
+                    "existingEventId": accumulator.event_id,
                     "nameCandidates": list(accumulator.name_candidates),
                     "fields": {},
                 }

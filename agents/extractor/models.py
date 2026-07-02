@@ -48,6 +48,30 @@ ORGANIZATION_CANDIDATE_SOURCE_TYPE = "script"
 ORGANIZATION_CANDIDATE_CONFIDENCE_RESOLVED = 0.9
 ORGANIZATION_CANDIDATE_CONFIDENCE_NAME_ONLY = 0.5
 
+# ItemCandidate抽出 (Extraction_Result_Schema.md §9) 用の定数。
+# 明示的なitemId/itemNameフィールドのみを対象とし、本文の自然文からの
+# アイテム名推定は行わない。
+ITEM_CANDIDATE_TYPE = "item_candidate"
+ITEM_CANDIDATE_SOURCE_TYPE = "script"
+ITEM_CANDIDATE_CONFIDENCE_RESOLVED = 0.9
+ITEM_CANDIDATE_CONFIDENCE_NAME_ONLY = 0.5
+
+# LoreCandidate抽出 (Extraction_Result_Schema.md §10) 用の定数。
+# Loreは推定が混ざりやすいため、明示的なloreId/termNameフィールド
+# (Block由来のみ) に対象を絞る、最も保守的な抽出とする。
+LORE_CANDIDATE_TYPE = "lore_candidate"
+LORE_CANDIDATE_SOURCE_TYPE = "script"
+LORE_CANDIDATE_CONFIDENCE_RESOLVED = 0.9
+LORE_CANDIDATE_CONFIDENCE_NAME_ONLY = 0.5
+
+# EventCandidate抽出 (Extraction_Result_Schema.md §11) 用の定数。
+# 明示的なeventId/eventNameフィールドのみを対象とし、会話内容からの
+# 出来事推定 (「事件」「戦闘」等) は行わない。
+EVENT_CANDIDATE_TYPE = "event_candidate"
+EVENT_CANDIDATE_SOURCE_TYPE = "script"
+EVENT_CANDIDATE_CONFIDENCE_RESOLVED = 0.9
+EVENT_CANDIDATE_CONFIDENCE_NAME_ONLY = 0.5
+
 
 @dataclass
 class ExtractionRunInfo:
@@ -157,6 +181,69 @@ class OrganizationCandidateAccumulator:
     """
 
     organization_id: str | None = None
+    name_candidates: list[str] = field(default_factory=list)
+    evidence_ids: list[str] = field(default_factory=list)
+
+    def add_name(self, name: str | None) -> None:
+        if name and name not in self.name_candidates:
+            self.name_candidates.append(name)
+
+    def add_evidence(self, source_id: str) -> None:
+        if source_id not in self.evidence_ids:
+            self.evidence_ids.append(source_id)
+
+
+@dataclass
+class ItemCandidateAccumulator:
+    """episode走査中、1アイテム分の情報を集約する作業用構造体。
+
+    itemId (構造化ID) があれば existingItemId に使う。
+    無ければ itemName のみで識別する。
+    """
+
+    item_id: str | None = None
+    name_candidates: list[str] = field(default_factory=list)
+    evidence_ids: list[str] = field(default_factory=list)
+
+    def add_name(self, name: str | None) -> None:
+        if name and name not in self.name_candidates:
+            self.name_candidates.append(name)
+
+    def add_evidence(self, source_id: str) -> None:
+        if source_id not in self.evidence_ids:
+            self.evidence_ids.append(source_id)
+
+
+@dataclass
+class LoreCandidateAccumulator:
+    """episode走査中、1用語分の情報を集約する作業用構造体。
+
+    loreId (構造化ID) があれば existingLoreId に使う。
+    無ければ termName のみで識別する。
+    """
+
+    lore_id: str | None = None
+    term_candidates: list[str] = field(default_factory=list)
+    evidence_ids: list[str] = field(default_factory=list)
+
+    def add_term(self, term: str | None) -> None:
+        if term and term not in self.term_candidates:
+            self.term_candidates.append(term)
+
+    def add_evidence(self, source_id: str) -> None:
+        if source_id not in self.evidence_ids:
+            self.evidence_ids.append(source_id)
+
+
+@dataclass
+class EventCandidateAccumulator:
+    """episode走査中、1出来事分の情報を集約する作業用構造体。
+
+    eventId (構造化ID) があれば existingEventId に使う。
+    無ければ eventName のみで識別する。
+    """
+
+    event_id: str | None = None
     name_candidates: list[str] = field(default_factory=list)
     evidence_ids: list[str] = field(default_factory=list)
 
