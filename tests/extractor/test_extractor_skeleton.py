@@ -115,7 +115,7 @@ def test_extract_episode_candidates_are_empty(simple_story_json):
         assert extraction[key] == []
 
 
-def test_extraction_run_has_no_llm_values_yet(simple_story_json):
+def test_extraction_run_has_rule_based_method_and_no_llm_values_yet(simple_story_json):
     # LLM呼び出しは未実装のため、extractionMethodはrule_based固定
     # provider/model/prompt/extractedAtはNoneのまま
     extraction = Extractor().extract_story(simple_story_json)[0]
