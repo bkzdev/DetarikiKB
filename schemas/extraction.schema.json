@@ -466,7 +466,7 @@
     },
 
     "TimelineCandidate": {
-      "description": "Extraction_Result_Schema.md §13",
+      "description": "Extraction_Result_Schema.md §13。kindはrelative_order (旧来定義) に加え、rule-based抽出向けにexplicit_order/temporal_markerを追加 (Extraction_Pipeline.md §4.8「将来absolute_date等を追加しうる」を踏襲)",
       "allOf": [
         { "$ref": "#/definitions/CandidateEnvelope" },
         {
@@ -476,8 +476,13 @@
             "type": { "const": "timeline_candidate" },
             "kind": {
               "type": "string",
-              "description": "候補の種類。現時点ではrelative_orderのみ定義",
-              "enum": ["relative_order"]
+              "description": "候補の種類。relative_order (エピソード間の相対順序) / explicit_order (episode.metadataまたはBlock上の明示的な順序値) / temporal_marker (stage_direction等の明示的な時間軸マーカー)",
+              "enum": ["relative_order", "explicit_order", "temporal_marker"]
+            },
+            "scope": {
+              "type": ["string", "null"],
+              "description": "explicit_order/temporal_markerのとき、根拠の粒度 (episode metadata由来かBlock由来か)",
+              "enum": ["episode", "block", null]
             },
             "relativeTo": {
               "type": ["string", "null"],
@@ -486,6 +491,28 @@
             "relation": {
               "type": ["string", "null"],
               "enum": ["before", "after", "same_time", null]
+            },
+            "sourceTimelineId": {
+              "type": ["string", "null"],
+              "description": "Block上の明示的なtimelineId。Timelineはエンティティを持たないためcanonical IDへの解決は行わない (元スクリプト上の値をそのまま保持する)"
+            },
+            "nameCandidates": {
+              "type": "array",
+              "description": "timelineLabel/timePosition (文字列) 由来のラベル表記候補",
+              "items": { "type": "string" }
+            },
+            "orderValue": {
+              "type": ["number", "null"],
+              "description": "kind: explicit_orderのとき、明示的な数値順序 (episode.metadata.canonicalOrder/releaseOrder/displayOrder、またはBlockのorderValue/timePosition)"
+            },
+            "orderField": {
+              "type": ["string", "null"],
+              "description": "orderValueの取得元フィールド名 (canonicalOrder/releaseOrder/displayOrder/orderValue/timePosition)"
+            },
+            "markerType": {
+              "type": ["string", "null"],
+              "description": "kind: temporal_markerのとき、構造的な時間軸マーカー種別",
+              "enum": ["flashback", "flashforward", "day_change", "time_shift", "scene_time", null]
             },
             "fields": { "$ref": "#/definitions/FieldsMap" }
           }
