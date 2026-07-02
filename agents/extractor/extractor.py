@@ -4,13 +4,13 @@ Normalized Story JSON (schemas/story.schema.json) から
 episode_extraction (schemas/extraction.schema.json) の最小構造を生成する。
 
 LLM呼び出し・OpenAI/Anthropic/Ollama連携・prompt作成はまだ実装しない。
-rule-baseで生成するのはcharacters/locations/organizations/items/lore/events。
-relationships/timelineCandidatesは空のまま出力する。
+rule-baseで生成するのはcharacters/locations/organizations/items/lore/events/
+relationships。timelineCandidatesは空のまま出力する。
 
 Candidate種別ごとの抽出ロジックは character.py/location.py/organization.py/
-item.py/lore.py/event.py に分割されている。本ファイルは、各モジュールの
-build_*_candidates() を呼び出してepisode_extraction 1件分を組み立てる
-オーケストレーションのみを担う。
+item.py/lore.py/event.py/relationship.py に分割されている。本ファイルは、
+各モジュールのbuild_*_candidates() を呼び出してepisode_extraction 1件分を
+組み立てるオーケストレーションのみを担う。
 
 docs/architecture/06_AI/Extraction_Pipeline.md
 docs/architecture/06_AI/Extraction_Result_Schema.md
@@ -28,6 +28,7 @@ from .location import build_location_candidates
 from .lore import build_lore_candidates
 from .models import DOCUMENT_TYPE, SCHEMA_VERSION, ExtractionRunInfo
 from .organization import build_organization_candidates
+from .relationship import build_relationship_candidates
 
 
 class Extractor:
@@ -86,6 +87,9 @@ class Extractor:
         events, event_evidence_refs = build_event_candidates(
             episode, story_id, episode_id, extraction_run_dict
         )
+        relationships, relationship_evidence_refs = build_relationship_candidates(
+            episode, story_id, episode_id, extraction_run_dict
+        )
 
         evidence_index = merge_evidence_index(
             evidence_refs,
@@ -93,6 +97,7 @@ class Extractor:
             organization_evidence_refs,
             item_evidence_refs,
             event_evidence_refs,
+            relationship_evidence_refs,
         )
 
         return {
@@ -109,7 +114,7 @@ class Extractor:
             "items": items,
             "lore": lore,
             "events": events,
-            "relationships": [],
+            "relationships": relationships,
             "timelineCandidates": [],
             "extractionErrors": [],
         }
