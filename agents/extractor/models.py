@@ -27,13 +27,14 @@ DEFAULT_EVIDENCE_CONFIDENCE = 1.0
 class ExtractionRunInfo:
     """extractionRun (Extraction_Result_Schema.md §3.2)。
 
-    LLM呼び出しはまだ実装していないため、model_provider/model_name/
-    prompt_version/extracted_at は常にNoneのまま出力する。
+    LLM呼び出しはまだ実装していないため、extraction_methodの既定値は
+    "rule_based" とし、model_provider/model_name/prompt_version/
+    extracted_at は常にNoneのまま出力する。
     """
 
     parser_compatibility_at_extraction: str
     extraction_version: str = EXTRACTOR_VERSION
-    extraction_method: str = "llm"
+    extraction_method: str = "rule_based"
     model_provider: str | None = None
     model_name: str | None = None
     prompt_version: str | None = None

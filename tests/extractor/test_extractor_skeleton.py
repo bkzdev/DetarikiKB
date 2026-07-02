@@ -116,11 +116,12 @@ def test_extract_episode_candidates_are_empty(simple_story_json):
 
 
 def test_extraction_run_has_no_llm_values_yet(simple_story_json):
-    # LLM呼び出しは未実装のため、provider/model/prompt/extractedAtはNoneのまま
+    # LLM呼び出しは未実装のため、extractionMethodはrule_based固定
+    # provider/model/prompt/extractedAtはNoneのまま
     extraction = Extractor().extract_story(simple_story_json)[0]
     run = extraction["extractionRun"]
 
-    assert run["extractionMethod"] == "llm"
+    assert run["extractionMethod"] == "rule_based"
     assert run["modelProvider"] is None
     assert run["modelName"] is None
     assert run["promptVersion"] is None

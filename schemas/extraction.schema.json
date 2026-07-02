@@ -148,8 +148,8 @@
         },
         "extractionMethod": {
           "type": "string",
-          "description": "抽出方式。現時点ではLLM抽出のみ定義",
-          "enum": ["llm"]
+          "description": "抽出方式。rule_based (LLM不使用のルールベース抽出、extractor skeletonの既定) / llm / manual / hybrid",
+          "enum": ["rule_based", "llm", "manual", "hybrid"]
         },
         "modelProvider": {
           "type": ["string", "null"],
