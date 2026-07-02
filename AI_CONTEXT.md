@@ -68,7 +68,7 @@ AI Extraction / Knowledge Graph / Wiki Generation
 
 現在は **Extraction Phase**。`Extraction_Pipeline.md`（パイプライン全体設計）・`Extraction_Result_Schema.md`（出力フィールド設計）・`schemas/extraction.schema.json` 系（validator・fixture・テスト）まで完了し、mainへマージ済み。
 
-`agents/extractor/` の実装は、CLAUDE.mdの方針により明示的な指示があるまで着手しない。
+`agents/extractor/` は最小skeleton（Normalized Story JSONから`episode_extraction`の構造とevidenceIndexを生成、候補配列は空、LLM呼び出しなし）まで実装済み。`feature/extractor-skeleton`ブランチでPR準備中。LLM呼び出し本体・provider連携・prompt設計は、CLAUDE.mdの方針により明示的な指示があるまで着手しない。
 
 直近の作業状態・次のアクション・保留事項・既知の問題は `TASKS.md` を参照すること（このファイルには詳細TODOを追記しない）。
 
@@ -187,7 +187,7 @@ docs/architecture/05_Parser/Normalized_Story_JSON.md
 docs/architecture/05_Parser/Script_Compatibility_Check.md
 ```
 
-Extraction Phase関連（設計のみ完了、実装は未着手）。
+Extraction Phase関連（設計完了。`schemas/extraction.schema.json`はmainへマージ済み、`agents/extractor/`は最小skeletonまで実装済み、`feature/extractor-skeleton`でPR準備中）。
 
 ```text
 docs/architecture/06_AI/Extraction_Pipeline.md
@@ -539,7 +539,7 @@ OpenAI API keyなどは `.env` または環境変数で管理する。
 
 次の作業内容・優先順位は `TASKS.md`（Current Focus / Next Actions）を正とする。ここには重複記載しない。
 
-`agents/extractor/` の実装着手は指示待ち（§3.1）。着手前に解決しておくべき未確定事項は§16および`TASKS.md`のBacklogを参照。
+`agents/extractor/` のLLM呼び出し本体・provider連携の実装着手は指示待ち（§3.1）。着手前に解決しておくべき未確定事項は§16および`TASKS.md`のBacklogを参照。
 
 ---
 
@@ -579,11 +579,11 @@ AIエージェントへ渡す指示例:
 
 # 17. 現在の推奨判断
 
-Parser本体（`agents/parser/`）、`schemas/extraction.schema.json` 系への再着手は不要（完了済み、§3.1）。
+Parser本体（`agents/parser/`）、`schemas/extraction.schema.json` 系、`agents/extractor/` の最小skeletonへの再着手は不要（完了済み、§3.1）。
 
-次の自然な一歩は `TASKS.md` の Next Actions（`feature/extractor-skeleton`）に従う。着手前に以下を決めておく。
+次の自然な一歩は `TASKS.md` の Next Actions（`feature/extractor-skeleton`のPR以降）に従う。着手前に以下を決めておく。
 
 - `relationshipType` の語彙（`Relationships.md`）を確定させるか、暫定的に自由文字列のまま実装するか
-- `agents/extractor/` 本体の実装着手はユーザーの明示的な指示を待つ（CLAUDE.mdの方針）
+- `agents/extractor/` のLLM呼び出し本体・provider連携の実装着手はユーザーの明示的な指示を待つ（CLAUDE.mdの方針）
 
 Parser Phase 1と同じ考え方（検証基準となるschemaを実体より先に作る）を踏襲する。
