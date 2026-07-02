@@ -32,6 +32,22 @@ CHARACTER_CANDIDATE_SOURCE_TYPE = "script"
 CHARACTER_CANDIDATE_CONFIDENCE_RESOLVED = 0.9
 CHARACTER_CANDIDATE_CONFIDENCE_UNRESOLVED = 0.5
 
+# LocationCandidate抽出 (Extraction_Result_Schema.md §7) 用の定数。
+# Scene.location / stage_direction(background) など構造的な手がかりのみを
+# 対象とし、本文の自然文からの場所推定は行わない。
+LOCATION_CANDIDATE_TYPE = "location_candidate"
+LOCATION_CANDIDATE_SOURCE_TYPE = "script"
+LOCATION_CANDIDATE_CONFIDENCE_RESOLVED = 0.9
+LOCATION_CANDIDATE_CONFIDENCE_NAME_ONLY = 0.5
+
+# OrganizationCandidate抽出 (Extraction_Result_Schema.md §8) 用の定数。
+# 明示的なorganizationId/organizationName/affiliationフィールドのみを対象とし、
+# 本文中の固有名詞文字列推定は行わない。
+ORGANIZATION_CANDIDATE_TYPE = "organization_candidate"
+ORGANIZATION_CANDIDATE_SOURCE_TYPE = "script"
+ORGANIZATION_CANDIDATE_CONFIDENCE_RESOLVED = 0.9
+ORGANIZATION_CANDIDATE_CONFIDENCE_NAME_ONLY = 0.5
+
 
 @dataclass
 class ExtractionRunInfo:
@@ -103,3 +119,51 @@ class CharacterCandidateAccumulator:
     def add_evidence(self, block_id: str) -> None:
         if block_id not in self.evidence_ids:
             self.evidence_ids.append(block_id)
+
+
+@dataclass
+class LocationCandidateAccumulator:
+    """episode走査中、1場所分の情報を集約する作業用構造体。
+
+    locationId (構造化ID) があれば existingLocationId に使う。
+    無ければ locationName (またはstage_directionのコマンド文字列) のみで
+    識別する。
+    """
+
+    location_id: str | None = None
+    name_candidates: list[str] = field(default_factory=list)
+    scene_refs: list[str] = field(default_factory=list)
+    evidence_ids: list[str] = field(default_factory=list)
+
+    def add_name(self, name: str | None) -> None:
+        if name and name not in self.name_candidates:
+            self.name_candidates.append(name)
+
+    def add_scene_ref(self, scene_id: str) -> None:
+        if scene_id not in self.scene_refs:
+            self.scene_refs.append(scene_id)
+
+    def add_evidence(self, source_id: str) -> None:
+        if source_id not in self.evidence_ids:
+            self.evidence_ids.append(source_id)
+
+
+@dataclass
+class OrganizationCandidateAccumulator:
+    """episode走査中、1組織分の情報を集約する作業用構造体。
+
+    organizationId (構造化ID) があれば existingOrganizationId に使う。
+    無ければ organizationName/affiliation のみで識別する。
+    """
+
+    organization_id: str | None = None
+    name_candidates: list[str] = field(default_factory=list)
+    evidence_ids: list[str] = field(default_factory=list)
+
+    def add_name(self, name: str | None) -> None:
+        if name and name not in self.name_candidates:
+            self.name_candidates.append(name)
+
+    def add_evidence(self, source_id: str) -> None:
+        if source_id not in self.evidence_ids:
+            self.evidence_ids.append(source_id)
