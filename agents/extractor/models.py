@@ -72,6 +72,25 @@ EVENT_CANDIDATE_SOURCE_TYPE = "script"
 EVENT_CANDIDATE_CONFIDENCE_RESOLVED = 0.9
 EVENT_CANDIDATE_CONFIDENCE_NAME_ONLY = 0.5
 
+# RelationshipCandidate抽出 (Extraction_Result_Schema.md §12) 用の定数。
+# Block上の明示的なrelationshipType+source/targetペア、または
+# speakerAssignmentsの明示的なorganizationId/affiliationのみを対象とし、
+# 本文の自然文からの関係推定 (「友人らしい」「敵対しているらしい」等) は行わない。
+RELATIONSHIP_CANDIDATE_TYPE = "relationship_candidate"
+RELATIONSHIP_CANDIDATE_SOURCE_TYPE = "script"
+RELATIONSHIP_CANDIDATE_CONFIDENCE_RESOLVED = 0.9
+RELATIONSHIP_CANDIDATE_CONFIDENCE_UNRESOLVED = 0.5
+RELATIONSHIP_CANDIDATE_DEFAULT_DIRECTION = "source_to_target"
+RELATIONSHIP_CANDIDATE_VALID_DIRECTIONS = frozenset(
+    {"source_to_target", "target_to_source", "bidirectional"}
+)
+# speakerAssignmentsのorganizationId/affiliationから生成する所属候補の
+# relationshipType。organizationId (構造化ID) があればMEMBER_OF、
+# organizationName/affiliation (名前のみ) の場合はAFFILIATED_WITHとする
+# (Extraction_Pipeline.md §4.3)。
+RELATIONSHIP_TYPE_MEMBER_OF = "MEMBER_OF"
+RELATIONSHIP_TYPE_AFFILIATED_WITH = "AFFILIATED_WITH"
+
 
 @dataclass
 class ExtractionRunInfo:
@@ -250,6 +269,28 @@ class EventCandidateAccumulator:
     def add_name(self, name: str | None) -> None:
         if name and name not in self.name_candidates:
             self.name_candidates.append(name)
+
+    def add_evidence(self, source_id: str) -> None:
+        if source_id not in self.evidence_ids:
+            self.evidence_ids.append(source_id)
+
+
+@dataclass
+class RelationshipCandidateAccumulator:
+    """episode走査中、1関係 (source+target+relationshipType) 分の情報を
+    集約する作業用構造体。
+
+    Block側でrelationshipId (既知Relationship辞書へ解決済み) が明示されて
+    いれば existingRelationshipId / 高confidenceに使う。
+    """
+
+    source_candidate: str
+    target_candidate: str
+    relationship_type: str
+    direction: str = RELATIONSHIP_CANDIDATE_DEFAULT_DIRECTION
+    is_resolved: bool = False
+    existing_relationship_id: str | None = None
+    evidence_ids: list[str] = field(default_factory=list)
 
     def add_evidence(self, source_id: str) -> None:
         if source_id not in self.evidence_ids:
