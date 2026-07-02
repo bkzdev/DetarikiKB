@@ -8,7 +8,7 @@ docs/architecture/06_AI/Extraction_Result_Schema.md
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 SCHEMA_VERSION = "0.1"
@@ -21,6 +21,16 @@ EVIDENCE_BLOCK_TYPES = frozenset({"dialogue", "monologue", "narration", "choice"
 
 # BlockのsourceにconfidenceがないときのEvidenceRef既定値
 DEFAULT_EVIDENCE_CONFIDENCE = 1.0
+
+# CharacterCandidate抽出 (Extraction_Result_Schema.md §6) 用の定数。
+# ルールベース抽出のため sourceType は "script"
+# (Extraction_Pipeline.md §7.1: 本文中に明記された情報の抽出に使う区分)。
+CHARACTER_CANDIDATE_TYPE = "character_candidate"
+CHARACTER_CANDIDATE_SOURCE_TYPE = "script"
+# speakerId (既知キャラクター辞書へ解決済み) がある場合は高め、
+# speakerName/sourceCharacterIdのみ (未解決) の場合はやや低めのconfidenceにする。
+CHARACTER_CANDIDATE_CONFIDENCE_RESOLVED = 0.9
+CHARACTER_CANDIDATE_CONFIDENCE_UNRESOLVED = 0.5
 
 
 @dataclass
@@ -70,3 +80,26 @@ class EvidenceRef:
             "sceneId": self.scene_id,
             "confidence": self.confidence,
         }
+
+
+@dataclass
+class CharacterCandidateAccumulator:
+    """episode走査中、1キャラクター分の情報を集約する作業用構造体。
+
+    speakerId (解決済みcanonical Character ID) があれば existingCharacterId
+    に使う。なければ sourceCharacterId、それも無ければ speakerName のみで
+    識別する (未解決キャラクター)。
+    """
+
+    speaker_id: str | None = None
+    source_character_id: str | None = None
+    name_candidates: list[str] = field(default_factory=list)
+    evidence_ids: list[str] = field(default_factory=list)
+
+    def add_name(self, name: str | None) -> None:
+        if name and name not in self.name_candidates:
+            self.name_candidates.append(name)
+
+    def add_evidence(self, block_id: str) -> None:
+        if block_id not in self.evidence_ids:
+            self.evidence_ids.append(block_id)
