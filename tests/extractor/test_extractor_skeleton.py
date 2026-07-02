@@ -98,11 +98,13 @@ def test_extract_episode_basic_fields(simple_story_json):
     assert extraction["storyCategory"] == simple_story_json["storyCategory"]
 
 
-def test_extract_episode_candidates_are_empty(simple_story_json):
+def test_extract_episode_non_character_candidates_are_empty(simple_story_json):
+    # CharacterCandidateはrule-baseで生成されるため対象外
+    # (tests/extractor/test_character_candidate_extraction.py参照)。
+    # それ以外の候補配列はまだ空のまま。
     extraction = Extractor().extract_story(simple_story_json)[0]
 
     for key in (
-        "characters",
         "organizations",
         "locations",
         "items",
