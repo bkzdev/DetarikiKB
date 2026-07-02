@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "0.1",
+  "documentType": "episode_extraction",
+  "episodeId": "TEST_S01_C01_E01",
+  "storyId": "TEST_S01_C01",
+  "storyCategory": "MAIN",
+  "extractionRun": {
+    "extractionVersion": "0.1.0",
+    "extractionMethod": "rule_based",
+    "modelProvider": null,
+    "modelName": null,
+    "promptVersion": null,
+    "extractedAt": null,
+    "parserCompatibilityAtExtraction": "compatible"
+  },
+  "evidenceIndex": {
+    "TEST_S01_C01_E01_DLG0001": {
+      "sourceId": "TEST_S01_C01_E01_DLG0001",
+      "storyId": "TEST_S01_C01",
+      "episodeId": "TEST_S01_C01_E01",
+      "sceneId": "TEST_S01_C01_E01_SC001",
+      "confidence": 0.9
+    }
+  },
+  "characters": [
+    {
+      "id": "TEST_S01_C01_E01_CAND_DUP001",
+      "type": "character_candidate",
+      "sourceType": "ai_extracted",
+      "confidence": 0.9,
+      "evidenceIds": ["TEST_S01_C01_E01_DLG0001"],
+      "extractionRun": {
+        "extractionVersion": "0.1.0",
+        "extractionMethod": "rule_based",
+        "modelProvider": null,
+        "modelName": null,
+        "promptVersion": null,
+        "extractedAt": null,
+        "parserCompatibilityAtExtraction": "compatible"
+      },
+      "existingCharacterId": null,
+      "sourceCharacterId": "1",
+      "nameCandidates": ["テストキャラ"],
+      "fields": {}
+    }
+  ],
+  "organizations": [],
+  "locations": [
+    {
+      "id": "TEST_S01_C01_E01_CAND_DUP001",
+      "type": "location_candidate",
+      "sourceType": "script",
+      "confidence": 0.9,
+      "evidenceIds": ["TEST_S01_C01_E01_DLG0001"],
+      "extractionRun": {
+        "extractionVersion": "0.1.0",
+        "extractionMethod": "rule_based",
+        "modelProvider": null,
+        "modelName": null,
+        "promptVersion": null,
+        "extractedAt": null,
+        "parserCompatibilityAtExtraction": "compatible"
+      },
+      "existingLocationId": null,
+      "nameCandidates": ["テスト場所"],
+      "sceneRefs": ["TEST_S01_C01_E01_SC001"],
+      "fields": {}
+    }
+  ],
+  "items": [],
+  "lore": [],
+  "events": [],
+  "relationships": [],
+  "timelineCandidates": [],
+  "extractionErrors": []
+}

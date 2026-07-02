@@ -20,6 +20,11 @@ from .models import (
     EvidenceRef,
     ExtractionRunInfo,
 )
+from .validator import (
+    SemanticValidationIssue,
+    has_errors,
+    run_semantic_validation,
+)
 
 __all__ = [
     "Extractor",
@@ -28,4 +33,7 @@ __all__ = [
     "SCHEMA_VERSION",
     "DOCUMENT_TYPE",
     "EXTRACTOR_VERSION",
+    "SemanticValidationIssue",
+    "run_semantic_validation",
+    "has_errors",
 ]
