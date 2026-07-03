@@ -36,7 +36,9 @@ from jsonschema import Draft7Validator
 
 from agents.extractor.validator import SemanticValidationIssue, run_semantic_validation
 
+from .character import build_character_entities
 from .input_resolver import resolve_input_entries
+from .location import build_location_entities
 from .models import (
     CANDIDATE_ARRAY_KEYS,
     COLLECTION_DOCUMENT_TYPE,
@@ -48,6 +50,7 @@ from .models import (
     InputResult,
     MergeReport,
 )
+from .organization import build_organization_entities
 
 _PROJECT_ROOT = Path(__file__).parent.parent.parent
 DEFAULT_EXTRACTION_SCHEMA_PATH = _PROJECT_ROOT / "schemas" / "extraction.schema.json"
@@ -194,8 +197,11 @@ class MergeEngine:
     ) -> dict[str, Any]:
         """検証済み (path, document) 群からcollection構造を組み立てる
 
-        skeletonのため本格mergeはせず、candidate件数の集計 (全valid input
-        合算) とsourceDocumentsの記録のみを行う。entities配下は空配列。
+        candidate件数の集計 (全valid input合算) とsourceDocumentsの記録に
+        加え、Character/Location/Organizationのみ最小ルールでmerged
+        entityへ変換する (Merged_Knowledge_Design.md §5.1〜§5.3)。
+        Item/Lore/Event/Relationship/Timelineは今回もentities配下を
+        空配列のままにする (本格実装は別PR)。
         """
         source_documents: list[dict[str, Any]] = []
         for path, document in valid_entries:
@@ -218,11 +224,25 @@ class MergeEngine:
                 }
             )
 
+        entities: dict[str, list[dict[str, Any]]] = {
+            key: [] for key in MERGED_ENTITY_KEYS
+        }
+        entities["characters"] = build_character_entities(valid_entries)
+        entities["locations"] = build_location_entities(valid_entries)
+        entities["organizations"] = build_organization_entities(valid_entries)
+
+        for key, values in entities.items():
+            report.merged_entity_counts[key] = len(values)
+            for entity in values:
+                report.conflicts_count += len(entity.get("conflicts", []))
+                if entity.get("status") == "unresolved":
+                    report.unresolved_count += 1
+
         return {
             "schemaVersion": COLLECTION_SCHEMA_VERSION,
             "documentType": COLLECTION_DOCUMENT_TYPE,
             "generatedAt": datetime.now(timezone.utc).isoformat(),
             "sourceDocuments": source_documents,
-            "entities": {key: [] for key in MERGED_ENTITY_KEYS},
+            "entities": entities,
             "report": report.to_dict(),
         }

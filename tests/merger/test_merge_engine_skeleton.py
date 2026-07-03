@@ -94,11 +94,15 @@ def test_candidate_counts_reflect_input_document(engine):
 
 
 # ----------------------------------------------------------------
-# 3. 出力collectionの構造 (8種のentity配列が空のまま存在する)
+# 3. 出力collectionの構造 (8種のentity配列キーが存在する)
 # ----------------------------------------------------------------
 
 
 def test_output_collection_has_all_eight_entity_arrays(engine):
+    # Character/Location/Organizationは最小merge実装済みのため、
+    # MINIMAL_FIXTURE (sourceCharacterIdありのCharacterCandidateを含む) では
+    # charactersのみ1件になる。Item/Lore/Event/Relationship/Timelineは
+    # 本格実装がまだ無いため常に空 (詳細な集計テストはtest_entity_merge.py参照)。
     collection = engine.merge_file(MINIMAL_FIXTURE)
     entities = collection["entities"]
 
@@ -113,7 +117,21 @@ def test_output_collection_has_all_eight_entity_arrays(engine):
         "timeline",
     ):
         assert key in entities
-        assert entities[key] == [], f"{key} はskeletonでは空のはず"
+
+    assert entities["characters"] != []
+    # locations/organizationsも実装済みだが、MINIMAL_FIXTUREに該当candidateが
+    # 無いため空。items/lore/events/relationships/timelineはmerge未実装のため
+    # 常に空 (詳細はtest_entity_merge.py参照)。
+    for key in (
+        "locations",
+        "organizations",
+        "items",
+        "lore",
+        "events",
+        "relationships",
+        "timeline",
+    ):
+        assert entities[key] == []
 
 
 def test_output_collection_has_expected_top_level_fields(engine):

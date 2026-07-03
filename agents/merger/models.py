@@ -94,6 +94,11 @@ class MergeReport:
     candidate_counts: dict[str, int] = field(
         default_factory=lambda: dict.fromkeys(CANDIDATE_ARRAY_KEYS, 0)
     )
+    merged_entity_counts: dict[str, int] = field(
+        default_factory=lambda: dict.fromkeys(MERGED_ENTITY_KEYS, 0)
+    )
+    conflicts_count: int = 0
+    unresolved_count: int = 0
     warnings: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
     input_results: list[InputResult] = field(default_factory=list)
@@ -106,6 +111,9 @@ class MergeReport:
             "invalidInputs": self.invalid_inputs,
             "skippedInputs": list(self.skipped_inputs),
             "candidateCounts": dict(self.candidate_counts),
+            "mergedEntityCounts": dict(self.merged_entity_counts),
+            "conflictsCount": self.conflicts_count,
+            "unresolvedCount": self.unresolved_count,
             "warnings": list(self.warnings),
             "errors": list(self.errors),
             "inputResults": [r.to_dict() for r in self.input_results],
