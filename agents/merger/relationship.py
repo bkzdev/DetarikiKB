@@ -22,26 +22,17 @@ docs/architecture/06_AI/Merged_Knowledge_Design.md §6
 
 from __future__ import annotations
 
-import re
 from typing import Any
 
 from .entity_base import (
     build_block_type_index,
     build_merged_evidence_refs,
     build_source_candidate,
+    sanitize_id_segment,
 )
 
 MERGED_ENTITY_SCHEMA_VERSION = "0.1"
 _UNRESOLVED_PREFIX = "UNRESOLVED_"
-
-
-def _sanitize_id_segment(text: str) -> str:
-    """relationshipType等の自由文字列を、IdStringパターン
-    (^[A-Z][A-Z0-9_-]+$) に沿うID断片へ変換する。relationshipTypeフィールド
-    自体は自由文字列のまま保持し、ID組み立てにのみ使う。
-    """
-    sanitized = re.sub(r"[^A-Za-z0-9]+", "_", text).strip("_").upper()
-    return sanitized or "UNKNOWN"
 
 
 def _build_reference_index(
@@ -242,7 +233,7 @@ def _build_relationship_entity(
     is_canonical = not source_entity_id.startswith(
         _UNRESOLVED_PREFIX
     ) and not target_entity_id.startswith(_UNRESOLVED_PREFIX)
-    type_segment = _sanitize_id_segment(relationship_type)
+    type_segment = sanitize_id_segment(relationship_type)
     entity_id = f"REL_{source_entity_id}_{type_segment}_{target_entity_id}"
     canonical_id = entity_id if is_canonical else None
     merged_id = None if is_canonical else entity_id

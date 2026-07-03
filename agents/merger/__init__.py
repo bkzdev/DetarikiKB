@@ -11,7 +11,9 @@ Character/Location/Organization/Item/Lore/Eventは構造化ID (existing*Id)
 (Merged_Knowledge_Design.md §5.1〜§5.6)。Relationshipはsource/targetの
 両端をmerged entity IDへ解決できた候補のみ最小ルールでmerged relationship
 へ変換する (§6。解決できない候補はreport.warningsに記録し、無理に確定
-しない)。Timelineの本格merge・canonical ID本格割り当て・manual override
+しない)。Timelineはsource TimelineID/scope+kind+orderValueでの保守的な
+merge最小ルールを適用する (§7。Stage Bでは順序の確定・canonical化は行わ
+ないため常にstatus: unresolved)。canonical ID本格割り当て・manual override
 適用・conflict解決の本格実装はまだ行わない。
 
 docs/architecture/06_AI/Merged_Knowledge_Design.md
@@ -38,6 +40,7 @@ from .models import (
 )
 from .organization import build_organization_entities
 from .relationship import build_relationship_entities
+from .timeline import build_timeline_entities
 
 __all__ = [
     "MergeEngine",
@@ -53,6 +56,7 @@ __all__ = [
     "build_lore_entities",
     "build_event_entities",
     "build_relationship_entities",
+    "build_timeline_entities",
     "CANDIDATE_ARRAY_KEYS",
     "MERGED_ENTITY_KEYS",
     "COLLECTION_SCHEMA_VERSION",

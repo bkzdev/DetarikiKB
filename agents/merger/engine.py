@@ -55,6 +55,7 @@ from .models import (
 )
 from .organization import build_organization_entities
 from .relationship import build_relationship_entities
+from .timeline import build_timeline_entities
 
 _PROJECT_ROOT = Path(__file__).parent.parent.parent
 DEFAULT_EXTRACTION_SCHEMA_PATH = _PROJECT_ROOT / "schemas" / "extraction.schema.json"
@@ -202,10 +203,9 @@ class MergeEngine:
         """検証済み (path, document) 群からcollection構造を組み立てる
 
         candidate件数の集計 (全valid input合算) とsourceDocumentsの記録に
-        加え、Character/Location/Organization/Item/Lore/Event/Relationship
-        のみ最小ルールでmerged entityへ変換する (Merged_Knowledge_Design.md
-        §5.1〜§5.6, §6)。Timelineは今回もentities配下を空配列のままにする
-        (本格実装は別PR)。
+        加え、Character/Location/Organization/Item/Lore/Event/Relationship/
+        Timelineすべてを最小ルールでmerged entityへ変換する
+        (Merged_Knowledge_Design.md §5.1〜§5.6, §6, §7)。
         """
         source_documents: list[dict[str, Any]] = []
         for path, document in valid_entries:
@@ -251,6 +251,7 @@ class MergeEngine:
         )
         entities["relationships"] = relationship_entities
         report.warnings.extend(relationship_warnings)
+        entities["timeline"] = build_timeline_entities(valid_entries)
 
         for key, values in entities.items():
             report.merged_entity_counts[key] = len(values)

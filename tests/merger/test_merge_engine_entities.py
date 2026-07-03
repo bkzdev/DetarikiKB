@@ -197,6 +197,36 @@ def _episode_with_relationship_candidate(episode_id: str) -> dict:
     return doc
 
 
+def _episode_with_timeline_candidate(episode_id: str) -> dict:
+    """_episode_with_relationship_candidateに、既存evidenceを参照する
+    TimelineCandidateを追加した最小episode_extraction
+    (Character/Location/Organization/Item/Lore/Event/Relationship/Timeline
+    すべてが揃う)。
+    """
+    doc = _episode_with_relationship_candidate(episode_id)
+    doc["timelineCandidates"] = [
+        {
+            "id": f"{episode_id}_CAND_TL001",
+            "type": "timeline_candidate",
+            "sourceType": "script",
+            "confidence": 0.7,
+            "evidenceIds": [f"{episode_id}_DLG0001"],
+            "extractionRun": _extraction_run(),
+            "kind": "explicit_order",
+            "scope": "episode",
+            "relativeTo": None,
+            "relation": None,
+            "sourceTimelineId": "TL_ARC1",
+            "nameCandidates": ["第一部"],
+            "orderValue": 1,
+            "orderField": "canonicalOrder",
+            "markerType": None,
+            "fields": {},
+        }
+    ]
+    return doc
+
+
 @pytest.fixture
 def entity_validator() -> Draft7Validator:
     with open(ENTITY_SCHEMA_PATH, encoding="utf-8") as f:
@@ -543,6 +573,116 @@ def test_cli_output_with_relationship_entity_passes_collection_schema(
     assert not errors, [e.message for e in errors]
     assert len(data["entities"]["relationships"]) == 1
     assert data["entities"]["timeline"] == []
+
+
+def test_merge_engine_produces_timeline_entity(engine, tmp_path):
+    doc = _episode_with_timeline_candidate("EP01")
+    path = tmp_path / "EP01.extraction.json"
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(doc, f, ensure_ascii=False)
+
+    collection = engine.merge_file(path)
+    entities = collection["entities"]
+
+    assert len(entities["timeline"]) == 1
+    timeline_entry = entities["timeline"][0]
+    assert timeline_entry["sourceTimelineId"] == "TL_ARC1"
+    assert timeline_entry["label"] == "第一部"
+    assert timeline_entry["status"] == "unresolved"
+    # Relationshipとの共存確認 (既存のresolved candidateも引き続き生成される)
+    assert len(entities["relationships"]) == 1
+
+
+def test_merged_entity_counts_include_timeline(engine, tmp_path):
+    doc = _episode_with_timeline_candidate("EP01")
+    path = tmp_path / "EP01.extraction.json"
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(doc, f, ensure_ascii=False)
+
+    collection = engine.merge_file(path)
+    counts = collection["report"]["mergedEntityCounts"]
+
+    assert counts["timeline"] == 1
+    assert counts["relationships"] == 1
+
+
+def test_timeline_entities_aggregate_across_episodes(engine, tmp_path):
+    doc1 = _episode_with_timeline_candidate("EP01")
+    doc2 = _episode_with_timeline_candidate("EP02")
+    path1 = tmp_path / "EP01.extraction.json"
+    path2 = tmp_path / "EP02.extraction.json"
+    with open(path1, "w", encoding="utf-8") as f:
+        json.dump(doc1, f, ensure_ascii=False)
+    with open(path2, "w", encoding="utf-8") as f:
+        json.dump(doc2, f, ensure_ascii=False)
+
+    collection = engine.merge_inputs([str(path1), str(path2)])
+    entities = collection["entities"]
+
+    assert len(entities["timeline"]) == 1
+    assert set(entities["timeline"][0]["mergedFrom"]) == {"EP01", "EP02"}
+
+
+def test_generated_timeline_entity_passes_entity_schema(
+    entity_validator, engine, tmp_path
+):
+    doc = _episode_with_timeline_candidate("EP01")
+    path = tmp_path / "EP01.extraction.json"
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(doc, f, ensure_ascii=False)
+
+    collection = engine.merge_file(path)
+
+    for entity in collection["entities"]["timeline"]:
+        errors = list(entity_validator.iter_errors(entity))
+        assert not errors, [e.message for e in errors]
+
+
+def test_collection_with_timeline_entity_passes_collection_schema(
+    collection_validator, engine, tmp_path
+):
+    doc = _episode_with_timeline_candidate("EP01")
+    path = tmp_path / "EP01.extraction.json"
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(doc, f, ensure_ascii=False)
+
+    collection = engine.merge_file(path)
+    errors = list(collection_validator.iter_errors(collection))
+    assert not errors, [e.message for e in errors]
+
+
+def test_cli_output_with_timeline_entity_passes_collection_schema(
+    collection_validator, tmp_path
+):
+    doc = _episode_with_timeline_candidate("EP01")
+    input_path = tmp_path / "EP01.extraction.json"
+    with open(input_path, "w", encoding="utf-8") as f:
+        json.dump(doc, f, ensure_ascii=False)
+
+    output_dir = tmp_path / "merge_preview"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(MERGE_SCRIPT),
+            "--input",
+            str(input_path),
+            "--output",
+            str(output_dir),
+            "--quiet",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+
+    output_file = output_dir / "merged_knowledge_collection.json"
+    with open(output_file, encoding="utf-8") as f:
+        data = json.load(f)
+
+    errors = list(collection_validator.iter_errors(data))
+    assert not errors, [e.message for e in errors]
+    assert len(data["entities"]["timeline"]) == 1
+    assert len(data["entities"]["relationships"]) == 1
 
 
 # ----------------------------------------------------------------
