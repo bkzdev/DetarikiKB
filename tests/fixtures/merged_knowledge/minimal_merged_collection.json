@@ -60,6 +60,97 @@
     },
     "conflictsCount": 0,
     "unresolvedCount": 0,
+    "unresolvedEntityCounts": {
+      "characters": 0,
+      "locations": 0,
+      "organizations": 0,
+      "items": 0,
+      "lore": 0,
+      "events": 0,
+      "relationships": 0,
+      "timeline": 0
+    },
+    "conflictCounts": {
+      "total": 0,
+      "bySeverity": {},
+      "byType": {},
+      "byEntityType": {}
+    },
+    "warningCounts": {
+      "total": 0,
+      "unresolvedRelationships": 0,
+      "skippedOverrides": 0,
+      "other": 0
+    },
+    "entityTypeSummaries": {
+      "characters": {
+        "candidateCount": 1,
+        "mergedCount": 0,
+        "unresolvedCount": 0,
+        "conflictCount": 0
+      },
+      "locations": {
+        "candidateCount": 0,
+        "mergedCount": 0,
+        "unresolvedCount": 0,
+        "conflictCount": 0
+      },
+      "organizations": {
+        "candidateCount": 0,
+        "mergedCount": 0,
+        "unresolvedCount": 0,
+        "conflictCount": 0
+      },
+      "items": {
+        "candidateCount": 0,
+        "mergedCount": 0,
+        "unresolvedCount": 0,
+        "conflictCount": 0
+      },
+      "lore": {
+        "candidateCount": 0,
+        "mergedCount": 0,
+        "unresolvedCount": 0,
+        "conflictCount": 0
+      },
+      "events": {
+        "candidateCount": 0,
+        "mergedCount": 0,
+        "unresolvedCount": 0,
+        "conflictCount": 0
+      },
+      "relationships": {
+        "candidateCount": 0,
+        "mergedCount": 0,
+        "unresolvedCount": 0,
+        "conflictCount": 0
+      },
+      "timeline": {
+        "candidateCount": 0,
+        "mergedCount": 0,
+        "unresolvedCount": 0,
+        "conflictCount": 0
+      }
+    },
+    "inputSummaries": [
+      {
+        "path": "tests/fixtures/extraction/minimal_episode_extraction.json",
+        "status": "valid",
+        "documentId": "TEST_S01_C01_E01",
+        "episodeId": "TEST_S01_C01_E01",
+        "candidateCounts": {
+          "characters": 1,
+          "locations": 0,
+          "organizations": 0,
+          "items": 0,
+          "lore": 0,
+          "events": 0,
+          "relationships": 0,
+          "timelineCandidates": 0
+        },
+        "mergedEntityCounts": null
+      }
+    ],
     "inputResults": [
       {
         "path": "tests/fixtures/extraction/minimal_episode_extraction.json",

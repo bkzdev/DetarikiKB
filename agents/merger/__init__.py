@@ -20,6 +20,10 @@ agents.merger.overrides で、merge後のcollectionへmanual override
 status/canonicalIdの上書き、aliasesの追加・削除のみ対応)。canonical ID
 本格割り当て・高度なconflict解決の本格実装はまだ行わない。
 
+merge reportは、type別・入力ファイル別の内訳 (mergedEntityCounts/
+unresolvedEntityCounts/conflictCounts/warningCounts/entityTypeSummaries/
+inputSummaries) まで含める (§11.2)。
+
 docs/architecture/06_AI/Merged_Knowledge_Design.md
 """
 
@@ -32,6 +36,7 @@ from .location import build_location_entities
 from .lore import build_lore_entities
 from .models import (
     CANDIDATE_ARRAY_KEYS,
+    CANDIDATE_TO_MERGED_KEY,
     COLLECTION_DOCUMENT_TYPE,
     COLLECTION_SCHEMA_VERSION,
     INPUT_STATUS_INVALID,
@@ -39,6 +44,7 @@ from .models import (
     INPUT_STATUS_VALID,
     MERGE_ENGINE_VERSION,
     MERGED_ENTITY_KEYS,
+    MERGED_TO_CANDIDATE_KEY,
     InputResult,
     MergeReport,
 )
@@ -77,6 +83,8 @@ __all__ = [
     "build_manual_overrides_report",
     "CANDIDATE_ARRAY_KEYS",
     "MERGED_ENTITY_KEYS",
+    "CANDIDATE_TO_MERGED_KEY",
+    "MERGED_TO_CANDIDATE_KEY",
     "COLLECTION_SCHEMA_VERSION",
     "COLLECTION_DOCUMENT_TYPE",
     "MERGE_ENGINE_VERSION",

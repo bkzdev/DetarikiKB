@@ -201,8 +201,15 @@ def main() -> int:  # noqa: C901
         collection, override_results = apply_manual_overrides(
             collection, {"overrides": all_overrides}
         )
-        collection["report"]["manualOverrides"] = build_manual_overrides_report(
+        manual_overrides_report = build_manual_overrides_report(
             override_files, override_results
+        )
+        collection["report"]["manualOverrides"] = manual_overrides_report
+        # engine自体はoverrideの存在を知らないため (report.warningCountsは
+        # merge_inputs時点でskippedOverrides=0のまま)、CLI層でのみ判明する
+        # manualOverrides.skippedCountをここで反映する。
+        collection["report"]["warningCounts"]["skippedOverrides"] = (
+            manual_overrides_report["skippedCount"]
         )
         report = collection["report"]
 
