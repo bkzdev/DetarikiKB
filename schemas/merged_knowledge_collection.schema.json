@@ -270,6 +270,10 @@
         "relationshipTypeSummary": {
           "$ref": "#/definitions/RelationshipTypeSummary",
           "description": "relationshipTypeの正規化集計 (agents/merger/relationship_taxonomy.py)。requiredには含めない任意プロパティ (既存の手書きfixtureを壊さないため。MergeEngineの実出力には常に含まれる)"
+        },
+        "canonicalIdSummary": {
+          "$ref": "#/definitions/CanonicalIdSummary",
+          "description": "canonicalIdの形式・重複検証結果 (agents/merger/canonical_ids.py、docs/architecture/06_AI/Canonical_ID_Policy.md)。requiredには含めない任意プロパティ (既存の手書きfixtureを壊さないため。MergeEngineの実出力には常に含まれ、--overrides指定時はoverride適用後の値で上書きされる)"
         }
       }
     },
@@ -471,6 +475,40 @@
           "type": "object",
           "description": "元のrelationshipType表記 -> 正規化後の値の対応表",
           "additionalProperties": { "type": "string" }
+        }
+      }
+    },
+
+    "CanonicalIdSummary": {
+      "type": "object",
+      "description": "canonicalIdのvalidation結果 (agents/merger/canonical_ids.py validate_canonical_ids、docs/architecture/06_AI/Canonical_ID_Policy.md §9)",
+      "required": [
+        "totalAssigned",
+        "duplicateCount",
+        "invalidCount",
+        "warnings"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "totalAssigned": {
+          "type": "integer",
+          "description": "canonicalIdが設定されているmerged entityの総数",
+          "minimum": 0
+        },
+        "duplicateCount": {
+          "type": "integer",
+          "description": "重複しているcanonicalId (distinct値) の件数。同一entity type内・全type横断のどちらの重複も含む",
+          "minimum": 0
+        },
+        "invalidCount": {
+          "type": "integer",
+          "description": "形式が不正、またはentity typeに期待されるprefixと一致しないcanonicalIdの件数",
+          "minimum": 0
+        },
+        "warnings": {
+          "type": "array",
+          "description": "不正な形式・重複・status:unresolvedでのcanonicalId設定等の詳細メッセージ",
+          "items": { "type": "string" }
         }
       }
     },

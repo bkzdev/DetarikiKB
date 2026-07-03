@@ -140,6 +140,14 @@ class MergeReport:
             "normalizedTypes": {},
         }
     )
+    canonical_id_summary: dict[str, Any] = field(
+        default_factory=lambda: {
+            "totalAssigned": 0,
+            "duplicateCount": 0,
+            "invalidCount": 0,
+            "warnings": [],
+        }
+    )
     warnings: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
     input_results: list[InputResult] = field(default_factory=list)
@@ -174,6 +182,12 @@ class MergeReport:
                 "normalizedTypes": dict(
                     self.relationship_type_summary["normalizedTypes"]
                 ),
+            },
+            "canonicalIdSummary": {
+                "totalAssigned": self.canonical_id_summary["totalAssigned"],
+                "duplicateCount": self.canonical_id_summary["duplicateCount"],
+                "invalidCount": self.canonical_id_summary["invalidCount"],
+                "warnings": list(self.canonical_id_summary["warnings"]),
             },
             "warnings": list(self.warnings),
             "errors": list(self.errors),

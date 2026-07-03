@@ -51,6 +51,7 @@ if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
 from agents.merger import MergeEngine  # noqa: E402
+from agents.merger.canonical_ids import validate_canonical_ids  # noqa: E402
 from agents.merger.overrides import (  # noqa: E402
     apply_manual_overrides,
     build_manual_overrides_report,
@@ -211,6 +212,14 @@ def main() -> int:  # noqa: C901
         collection["report"]["warningCounts"]["skippedOverrides"] = (
             manual_overrides_report["skippedCount"]
         )
+        # manual overrideはcanonicalIdを書き換えうる (operation: set_field,
+        # field: "canonicalId") ため、override適用後のcollectionで
+        # canonicalIdSummaryを再計算する (Canonical_ID_Policy.md §7)。
+        # invalidなcanonicalIdがoverrideで指定された場合もexit codeは
+        # 変更せず、report warningとして記録するに留める。
+        collection["report"]["canonicalIdSummary"] = validate_canonical_ids(
+            collection
+        ).to_dict()
         report = collection["report"]
 
     output_dir = Path(args.output)

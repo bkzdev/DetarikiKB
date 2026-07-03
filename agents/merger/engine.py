@@ -36,6 +36,7 @@ from jsonschema import Draft7Validator
 
 from agents.extractor.validator import SemanticValidationIssue, run_semantic_validation
 
+from .canonical_ids import validate_canonical_ids
 from .character import build_character_entities
 from .event import build_event_entities
 from .input_resolver import resolve_input_entries
@@ -409,6 +410,9 @@ class MergeEngine:
         _summarize_warnings(report)
         _build_input_summaries(report, source_documents)
         report.relationship_type_summary = _summarize_relationship_types(entities)
+        report.canonical_id_summary = validate_canonical_ids(
+            {"entities": entities}
+        ).to_dict()
 
         return {
             "schemaVersion": COLLECTION_SCHEMA_VERSION,
