@@ -266,6 +266,10 @@
         "manualOverrides": {
           "$ref": "#/definitions/ManualOverridesReport",
           "description": "manual override適用結果 (agents/merger/overrides.py)。--overrides未指定時は本フィールド自体が存在しない (任意プロパティ、既存挙動を壊さないため)"
+        },
+        "relationshipTypeSummary": {
+          "$ref": "#/definitions/RelationshipTypeSummary",
+          "description": "relationshipTypeの正規化集計 (agents/merger/relationship_taxonomy.py)。requiredには含めない任意プロパティ (既存の手書きfixtureを壊さないため。MergeEngineの実出力には常に含まれる)"
         }
       }
     },
@@ -443,6 +447,30 @@
             { "$ref": "#/definitions/MergedEntityCounts" },
             { "type": "null" }
           ]
+        }
+      }
+    },
+
+    "RelationshipTypeSummary": {
+      "type": "object",
+      "description": "relationshipTypeの正規化集計 (agents/merger/relationship_taxonomy.py normalize_relationship_type)。merged relationship entityのみを対象とする (両端未解決でentity化されなかった候補は含まない)。relationshipType自体はenum化しない方針のため、キー集合は固定しない",
+      "required": ["knownTypes", "unknownTypes", "normalizedTypes"],
+      "additionalProperties": false,
+      "properties": {
+        "knownTypes": {
+          "type": "object",
+          "description": "暫定taxonomy (KNOWN_RELATIONSHIP_TYPES) に一致した正規化後relationshipType別の件数",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        },
+        "unknownTypes": {
+          "type": "object",
+          "description": "taxonomy未登録の正規化後relationshipType (slug化した値) 別の件数。破棄はせずここに記録する",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        },
+        "normalizedTypes": {
+          "type": "object",
+          "description": "元のrelationshipType表記 -> 正規化後の値の対応表",
+          "additionalProperties": { "type": "string" }
         }
       }
     },

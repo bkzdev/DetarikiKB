@@ -133,6 +133,13 @@ class MergeReport:
     )
     entity_type_summaries: dict[str, dict[str, int]] = field(default_factory=dict)
     input_summaries: list[dict[str, Any]] = field(default_factory=list)
+    relationship_type_summary: dict[str, Any] = field(
+        default_factory=lambda: {
+            "knownTypes": {},
+            "unknownTypes": {},
+            "normalizedTypes": {},
+        }
+    )
     warnings: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
     input_results: list[InputResult] = field(default_factory=list)
@@ -161,6 +168,13 @@ class MergeReport:
                 for key, summary in self.entity_type_summaries.items()
             },
             "inputSummaries": [dict(s) for s in self.input_summaries],
+            "relationshipTypeSummary": {
+                "knownTypes": dict(self.relationship_type_summary["knownTypes"]),
+                "unknownTypes": dict(self.relationship_type_summary["unknownTypes"]),
+                "normalizedTypes": dict(
+                    self.relationship_type_summary["normalizedTypes"]
+                ),
+            },
             "warnings": list(self.warnings),
             "errors": list(self.errors),
             "inputResults": [r.to_dict() for r in self.input_results],
