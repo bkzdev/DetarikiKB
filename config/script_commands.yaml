@@ -78,6 +78,50 @@ stage_direction:
   - "@VideoPlay"           # 動画再生
   - "segmentCorrection"    # セグメント補正
   - "visibleAccessory"     # アクセサリ表示
+  # 実データdry-run trialで見つかった演出コマンド群
+  # (docs/runbooks/Real_Data_Dry_Run_Result_Template.md §3.2)。
+  # agents/parser/tokenizer.py の KEYWORD_TOKENS と
+  # agents/parser/parser.py の DIRECTION_TYPE_MAP に対で追加すること。
+  - "ch"                   # カメラ対象キャラクタースロット
+  - "pos"                  # カメラ位置
+  - "euler"                # カメラ回転
+  - "fov"                  # カメラ画角
+  - "camera"               # カメラ切替
+  - "nf"                   # カメラ near/far クリップ
+  - "light"                # ライティング
+  - "@TalkCamera3"         # 会話カメラ (バリエーション3)
+  - "@TalkCamera4"         # 会話カメラ (バリエーション4)
+  - "mo"                   # モーション指定
+  - "@MotionWait"          # モーション待機
+  - "sound"                # 効果音再生
+  - "vo"                   # ボイス再生
+  - "ui"                   # UI表示切替
+  - "wType"                # ウィンドウタイプ
+  - "wset"                 # ウィンドウ/prefab設定
+  - "click"                # クリック待機
+  - "hide"                 # 非表示
+  - "visible"              # 表示切替
+  - "scale"                # スケール変更
+  - "color"                # 色調変更
+  - "active"               # アクティブ状態切替
+  - "parent"                # オブジェクトの親子付け
+  - "@ChColor2"            # キャラクター色調 (バリエーション2)
+  - "@ChColor2off"         # キャラクター色調オフ
+  - "rdraw"                # 画面全体の描画演出 (フェード等)
+  - "screen"               # 画面全体の演出指定
+  - "@FadeOutWhite"        # 画面フェードアウト (白)
+  - "@TalkFadeIn"          # 会話フェードイン
+  - "@DoubleScreen"        # 画面分割演出
+  - "uniq"                 # シーン固有識別子
+  - "set"                  # 汎用フラグ/変数設定
+  - "prefab"               # prefabアセット読み込み
+  - "remove"               # オブジェクト削除
+  - "loading"              # ローディング状態フラグ
+  - "wait"                 # 待機
+  - "@IsLoading"           # ローディング判定
+  - "image"                # 画像アセット読み込み
+  - "distance"             # カメラ距離
+  - "shake"                # 画面/カメラ揺れ演出
 
 # ----------------------------------------------------------------
 # ignored: 無視する行・コマンド

@@ -3,6 +3,8 @@ tests/parser/test_tokenizer.py
 Tokenizer のユニットテスト
 """
 
+import pytest
+
 from agents.parser.tokenizer import (
     TokenType,
     tokenize_text,
@@ -103,6 +105,66 @@ class TestBasicTokenTypes:
     def test_endif_keyword(self):
         tokens = tokenize_text("#endif\n")
         assert tokens[0].command == "#endif"
+
+
+# ----------------------------------------------------------------
+# 実データdry-run trialで見つかった@なし演出コマンド
+# (docs/runbooks/Real_Data_Dry_Run_Result_Template.md §3.2)
+# ----------------------------------------------------------------
+
+
+class TestRealDataStageDirectionKeywords:
+    """camera/pos/euler/fov 等の@なし演出コマンドが UNKNOWN ではなく
+    KEYWORD として認識されることを確認する (script command coverage改善)。"""
+
+    @pytest.mark.parametrize(
+        "line,expected_command",
+        [
+            ("camera 0\n", "camera"),
+            ("pos -7.94,1.4,22.08\n", "pos"),
+            ("euler 3.821,141.302,0\n", "euler"),
+            ("fov 21\n", "fov"),
+            ("ch 1\n", "ch"),
+            ("nf 0.3 500\n", "nf"),
+            ("wait 0.5\n", "wait"),
+            ("ui 0\n", "ui"),
+            ("rdraw 1 @,@,@,@ 0,0,0,1\n", "rdraw"),
+            ("hide\n", "hide"),
+            ("visible false\n", "visible"),
+            ("mo idle\n", "mo"),
+            ("sound Bgm ca_story_main\n", "sound"),
+            ("vo Event/260609_tukasahome/ev_tsukasa_13\n", "vo"),
+            ("prefab 1\n", "prefab"),
+            ("set 526\n", "set"),
+            ("click\n", "click"),
+            ("screen\n", "screen"),
+            ("scale 1,1,1\n", "scale"),
+            ("remove\n", "remove"),
+            ("wType 1\n", "wType"),
+            ("loading false\n", "loading"),
+            ("active tear_mesh true\n", "active"),
+            ("color 0,0,0,1\n", "color"),
+            ("wset Prefab/Prefab1091 @Prefab1091 2\n", "wset"),
+            ("parent Chara 1 RightHand\n", "parent"),
+            ("light 0\n", "light"),
+            ("image ThumbnailIcon/Script/sin\n", "image"),
+            ("distance 1\n", "distance"),
+            ("shake 0.5\n", "shake"),
+            ("uniq 1\n", "uniq"),
+        ],
+    )
+    def test_known_bare_word_stage_command_is_keyword(self, line, expected_command):
+        tokens = tokenize_text(line)
+        assert len(tokens) == 1
+        assert tokens[0].token_type == TokenType.KEYWORD
+        assert tokens[0].command == expected_command
+
+    def test_truly_unknown_bare_word_remains_unknown(self):
+        """辞書に無い語は引き続き UNKNOWN として保持される。"""
+        tokens = tokenize_text("totallyUnknownCommand123\n")
+        assert len(tokens) == 1
+        assert tokens[0].token_type == TokenType.UNKNOWN
+        assert tokens[0].command == "totallyUnknownCommand123"
 
 
 # ----------------------------------------------------------------
