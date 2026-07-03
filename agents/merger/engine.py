@@ -1,18 +1,21 @@
 """
 DKB Merger - Merge Engine Skeleton
-検証済みのStage A episode_extractionから、Stage B merged knowledge
+検証済みのStage A episode_extraction群から、Stage B merged knowledge
 collectionの最小構造とmerge report骨格を組み立てる。
 
-今回はskeletonのため、単一入力ファイルのみを対象とし、本格的な
-candidate merge・canonical ID割り当て・manual override適用・
-conflict解決・relationship merge・timeline aggregationは行わない。
-entities配下の8配列は空のまま出力し、reportに入力集計だけを記録する。
-複数ファイル・ディレクトリ入力は将来の拡張とする。
+今回はskeletonのため、本格的なcandidate merge・canonical ID割り当て・
+manual override適用・conflict解決・relationship merge・timeline
+aggregationは行わない。entities配下の8配列は空のまま出力し、reportに
+入力集計だけを記録する。
 
-merge前には必ず検証ゲートを通す (Merged_Knowledge_Design.md §2.2)。
+入力は複数ファイル・ディレクトリ・globパターン文字列に対応する
+(input_resolver.pyが解決を担う)。merge前には必ず検証ゲートを通す
+(Merged_Knowledge_Design.md §2.2)。
 - schemas/extraction.schema.json によるJSON Schema検証
 - agents/extractor/validator.py によるsemantic validation
-どちらかに失敗した入力はmerge対象にしない。
+どちらかに失敗した入力はmerge対象にしない。1件も解決できなかった
+raw引数は"skipped"として区別し、検証には失敗したが読み込めた入力は
+"invalid"として区別する。
 
 出力するcollection wrapperはmerge engineのpreview用であり、個別のmerged
 entityは将来 schemas/merged_knowledge.schema.json に従う (collection
@@ -33,11 +36,16 @@ from jsonschema import Draft7Validator
 
 from agents.extractor.validator import SemanticValidationIssue, run_semantic_validation
 
+from .input_resolver import resolve_input_entries
 from .models import (
     CANDIDATE_ARRAY_KEYS,
     COLLECTION_DOCUMENT_TYPE,
     COLLECTION_SCHEMA_VERSION,
+    INPUT_STATUS_INVALID,
+    INPUT_STATUS_SKIPPED,
+    INPUT_STATUS_VALID,
     MERGED_ENTITY_KEYS,
+    InputResult,
     MergeReport,
 )
 
@@ -66,9 +74,7 @@ class InputValidationResult:
 
 
 class MergeEngine:
-    """Stage A episode_extraction (単一ファイル) からmerged knowledge
-    collectionを生成する。
-    """
+    """Stage A episode_extraction群からmerged knowledge collectionを生成する。"""
 
     def __init__(
         self, extraction_schema_path: Path = DEFAULT_EXTRACTION_SCHEMA_PATH
@@ -114,57 +120,103 @@ class MergeEngine:
         return self.validate_document(document, source=str(path))
 
     def merge_file(self, path: Path) -> dict[str, Any]:
-        """単一の入力ファイルを検証し、merged knowledge collectionを組み立てる
+        """単一ファイルパスをmerge対象とする (merge_inputsへの薄いラッパー)。"""
+        return self.merge_inputs([str(path)])
 
-        validationに失敗した場合も、reportにinvalidInputs/skippedInputs/
-        errorsを記録したcollectionを返す (壊れた入力を黙って取り込まず、
-        かつ処理自体はクラッシュさせない)。
+    def merge_inputs(
+        self, inputs: list[str], recursive: bool = False
+    ) -> dict[str, Any]:
+        """複数の--input引数 (file/directory/globパターン文字列) を解決・
+        検証し、merged knowledge collectionを組み立てる
+
+        解決できなかった (存在しない・0件マッチの) raw引数はinputResultsへ
+        status: "skipped" として、解決はできたがvalidationに失敗した
+        ファイルはstatus: "invalid" として、それぞれ記録する。
+        いずれも黙って無視しない (Merged_Knowledge_Design.md §2.2)。
         """
-        result = self.validate_file(path)
-        report = MergeReport(input_files=1)
-        valid_documents: list[dict[str, Any]] = []
+        entries = resolve_input_entries(inputs, recursive=recursive)
 
-        if result.is_valid:
-            report.valid_inputs = 1
-            assert result.document is not None
-            valid_documents.append(result.document)
-            for issue in result.semantic_warnings:
-                report.warnings.append(f"{result.source}: {issue.format()}")
-        else:
-            report.invalid_inputs = 1
-            report.skipped_inputs.append(result.source)
-            if result.load_error is not None:
-                report.errors.append(
-                    f"{result.source}: load failed: {result.load_error}"
+        report = MergeReport(input_files=len(inputs))
+        valid_entries: list[tuple[str, dict[str, Any]]] = []
+
+        for entry in entries:
+            if entry.path is None:
+                report.skipped_inputs.append(entry.raw)
+                warning = f"入力を解決できませんでした: {entry.raw}"
+                report.warnings.append(warning)
+                report.input_results.append(
+                    InputResult(
+                        path=entry.raw,
+                        status=INPUT_STATUS_SKIPPED,
+                        warnings=[warning],
+                    )
                 )
-            for message in result.schema_errors:
-                report.errors.append(f"{result.source}: schema: {message}")
-            for issue in result.semantic_errors:
-                report.errors.append(f"{result.source}: {issue.format()}")
+                continue
 
-        return self.build_collection(valid_documents, report)
+            report.resolved_input_files += 1
+            result = self.validate_file(entry.path)
+
+            if result.is_valid:
+                report.valid_inputs += 1
+                assert result.document is not None
+                valid_entries.append((result.source, result.document))
+                warnings = [issue.format() for issue in result.semantic_warnings]
+                for warning in warnings:
+                    report.warnings.append(f"{result.source}: {warning}")
+                report.input_results.append(
+                    InputResult(
+                        path=result.source,
+                        status=INPUT_STATUS_VALID,
+                        warnings=warnings,
+                    )
+                )
+            else:
+                report.invalid_inputs += 1
+                errors: list[str] = []
+                if result.load_error is not None:
+                    errors.append(f"load failed: {result.load_error}")
+                errors.extend(f"schema: {m}" for m in result.schema_errors)
+                errors.extend(issue.format() for issue in result.semantic_errors)
+                for message in errors:
+                    report.errors.append(f"{result.source}: {message}")
+                report.input_results.append(
+                    InputResult(
+                        path=result.source, status=INPUT_STATUS_INVALID, errors=errors
+                    )
+                )
+
+        return self.build_collection(valid_entries, report)
 
     def build_collection(
         self,
-        documents: list[dict[str, Any]],
+        valid_entries: list[tuple[str, dict[str, Any]]],
         report: MergeReport,
     ) -> dict[str, Any]:
-        """検証済みdocument群からcollection構造を組み立てる
+        """検証済み (path, document) 群からcollection構造を組み立てる
 
-        skeletonのため本格mergeはせず、candidate件数の集計と
-        sourceDocumentsの記録のみを行う。entities配下は空配列。
+        skeletonのため本格mergeはせず、candidate件数の集計 (全valid input
+        合算) とsourceDocumentsの記録のみを行う。entities配下は空配列。
         """
         source_documents: list[dict[str, Any]] = []
-        for document in documents:
+        for path, document in valid_entries:
+            doc_candidate_counts = {
+                key: len(document.get(key, []) or []) for key in CANDIDATE_ARRAY_KEYS
+            }
+            for key, count in doc_candidate_counts.items():
+                report.candidate_counts[key] += count
+
+            extraction_run = document.get("extractionRun") or {}
             source_documents.append(
                 {
-                    "episodeId": document.get("episodeId"),
+                    "path": path,
+                    "documentId": document.get("episodeId"),
                     "storyId": document.get("storyId"),
                     "storyCategory": document.get("storyCategory"),
+                    "episodeId": document.get("episodeId"),
+                    "extractionVersion": extraction_run.get("extractionVersion"),
+                    "candidateCounts": doc_candidate_counts,
                 }
             )
-            for key in CANDIDATE_ARRAY_KEYS:
-                report.candidate_counts[key] += len(document.get(key, []) or [])
 
         return {
             "schemaVersion": COLLECTION_SCHEMA_VERSION,
