@@ -54,6 +54,7 @@ from .models import (
     MergeReport,
 )
 from .organization import build_organization_entities
+from .relationship import build_relationship_entities
 
 _PROJECT_ROOT = Path(__file__).parent.parent.parent
 DEFAULT_EXTRACTION_SCHEMA_PATH = _PROJECT_ROOT / "schemas" / "extraction.schema.json"
@@ -201,10 +202,10 @@ class MergeEngine:
         """検証済み (path, document) 群からcollection構造を組み立てる
 
         candidate件数の集計 (全valid input合算) とsourceDocumentsの記録に
-        加え、Character/Location/Organization/Item/Lore/Eventのみ
-        最小ルールでmerged entityへ変換する (Merged_Knowledge_Design.md
-        §5.1〜§5.6)。Relationship/Timelineは今回もentities配下を空配列の
-        ままにする (本格実装は別PR)。
+        加え、Character/Location/Organization/Item/Lore/Event/Relationship
+        のみ最小ルールでmerged entityへ変換する (Merged_Knowledge_Design.md
+        §5.1〜§5.6, §6)。Timelineは今回もentities配下を空配列のままにする
+        (本格実装は別PR)。
         """
         source_documents: list[dict[str, Any]] = []
         for path, document in valid_entries:
@@ -236,6 +237,20 @@ class MergeEngine:
         entities["items"] = build_item_entities(valid_entries)
         entities["lore"] = build_lore_entities(valid_entries)
         entities["events"] = build_event_entities(valid_entries)
+
+        known_entities = [
+            *entities["characters"],
+            *entities["locations"],
+            *entities["organizations"],
+            *entities["items"],
+            *entities["lore"],
+            *entities["events"],
+        ]
+        relationship_entities, relationship_warnings = build_relationship_entities(
+            valid_entries, known_entities
+        )
+        entities["relationships"] = relationship_entities
+        report.warnings.extend(relationship_warnings)
 
         for key, values in entities.items():
             report.merged_entity_counts[key] = len(values)

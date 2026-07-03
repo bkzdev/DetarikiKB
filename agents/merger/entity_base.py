@@ -27,7 +27,7 @@ _KIND_RESOLVED = "id"
 _KIND_UNRESOLVED = "unresolved"
 
 
-def _build_block_type_index(
+def build_block_type_index(
     document: dict[str, Any],
 ) -> tuple[dict[str, str], set[str]]:
     """episode内のBlock ID -> type、Scene IDの集合を作る (evidenceType判定用)。
@@ -253,7 +253,7 @@ def _build_entity_for_group(
     for candidate, episode_id in members:
         document = documents_by_episode[episode_id]
         if episode_id not in block_index_cache:
-            block_index_cache[episode_id] = _build_block_type_index(document)
+            block_index_cache[episode_id] = build_block_type_index(document)
         block_types, scene_ids = block_index_cache[episode_id]
 
         evidence_refs.extend(

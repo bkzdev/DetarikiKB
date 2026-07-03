@@ -172,6 +172,31 @@ def _episode_with_all_merge_candidates(episode_id: str) -> dict:
     return doc
 
 
+def _episode_with_relationship_candidate(episode_id: str) -> dict:
+    """_episode_with_all_merge_candidatesに、既存のCharacter/Organization
+    candidateを参照するRelationshipCandidateを追加した最小episode_extraction。
+    """
+    doc = _episode_with_all_merge_candidates(episode_id)
+    doc["relationships"] = [
+        {
+            "id": f"{episode_id}_CAND_REL001",
+            "type": "relationship_candidate",
+            "sourceType": "script",
+            "confidence": 0.9,
+            "evidenceIds": [f"{episode_id}_DLG0001"],
+            "extractionRun": _extraction_run(),
+            "existingRelationshipId": None,
+            "sourceCandidate": f"{episode_id}_CAND_CHAR001",
+            "targetCandidate": f"{episode_id}_CAND_ORG001",
+            "relationshipType": "MEMBER_OF",
+            "direction": "source_to_target",
+            "temporalNote": None,
+            "fields": {},
+        }
+    ]
+    return doc
+
+
 @pytest.fixture
 def entity_validator() -> Draft7Validator:
     with open(ENTITY_SCHEMA_PATH, encoding="utf-8") as f:
@@ -376,6 +401,148 @@ def test_cli_output_with_item_lore_event_entities_passes_collection_schema(
     assert len(data["entities"]["items"]) == 1
     assert len(data["entities"]["lore"]) == 1
     assert len(data["entities"]["events"]) == 1
+
+
+def test_merge_engine_produces_relationship_entity(engine, tmp_path):
+    doc = _episode_with_relationship_candidate("EP01")
+    path = tmp_path / "EP01.extraction.json"
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(doc, f, ensure_ascii=False)
+
+    collection = engine.merge_file(path)
+    entities = collection["entities"]
+
+    assert len(entities["relationships"]) == 1
+    relationship = entities["relationships"][0]
+    assert relationship["sourceEntityId"] == "CHAR_RAIN"
+    assert relationship["targetEntityId"] == "ORG_TAISAKUHAN"
+    assert relationship["relationshipType"] == "MEMBER_OF"
+    assert relationship["status"] == "merged"
+    # Timelineは今回もmerge対象外
+    assert entities["timeline"] == []
+
+
+def test_merged_entity_counts_include_relationships(engine, tmp_path):
+    doc = _episode_with_relationship_candidate("EP01")
+    path = tmp_path / "EP01.extraction.json"
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(doc, f, ensure_ascii=False)
+
+    collection = engine.merge_file(path)
+    counts = collection["report"]["mergedEntityCounts"]
+
+    assert counts["relationships"] == 1
+    assert counts["timeline"] == 0
+
+
+def test_relationship_entities_aggregate_across_episodes(engine, tmp_path):
+    doc1 = _episode_with_relationship_candidate("EP01")
+    doc2 = _episode_with_relationship_candidate("EP02")
+    path1 = tmp_path / "EP01.extraction.json"
+    path2 = tmp_path / "EP02.extraction.json"
+    with open(path1, "w", encoding="utf-8") as f:
+        json.dump(doc1, f, ensure_ascii=False)
+    with open(path2, "w", encoding="utf-8") as f:
+        json.dump(doc2, f, ensure_ascii=False)
+
+    collection = engine.merge_inputs([str(path1), str(path2)])
+    entities = collection["entities"]
+
+    assert len(entities["relationships"]) == 1
+    assert set(entities["relationships"][0]["mergedFrom"]) == {"EP01", "EP02"}
+
+
+def test_unresolvable_relationship_is_recorded_as_warning_not_crash(engine, tmp_path):
+    doc = _episode_with_all_merge_candidates("EP01")
+    doc["relationships"] = [
+        {
+            "id": "EP01_CAND_REL001",
+            "type": "relationship_candidate",
+            "sourceType": "script",
+            "confidence": 0.6,
+            "evidenceIds": ["EP01_DLG0001"],
+            "extractionRun": _extraction_run(),
+            "existingRelationshipId": None,
+            "sourceCandidate": "謎の人物",
+            "targetCandidate": "ORG_TAISAKUHAN",
+            "relationshipType": "MEMBER_OF",
+            "direction": "source_to_target",
+            "temporalNote": None,
+            "fields": {},
+        }
+    ]
+    path = tmp_path / "EP01.extraction.json"
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(doc, f, ensure_ascii=False)
+
+    collection = engine.merge_file(path)
+
+    assert collection["entities"]["relationships"] == []
+    assert any(
+        "sourceCandidate" in warning for warning in collection["report"]["warnings"]
+    )
+
+
+def test_generated_relationship_entity_passes_entity_schema(
+    entity_validator, engine, tmp_path
+):
+    doc = _episode_with_relationship_candidate("EP01")
+    path = tmp_path / "EP01.extraction.json"
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(doc, f, ensure_ascii=False)
+
+    collection = engine.merge_file(path)
+
+    for entity in collection["entities"]["relationships"]:
+        errors = list(entity_validator.iter_errors(entity))
+        assert not errors, [e.message for e in errors]
+
+
+def test_collection_with_relationship_entity_passes_collection_schema(
+    collection_validator, engine, tmp_path
+):
+    doc = _episode_with_relationship_candidate("EP01")
+    path = tmp_path / "EP01.extraction.json"
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(doc, f, ensure_ascii=False)
+
+    collection = engine.merge_file(path)
+    errors = list(collection_validator.iter_errors(collection))
+    assert not errors, [e.message for e in errors]
+
+
+def test_cli_output_with_relationship_entity_passes_collection_schema(
+    collection_validator, tmp_path
+):
+    doc = _episode_with_relationship_candidate("EP01")
+    input_path = tmp_path / "EP01.extraction.json"
+    with open(input_path, "w", encoding="utf-8") as f:
+        json.dump(doc, f, ensure_ascii=False)
+
+    output_dir = tmp_path / "merge_preview"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(MERGE_SCRIPT),
+            "--input",
+            str(input_path),
+            "--output",
+            str(output_dir),
+            "--quiet",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+
+    output_file = output_dir / "merged_knowledge_collection.json"
+    with open(output_file, encoding="utf-8") as f:
+        data = json.load(f)
+
+    errors = list(collection_validator.iter_errors(data))
+    assert not errors, [e.message for e in errors]
+    assert len(data["entities"]["relationships"]) == 1
+    assert data["entities"]["timeline"] == []
 
 
 # ----------------------------------------------------------------
