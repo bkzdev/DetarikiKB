@@ -27,3 +27,15 @@ data/reports/**/*.md
 # Real full-text game scripts must never live in tests/fixtures/ —
 # only small handcrafted samples belong there.
 tests/fixtures/parser/CAB-csl_script_*.dec
+
+# Real data dry-run output (docs/runbooks/Real_Data_Dry_Run.md).
+# workspace/experiments, workspace/notebooks, workspace/reviews,
+# workspace/tmp keep their existing tracked (.gitkeep + curated docs)
+# behavior; only the dry-run scratch output area is ignored here.
+workspace/dry_runs/
+
+# Secrets / logs
+.env
+.env.*
+!.env.example
+*.log
