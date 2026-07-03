@@ -24,9 +24,26 @@ merge reportは、type別・入力ファイル別の内訳 (mergedEntityCounts/
 unresolvedEntityCounts/conflictCounts/warningCounts/entityTypeSummaries/
 inputSummaries) まで含める (§11.2)。
 
+agents.merger.canonical_ids で、canonicalIdの形式・重複をvalidationする
+(docs/architecture/06_AI/Canonical_ID_Policy.md)。既存entityへの
+canonical ID自動付与・大量生成はまだ行わない。
+
 docs/architecture/06_AI/Merged_Knowledge_Design.md
 """
 
+from .canonical_ids import (
+    CANONICAL_ID_SOURCE_MANUAL_OVERRIDE,
+    CANONICAL_ID_SOURCE_NONE,
+    CANONICAL_ID_SOURCE_STRUCTURED_ID,
+    CANONICAL_ID_SOURCE_UNKNOWN,
+    ENTITY_TYPE_TO_CANONICAL_PREFIX,
+    CanonicalIdValidationResult,
+    build_canonical_id,
+    classify_canonical_id_source,
+    is_valid_canonical_id,
+    sanitize_canonical_id_segment,
+    validate_canonical_ids,
+)
 from .character import build_character_entities
 from .engine import InputValidationResult, MergeEngine
 from .event import build_event_entities
@@ -91,4 +108,15 @@ __all__ = [
     "INPUT_STATUS_VALID",
     "INPUT_STATUS_INVALID",
     "INPUT_STATUS_SKIPPED",
+    "CanonicalIdValidationResult",
+    "build_canonical_id",
+    "classify_canonical_id_source",
+    "is_valid_canonical_id",
+    "sanitize_canonical_id_segment",
+    "validate_canonical_ids",
+    "ENTITY_TYPE_TO_CANONICAL_PREFIX",
+    "CANONICAL_ID_SOURCE_STRUCTURED_ID",
+    "CANONICAL_ID_SOURCE_MANUAL_OVERRIDE",
+    "CANONICAL_ID_SOURCE_UNKNOWN",
+    "CANONICAL_ID_SOURCE_NONE",
 ]
