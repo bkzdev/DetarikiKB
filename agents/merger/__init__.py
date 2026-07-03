@@ -8,9 +8,11 @@ Stage A episode_extraction JSON群 (複数ファイル・ディレクトリ・gl
 パターンに対応) を検証し、Stage B merged knowledge collectionを生成する。
 Character/Location/Organization/Item/Lore/Eventは構造化ID (existing*Id)
 がある場合のみ最小ルールでmerged entityへ変換する
-(Merged_Knowledge_Design.md §5.1〜§5.6)。Relationship/Timelineの本格merge・
-canonical ID本格割り当て・manual override適用・conflict解決の本格実装は
-まだ行わない。
+(Merged_Knowledge_Design.md §5.1〜§5.6)。Relationshipはsource/targetの
+両端をmerged entity IDへ解決できた候補のみ最小ルールでmerged relationship
+へ変換する (§6。解決できない候補はreport.warningsに記録し、無理に確定
+しない)。Timelineの本格merge・canonical ID本格割り当て・manual override
+適用・conflict解決の本格実装はまだ行わない。
 
 docs/architecture/06_AI/Merged_Knowledge_Design.md
 """
@@ -35,6 +37,7 @@ from .models import (
     MergeReport,
 )
 from .organization import build_organization_entities
+from .relationship import build_relationship_entities
 
 __all__ = [
     "MergeEngine",
@@ -49,6 +52,7 @@ __all__ = [
     "build_item_entities",
     "build_lore_entities",
     "build_event_entities",
+    "build_relationship_entities",
     "CANDIDATE_ARRAY_KEYS",
     "MERGED_ENTITY_KEYS",
     "COLLECTION_SCHEMA_VERSION",
