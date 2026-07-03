@@ -1,0 +1,70 @@
+{
+  "schemaVersion": "0.1",
+  "documentType": "manual_overrides",
+  "overrides": [
+    {
+      "overrideId": "OVR_0001",
+      "overrideType": "field",
+      "operation": "set_field",
+      "targetType": "character",
+      "targetId": "CHAR_TEST_A",
+      "field": "displayName",
+      "value": "テスト太郎",
+      "reason": "表記の正規化",
+      "author": "test-author",
+      "createdAt": "2026-07-03",
+      "sourceType": "manual"
+    },
+    {
+      "overrideId": "OVR_0002",
+      "overrideType": "field",
+      "operation": "add_alias",
+      "targetType": "character",
+      "targetId": "CHAR_TEST_A",
+      "alias": "太郎",
+      "reason": "別名の追加",
+      "author": "test-author",
+      "createdAt": "2026-07-03",
+      "sourceType": "manual"
+    },
+    {
+      "overrideId": "OVR_0003",
+      "overrideType": "field",
+      "operation": "set_field",
+      "targetType": "organization",
+      "targetId": "UNRESOLVED_ORG_0001",
+      "field": "canonicalId",
+      "value": "ORG_TEST_ALPHA",
+      "reason": "canonical ID手動割り当て",
+      "author": "test-author",
+      "createdAt": "2026-07-03",
+      "sourceType": "manual"
+    },
+    {
+      "overrideId": "OVR_0004",
+      "overrideType": "field",
+      "operation": "set_field",
+      "targetType": "event",
+      "targetId": "EVENT_TEST_X",
+      "field": "status",
+      "value": "deprecated",
+      "reason": "誤検出のため非表示化",
+      "author": "test-author",
+      "createdAt": "2026-07-03",
+      "sourceType": "manual"
+    },
+    {
+      "overrideId": "OVR_0005",
+      "overrideType": "field",
+      "operation": "set_field",
+      "targetType": "character",
+      "targetId": "CHAR_DOES_NOT_EXIST",
+      "field": "displayName",
+      "value": "存在しないキャラ",
+      "reason": "存在しないtargetIdのskip確認用",
+      "author": "test-author",
+      "createdAt": "2026-07-03",
+      "sourceType": "manual"
+    }
+  ]
+}

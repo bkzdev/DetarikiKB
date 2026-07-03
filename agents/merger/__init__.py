@@ -13,8 +13,12 @@ Character/Location/Organization/Item/Lore/Eventは構造化ID (existing*Id)
 へ変換する (§6。解決できない候補はreport.warningsに記録し、無理に確定
 しない)。Timelineはsource TimelineID/scope+kind+orderValueでの保守的な
 merge最小ルールを適用する (§7。Stage Bでは順序の確定・canonical化は行わ
-ないため常にstatus: unresolved)。canonical ID本格割り当て・manual override
-適用・conflict解決の本格実装はまだ行わない。
+ないため常にstatus: unresolved)。
+
+agents.merger.overrides で、merge後のcollectionへmanual override
+(schemas/manual_overrides.schema.json) を適用できる (§8。displayName/
+status/canonicalIdの上書き、aliasesの追加・削除のみ対応)。canonical ID
+本格割り当て・高度なconflict解決の本格実装はまだ行わない。
 
 docs/architecture/06_AI/Merged_Knowledge_Design.md
 """
@@ -39,6 +43,14 @@ from .models import (
     MergeReport,
 )
 from .organization import build_organization_entities
+from .overrides import (
+    OverrideResult,
+    apply_manual_overrides,
+    build_manual_overrides_report,
+    load_manual_overrides,
+    load_manual_overrides_schema,
+    validate_manual_overrides,
+)
 from .relationship import build_relationship_entities
 from .timeline import build_timeline_entities
 
@@ -57,6 +69,12 @@ __all__ = [
     "build_event_entities",
     "build_relationship_entities",
     "build_timeline_entities",
+    "OverrideResult",
+    "load_manual_overrides",
+    "load_manual_overrides_schema",
+    "validate_manual_overrides",
+    "apply_manual_overrides",
+    "build_manual_overrides_report",
     "CANDIDATE_ARRAY_KEYS",
     "MERGED_ENTITY_KEYS",
     "COLLECTION_SCHEMA_VERSION",

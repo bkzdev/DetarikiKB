@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "0.1",
+  "documentType": "manual_overrides",
+  "overrides": [
+    {
+      "overrideId": "OVR_0001",
+      "overrideType": "field",
+      "operation": "set_field",
+      "targetType": "character",
+      "targetId": "CHAR_TEST_A",
+      "field": "displayName",
+      "value": "テスト太郎",
+      "reason": "reasonはあるがauthorが欠落しているため無効",
+      "createdAt": "2026-07-03",
+      "sourceType": "manual"
+    }
+  ]
+}
