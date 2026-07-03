@@ -32,6 +32,21 @@ from typing import Any
 
 import yaml
 
+# プロジェクトルートを sys.path に追加
+# (agents.parser.compatibility の共有判定ロジックを使うため。
+# feature/compatibility-check-consistency: normalize_story.py --check-compat
+# 経由の判定と揃えるため、新規会話コマンド候補判定・最終ステータス決定を
+# agents/parser/compatibility.py と共有する)
+_PROJECT_ROOT = Path(__file__).parent.parent
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
+
+from agents.parser.compatibility import (  # noqa: E402
+    determine_compatibility_status,
+    get_new_speech_hints,
+    is_speech_candidate,
+)
+
 # ----------------------------------------------------------------
 # Constants
 # ----------------------------------------------------------------
@@ -122,10 +137,9 @@ def get_speech_commands(config: dict[str, Any]) -> set[str]:
     return set(config.get("speech", []))
 
 
-def get_new_speech_hints(config: dict[str, Any]) -> list[str]:
-    """新規会話コマンド候補検出ヒントを返す"""
-    hints = config.get("new_speech_detection_hints", {})
-    return hints.get("name_contains", [])
+# get_new_speech_hints は agents/parser/compatibility.py に集約し、
+# normalize_story.py --check-compat 経由の判定と共有する
+# (feature/compatibility-check-consistency、上部のimportを参照)。
 
 
 # ----------------------------------------------------------------
@@ -346,7 +360,7 @@ def check_file(
                 _record_unknown_command(result, first_token, line_number, line)
 
                 # 新規会話コマンド候補検出
-                if _is_speech_candidate(first_token, speech_hints):
+                if is_speech_candidate(first_token, speech_hints):
                     _record_new_speech_command(result, first_token, line_number, line)
 
             # 会話コマンドなら次の本文行に備えてフラグを立てる
@@ -418,14 +432,6 @@ def _record_unknown_command(
         entry["sampleLines"].append({"lineNumber": line_number, "raw": raw})
 
 
-def _is_speech_candidate(command: str, hints: list[str]) -> bool:
-    """コマンド名が会話コマンド候補かどうか判定する"""
-    for hint in hints:
-        if hint in command:
-            return True
-    return False
-
-
 def _record_new_speech_command(
     result: FileCompatibilityResult,
     command: str,
@@ -447,37 +453,29 @@ def _record_new_speech_command(
 
 
 def _determine_compatibility(result: FileCompatibilityResult) -> str:
-    """チェック結果から互換性ステータスを決定する"""
-    if result.parse_error:
-        return "blocked"
+    """チェック結果から互換性ステータスを決定する。
 
-    # blocked 条件
+    判定ルール自体はagents/parser/compatibility.pyのdetermine_compatibility_status
+    に集約し、normalize_story.py --check-compat経由 (agents/parser/normalizer.py)
+    と共有する (feature/compatibility-check-consistency)。ここでは
+    FileCompatibilityResultから必要なbool値を組み立てるだけ。
+    """
     has_critical_branch = any(
         i.get("severity") == "critical" for i in result.branch_issues
     )
-    if has_critical_branch:
-        return "blocked"
-
-    # needs_update 条件
-    if result.new_speech_commands:
-        return "needs_update"
-    if result.changed_command_patterns:
-        return "needs_update"
     has_high_branch = any(i.get("severity") in ("high",) for i in result.branch_issues)
-    if has_high_branch:
-        return "needs_update"
 
-    # warning 条件
-    if result.unknown_commands:
-        return "warning"
-    if result.unknown_character_ids:
-        return "warning"
-    if result.control_chars_removed > 0:
-        return "warning"
-    if result.case_variants:
-        return "warning"
-
-    return "compatible"
+    return determine_compatibility_status(
+        has_parse_error=bool(result.parse_error),
+        has_critical_branch_issue=has_critical_branch,
+        has_new_speech_commands=bool(result.new_speech_commands),
+        has_changed_command_patterns=bool(result.changed_command_patterns),
+        has_high_severity_branch_issue=has_high_branch,
+        has_unknown_commands=bool(result.unknown_commands),
+        has_unknown_character_ids=bool(result.unknown_character_ids),
+        has_control_chars_removed=result.control_chars_removed > 0,
+        has_case_variants=bool(result.case_variants),
+    )
 
 
 # ----------------------------------------------------------------

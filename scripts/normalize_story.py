@@ -317,6 +317,7 @@ def main() -> int:
         source_file=input_path.stem,
         source_path=str(input_path),
         preserve_stage_directions=preserve_stage,
+        commands_config_path=args.commands,
     )
 
     try:

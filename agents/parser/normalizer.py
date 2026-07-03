@@ -8,8 +8,15 @@ Phase 7 (Parser_Implementation_Plan.md)
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
+from .compatibility import (
+    detect_new_speech_commands,
+    determine_compatibility_status,
+    get_new_speech_hints,
+    load_command_config,
+)
 from .parser import BlockData, EpisodeData, ParseResult, SceneData
 
 # ----------------------------------------------------------------
@@ -92,6 +99,7 @@ class Normalizer:
         source_file: str | None = None,
         source_path: str | None = None,
         preserve_stage_directions: bool = True,
+        commands_config_path: str | Path | None = None,
     ) -> None:
         """
         Args:
@@ -103,6 +111,13 @@ class Normalizer:
             source_file: 元ファイル名
             source_path: 元ファイルパス
             preserve_stage_directions: 演出命令を保存したか
+            commands_config_path: config/script_commands.yaml のパス。
+                指定するとcompatibilityReport.newSpeechCommandsが
+                scripts/check_script_compatibility.pyと同じ
+                new_speech_detection_hintsを使って実際に判定される
+                (feature/compatibility-check-consistency)。Noneの場合は
+                従来通りnewSpeechCommandsは空配列になる
+                (既存呼び出し元・既存テストとの後方互換のため)。
         """
         self.story_id = story_id
         self.story_category = story_category
@@ -112,6 +127,7 @@ class Normalizer:
         self.source_file = source_file or story_id
         self.source_path = source_path
         self.preserve_stage_directions = preserve_stage_directions
+        self.commands_config_path = commands_config_path
 
     def normalize(
         self, parse_result: ParseResult, line_count: int | None = None
@@ -183,18 +199,37 @@ class Normalizer:
         for cmd, count in parse_result.unknown_commands.items():
             unknown_cmds.append({"command": cmd, "count": count})
 
+        # 新規会話コマンド候補
+        # (config/script_commands.yamlのnew_speech_detection_hintsを使い、
+        # scripts/check_script_compatibility.pyと同じ判定を行う。
+        # commands_config_path未指定時は従来通り空配列のまま
+        # = 既存呼び出し元・既存テストとの後方互換)
+        new_speech_cmds: list[dict] = []
+        if self.commands_config_path is not None:
+            config = load_command_config(self.commands_config_path)
+            hints = get_new_speech_hints(config)
+            new_speech_cmds = detect_new_speech_commands(
+                parse_result.unknown_commands, hints
+            )
+
         # 互換性ステータス決定
-        if unknown_cmds:
-            compat = "warning"
-        else:
-            compat = "compatible"
-        if unresolved_ids:
-            compat = "warning"
+        # (agents/parser/compatibility.pyのdetermine_compatibility_statusを
+        # scripts/check_script_compatibility.pyと共有。StoryParserは
+        # branch_issues (孤立#elseif等) やcase_variants使用箇所を追跡
+        # していないため、has_critical_branch_issue/
+        # has_high_severity_branch_issue/has_case_variantsは常にFalseで
+        # 呼び出す — 両経路の既知の非対称性、TASKS.md参照)
+        compat = determine_compatibility_status(
+            has_new_speech_commands=bool(new_speech_cmds),
+            has_unknown_commands=bool(unknown_cmds),
+            has_unknown_character_ids=bool(unresolved_ids),
+            has_control_chars_removed=parse_result.control_chars_removed > 0,
+        )
 
         return {
             "parserCompatibility": compat,
             "unknownCommands": unknown_cmds,
-            "newSpeechCommands": [],
+            "newSpeechCommands": new_speech_cmds,
             "unknownCharacterIds": unresolved_ids,
             "controlCharsRemoved": parse_result.control_chars_removed,
         }
