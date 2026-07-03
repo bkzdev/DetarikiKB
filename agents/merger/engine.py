@@ -135,6 +135,54 @@ def _summarize_warnings(report: MergeReport) -> None:
     }
 
 
+def _summarize_relationship_types(
+    entities: dict[str, list[dict[str, Any]]],
+) -> dict[str, Any]:
+    """merged relationship entity群のfieldValues (relationship.pyが設定した
+    originalRelationshipTypes/relationshipTypeNormalization) から、
+    relationshipTypeの既知/未知内訳をreport用に集計する
+    (Merged_Knowledge_Design.md §6.3)。
+
+    両端未解決でentity化されなかった候補のrelationshipTypeはここでは
+    集計しない (entities["relationships"]が唯一の情報源のため)。
+    未知typeを見つけてもここではreport.warningsへ追記しない
+    (agents/merger/relationship.pyのUNRESOLVED_ENDPOINT_MARKER等、既存の
+    「relationship mergeをskipした」警告とは意味が異なる別集計のため)。
+    """
+    known_types: dict[str, int] = {}
+    unknown_types: dict[str, int] = {}
+    normalized_types: dict[str, str] = {}
+
+    for entity in entities.get("relationships", []) or []:
+        normalization = (
+            entity.get("fieldValues", {})
+            .get("relationshipTypeNormalization", {})
+            .get("value", {})
+        )
+        normalized_value = normalization.get("normalizedValue")
+        if not normalized_value:
+            continue
+
+        is_known = bool(normalization.get("isKnown", False))
+        bucket = known_types if is_known else unknown_types
+        bucket[normalized_value] = bucket.get(normalized_value, 0) + 1
+
+        originals = (
+            entity.get("fieldValues", {})
+            .get("originalRelationshipTypes", {})
+            .get("value", [])
+            or []
+        )
+        for original in originals:
+            normalized_types[original] = normalized_value
+
+    return {
+        "knownTypes": known_types,
+        "unknownTypes": unknown_types,
+        "normalizedTypes": normalized_types,
+    }
+
+
 def _build_input_summaries(
     report: MergeReport, source_documents: list[dict[str, Any]]
 ) -> None:
@@ -360,6 +408,7 @@ class MergeEngine:
         _summarize_entities(entities, report)
         _summarize_warnings(report)
         _build_input_summaries(report, source_documents)
+        report.relationship_type_summary = _summarize_relationship_types(entities)
 
         return {
             "schemaVersion": COLLECTION_SCHEMA_VERSION,

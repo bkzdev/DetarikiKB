@@ -15,7 +15,10 @@ Character/Location/Organization/Item/Lore/Eventのentity_base.pyパターン
 
 自然文からの関係推定は行わない。relationshipTypeは自由文字列のまま扱い、
 taxonomyの最終確定 (docs/architecture/04_Knowledge_Graph/Relationships.md)
-もまだ行わない。
+もまだ行わない。表記ゆれ (大文字小文字・区切り文字・既知の同義語) だけを
+relationship_taxonomy.pyのnormalize_relationship_typeでmerge key用に
+正規化する。entity.relationshipType自体は元の表記を保持し、正規化結果は
+fieldValuesへ追加情報として持たせるのみ (§6.3)。
 
 docs/architecture/06_AI/Merged_Knowledge_Design.md §6
 """
@@ -29,6 +32,10 @@ from .entity_base import (
     build_merged_evidence_refs,
     build_source_candidate,
     sanitize_id_segment,
+)
+from .relationship_taxonomy import (
+    NormalizedRelationshipType,
+    normalize_relationship_type,
 )
 
 MERGED_ENTITY_SCHEMA_VERSION = "0.1"
@@ -128,17 +135,31 @@ def _group_relationship_candidates(
     entity_ids: set[str],
     candidate_id_to_entity_id: dict[str, str],
 ) -> tuple[
-    dict[tuple[str, str, str, str], list[tuple[dict[str, Any], str]]],
+    dict[
+        tuple[str, str, str, str],
+        list[tuple[dict[str, Any], str, NormalizedRelationshipType]],
+    ],
     list[tuple[str, str, str, str]],
     list[str],
 ]:
     """全valid documentのRelationshipCandidateを、(sourceEntityId,
-    targetEntityId, relationshipType, direction) のmerge keyでグルーピングする。
+    targetEntityId, 正規化後relationshipType, direction) のmerge keyで
+    グルーピングする。
 
     relationshipTypeが空の候補、source/targetを解決できない候補は
     グルーピングせず、warningsへ理由を記録する (無理に確定しない)。
+    relationshipTypeの表記ゆれ (大文字小文字・区切り文字・既知の同義語) は
+    normalize_relationship_type (relationship_taxonomy.py) でmerge key
+    構築前に正規化する。未知のrelationshipTypeもエラーにはせず、安全な
+    slug値のままグルーピング対象にする (§6.3。taxonomy確定前に候補を
+    落とさない)。未知typeの警告はこのwarnings配列には含めない (既存の
+    「relationship mergeをskipした」警告と意味が異なるため。
+    report.relationshipTypeSummary側で別途集計する)。
     """
-    groups: dict[tuple[str, str, str, str], list[tuple[dict[str, Any], str]]] = {}
+    groups: dict[
+        tuple[str, str, str, str],
+        list[tuple[dict[str, Any], str, NormalizedRelationshipType]],
+    ] = {}
     order: list[tuple[str, str, str, str]] = []
     warnings: list[str] = []
 
@@ -155,6 +176,8 @@ def _group_relationship_candidates(
                     "relationship mergeをskipしました"
                 )
                 continue
+
+            normalized = normalize_relationship_type(relationship_type)
 
             source_ref = candidate.get("sourceCandidate")
             target_ref = candidate.get("targetCandidate")
@@ -178,18 +201,23 @@ def _group_relationship_candidates(
                 )
                 continue
 
-            key = (source_entity_id, target_entity_id, relationship_type, direction)
+            key = (
+                source_entity_id,
+                target_entity_id,
+                normalized.normalized_value,
+                direction,
+            )
             if key not in groups:
                 groups[key] = []
                 order.append(key)
-            groups[key].append((candidate, episode_id))
+            groups[key].append((candidate, episode_id, normalized))
 
     return groups, order, warnings
 
 
 def _build_relationship_entity(
     key: tuple[str, str, str, str],
-    members: list[tuple[dict[str, Any], str]],
+    members: list[tuple[dict[str, Any], str, NormalizedRelationshipType]],
     documents_by_episode: dict[str, dict[str, Any]],
     extraction_runs: dict[str, dict[str, Any] | None],
     block_index_cache: dict[str, tuple[dict[str, str], set[str]]],
@@ -197,16 +225,25 @@ def _build_relationship_entity(
     """1つのmerge keyグループからmerged relationship entityを組み立てる。
 
     Evidenceを1件も持たない場合はNoneを返す (呼び出し側で出力しない)。
+
+    entity.relationshipTypeは、グループ内で最初に観測された元の表記
+    (originalValue) をそのまま保持する (自由文字列として書き換えない、
+    §6.3の既存方針・既存テストとの互換性を優先)。merge keyに使った
+    正規化後の値 (normalizedValue) と、グループ内で観測された全ての
+    元表記は fieldValues.relationshipTypeNormalization /
+    fieldValues.originalRelationshipTypes へ保持する。
     """
-    source_entity_id, target_entity_id, relationship_type, direction = key
-    candidates = [c for c, _episode_id in members]
+    source_entity_id, target_entity_id, normalized_relationship_type, direction = key
+    candidates = [c for c, _episode_id, _normalized in members]
 
     evidence_refs: list[dict[str, Any]] = []
     source_candidates: list[dict[str, Any]] = []
     episode_ids_used: list[str] = []
     source_types: list[str] = []
+    original_relationship_types: list[str] = []
+    normalization_warnings: list[str] = []
 
-    for candidate, episode_id in members:
+    for candidate, episode_id, normalized in members:
         document = documents_by_episode[episode_id]
         if episode_id not in block_index_cache:
             block_index_cache[episode_id] = build_block_type_index(document)
@@ -230,21 +267,32 @@ def _build_relationship_entity(
         if source_type and source_type not in source_types:
             source_types.append(source_type)
 
+        if normalized.original_value not in original_relationship_types:
+            original_relationship_types.append(normalized.original_value)
+        for warning in normalized.warnings:
+            if warning not in normalization_warnings:
+                normalization_warnings.append(warning)
+
     if not evidence_refs:
         # Evidenceを1件も持たない候補は出力しない
         # (Extraction_Pipeline.md §6.1と同じ原則)
         return None
 
     confidence = max((c.get("confidence") or 0.0) for c in candidates)
+    # グループ内の全candidateは同じmerge key (=同じnormalized_value) を
+    # 共有するため、isKnownもグループ内で一貫している。代表値として先頭を使う。
+    is_known = members[0][2].is_known
+    representative_relationship_type = original_relationship_types[0]
 
     is_canonical = not source_entity_id.startswith(
         _UNRESOLVED_PREFIX
     ) and not target_entity_id.startswith(_UNRESOLVED_PREFIX)
-    type_segment = sanitize_id_segment(relationship_type)
+    type_segment = sanitize_id_segment(normalized_relationship_type)
     entity_id = f"REL_{source_entity_id}_{type_segment}_{target_entity_id}"
     canonical_id = entity_id if is_canonical else None
     merged_id = None if is_canonical else entity_id
     status = "merged" if is_canonical else "unresolved"
+    representative_source_type = source_types[0] if source_types else "script"
 
     return {
         "schemaVersion": MERGED_ENTITY_SCHEMA_VERSION,
@@ -257,7 +305,7 @@ def _build_relationship_entity(
         "status": status,
         "sourceEntityId": source_entity_id,
         "targetEntityId": target_entity_id,
-        "relationshipType": relationship_type,
+        "relationshipType": representative_relationship_type,
         "direction": direction,
         "temporalNote": None,
         "sourceTypes": source_types,
@@ -269,7 +317,22 @@ def _build_relationship_entity(
             for episode_id in episode_ids_used
             if extraction_runs.get(episode_id) is not None
         },
-        "fieldValues": {},
+        "fieldValues": {
+            "originalRelationshipTypes": {
+                "value": original_relationship_types,
+                "sourceType": representative_source_type,
+                "confidence": confidence,
+            },
+            "relationshipTypeNormalization": {
+                "value": {
+                    "normalizedValue": normalized_relationship_type,
+                    "isKnown": is_known,
+                    "warnings": normalization_warnings,
+                },
+                "sourceType": representative_source_type,
+                "confidence": confidence,
+            },
+        },
         "conflicts": [],
         "manualOverridesApplied": [],
         "mergedFrom": list(episode_ids_used),
