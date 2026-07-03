@@ -115,6 +115,63 @@ def _episode_with_resolved_candidates(episode_id: str) -> dict:
     }
 
 
+def _episode_with_all_merge_candidates(episode_id: str) -> dict:
+    """Character/Location/Organization/Item/Lore/Eventすべてについて
+    existing*Idを持つ最小episode_extractionを組み立てる
+    (relationships/timelineCandidatesは今回もmerge対象外のため空のまま)。
+    """
+    doc = _episode_with_resolved_candidates(episode_id)
+    doc["evidenceIndex"][f"{episode_id}_NAR0001"] = {
+        "sourceId": f"{episode_id}_NAR0001",
+        "storyId": "TEST_STORY",
+        "episodeId": episode_id,
+        "sceneId": f"{episode_id}_SC001",
+        "confidence": 1.0,
+    }
+    doc["items"] = [
+        {
+            "id": f"{episode_id}_CAND_ITEM001",
+            "type": "item_candidate",
+            "sourceType": "script",
+            "confidence": 0.85,
+            "evidenceIds": [f"{episode_id}_DLG0001"],
+            "extractionRun": _extraction_run(),
+            "existingItemId": "ITEM_DETARIKI",
+            "nameCandidates": ["デタリキ"],
+            "fields": {},
+        }
+    ]
+    doc["lore"] = [
+        {
+            "id": f"{episode_id}_CAND_LORE001",
+            "type": "lore_candidate",
+            "sourceType": "script",
+            "confidence": 0.8,
+            "evidenceIds": [f"{episode_id}_DLG0001"],
+            "extractionRun": _extraction_run(),
+            "existingLoreId": "LORE_DETARIKI_Z",
+            "termCandidates": ["デタリキZ"],
+            "fields": {},
+        }
+    ]
+    doc["events"] = [
+        {
+            "id": f"{episode_id}_CAND_EVENT001",
+            "type": "event_candidate",
+            "sourceType": "ai_extracted",
+            "confidence": 0.75,
+            "evidenceIds": [f"{episode_id}_NAR0001"],
+            "extractionRun": _extraction_run(),
+            "existingEventId": "EVENT_JAMMER_FIRST",
+            "nameCandidates": ["ジャマー初出現"],
+            "participantCandidates": [],
+            "locationCandidates": [],
+            "fields": {},
+        }
+    ]
+    return doc
+
+
 @pytest.fixture
 def entity_validator() -> Draft7Validator:
     with open(ENTITY_SCHEMA_PATH, encoding="utf-8") as f:
@@ -196,6 +253,129 @@ def test_entities_aggregate_across_multiple_episodes(engine, tmp_path):
     assert len(entities["locations"]) == 1
     assert len(entities["organizations"]) == 1
     assert set(entities["characters"][0]["mergedFrom"]) == {"EP01", "EP02"}
+
+
+def test_merge_engine_produces_item_lore_event_entities(engine, tmp_path):
+    doc = _episode_with_all_merge_candidates("EP01")
+    path = tmp_path / "EP01.extraction.json"
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(doc, f, ensure_ascii=False)
+
+    collection = engine.merge_file(path)
+    entities = collection["entities"]
+
+    assert len(entities["items"]) == 1
+    assert len(entities["lore"]) == 1
+    assert len(entities["events"]) == 1
+    assert entities["items"][0]["id"] == "ITEM_DETARIKI"
+    assert entities["lore"][0]["id"] == "LORE_DETARIKI_Z"
+    assert entities["events"][0]["id"] == "EVENT_JAMMER_FIRST"
+    # Relationship/Timelineは今回もmerge対象外
+    assert entities["relationships"] == []
+    assert entities["timeline"] == []
+
+
+def test_merged_entity_counts_include_item_lore_event(engine, tmp_path):
+    doc = _episode_with_all_merge_candidates("EP01")
+    path = tmp_path / "EP01.extraction.json"
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(doc, f, ensure_ascii=False)
+
+    collection = engine.merge_file(path)
+    counts = collection["report"]["mergedEntityCounts"]
+
+    assert counts["characters"] == 1
+    assert counts["locations"] == 1
+    assert counts["organizations"] == 1
+    assert counts["items"] == 1
+    assert counts["lore"] == 1
+    assert counts["events"] == 1
+    assert counts["relationships"] == 0
+    assert counts["timeline"] == 0
+
+
+def test_item_lore_event_entities_aggregate_across_episodes(engine, tmp_path):
+    doc1 = _episode_with_all_merge_candidates("EP01")
+    doc2 = _episode_with_all_merge_candidates("EP02")
+    path1 = tmp_path / "EP01.extraction.json"
+    path2 = tmp_path / "EP02.extraction.json"
+    with open(path1, "w", encoding="utf-8") as f:
+        json.dump(doc1, f, ensure_ascii=False)
+    with open(path2, "w", encoding="utf-8") as f:
+        json.dump(doc2, f, ensure_ascii=False)
+
+    collection = engine.merge_inputs([str(path1), str(path2)])
+    entities = collection["entities"]
+
+    assert len(entities["items"]) == 1
+    assert len(entities["lore"]) == 1
+    assert len(entities["events"]) == 1
+    assert set(entities["items"][0]["mergedFrom"]) == {"EP01", "EP02"}
+
+
+def test_generated_item_lore_event_entities_pass_entity_schema(
+    entity_validator, engine, tmp_path
+):
+    doc = _episode_with_all_merge_candidates("EP01")
+    path = tmp_path / "EP01.extraction.json"
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(doc, f, ensure_ascii=False)
+
+    collection = engine.merge_file(path)
+    entities = collection["entities"]
+
+    for key in ("items", "lore", "events"):
+        for entity in entities[key]:
+            errors = list(entity_validator.iter_errors(entity))
+            assert not errors, f"{key}: {[e.message for e in errors]}"
+
+
+def test_collection_with_item_lore_event_entities_passes_collection_schema(
+    collection_validator, engine, tmp_path
+):
+    doc = _episode_with_all_merge_candidates("EP01")
+    path = tmp_path / "EP01.extraction.json"
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(doc, f, ensure_ascii=False)
+
+    collection = engine.merge_file(path)
+    errors = list(collection_validator.iter_errors(collection))
+    assert not errors, [e.message for e in errors]
+
+
+def test_cli_output_with_item_lore_event_entities_passes_collection_schema(
+    collection_validator, tmp_path
+):
+    doc = _episode_with_all_merge_candidates("EP01")
+    input_path = tmp_path / "EP01.extraction.json"
+    with open(input_path, "w", encoding="utf-8") as f:
+        json.dump(doc, f, ensure_ascii=False)
+
+    output_dir = tmp_path / "merge_preview"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(MERGE_SCRIPT),
+            "--input",
+            str(input_path),
+            "--output",
+            str(output_dir),
+            "--quiet",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+
+    output_file = output_dir / "merged_knowledge_collection.json"
+    with open(output_file, encoding="utf-8") as f:
+        data = json.load(f)
+
+    errors = list(collection_validator.iter_errors(data))
+    assert not errors, [e.message for e in errors]
+    assert len(data["entities"]["items"]) == 1
+    assert len(data["entities"]["lore"]) == 1
+    assert len(data["entities"]["events"]) == 1
 
 
 # ----------------------------------------------------------------

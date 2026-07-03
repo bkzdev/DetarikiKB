@@ -134,8 +134,14 @@ def build_source_candidate(
 
 def aggregate_name_candidates(
     group: list[dict[str, Any]],
+    name_field: str = "nameCandidates",
 ) -> tuple[str | None, list[str], list[dict[str, Any]]]:
-    """グループ内のnameCandidatesを集約し、(displayName, aliases, conflicts) を返す。
+    """グループ内の名前候補フィールドを集約し、(displayName, aliases, conflicts)
+    を返す。
+
+    Character/Location/Organization/Item/Eventは`nameCandidates`、
+    Loreは`termCandidates`（Extraction_Result_Schema.md §10）を使うため、
+    フィールド名を引数で切り替えられるようにしている。
 
     表記揺れがある場合は全表記をaliasesへ保持しつつ、conflictsへ
     field_value_conflict (severity: warning, resolutionStatus: unresolved)
@@ -143,7 +149,7 @@ def aggregate_name_candidates(
     """
     names: list[str] = []
     for candidate in group:
-        for name in candidate.get("nameCandidates", []) or []:
+        for name in candidate.get(name_field, []) or []:
             if name not in names:
                 names.append(name)
 
@@ -279,8 +285,9 @@ def build_merged_entities(
     id_prefix: str,
     merge_key_fn: Callable[[dict[str, Any]], tuple[str, str]],
     extra_fields_fn: Callable[[list[dict[str, Any]]], dict[str, Any]] | None = None,
+    name_field: str = "nameCandidates",
 ) -> list[dict[str, Any]]:
-    """Character/Location/Organizationで共通のmerge処理。
+    """Character/Location/Organization/Item/Lore/Eventで共通のmerge処理。
 
     merge_key_fnが ("id", 値) を返すcandidate群は、値をcanonical ID
     としてそのまま採用し1つのmerged entityへ統合する (status: merged)。
@@ -291,6 +298,9 @@ def build_merged_entities(
     キー) は、同じ値を持つcandidate同士は安全にmerge対象としつつ、
     canonical IDへは解決しない (status: unresolved、id/mergedIdはkindの
     値から決定的に組み立てる)。
+
+    name_fieldは候補内の名前候補配列のキー名 (Loreのみ`termCandidates`、
+    他は`nameCandidates`)。
     """
     groups, order, documents_by_episode, extraction_runs = _group_candidates(
         valid_entries, candidate_array_key, merge_key_fn
@@ -305,7 +315,9 @@ def build_merged_entities(
         members = groups[key]
         candidates = [c for c, _episode_id in members]
 
-        display_name, aliases, conflicts = aggregate_name_candidates(candidates)
+        display_name, aliases, conflicts = aggregate_name_candidates(
+            candidates, name_field=name_field
+        )
         evidence_refs, source_candidates, episode_ids_used, source_types, confidence = (
             _build_entity_for_group(
                 members, documents_by_episode, extraction_runs, block_index_cache
