@@ -13,6 +13,7 @@ docs/architecture/06_AI/Merged_Knowledge_Design.md §4, §5, §9, §10
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 from typing import Any
 
@@ -25,6 +26,16 @@ STATUS_UNRESOLVED = "unresolved"
 # それ以外 ("unresolved"含む全て) はcanonical化しない (§4.4)。
 _KIND_RESOLVED = "id"
 _KIND_UNRESOLVED = "unresolved"
+
+
+def sanitize_id_segment(text: str) -> str:
+    """自由文字列 (relationshipType/timelineIdの組み合わせ等) を、
+    IdStringパターン (^[A-Z][A-Z0-9_-]+$) に沿うID断片へ変換する。
+    元のフィールド値自体は変更せず、ID組み立てにのみ使う
+    (agents/merger/relationship.py・timeline.pyで共用)。
+    """
+    sanitized = re.sub(r"[^A-Za-z0-9]+", "_", text).strip("_").upper()
+    return sanitized or "UNKNOWN"
 
 
 def build_block_type_index(
@@ -135,13 +146,16 @@ def build_source_candidate(
 def aggregate_name_candidates(
     group: list[dict[str, Any]],
     name_field: str = "nameCandidates",
+    conflict_field: str = "displayName",
 ) -> tuple[str | None, list[str], list[dict[str, Any]]]:
     """グループ内の名前候補フィールドを集約し、(displayName, aliases, conflicts)
     を返す。
 
     Character/Location/Organization/Item/Eventは`nameCandidates`、
     Loreは`termCandidates`（Extraction_Result_Schema.md §10）を使うため、
-    フィールド名を引数で切り替えられるようにしている。
+    フィールド名を引数で切り替えられるようにしている。conflict_fieldは
+    conflictsへ記録する際のfield名 (Timelineは"label"を使う。
+    agents/merger/timeline.py参照)。
 
     表記揺れがある場合は全表記をaliasesへ保持しつつ、conflictsへ
     field_value_conflict (severity: warning, resolutionStatus: unresolved)
@@ -161,7 +175,7 @@ def aggregate_name_candidates(
         conflicts.append(
             {
                 "conflictType": "field_value_conflict",
-                "field": "displayName",
+                "field": conflict_field,
                 "values": list(names),
                 "sourceCandidateIds": [c["id"] for c in group],
                 "severity": "warning",
