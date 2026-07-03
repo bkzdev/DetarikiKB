@@ -70,7 +70,7 @@ AI Extraction / Knowledge Graph / Wiki Generation
 
 `agents/extractor/` は最小skeleton（Normalized Story JSONから`episode_extraction`の構造とevidenceIndexを生成、LLM呼び出しなし）、semantic validation（`agents/extractor/validator.py`: evidenceIds実在確認、duplicate candidate id検出、empty evidenceIndex検出、extractionRun整合性確認、relationship基本チェック、timeline基本チェック。`scripts/validate_extraction_json.py --semantic`から利用可能）、`CharacterCandidate`/`LocationCandidate`/`OrganizationCandidate`/`ItemCandidate`/`LoreCandidate`/`EventCandidate`/`RelationshipCandidate`のrule-based最小抽出（構造的な手がかりのみ、本文の自然文推定は行わない、LLM不使用）まで実装済み・mainへマージ済み。抽出ロジックはCandidate種別ごとに`agents/extractor/character.py`/`location.py`/`organization.py`/`item.py`/`lore.py`/`event.py`/`relationship.py`/`timeline.py`へ分割済み（`base.py`が共通ヘルパー、`extractor.py`はオーケストレーションのみ）。`RelationshipCandidate`はBlock上の明示的な`relationshipType`+source/targetペア、および`speakerAssignments`の明示的な`organizationId`/`affiliation`（Character→OrganizationのMEMBER_OF/AFFILIATED_WITH）のみを対象とする。`TimelineCandidate`はepisode.metadataの明示的な`canonicalOrder`/`releaseOrder`/`displayOrder`、Block上の明示的な`timelineId`/`timelineLabel`/`timePosition`/`orderValue`、stage_direction等の明示的な`flashback`/`flashforward`/`dayChange`/`timeShift`/`sceneTime`構造フィールドのみを対象とする。Stage A（全8種Candidate）の設計・schema・実装・semantic validation・CLI・テストの整合性は横断レビュー済み（全8種共存の統合テスト追加・古いdocstring修正まで。不整合は無し、mainへマージ済み）。
 
-**Stage A candidate extractionは完了。Stage B（Merged Knowledge）は設計書・schema完了→現在merge engine skeleton実装中**。`Merged_Knowledge_Design.md`（設計書）・`schemas/merged_knowledge.schema.json`（8種のmerged entityをoneOf判別）・`schemas/manual_overrides.schema.json`（手動補正ファイル）はmainへマージ済み。`agents/merger/`（`MergeEngine`: 単一入力ファイルの検証ゲート+空collection組み立て）・`scripts/merge_extractions.py`のskeletonを`feature/merge-engine-skeleton`で作成中（本格的なcandidate merge・canonical ID割り当て・manual override適用・relationship merge・timeline aggregationはまだ未着手。複数ファイル・ディレクトリ入力も今回は見送り）。`schemas/canonical_knowledge.schema.json`はStage C用の予約placeholder。重要ルール: **Stage A candidateのevidence（sourceType/confidence/evidenceIds/candidate ID/extractionRun）はマージ後も失わない**（schemaでevidenceRefs・sourceCandidatesを最低1件必須にして担保）。LLM呼び出し本体・provider連携・prompt設計は、CLAUDE.mdの方針により明示的な指示があるまで着手しない。
+**Stage A candidate extractionは完了。Stage B（Merged Knowledge）は設計書・schema・merge engine skeleton（単一入力）完了→現在複数入力対応中**。`Merged_Knowledge_Design.md`（設計書）・`schemas/merged_knowledge.schema.json`（8種のmerged entityをoneOf判別）・`schemas/manual_overrides.schema.json`（手動補正ファイル）・`agents/merger/`のskeleton（単一入力ファイルの検証ゲート+空collection組み立て）はmainへマージ済み。`agents/merger/input_resolver.py`（ファイル/ディレクトリ/globパターン解決）による複数入力対応を`feature/merge-multiple-inputs`で作成中（本格的なcandidate merge・canonical ID割り当て・manual override適用・relationship merge・timeline aggregationはまだ未着手）。`schemas/canonical_knowledge.schema.json`はStage C用の予約placeholder。重要ルール: **Stage A candidateのevidence（sourceType/confidence/evidenceIds/candidate ID/extractionRun）はマージ後も失わない**（schemaでevidenceRefs・sourceCandidatesを最低1件必須にして担保）。LLM呼び出し本体・provider連携・prompt設計は、CLAUDE.mdの方針により明示的な指示があるまで着手しない。
 
 直近の作業状態・次のアクション・保留事項・既知の問題は `TASKS.md` を参照すること（このファイルには詳細TODOを追記しない）。
 
@@ -189,7 +189,7 @@ docs/architecture/05_Parser/Normalized_Story_JSON.md
 docs/architecture/05_Parser/Script_Compatibility_Check.md
 ```
 
-Extraction Phase関連（Stage A設計・実装完了。`schemas/extraction.schema.json`・`agents/extractor/`の全8種Candidate最小抽出・semantic validation・Stage A統合レビュー・Stage B設計書`Merged_Knowledge_Design.md`・Stage B schema `schemas/merged_knowledge.schema.json`/`schemas/manual_overrides.schema.json`はmainへマージ済み。merge engine skeleton（`agents/merger/`）は`feature/merge-engine-skeleton`でPR準備中）。
+Extraction Phase関連（Stage A設計・実装完了。`schemas/extraction.schema.json`・`agents/extractor/`の全8種Candidate最小抽出・semantic validation・Stage A統合レビュー・Stage B設計書`Merged_Knowledge_Design.md`・Stage B schema `schemas/merged_knowledge.schema.json`/`schemas/manual_overrides.schema.json`・merge engine skeleton（単一入力、`agents/merger/`）はmainへマージ済み。merge engineの複数入力対応（`agents/merger/input_resolver.py`）は`feature/merge-multiple-inputs`でPR準備中）。
 
 ```text
 docs/architecture/06_AI/Extraction_Pipeline.md
@@ -584,7 +584,7 @@ AIエージェントへ渡す指示例:
 
 Parser本体（`agents/parser/`）、`schemas/extraction.schema.json` 系、`agents/extractor/` の最小skeleton・semantic validation・`CharacterCandidate`/`LocationCandidate`/`OrganizationCandidate`/`ItemCandidate`/`LoreCandidate`/`EventCandidate`/`RelationshipCandidate`/`TimelineCandidate`最小抽出、Extractor内部のファイル分割への再着手は不要（完了済み、§3.1）。
 
-次の自然な一歩は `TASKS.md` の Next Actions（`feature/merge-engine-skeleton`のPR以降、`Merged_Knowledge_Design.md` §13のPR分割案に従い、merge engineの複数ファイル対応→character/location/organization merge最小実装）に従う。着手前に以下を守る。
+次の自然な一歩は `TASKS.md` の Next Actions（`feature/merge-multiple-inputs`のPR以降、`Merged_Knowledge_Design.md` §13のPR分割案に従い、character/location/organization merge最小実装）に従う。着手前に以下を守る。
 
 - `agents/extractor/` のLLM呼び出し本体・provider連携の実装着手はユーザーの明示的な指示を待つ（CLAUDE.mdの方針）
 - Stage B実装では、Stage A candidateのevidence・provenance（sourceType/confidence/evidenceIds/candidate ID/extractionRun）を失わない（`Merged_Knowledge_Design.md` §4.1 / §10）
