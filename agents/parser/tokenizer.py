@@ -347,8 +347,13 @@ class Tokenizer:
                 control_chars_removed=control_chars_removed,
             )
 
-        # 日本語テキストを含む行 → 本文とみなす
-        if JAPANESE_PATTERN.search(line):
+        # 日本語テキストを含む行、またはASCII以外の文字を含む行
+        # (句読点・省略記号のみの間「……」等、JAPANESE_PATTERNの範囲外の
+        # Unicodeブロックだけで構成される本文行を含む) → 本文とみなす。
+        # 実データdry-run trialで「……」のみの行がJAPANESE_PATTERNに一致せず
+        # UNKNOWNになり、対応するモノローグの本文が欠落する不具合を発見した
+        # (feature/branch-choice-dry-run)。
+        if JAPANESE_PATTERN.search(line) or not line.isascii():
             return ScriptToken(
                 line_number=line_number,
                 raw=line,
