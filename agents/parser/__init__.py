@@ -21,6 +21,14 @@ from .character_dictionary import (
     resolve_character_by_source_id,
     validate_character_dictionary,
 )
+from .compatibility import (
+    DEFAULT_COMMANDS_CONFIG,
+    detect_new_speech_commands,
+    determine_compatibility_status,
+    get_new_speech_hints,
+    is_speech_candidate,
+    load_command_config,
+)
 from .exporter import (
     Exporter,
     export_json,
@@ -70,6 +78,13 @@ __all__ = [
     "resolve_character_by_name",
     "resolve_character_by_source_id",
     "validate_character_dictionary",
+    # compatibility
+    "DEFAULT_COMMANDS_CONFIG",
+    "detect_new_speech_commands",
+    "determine_compatibility_status",
+    "get_new_speech_hints",
+    "is_speech_candidate",
+    "load_command_config",
     # parser
     "BlockData",
     "EpisodeData",

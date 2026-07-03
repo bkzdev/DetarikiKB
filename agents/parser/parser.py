@@ -672,8 +672,14 @@ class StoryParser:
             if token.token_type == TokenType.UNKNOWN:
                 flush_text()
                 if self.preserve_unknown:
-                    result.unknown_commands[token.raw[:30]] = (
-                        result.unknown_commands.get(token.raw[:30], 0) + 1
+                    # キーは先頭コマンド語のみ (token.command) を使う。
+                    # unknown_commandsの他の登録箇所 (@コマンド/keyword)
+                    # およびscripts/check_script_compatibility.pyの
+                    # unknownCommands集計 (first_tokenのみ) とキー形式を
+                    # 揃えるため、生の行全体 (raw[:30]) は使わない。
+                    unknown_key = token.command or token.raw[:30]
+                    result.unknown_commands[unknown_key] = (
+                        result.unknown_commands.get(unknown_key, 0) + 1
                     )
                     block = BlockData(
                         block_type="unknown",
