@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "0.1.0",
+  "documentType": "merged_knowledge_collection",
+  "generatedAt": "2026-07-03T00:00:00+00:00",
+  "sourceDocuments": [
+    {
+      "path": "tests/fixtures/extraction/minimal_episode_extraction.json",
+      "documentId": "TEST_S01_C01_E01",
+      "storyId": "TEST_S01_C01",
+      "episodeId": "TEST_S01_C01_E01",
+      "storyCategory": "MAIN",
+      "extractionVersion": "0.1.0",
+      "candidateCounts": {
+        "characters": 1,
+        "locations": 0,
+        "organizations": 0,
+        "items": 0,
+        "lore": 0,
+        "events": 0,
+        "relationships": 0,
+        "timelineCandidates": 0
+      }
+    }
+  ],
+  "entities": {
+    "characters": [],
+    "locations": [],
+    "organizations": [],
+    "items": [],
+    "lore": [],
+    "events": [],
+    "relationships": [],
+    "timeline": []
+  },
+  "report": {
+    "inputFiles": 1,
+    "resolvedInputFiles": 1,
+    "validInputs": 1,
+    "invalidInputs": 0,
+    "skippedInputs": [],
+    "candidateCounts": {
+      "characters": 1,
+      "locations": 0,
+      "organizations": 0,
+      "items": 0,
+      "lore": 0,
+      "events": 0,
+      "relationships": 0,
+      "timelineCandidates": 0
+    },
+    "inputResults": [
+      {
+        "path": "tests/fixtures/extraction/minimal_episode_extraction.json",
+        "status": "valid",
+        "errors": [],
+        "warnings": []
+      }
+    ],
+    "warnings": [],
+    "errors": []
+  }
+}
