@@ -34,6 +34,14 @@ from .entity_base import (
 MERGED_ENTITY_SCHEMA_VERSION = "0.1"
 _UNRESOLVED_PREFIX = "UNRESOLVED_"
 
+# source/targetのどちらかを解決できずrelationship mergeをskipした際の警告文言
+# に必ず含まれるマーカー文字列。report.warningCounts.unresolvedRelationships
+# (agents/merger/engine.py) の集計で、この文字列を含む警告だけを数えるために
+# 公開する (文言自体は変更しない。既存warningsのテキストと完全一致させる)。
+UNRESOLVED_ENDPOINT_MARKER = (
+    "をmerged entityへ解決できなかったためrelationship mergeをskipしました"
+)
+
 
 def _build_reference_index(
     known_entities: list[dict[str, Any]],
@@ -166,8 +174,7 @@ def _group_relationship_candidates(
                 )
                 warnings.append(
                     f"{episode_id}/{candidate_id}: {unresolved_field} "
-                    f"('{unresolved_value}') をmerged entityへ解決できなかった"
-                    "ためrelationship mergeをskipしました"
+                    f"('{unresolved_value}') {UNRESOLVED_ENDPOINT_MARKER}"
                 )
                 continue
 

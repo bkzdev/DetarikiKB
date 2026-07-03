@@ -50,15 +50,119 @@ from .models import (
     INPUT_STATUS_SKIPPED,
     INPUT_STATUS_VALID,
     MERGED_ENTITY_KEYS,
+    MERGED_TO_CANDIDATE_KEY,
     InputResult,
     MergeReport,
 )
 from .organization import build_organization_entities
-from .relationship import build_relationship_entities
+from .relationship import UNRESOLVED_ENDPOINT_MARKER, build_relationship_entities
 from .timeline import build_timeline_entities
 
 _PROJECT_ROOT = Path(__file__).parent.parent.parent
 DEFAULT_EXTRACTION_SCHEMA_PATH = _PROJECT_ROOT / "schemas" / "extraction.schema.json"
+
+
+def _summarize_entities(
+    entities: dict[str, list[dict[str, Any]]], report: MergeReport
+) -> None:
+    """entities 8種を走査し、report.merged_entity_counts/conflicts_count/
+    unresolved_count (既存の全体合算値) に加え、type別のunresolved_entity_counts
+    /entity_type_summaries、conflict_counts (総数/severity別/conflictType別/
+    entity type別) を集計する (Merged_Knowledge_Design.md §11.2)。
+    """
+    by_severity: dict[str, int] = {}
+    by_type: dict[str, int] = {}
+    by_entity_type: dict[str, int] = {}
+
+    for key, values in entities.items():
+        report.merged_entity_counts[key] = len(values)
+        unresolved_for_type = 0
+        conflicts_for_type = 0
+
+        for entity in values:
+            conflicts = entity.get("conflicts", []) or []
+            report.conflicts_count += len(conflicts)
+            conflicts_for_type += len(conflicts)
+            for conflict in conflicts:
+                severity = conflict.get("severity", "unknown")
+                conflict_type = conflict.get("conflictType", "unknown")
+                by_severity[severity] = by_severity.get(severity, 0) + 1
+                by_type[conflict_type] = by_type.get(conflict_type, 0) + 1
+
+            if entity.get("status") == "unresolved":
+                report.unresolved_count += 1
+                report.unresolved_entity_counts[key] += 1
+                unresolved_for_type += 1
+
+        if conflicts_for_type:
+            by_entity_type[key] = conflicts_for_type
+
+        candidate_key = MERGED_TO_CANDIDATE_KEY[key]
+        report.entity_type_summaries[key] = {
+            "candidateCount": report.candidate_counts[candidate_key],
+            "mergedCount": len(values),
+            "unresolvedCount": unresolved_for_type,
+            "conflictCount": conflicts_for_type,
+        }
+
+    report.conflict_counts = {
+        "total": report.conflicts_count,
+        "bySeverity": by_severity,
+        "byType": by_type,
+        "byEntityType": by_entity_type,
+    }
+
+
+def _summarize_warnings(report: MergeReport) -> None:
+    """report.warningsの概要 (report.warningCounts) を集計する。
+
+    unresolvedRelationships: relationship.pyのUNRESOLVED_ENDPOINT_MARKERを
+    含む警告件数 (source/targetを解決できずrelationship mergeをskipした件数)。
+    skippedOverrides: この時点 (--overrides適用前) では常に0。--overrides
+    適用時のみscripts/merge_extractions.pyがmanualOverrides.skippedCountで
+    上書きする (manual overrideの解決はCLI層でのみ行うため、engine自体は
+    overrideの存在を知らない)。
+    """
+    total = len(report.warnings)
+    unresolved_relationships = sum(
+        1 for w in report.warnings if UNRESOLVED_ENDPOINT_MARKER in w
+    )
+    report.warning_counts = {
+        "total": total,
+        "unresolvedRelationships": unresolved_relationships,
+        "skippedOverrides": 0,
+        "other": total - unresolved_relationships,
+    }
+
+
+def _build_input_summaries(
+    report: MergeReport, source_documents: list[dict[str, Any]]
+) -> None:
+    """report.inputResults (valid/invalid/skipped全件) をベースに、
+    documentId/episodeId/candidateCountsをsourceDocumentsから逆引きして
+    付与したinputSummariesを組み立てる。
+
+    mergedEntityCountsは常にnull (方針B、TASKS.md参照)。merged entityは
+    複数episodeをまたいで統合されうるため、1つのmerged entityを単一の
+    入力ファイルへ排他的に帰属させる分割は正確には定義できない。無理に
+    近似せず、今回は入力ドキュメント単位で自明に定まるcandidateCountsのみを
+    入力別に出す。
+    """
+    source_doc_by_path = {doc["path"]: doc for doc in source_documents}
+    for input_result in report.input_results:
+        source_doc = source_doc_by_path.get(input_result.path)
+        report.input_summaries.append(
+            {
+                "path": input_result.path,
+                "status": input_result.status,
+                "documentId": source_doc["documentId"] if source_doc else None,
+                "episodeId": source_doc["episodeId"] if source_doc else None,
+                "candidateCounts": (
+                    source_doc["candidateCounts"] if source_doc else None
+                ),
+                "mergedEntityCounts": None,
+            }
+        )
 
 
 @dataclass
@@ -253,12 +357,9 @@ class MergeEngine:
         report.warnings.extend(relationship_warnings)
         entities["timeline"] = build_timeline_entities(valid_entries)
 
-        for key, values in entities.items():
-            report.merged_entity_counts[key] = len(values)
-            for entity in values:
-                report.conflicts_count += len(entity.get("conflicts", []))
-                if entity.get("status") == "unresolved":
-                    report.unresolved_count += 1
+        _summarize_entities(entities, report)
+        _summarize_warnings(report)
+        _build_input_summaries(report, source_documents)
 
         return {
             "schemaVersion": COLLECTION_SCHEMA_VERSION,

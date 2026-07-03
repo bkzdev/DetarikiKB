@@ -45,6 +45,17 @@ MERGED_ENTITY_KEYS = (
     "timeline",
 )
 
+# CANDIDATE_ARRAY_KEYS <-> MERGED_ENTITY_KEYS の相互対応表 (両方とも同じ順序の
+# 8種、timelineCandidates <-> timeline のみ名前が異なる)。
+# entityTypeSummaries等、candidate件数とmerged件数を同じtype単位で
+# 突き合わせる集計で使う。
+CANDIDATE_TO_MERGED_KEY = dict(
+    zip(CANDIDATE_ARRAY_KEYS, MERGED_ENTITY_KEYS, strict=True)
+)
+MERGED_TO_CANDIDATE_KEY = dict(
+    zip(MERGED_ENTITY_KEYS, CANDIDATE_ARRAY_KEYS, strict=True)
+)
+
 # inputResultsの1エントリが取りうる状態。
 # valid: 検証を通過しmergeに含まれた / invalid: 読み込めたが検証に失敗した /
 # skipped: 入力を解決できなかった (存在しないパス・無マッチのglob等)。
@@ -82,8 +93,10 @@ class MergeReport:
         (validInputs + invalidInputs と一致する)
     skippedInputs: 1件もファイルへ解決できなかったraw引数の一覧
 
-    将来: conflicts / unresolved candidates / manual override summary /
-    merge decisions を追加する。
+    conflictsCount/unresolvedCountは既存の全体合算値 (後方互換のため維持)。
+    unresolvedEntityCounts/conflictCounts/warningCounts/entityTypeSummaries/
+    inputSummariesはmerge report強化 (feature/merge-report-enhancements) で
+    追加した、entity type別・入力別の内訳。
     """
 
     input_files: int = 0
@@ -99,6 +112,27 @@ class MergeReport:
     )
     conflicts_count: int = 0
     unresolved_count: int = 0
+    unresolved_entity_counts: dict[str, int] = field(
+        default_factory=lambda: dict.fromkeys(MERGED_ENTITY_KEYS, 0)
+    )
+    conflict_counts: dict[str, Any] = field(
+        default_factory=lambda: {
+            "total": 0,
+            "bySeverity": {},
+            "byType": {},
+            "byEntityType": {},
+        }
+    )
+    warning_counts: dict[str, int] = field(
+        default_factory=lambda: {
+            "total": 0,
+            "unresolvedRelationships": 0,
+            "skippedOverrides": 0,
+            "other": 0,
+        }
+    )
+    entity_type_summaries: dict[str, dict[str, int]] = field(default_factory=dict)
+    input_summaries: list[dict[str, Any]] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
     input_results: list[InputResult] = field(default_factory=list)
@@ -114,6 +148,19 @@ class MergeReport:
             "mergedEntityCounts": dict(self.merged_entity_counts),
             "conflictsCount": self.conflicts_count,
             "unresolvedCount": self.unresolved_count,
+            "unresolvedEntityCounts": dict(self.unresolved_entity_counts),
+            "conflictCounts": {
+                "total": self.conflict_counts["total"],
+                "bySeverity": dict(self.conflict_counts["bySeverity"]),
+                "byType": dict(self.conflict_counts["byType"]),
+                "byEntityType": dict(self.conflict_counts["byEntityType"]),
+            },
+            "warningCounts": dict(self.warning_counts),
+            "entityTypeSummaries": {
+                key: dict(summary)
+                for key, summary in self.entity_type_summaries.items()
+            },
+            "inputSummaries": [dict(s) for s in self.input_summaries],
             "warnings": list(self.warnings),
             "errors": list(self.errors),
             "inputResults": [r.to_dict() for r in self.input_results],

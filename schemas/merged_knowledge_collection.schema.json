@@ -178,6 +178,11 @@
         "mergedEntityCounts",
         "conflictsCount",
         "unresolvedCount",
+        "unresolvedEntityCounts",
+        "conflictCounts",
+        "warningCounts",
+        "entityTypeSummaries",
+        "inputSummaries",
         "inputResults",
         "warnings",
         "errors"
@@ -224,6 +229,27 @@
           "type": "integer",
           "description": "status: unresolvedのmerged entity件数",
           "minimum": 0
+        },
+        "unresolvedEntityCounts": {
+          "$ref": "#/definitions/MergedEntityCounts",
+          "description": "status: unresolvedのmerged entity件数のtype別内訳 (unresolvedCountの内訳。形はMergedEntityCountsと同一のため定義を再利用する)"
+        },
+        "conflictCounts": {
+          "$ref": "#/definitions/ConflictCounts",
+          "description": "全merged entityのconflicts集計 (conflictsCountの内訳。severity別/conflictType別/entity type別)"
+        },
+        "warningCounts": {
+          "$ref": "#/definitions/WarningCounts",
+          "description": "report.warningsの概要集計"
+        },
+        "entityTypeSummaries": {
+          "$ref": "#/definitions/EntityTypeSummaries",
+          "description": "entity type別の簡易サマリー (candidate件数/merged件数/unresolved件数/conflict件数)"
+        },
+        "inputSummaries": {
+          "type": "array",
+          "description": "入力ファイル別のサマリー (inputResultsにdocumentId/episodeId/candidateCountsを付与したもの)",
+          "items": { "$ref": "#/definitions/InputSummary" }
         },
         "inputResults": {
           "type": "array",
@@ -292,6 +318,131 @@
         "results": {
           "type": "array",
           "items": { "$ref": "#/definitions/ManualOverrideResult" }
+        }
+      }
+    },
+
+    "ConflictCounts": {
+      "type": "object",
+      "description": "全merged entityのconflicts集計 (report.conflictsCountの内訳)。byType/byEntityTypeのキー集合は固定しない (conflictTypeは自由文字列、entity typeは実際にconflictを持つtypeのみ)",
+      "required": ["total", "bySeverity", "byType", "byEntityType"],
+      "additionalProperties": false,
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "bySeverity": {
+          "type": "object",
+          "description": "severity (info/warning/error) 別の件数",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        },
+        "byType": {
+          "type": "object",
+          "description": "conflictType (field_value_conflict/relationship_conflict/timeline_conflict等) 別の件数",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        },
+        "byEntityType": {
+          "type": "object",
+          "description": "entity type (characters/locations/.../timeline) 別の件数",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+
+    "WarningCounts": {
+      "type": "object",
+      "description": "report.warningsの概要集計",
+      "required": ["total", "unresolvedRelationships", "skippedOverrides", "other"],
+      "additionalProperties": false,
+      "properties": {
+        "total": {
+          "type": "integer",
+          "description": "report.warningsの総件数",
+          "minimum": 0
+        },
+        "unresolvedRelationships": {
+          "type": "integer",
+          "description": "source/targetを解決できずrelationship mergeをskipした件数",
+          "minimum": 0
+        },
+        "skippedOverrides": {
+          "type": "integer",
+          "description": "--overrides適用時のmanualOverrides.skippedCountをそのまま反映する (未指定時は0)",
+          "minimum": 0
+        },
+        "other": {
+          "type": "integer",
+          "description": "上記いずれにも分類されなかったwarnings件数",
+          "minimum": 0
+        }
+      }
+    },
+
+    "EntityTypeSummary": {
+      "type": "object",
+      "description": "1つのentity typeについてのcandidate/merged/unresolved/conflict件数サマリー",
+      "required": ["candidateCount", "mergedCount", "unresolvedCount", "conflictCount"],
+      "additionalProperties": false,
+      "properties": {
+        "candidateCount": { "type": "integer", "minimum": 0 },
+        "mergedCount": { "type": "integer", "minimum": 0 },
+        "unresolvedCount": { "type": "integer", "minimum": 0 },
+        "conflictCount": { "type": "integer", "minimum": 0 }
+      }
+    },
+
+    "EntityTypeSummaries": {
+      "type": "object",
+      "description": "entity type別の簡易サマリー (MergedEntityCountsと同じ8キー)",
+      "required": [
+        "characters",
+        "locations",
+        "organizations",
+        "items",
+        "lore",
+        "events",
+        "relationships",
+        "timeline"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "characters": { "$ref": "#/definitions/EntityTypeSummary" },
+        "locations": { "$ref": "#/definitions/EntityTypeSummary" },
+        "organizations": { "$ref": "#/definitions/EntityTypeSummary" },
+        "items": { "$ref": "#/definitions/EntityTypeSummary" },
+        "lore": { "$ref": "#/definitions/EntityTypeSummary" },
+        "events": { "$ref": "#/definitions/EntityTypeSummary" },
+        "relationships": { "$ref": "#/definitions/EntityTypeSummary" },
+        "timeline": { "$ref": "#/definitions/EntityTypeSummary" }
+      }
+    },
+
+    "InputSummary": {
+      "type": "object",
+      "description": "入力ファイル1件分のサマリー (inputResultsにdocumentId/episodeId/candidateCountsを付与したもの)。invalid/skippedな入力はdocumentId/episodeId/candidateCountsがnullになる。mergedEntityCountsは常にnull (merged entityは複数episodeをまたいで統合されうるため、1入力への排他的な帰属を今回は計算しない。方針はTASKS.md参照)",
+      "required": [
+        "path",
+        "status",
+        "documentId",
+        "episodeId",
+        "candidateCounts",
+        "mergedEntityCounts"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "path": { "type": "string" },
+        "status": { "$ref": "#/definitions/InputResultStatus" },
+        "documentId": { "type": ["string", "null"] },
+        "episodeId": { "type": ["string", "null"] },
+        "candidateCounts": {
+          "anyOf": [
+            { "$ref": "#/definitions/CandidateCounts" },
+            { "type": "null" }
+          ]
+        },
+        "mergedEntityCounts": {
+          "anyOf": [
+            { "$ref": "#/definitions/MergedEntityCounts" },
+            { "type": "null" }
+          ]
         }
       }
     },

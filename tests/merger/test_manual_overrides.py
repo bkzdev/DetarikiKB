@@ -163,6 +163,47 @@ def _minimal_collection(entities: dict[str, list[dict]] | None = None) -> dict:
             },
             "conflictsCount": 0,
             "unresolvedCount": 0,
+            "unresolvedEntityCounts": {
+                "characters": 0,
+                "locations": 0,
+                "organizations": 0,
+                "items": 0,
+                "lore": 0,
+                "events": 0,
+                "relationships": 0,
+                "timeline": 0,
+            },
+            "conflictCounts": {
+                "total": 0,
+                "bySeverity": {},
+                "byType": {},
+                "byEntityType": {},
+            },
+            "warningCounts": {
+                "total": 0,
+                "unresolvedRelationships": 0,
+                "skippedOverrides": 0,
+                "other": 0,
+            },
+            "entityTypeSummaries": {
+                key: {
+                    "candidateCount": 0,
+                    "mergedCount": 0,
+                    "unresolvedCount": 0,
+                    "conflictCount": 0,
+                }
+                for key in (
+                    "characters",
+                    "locations",
+                    "organizations",
+                    "items",
+                    "lore",
+                    "events",
+                    "relationships",
+                    "timeline",
+                )
+            },
+            "inputSummaries": [],
             "inputResults": [],
             "warnings": [],
             "errors": [],
