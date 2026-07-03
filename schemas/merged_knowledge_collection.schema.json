@@ -1,0 +1,232 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://detariki-kb/schemas/merged_knowledge_collection.schema.json",
+  "title": "Merged Knowledge Collection (Stage B merge engine preview)",
+  "description": "Stage B merge engine (agents/merger/) が返すcollection wrapperのスキーマ。schemas/merged_knowledge.schema.json (単一のmerged entity) とは別物で、複数episode_extractionの検証結果とentities/reportをまとめたpreview形式。docs/architecture/06_AI/Merged_Knowledge_Design.md 準拠。現時点ではentities配下は常に空配列 (本格的なcandidate mergeは未実装)。",
+
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "documentType",
+    "generatedAt",
+    "sourceDocuments",
+    "entities",
+    "report"
+  ],
+  "additionalProperties": false,
+
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "description": "collection wrapperのスキーマバージョン (agents/merger/models.py COLLECTION_SCHEMA_VERSION)"
+    },
+    "documentType": {
+      "type": "string",
+      "description": "固定値 merged_knowledge_collection",
+      "const": "merged_knowledge_collection"
+    },
+    "generatedAt": {
+      "type": "string",
+      "description": "生成日時 (ISO 8601)"
+    },
+    "sourceDocuments": {
+      "type": "array",
+      "description": "merge対象となったvalid inputのepisode_extractionドキュメント一覧",
+      "items": { "$ref": "#/definitions/SourceDocument" }
+    },
+    "entities": {
+      "$ref": "#/definitions/EntitiesContainer"
+    },
+    "report": {
+      "$ref": "#/definitions/MergeReport"
+    }
+  },
+
+  "definitions": {
+
+    "CandidateCounts": {
+      "type": "object",
+      "description": "Stage A episode_extractionのcandidate配列8種の件数 (agents/merger/models.py CANDIDATE_ARRAY_KEYS)。report全体・sourceDocuments個別のどちらでも同じ形を使う共通定義",
+      "required": [
+        "characters",
+        "locations",
+        "organizations",
+        "items",
+        "lore",
+        "events",
+        "relationships",
+        "timelineCandidates"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "characters": { "type": "integer", "minimum": 0 },
+        "locations": { "type": "integer", "minimum": 0 },
+        "organizations": { "type": "integer", "minimum": 0 },
+        "items": { "type": "integer", "minimum": 0 },
+        "lore": { "type": "integer", "minimum": 0 },
+        "events": { "type": "integer", "minimum": 0 },
+        "relationships": { "type": "integer", "minimum": 0 },
+        "timelineCandidates": { "type": "integer", "minimum": 0 }
+      }
+    },
+
+    "SourceDocument": {
+      "type": "object",
+      "description": "merge対象となった1つのepisode_extraction入力を表す (PR #17 sourceDocuments拡張形式)",
+      "required": ["path", "documentId", "extractionVersion", "candidateCounts"],
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "入力ファイルパス"
+        },
+        "documentId": {
+          "type": ["string", "null"],
+          "description": "ドキュメント識別子 (現状episodeIdをそのまま使う)"
+        },
+        "storyId": {
+          "type": ["string", "null"],
+          "description": "Story ID (任意)"
+        },
+        "episodeId": {
+          "type": ["string", "null"],
+          "description": "Episode ID (任意)"
+        },
+        "storyCategory": {
+          "type": ["string", "null"],
+          "description": "ストーリー種別 (任意)"
+        },
+        "extractionVersion": {
+          "type": ["string", "null"],
+          "description": "extractionRun.extractionVersion (Stage A実行バージョン)"
+        },
+        "extractionRunId": {
+          "type": ["string", "null"],
+          "description": "extractionRunの参照ID (将来拡張用、現状の実装では未使用)"
+        },
+        "candidateCounts": {
+          "$ref": "#/definitions/CandidateCounts",
+          "description": "このドキュメント単体のcandidate件数内訳"
+        }
+      }
+    },
+
+    "InputResultStatus": {
+      "type": "string",
+      "description": "1入力の処理結果。valid=検証通過 / invalid=読み込めたが検証失敗 / skipped=1件も解決できなかった",
+      "enum": ["valid", "invalid", "skipped"]
+    },
+
+    "InputResult": {
+      "type": "object",
+      "description": "merge report内のinputResultsの1エントリ (agents/merger/models.py InputResult)",
+      "required": ["path", "status", "errors", "warnings"],
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "解決できた場合はファイルパス、解決できなかった場合は元のraw --input引数"
+        },
+        "status": { "$ref": "#/definitions/InputResultStatus" },
+        "errors": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "warnings": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+
+    "MergeReport": {
+      "type": "object",
+      "description": "merge report骨格 (Merged_Knowledge_Design.md §11.2, agents/merger/models.py MergeReport)",
+      "required": [
+        "inputFiles",
+        "resolvedInputFiles",
+        "validInputs",
+        "invalidInputs",
+        "skippedInputs",
+        "candidateCounts",
+        "inputResults",
+        "warnings",
+        "errors"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "inputFiles": {
+          "type": "integer",
+          "description": "raw --input引数の件数 (ディレクトリ/glob展開前)",
+          "minimum": 0
+        },
+        "resolvedInputFiles": {
+          "type": "integer",
+          "description": "展開・重複排除後に実際に見つかったファイル件数",
+          "minimum": 0
+        },
+        "validInputs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "invalidInputs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "skippedInputs": {
+          "type": "array",
+          "description": "1件もファイルへ解決できなかったraw引数の一覧",
+          "items": { "type": "string" }
+        },
+        "candidateCounts": {
+          "$ref": "#/definitions/CandidateCounts",
+          "description": "全valid input合算のcandidate件数"
+        },
+        "inputResults": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/InputResult" }
+        },
+        "warnings": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "errors": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+
+    "MergedEntityArray": {
+      "type": "array",
+      "description": "TODO: 本格的なcandidate mergeを実装した際は、items を schemas/merged_knowledge.schema.json への $ref に差し替える。JSON Schema間のクロスファイル参照 (RefResolver設定) が必要になるため、現時点ではentitiesが常に空配列であることに合わせ、objectの配列として緩く許容するに留める (TASKS.md参照)。",
+      "items": { "type": "object" }
+    },
+
+    "EntitiesContainer": {
+      "type": "object",
+      "description": "merged entityの8配列 (Merged_Knowledge_Design.md §7: timelineCandidates候補はtimelineへ集約されるため、report.candidateCountsとキー名が異なる点に注意)",
+      "required": [
+        "characters",
+        "locations",
+        "organizations",
+        "items",
+        "lore",
+        "events",
+        "relationships",
+        "timeline"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "characters": { "$ref": "#/definitions/MergedEntityArray" },
+        "locations": { "$ref": "#/definitions/MergedEntityArray" },
+        "organizations": { "$ref": "#/definitions/MergedEntityArray" },
+        "items": { "$ref": "#/definitions/MergedEntityArray" },
+        "lore": { "$ref": "#/definitions/MergedEntityArray" },
+        "events": { "$ref": "#/definitions/MergedEntityArray" },
+        "relationships": { "$ref": "#/definitions/MergedEntityArray" },
+        "timeline": { "$ref": "#/definitions/MergedEntityArray" }
+      }
+    }
+  }
+}
