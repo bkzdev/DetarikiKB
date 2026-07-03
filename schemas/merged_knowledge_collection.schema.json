@@ -236,6 +236,62 @@
         "errors": {
           "type": "array",
           "items": { "type": "string" }
+        },
+        "manualOverrides": {
+          "$ref": "#/definitions/ManualOverridesReport",
+          "description": "manual override適用結果 (agents/merger/overrides.py)。--overrides未指定時は本フィールド自体が存在しない (任意プロパティ、既存挙動を壊さないため)"
+        }
+      }
+    },
+
+    "ManualOverrideResult": {
+      "type": "object",
+      "description": "1件のmanual override適用結果 (agents/merger/overrides.py OverrideResult)",
+      "required": ["overrideId", "targetId", "status", "reason", "fieldsChanged"],
+      "additionalProperties": false,
+      "properties": {
+        "overrideId": { "type": "string" },
+        "targetId": { "type": ["string", "null"] },
+        "status": {
+          "type": "string",
+          "enum": ["applied", "skipped", "error"]
+        },
+        "reason": { "type": "string" },
+        "fieldsChanged": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+
+    "ManualOverridesReport": {
+      "type": "object",
+      "description": "manual override適用の集計 (Merged_Knowledge_Design.md §8)",
+      "required": [
+        "enabled",
+        "overrideFiles",
+        "appliedCount",
+        "skippedCount",
+        "errorCount",
+        "results"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "--overridesが指定されたかどうか"
+        },
+        "overrideFiles": {
+          "type": "array",
+          "description": "適用したoverrideファイルパスの一覧",
+          "items": { "type": "string" }
+        },
+        "appliedCount": { "type": "integer", "minimum": 0 },
+        "skippedCount": { "type": "integer", "minimum": 0 },
+        "errorCount": { "type": "integer", "minimum": 0 },
+        "results": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ManualOverrideResult" }
         }
       }
     },
