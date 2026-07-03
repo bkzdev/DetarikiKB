@@ -14,7 +14,8 @@ Usage:
     python scripts/check_script_compatibility.py data/raw/ --output data/reports/
 
     # キャラクター辞書指定
-    python scripts/check_script_compatibility.py data/raw/ --characters reference/parser/characters_reference.json
+    python scripts/check_script_compatibility.py data/raw/ \
+        --characters reference/parser/characters_reference.json
 
 Output:
     data/reports/script_compatibility_report.json
@@ -191,6 +192,229 @@ class FileCompatibilityResult:
         self.parser_compatibility: str = "compatible"
 
 
+def _strip_control_chars(raw_line: str, result: FileCompatibilityResult) -> str:
+    """制御文字を除去し、除去件数をresultへ加算した上でstrip済みの行を返す"""
+    cleaned = CONTROL_CHARS_PATTERN.sub("", raw_line)
+    removed_count = len(raw_line) - len(cleaned)
+    if removed_count > 0:
+        result.control_chars_removed += removed_count
+    return cleaned.strip()
+
+
+def _check_character_id_line(
+    line: str,
+    line_number: int,
+    char_map: dict[str, str],
+    result: FileCompatibilityResult,
+) -> bool:
+    """$numX / $valueX / @ScenarioCos / @ScenarioCosLoad 行を処理する。
+    処理済み (これ以上の分類が不要) ならTrueを返す。
+    """
+    num_match = NUM_VAR_PATTERN.match(line)
+    if num_match:
+        _record_character_id(result, num_match.group(2), char_map, line_number, line)
+        return True
+
+    val_match = VALUE_VAR_PATTERN.match(line)
+    if val_match:
+        _record_character_id(result, val_match.group(2), char_map, line_number, line)
+        return True
+
+    sc_match = SCENARIO_COS_PATTERN.match(line)
+    if sc_match:
+        _record_character_id(result, sc_match.group(2), char_map, line_number, line)
+        return True
+
+    if SCENARIO_COS_LOAD_PATTERN.match(line):
+        # 変数経由のため char_id 直接取得不可
+        return True
+
+    return False
+
+
+def _check_branch_keyword(
+    first_token: str,
+    line: str,
+    line_number: int,
+    result: FileCompatibilityResult,
+) -> bool:
+    """branch キーワード行 (選択肢) をチェックする。処理済みならTrueを返す。"""
+    if first_token != "branch":
+        return False
+
+    # branch の後に選択肢テキストが続くはず
+    opts = line.replace("branch", "", 1).strip().split()
+    if not opts:
+        result.branch_issues.append(
+            {
+                "type": "empty_branch",
+                "lineNumber": line_number,
+                "raw": line,
+                "severity": "medium",
+            }
+        )
+    return True
+
+
+def _check_conditional_directive(
+    first_token: str,
+    line: str,
+    line_number: int,
+    branch_stack: list[int],
+    result: FileCompatibilityResult,
+) -> bool:
+    """#if/#elseif/#else/#endif/その他#系の構文チェックを行う。
+    処理済みならTrueを返す。
+    """
+    if first_token == "#if":
+        branch_stack.append(line_number)
+        return True
+
+    if first_token == "#elseif":
+        if not branch_stack:
+            result.branch_issues.append(
+                {
+                    "type": "orphan_elseif",
+                    "lineNumber": line_number,
+                    "raw": line,
+                    "severity": "high",
+                }
+            )
+        return True
+
+    if first_token == "#else":
+        if not branch_stack:
+            result.branch_issues.append(
+                {
+                    "type": "orphan_else",
+                    "lineNumber": line_number,
+                    "raw": line,
+                    "severity": "high",
+                }
+            )
+        return True
+
+    if first_token == "#endif":
+        if branch_stack:
+            branch_stack.pop()
+        else:
+            result.branch_issues.append(
+                {
+                    "type": "orphan_endif",
+                    "lineNumber": line_number,
+                    "raw": line,
+                    "severity": "high",
+                }
+            )
+        return True
+
+    if first_token.startswith("#"):
+        # その他の # 系はスキップ
+        return True
+
+    return False
+
+
+def _check_branch_syntax(
+    first_token: str,
+    line: str,
+    line_number: int,
+    branch_stack: list[int],
+    result: FileCompatibilityResult,
+) -> bool:
+    """branch/#if/#elseif/#else/#endif/その他#系の構文チェックを行う。
+    処理済みならTrueを返す。
+    """
+    if _check_branch_keyword(first_token, line, line_number, result):
+        return True
+    return _check_conditional_directive(
+        first_token, line, line_number, branch_stack, result
+    )
+
+
+def _check_command_line(
+    first_token: str,
+    line: str,
+    line_number: int,
+    known_commands: set[str],
+    case_variants_map: dict[str, str],
+    speech_hints: list[str],
+    result: FileCompatibilityResult,
+) -> bool:
+    """@ で始まる / 既知キーワードのコマンド行を判定し、未知コマンド・新規
+    会話コマンド候補を記録する。コマンド行として処理済みならTrueを返す。
+    """
+    is_command_line = (
+        first_token.startswith("@")
+        or first_token.startswith("$")
+        or first_token in known_commands
+        or NUM_VAR_PATTERN.match(line) is not None
+    )
+    if not is_command_line:
+        return False
+
+    # 表記ゆれチェック
+    normalized = case_variants_map.get(first_token)
+    if normalized and normalized != first_token:
+        result.case_variants[normalized].add(first_token)
+
+    # 正規化後のコマンド名で既知チェック
+    check_token = normalized if normalized else first_token
+
+    if check_token not in known_commands:
+        _record_unknown_command(result, first_token, line_number, line)
+
+        if is_speech_candidate(first_token, speech_hints):
+            _record_new_speech_command(result, first_token, line_number, line)
+
+    return True
+
+
+def _process_line(
+    line_number: int,
+    raw_line: str,
+    branch_stack: list[int],
+    known_commands: set[str],
+    case_variants_map: dict[str, str],
+    speech_hints: list[str],
+    char_map: dict[str, str],
+    result: FileCompatibilityResult,
+) -> None:
+    """1行を解析し、検出結果をresultへ記録する。
+    各行分類は独立したヘルパーへ切り出し、ここでは「制御文字除去/空行・
+    コメントスキップ」→「その他の分類を順番に試す」という制御フローのみを
+    担う (挙動は分割前と同一、ruffのC901複雑度対策でのリファクタリング)。
+    """
+    line = _strip_control_chars(raw_line, result)
+
+    if not line or line.startswith("//"):
+        return
+
+    if HYPHEN_LINE_PATTERN.match(line):
+        result.hyphen_option_lines += 1
+        return
+
+    parts = line.split()
+    first_token = parts[0] if parts else ""
+
+    if _check_character_id_line(line, line_number, char_map, result):
+        return
+
+    if _check_branch_syntax(first_token, line, line_number, branch_stack, result):
+        return
+
+    _check_command_line(
+        first_token,
+        line,
+        line_number,
+        known_commands,
+        case_variants_map,
+        speech_hints,
+        result,
+    )
+    # 本文行 (コマンド行でない場合はここで何もしない)
+
+
 def check_file(
     file_path: Path,
     known_commands: set[str],
@@ -215,167 +439,20 @@ def check_file(
 
     # 分岐スタック
     branch_stack: list[int] = []
-    branch_options: list[str] = []
-    last_command: str | None = None
-    pending_speech: bool = False  # 直前が会話コマンドか
 
     for line_number, raw_line in enumerate(raw_lines, start=1):
-        # 1. 制御文字除去
-        cleaned = CONTROL_CHARS_PATTERN.sub("", raw_line)
-        removed_count = len(raw_line) - len(cleaned)
-        if removed_count > 0:
-            result.control_chars_removed += removed_count
-        line = cleaned.strip()
-
-        # 2. 空行・コメントはスキップ
-        if not line or line.startswith("//"):
-            pending_speech = False
-            continue
-
-        # 3. ハイフン行 (演出補助)
-        if HYPHEN_LINE_PATTERN.match(line):
-            result.hyphen_option_lines += 1
-            pending_speech = False
-            continue
-
-        # 4. 先頭トークンを取得
-        parts = line.split()
-        first_token = parts[0] if parts else ""
-
-        # 5. 変数割り当て ($numX / $valueX) → キャラクターID検出
-        num_match = NUM_VAR_PATTERN.match(line)
-        if num_match:
-            char_id = num_match.group(2)
-            _record_character_id(result, char_id, char_map, line_number, line)
-            pending_speech = False
-            continue
-
-        val_match = VALUE_VAR_PATTERN.match(line)
-        if val_match:
-            char_id = val_match.group(2)
-            _record_character_id(result, char_id, char_map, line_number, line)
-            pending_speech = False
-            continue
-
-        # 6. @ScenarioCos → キャラクターID検出
-        sc_match = SCENARIO_COS_PATTERN.match(line)
-        if sc_match:
-            char_id = sc_match.group(2)
-            _record_character_id(result, char_id, char_map, line_number, line)
-            pending_speech = False
-            continue
-
-        # 7. @ScenarioCosLoad → スキップ (変数経由のため char_id 直接取得不可)
-        if SCENARIO_COS_LOAD_PATTERN.match(line):
-            pending_speech = False
-            continue
-
-        # 8. 分岐構文チェック
-        if first_token == "branch":
-            # branch の後に選択肢テキストが続くはず
-            opts = line.replace("branch", "", 1).strip().split()
-            branch_options = opts
-            if not opts:
-                result.branch_issues.append(
-                    {
-                        "type": "empty_branch",
-                        "lineNumber": line_number,
-                        "raw": line,
-                        "severity": "medium",
-                    }
-                )
-            pending_speech = False
-            continue
-
-        if first_token == "#if":
-            branch_stack.append(line_number)
-            pending_speech = False
-            continue
-
-        if first_token == "#elseif":
-            if not branch_stack:
-                result.branch_issues.append(
-                    {
-                        "type": "orphan_elseif",
-                        "lineNumber": line_number,
-                        "raw": line,
-                        "severity": "high",
-                    }
-                )
-            pending_speech = False
-            continue
-
-        if first_token == "#else":
-            if not branch_stack:
-                result.branch_issues.append(
-                    {
-                        "type": "orphan_else",
-                        "lineNumber": line_number,
-                        "raw": line,
-                        "severity": "high",
-                    }
-                )
-            pending_speech = False
-            continue
-
-        if first_token == "#endif":
-            if branch_stack:
-                branch_stack.pop()
-            else:
-                result.branch_issues.append(
-                    {
-                        "type": "orphan_endif",
-                        "lineNumber": line_number,
-                        "raw": line,
-                        "severity": "high",
-                    }
-                )
-            pending_speech = False
-            continue
-
-        if first_token.startswith("#"):
-            # その他の # 系はスキップ
-            pending_speech = False
-            continue
-
-        # 9. コマンド行の判定 (@ で始まる / 既知キーワード)
-        is_command_line = (
-            first_token.startswith("@")
-            or first_token.startswith("$")
-            or first_token in known_commands
-            or NUM_VAR_PATTERN.match(line) is not None
+        _process_line(
+            line_number,
+            raw_line,
+            branch_stack,
+            known_commands,
+            case_variants_map,
+            speech_hints,
+            char_map,
+            result,
         )
 
-        if is_command_line:
-            # 9a. 表記ゆれチェック
-            normalized = case_variants_map.get(first_token)
-            if normalized and normalized != first_token:
-                result.case_variants[normalized].add(first_token)
-
-            # 9b. 正規化後のコマンド名で既知チェック
-            check_token = normalized if normalized else first_token
-
-            if check_token not in known_commands:
-                # 未知コマンド記録
-                _record_unknown_command(result, first_token, line_number, line)
-
-                # 新規会話コマンド候補検出
-                if is_speech_candidate(first_token, speech_hints):
-                    _record_new_speech_command(result, first_token, line_number, line)
-
-            # 会話コマンドなら次の本文行に備えてフラグを立てる
-            if check_token in speech_commands or first_token in speech_commands:
-                pending_speech = True
-            else:
-                pending_speech = False
-
-            last_command = first_token
-            continue
-
-        # 10. 本文行 (コマンド行でない)
-        pending_speech = False
-
-    # 11. 分岐スタックが残っている → missing #endif
+    # 分岐スタックが残っている → missing #endif
     for open_line in branch_stack:
         result.branch_issues.append(
             {
@@ -386,7 +463,7 @@ def check_file(
             }
         )
 
-    # 12. 最終ステータス決定
+    # 最終ステータス決定
     result.parser_compatibility = _determine_compatibility(result)
 
     return result
@@ -550,31 +627,21 @@ def build_json_report(
     return report
 
 
-def build_markdown_report(report: dict[str, Any]) -> str:
-    """Markdown レポートを構築する"""
-    lines: list[str] = []
-    summary = report["summary"]
-    generated_at = report.get("generatedAt", "")
-    ts = generated_at[:19].replace("T", " ") if generated_at else ""
-
-    lines.append("# Script Compatibility Report")
-    lines.append("")
-    lines.append(f"生成日時: {ts} UTC")
-    lines.append("")
-
-    # サマリー
-    status = summary["parserCompatibility"]
-    status_emoji = {
+def _status_emoji(status: str) -> str:
+    return {
         "compatible": "✅",
         "warning": "⚠️",
         "needs_update": "🔶",
         "blocked": "🚫",
     }.get(status, "❓")
-    lines.append("## サマリー")
-    lines.append("")
-    lines.append("| 項目 | 値 |")
-    lines.append("|---|---|")
-    lines.append(f"| 総合互換性 | {status_emoji} **{status}** |")
+
+
+def _build_summary_section(report: dict[str, Any]) -> list[str]:
+    """サマリーテーブルのMarkdown行を構築する"""
+    summary = report["summary"]
+    status = summary["parserCompatibility"]
+    lines = ["## サマリー", "", "| 項目 | 値 |", "|---|---|"]
+    lines.append(f"| 総合互換性 | {_status_emoji(status)} **{status}** |")
     lines.append(f"| ファイル数 | {summary['totalFiles']} |")
     lines.append(f"| 総行数 | {summary['totalLines']} |")
     lines.append(f"| 未知コマンド種類 | {summary['unknownCommandCount']} |")
@@ -582,49 +649,54 @@ def build_markdown_report(report: dict[str, Any]) -> str:
     lines.append(f"| 未登録キャラクターID | {summary['unknownCharacterIdCount']} |")
     lines.append(f"| 制御文字除去件数 | {summary['controlCharsRemoved']} |")
     lines.append("")
+    return lines
 
-    # ファイル別
-    lines.append("## ファイル別結果")
-    lines.append("")
+
+def _build_file_results_section(report: dict[str, Any]) -> list[str]:
+    """ファイル別結果テーブルのMarkdown行を構築する"""
+    lines = ["## ファイル別結果", ""]
     lines.append(
         "| ファイル | 互換性 | 行数 | 未知Cmd | 新規会話 | 未登録ID | 制御文字 |"
     )
     lines.append("|---|---|---:|---:|---:|---:|---:|")
     for f in report["files"]:
         st = f["parserCompatibility"]
-        em = {
-            "compatible": "✅",
-            "warning": "⚠️",
-            "needs_update": "🔶",
-            "blocked": "🚫",
-        }.get(st, "❓")
+        em = _status_emoji(st)
         lines.append(
             f"| {f['file']} | {em} {st} | {f['lineCount']} | "
             f"{len(f['unknownCommands'])} | {len(f['newSpeechCommands'])} | "
             f"{len(f['unknownCharacterIds'])} | {f['controlCharsRemoved']} |"
         )
     lines.append("")
+    return lines
 
-    # 新規会話コマンド候補 (全ファイル)
+
+def _collect_new_speech_commands(report: dict[str, Any]) -> dict[str, dict]:
     all_new_speech: dict[str, dict] = {}
     for f in report["files"]:
         for cmd in f["newSpeechCommands"]:
             if cmd["command"] not in all_new_speech:
                 all_new_speech[cmd["command"]] = cmd
-    if all_new_speech:
-        lines.append("## 🔶 新規会話コマンド候補")
-        lines.append("")
-        lines.append(
-            "これらのコマンドは本文抽出に影響する可能性があります。辞書への追加を検討してください。"
-        )
-        lines.append("")
-        for cmd, info in all_new_speech.items():
-            lines.append(
-                f"- `{cmd}` — {info['reason']} (severity: **{info['severity']}**)"
-            )
-        lines.append("")
+    return all_new_speech
 
-    # 未知コマンド (全ファイル集計)
+
+def _build_new_speech_section(report: dict[str, Any]) -> list[str]:
+    """新規会話コマンド候補セクションのMarkdown行を構築する (該当なしなら空)"""
+    all_new_speech = _collect_new_speech_commands(report)
+    if not all_new_speech:
+        return []
+    lines = ["## 🔶 新規会話コマンド候補", ""]
+    lines.append(
+        "これらのコマンドは本文抽出に影響する可能性があります。辞書への追加を検討してください。"
+    )
+    lines.append("")
+    for cmd, info in all_new_speech.items():
+        lines.append(f"- `{cmd}` — {info['reason']} (severity: **{info['severity']}**)")
+    lines.append("")
+    return lines
+
+
+def _collect_unknown_commands(report: dict[str, Any]) -> dict[str, dict]:
     all_unknown: dict[str, dict] = {}
     for f in report["files"]:
         for cmd_info in f["unknownCommands"]:
@@ -634,20 +706,28 @@ def build_markdown_report(report: dict[str, Any]) -> str:
             all_unknown[cmd]["count"] += cmd_info["count"]
             if len(all_unknown[cmd]["sampleLines"]) < 2:
                 all_unknown[cmd]["sampleLines"].extend(cmd_info.get("sampleLines", []))
-    if all_unknown:
-        lines.append("## ⚠️ 未知コマンド一覧")
-        lines.append("")
-        lines.append("| コマンド | 出現回数 | サンプル行 |")
-        lines.append("|---|---:|---|")
-        for cmd, info in sorted(all_unknown.items(), key=lambda x: -x[1]["count"]):
-            sample = ""
-            if info["sampleLines"]:
-                sl = info["sampleLines"][0]
-                sample = f"L{sl['lineNumber']}: `{sl['raw'][:60]}`"
-            lines.append(f"| `{cmd}` | {info['count']} | {sample} |")
-        lines.append("")
+    return all_unknown
 
-    # 未登録キャラクターID (全ファイル集計)
+
+def _build_unknown_commands_section(report: dict[str, Any]) -> list[str]:
+    """未知コマンド一覧セクションのMarkdown行を構築する (該当なしなら空)"""
+    all_unknown = _collect_unknown_commands(report)
+    if not all_unknown:
+        return []
+    lines = ["## ⚠️ 未知コマンド一覧", ""]
+    lines.append("| コマンド | 出現回数 | サンプル行 |")
+    lines.append("|---|---:|---|")
+    for cmd, info in sorted(all_unknown.items(), key=lambda x: -x[1]["count"]):
+        sample = ""
+        if info["sampleLines"]:
+            sl = info["sampleLines"][0]
+            sample = f"L{sl['lineNumber']}: `{sl['raw'][:60]}`"
+        lines.append(f"| `{cmd}` | {info['count']} | {sample} |")
+    lines.append("")
+    return lines
+
+
+def _collect_unknown_character_ids(report: dict[str, Any]) -> dict[str, dict]:
     all_unknown_chars: dict[str, dict] = {}
     for f in report["files"]:
         for char_info in f["unknownCharacterIds"]:
@@ -665,21 +745,48 @@ def build_markdown_report(report: dict[str, Any]) -> str:
                 all_unknown_chars[cid]["sampleLines"].extend(
                     char_info.get("sampleLines", [])
                 )
-    if all_unknown_chars:
-        lines.append("## ⚠️ 未登録キャラクターID")
-        lines.append("")
-        lines.append("| キャラクターID | 出現回数 | サンプル行 |")
-        lines.append("|---|---:|---|")
-        for cid, info in sorted(
-            all_unknown_chars.items(), key=lambda x: int(x[0]) if x[0].isdigit() else 0
-        ):
-            sample = ""
-            if info["sampleLines"]:
-                sl = info["sampleLines"][0]
-                sample = f"L{sl['lineNumber']}: `{sl['raw'][:60]}`"
-            lines.append(f"| `{cid}` | {info['count']} | {sample} |")
-        lines.append("")
+    return all_unknown_chars
 
+
+def _build_unknown_characters_section(report: dict[str, Any]) -> list[str]:
+    """未登録キャラクターIDセクションのMarkdown行を構築する (該当なしなら空)"""
+    all_unknown_chars = _collect_unknown_character_ids(report)
+    if not all_unknown_chars:
+        return []
+    lines = ["## ⚠️ 未登録キャラクターID", ""]
+    lines.append("| キャラクターID | 出現回数 | サンプル行 |")
+    lines.append("|---|---:|---|")
+    for cid, info in sorted(
+        all_unknown_chars.items(), key=lambda x: int(x[0]) if x[0].isdigit() else 0
+    ):
+        sample = ""
+        if info["sampleLines"]:
+            sl = info["sampleLines"][0]
+            sample = f"L{sl['lineNumber']}: `{sl['raw'][:60]}`"
+        lines.append(f"| `{cid}` | {info['count']} | {sample} |")
+    lines.append("")
+    return lines
+
+
+def build_markdown_report(report: dict[str, Any]) -> str:
+    """Markdown レポートを構築する。各セクションは _build_*_section へ切り出し、
+    ここではセクションを順番に連結する組み立てのみを担う
+    (挙動は分割前と同一、ruffのC901複雑度対策でのリファクタリング)。
+    """
+    generated_at = report.get("generatedAt", "")
+    ts = generated_at[:19].replace("T", " ") if generated_at else ""
+
+    lines: list[str] = [
+        "# Script Compatibility Report",
+        "",
+        f"生成日時: {ts} UTC",
+        "",
+    ]
+    lines.extend(_build_summary_section(report))
+    lines.extend(_build_file_results_section(report))
+    lines.extend(_build_new_speech_section(report))
+    lines.extend(_build_unknown_commands_section(report))
+    lines.extend(_build_unknown_characters_section(report))
     lines.append("---")
     lines.append("")
     lines.append(
@@ -697,14 +804,20 @@ def build_markdown_report(report: dict[str, Any]) -> str:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="DKB Script Compatibility Checker — Raw Script の互換性をチェックします",
+        description=(
+            "DKB Script Compatibility Checker - Raw Script の互換性をチェックします"
+        ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-例:
-  python scripts/check_script_compatibility.py data/raw/
-  python scripts/check_script_compatibility.py data/raw/main/example.dec
-  python scripts/check_script_compatibility.py data/raw/ --output data/reports/ --characters reference/parser/characters_reference.json
-""",
+        epilog=(
+            "\n"
+            "例:\n"
+            "  python scripts/check_script_compatibility.py data/raw/\n"
+            "  python scripts/check_script_compatibility.py "
+            "data/raw/main/example.dec\n"
+            "  python scripts/check_script_compatibility.py data/raw/ "
+            "--output data/reports/ "
+            "--characters reference/parser/characters_reference.json\n"
+        ),
     )
     parser.add_argument(
         "target",
@@ -741,44 +854,32 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main() -> int:
-    args = parse_args()
-
-    target = Path(args.target)
-    if not target.exists():
-        print(f"[エラー] 対象が見つかりません: {target}", file=sys.stderr)
-        return 1
-
-    output_dir = Path(args.output)
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    # 設定読み込み
+def _load_config_and_dictionaries(
+    args: argparse.Namespace,
+) -> tuple[set[str], dict[str, str], dict[str, str], set[str], list[str]]:
+    """設定・キャラクター辞書を読み込み、check_fileへ渡す各種セットを組み立てる。"""
     config = load_command_config(Path(args.commands))
     char_map = load_characters(Path(args.characters))
     known_commands = build_known_command_set(config)
     case_variants_map = build_case_variants_map(config)
     speech_commands = get_speech_commands(config)
     speech_hints = get_new_speech_hints(config)
+    return known_commands, char_map, case_variants_map, speech_commands, speech_hints
 
-    if not args.quiet:
-        print("[DKB] Script Compatibility Checker")
-        print(f"[DKB] 対象: {target}")
-        print(f"[DKB] 既知コマンド数: {len(known_commands)}")
-        print(f"[DKB] 登録キャラクター数: {len(char_map)}")
 
-    # ファイル収集
-    files = collect_files(target)
-    if not files:
-        print(f"[警告] 対象ファイルが見つかりませんでした: {target}", file=sys.stderr)
-        return 1
-
-    if not args.quiet:
-        print(f"[DKB] 対象ファイル数: {len(files)}")
-
-    # チェック実行
+def _run_checks(
+    files: list[Path],
+    known_commands: set[str],
+    speech_commands: set[str],
+    case_variants_map: dict[str, str],
+    speech_hints: list[str],
+    char_map: dict[str, str],
+    quiet: bool,
+) -> list[FileCompatibilityResult]:
+    """対象ファイルすべてに対してcheck_fileを実行する。"""
     results: list[FileCompatibilityResult] = []
     for file_path in files:
-        if not args.quiet:
+        if not quiet:
             print(f"  チェック中: {file_path.name}")
         result = check_file(
             file_path,
@@ -789,23 +890,33 @@ def main() -> int:
             char_map,
         )
         results.append(result)
+    return results
 
-    # レポート生成
-    json_report = build_json_report(files, results)
-    md_report = build_markdown_report(json_report)
 
-    # JSON 出力
+def _write_reports(
+    json_report: dict[str, Any],
+    md_report: str,
+    output_dir: Path,
+    write_md: bool,
+) -> tuple[Path, Path | None]:
+    """JSON/Markdownレポートをファイルへ書き出し、書き出し先パスを返す。"""
     json_path = output_dir / "script_compatibility_report.json"
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(json_report, f, ensure_ascii=False, indent=2)
 
-    # Markdown 出力
-    if not args.no_md:
+    md_path: Path | None = None
+    if write_md:
         md_path = output_dir / "script_compatibility_report.md"
         with open(md_path, "w", encoding="utf-8") as f:
             f.write(md_report)
 
-    # サマリー表示
+    return json_path, md_path
+
+
+def _print_summary(
+    json_report: dict[str, Any], json_path: Path, md_path: Path | None
+) -> str:
+    """サマリーを表示し、parserCompatibilityステータスを返す。"""
     summary = json_report["summary"]
     status = summary["parserCompatibility"]
     status_label = {
@@ -822,8 +933,57 @@ def main() -> int:
     print(f"[DKB] 未登録キャラクターID: {summary['unknownCharacterIdCount']}")
     print(f"[DKB] 制御文字除去件数: {summary['controlCharsRemoved']}")
     print(f"[DKB] JSON レポート: {json_path}")
-    if not args.no_md:
+    if md_path is not None:
         print(f"[DKB] MD レポート:   {md_path}")
+
+    return status
+
+
+def main() -> int:
+    args = parse_args()
+
+    target = Path(args.target)
+    if not target.exists():
+        print(f"[エラー] 対象が見つかりません: {target}", file=sys.stderr)
+        return 1
+
+    output_dir = Path(args.output)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    known_commands, char_map, case_variants_map, speech_commands, speech_hints = (
+        _load_config_and_dictionaries(args)
+    )
+
+    if not args.quiet:
+        print("[DKB] Script Compatibility Checker")
+        print(f"[DKB] 対象: {target}")
+        print(f"[DKB] 既知コマンド数: {len(known_commands)}")
+        print(f"[DKB] 登録キャラクター数: {len(char_map)}")
+
+    files = collect_files(target)
+    if not files:
+        print(f"[警告] 対象ファイルが見つかりませんでした: {target}", file=sys.stderr)
+        return 1
+
+    if not args.quiet:
+        print(f"[DKB] 対象ファイル数: {len(files)}")
+
+    results = _run_checks(
+        files,
+        known_commands,
+        speech_commands,
+        case_variants_map,
+        speech_hints,
+        char_map,
+        args.quiet,
+    )
+
+    json_report = build_json_report(files, results)
+    md_report = build_markdown_report(json_report)
+    json_path, md_path = _write_reports(
+        json_report, md_report, output_dir, not args.no_md
+    )
+    status = _print_summary(json_report, json_path, md_path)
 
     # 終了コード: blocked → 2, needs_update → 1, それ以外 → 0
     if status == "blocked":

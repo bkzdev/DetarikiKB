@@ -36,13 +36,14 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 # プロジェクトルートを sys.path に追加
 _PROJECT_ROOT = Path(__file__).parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
-from agents.parser import (
+from agents.parser import (  # noqa: E402
     CharacterDictionary,
     Exporter,
     Normalizer,
@@ -199,28 +200,21 @@ def parse_args() -> argparse.Namespace:
 # ----------------------------------------------------------------
 
 
-def main() -> int:
-    args = parse_args()
+def _print_startup_info(
+    args: argparse.Namespace, input_path: Path, episode_id: str, preserve_stage: bool
+) -> None:
+    if args.quiet:
+        return
+    print("[DKB] normalize_story")
+    print(f"[DKB] 入力ファイル: {input_path}")
+    print(f"[DKB] story_id:     {args.story_id}")
+    print(f"[DKB] episode_id:   {episode_id}")
+    print(f"[DKB] category:     {args.category}")
+    print(f"[DKB] 演出命令保持: {preserve_stage}")
 
-    input_path = Path(args.input)
-    if not input_path.exists():
-        print(f"[エラー] 入力ファイルが見つかりません: {input_path}", file=sys.stderr)
-        return 1
 
-    episode_id = args.episode_id or f"{args.story_id}_E01"
-    preserve_stage = not args.no_stage_directions
-
-    if not args.quiet:
-        print("[DKB] normalize_story")
-        print(f"[DKB] 入力ファイル: {input_path}")
-        print(f"[DKB] story_id:     {args.story_id}")
-        print(f"[DKB] episode_id:   {episode_id}")
-        print(f"[DKB] category:     {args.category}")
-        print(f"[DKB] 演出命令保持: {preserve_stage}")
-
-    # ----------------------------------------------------------------
-    # キャラクター辞書読み込み
-    # ----------------------------------------------------------------
+def _load_character_dict(args: argparse.Namespace) -> CharacterDictionary:
+    """キャラクター辞書を読み込む (見つからない場合は空の辞書のまま警告を表示)"""
     char_dict = CharacterDictionary()
     char_path = Path(args.characters)
     if char_path.exists():
@@ -229,52 +223,64 @@ def main() -> int:
             print(f"[DKB] キャラクター辞書: {char_dict.size()} 件")
     else:
         print(f"[警告] キャラクター辞書が見つかりません: {char_path}", file=sys.stderr)
+    return char_dict
 
-    # ----------------------------------------------------------------
-    # 互換性チェック (任意)
-    # ----------------------------------------------------------------
-    if args.check_compat:
-        if not args.quiet:
-            print("[DKB] 互換性チェック実行中...")
-        try:
-            import subprocess
 
-            # check_script_compatibility.pyは{sourceCharacterId: name}の
-            # フラットなJSON形式しか理解できないため、--charactersにYAML
-            # (knowledge/dictionaries/characters.yaml形式) が指定されている
-            # 場合はレガシーJSON辞書にフォールバックする。
-            compat_characters_path = args.characters
-            if Path(args.characters).suffix.lower() in (".yaml", ".yml"):
-                compat_characters_path = str(LEGACY_CHARACTERS_PATH)
+def _run_compatibility_check(args: argparse.Namespace, input_path: Path) -> int | None:
+    """--check-compat 指定時に互換性チェックを実行する。
+    blocked の場合は中断すべき終了コード(2)を返し、それ以外はNoneを返す。
+    """
+    if not args.check_compat:
+        return None
 
-            result = subprocess.run(
-                [
-                    sys.executable,
-                    str(_PROJECT_ROOT / "scripts" / "check_script_compatibility.py"),
-                    str(input_path),
-                    "--commands",
-                    args.commands,
-                    "--characters",
-                    compat_characters_path,
-                    "--quiet",
-                ],
-                capture_output=True,
-                text=True,
+    if not args.quiet:
+        print("[DKB] 互換性チェック実行中...")
+    try:
+        import subprocess
+
+        # check_script_compatibility.pyは{sourceCharacterId: name}の
+        # フラットなJSON形式しか理解できないため、--charactersにYAML
+        # (knowledge/dictionaries/characters.yaml形式) が指定されている
+        # 場合はレガシーJSON辞書にフォールバックする。
+        compat_characters_path = args.characters
+        if Path(args.characters).suffix.lower() in (".yaml", ".yml"):
+            compat_characters_path = str(LEGACY_CHARACTERS_PATH)
+
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(_PROJECT_ROOT / "scripts" / "check_script_compatibility.py"),
+                str(input_path),
+                "--commands",
+                args.commands,
+                "--characters",
+                compat_characters_path,
+                "--quiet",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        if result.stdout:
+            print(result.stdout)
+        if result.returncode == 2:
+            print(
+                "[エラー] 互換性チェック結果: blocked - 処理を中断します",
+                file=sys.stderr,
             )
-            if result.stdout:
-                print(result.stdout)
-            if result.returncode == 2:
-                print(
-                    "[エラー] 互換性チェック結果: blocked — 処理を中断します",
-                    file=sys.stderr,
-                )
-                return 2
-        except Exception as e:
-            print(f"[警告] 互換性チェックの実行に失敗しました: {e}", file=sys.stderr)
+            return 2
+    except Exception as e:
+        print(f"[警告] 互換性チェックの実行に失敗しました: {e}", file=sys.stderr)
 
-    # ----------------------------------------------------------------
-    # Parse
-    # ----------------------------------------------------------------
+    return None
+
+
+def _parse_story_file(
+    args: argparse.Namespace,
+    char_dict: CharacterDictionary,
+    preserve_stage: bool,
+    input_path: Path,
+) -> tuple[Any, int]:
+    """Raw Script を解析する。失敗時は (None, 1) を返す。"""
     if not args.quiet:
         print("[DKB] 解析中...")
 
@@ -286,17 +292,22 @@ def main() -> int:
     )
 
     try:
-        parse_result = story_parser.parse_file(input_path)
+        return story_parser.parse_file(input_path), 0
     except Exception as e:
         print(f"[エラー] 解析中にエラーが発生しました: {e}", file=sys.stderr)
         import traceback
 
         traceback.print_exc()
-        return 1
+        return None, 1
 
-    # ----------------------------------------------------------------
-    # Normalize
-    # ----------------------------------------------------------------
+
+def _normalize_story(
+    args: argparse.Namespace,
+    parse_result: Any,
+    episode_id: str,
+    input_path: Path,
+) -> tuple[dict, int]:
+    """解析結果をNormalized Story JSONへ変換する。失敗時は ({}, 1) を返す。"""
     if not args.quiet:
         print("[DKB] 正規化中...")
 
@@ -316,29 +327,29 @@ def main() -> int:
         episode_metadata=episode_metadata,
         source_file=input_path.stem,
         source_path=str(input_path),
-        preserve_stage_directions=preserve_stage,
+        preserve_stage_directions=not args.no_stage_directions,
         commands_config_path=args.commands,
     )
 
     try:
-        # 行数を取得
         with open(input_path, encoding="utf-8", errors="ignore") as f:
             line_count = sum(1 for _ in f)
 
-        story_json = normalizer.normalize(parse_result, line_count=line_count)
+        return normalizer.normalize(parse_result, line_count=line_count), 0
     except Exception as e:
         print(f"[エラー] 正規化中にエラーが発生しました: {e}", file=sys.stderr)
         import traceback
 
         traceback.print_exc()
-        return 1
+        return {}, 1
 
-    # ----------------------------------------------------------------
-    # Export
-    # ----------------------------------------------------------------
+
+def _export_story(
+    args: argparse.Namespace, story_json: dict, episode_id: str
+) -> tuple[Path | None, int]:
+    """Normalized Story JSONをファイルへ出力する。失敗時は (None, 1) を返す。"""
     output_dir = Path(args.output)
     exporter = Exporter(output_dir=output_dir, overwrite=True)
-
     output_filename = args.output_file or f"{episode_id}.json"
 
     try:
@@ -351,14 +362,83 @@ def main() -> int:
         import traceback
 
         traceback.print_exc()
-        return 1
+        return None, 1
 
     if not args.quiet:
         print(f"[DKB] 出力完了: {output_path}")
+    return output_path, 0
 
-    # ----------------------------------------------------------------
-    # JSON Schema 検証 (任意)
-    # ----------------------------------------------------------------
+
+def _print_completion_summary(
+    args: argparse.Namespace, story_json: dict, output_path: Path
+) -> None:
+    if args.quiet:
+        return
+
+    compat = story_json.get("compatibilityReport", {})
+    status = compat.get("parserCompatibility", "unknown")
+    status_label = {
+        "compatible": "compatible",
+        "warning": "warning",
+        "needs_update": "needs_update",
+        "blocked": "blocked",
+    }.get(status, status)
+
+    total_blocks = 0
+    for ep in story_json.get("episodes", []):
+        for sc in ep.get("scenes", []):
+            total_blocks += len(sc.get("blocks", []))
+
+    print("")
+    print("[DKB] 完了:")
+    print(f"  互換性:       {status_label}")
+    print(f"  エピソード数: {len(story_json.get('episodes', []))}")
+    print(f"  総ブロック数: {total_blocks}")
+    print(f"  制御文字除去: {compat.get('controlCharsRemoved', 0)} 件")
+    print(f"  未知コマンド: {len(compat.get('unknownCommands', []))} 種類")
+    print(f"  未登録Char:   {len(compat.get('unknownCharacterIds', []))} ID")
+    print(f"  出力先:       {output_path}")
+
+
+def main() -> int:
+    """CLIエントリポイント。各フェーズは _load_character_dict / _run_compatibility_check
+    / _parse_story_file / _normalize_story / _export_story などのヘルパーへ切り出し、
+    ここでは各フェーズを順に呼び出し、失敗時の終了コードを判定するだけの
+    薄いオーケストレーションのみを担う
+    (挙動は分割前と同一、ruffのC901複雑度対策でのリファクタリング)。
+    """
+    args = parse_args()
+
+    input_path = Path(args.input)
+    if not input_path.exists():
+        print(f"[エラー] 入力ファイルが見つかりません: {input_path}", file=sys.stderr)
+        return 1
+
+    episode_id = args.episode_id or f"{args.story_id}_E01"
+    preserve_stage = not args.no_stage_directions
+
+    _print_startup_info(args, input_path, episode_id, preserve_stage)
+
+    char_dict = _load_character_dict(args)
+
+    compat_exit_code = _run_compatibility_check(args, input_path)
+    if compat_exit_code is not None:
+        return compat_exit_code
+
+    parse_result, exit_code = _parse_story_file(
+        args, char_dict, preserve_stage, input_path
+    )
+    if exit_code != 0:
+        return exit_code
+
+    story_json, exit_code = _normalize_story(args, parse_result, episode_id, input_path)
+    if exit_code != 0:
+        return exit_code
+
+    output_path, exit_code = _export_story(args, story_json, episode_id)
+    if exit_code != 0:
+        return exit_code
+
     if args.validate:
         if not args.quiet:
             print("[DKB] JSON Schema 検証中...")
@@ -366,33 +446,7 @@ def main() -> int:
         if exit_code != 0:
             return exit_code
 
-    # ----------------------------------------------------------------
-    # サマリー表示
-    # ----------------------------------------------------------------
-    if not args.quiet:
-        compat = story_json.get("compatibilityReport", {})
-        status = compat.get("parserCompatibility", "unknown")
-        status_label = {
-            "compatible": "compatible",
-            "warning": "warning",
-            "needs_update": "needs_update",
-            "blocked": "blocked",
-        }.get(status, status)
-
-        total_blocks = 0
-        for ep in story_json.get("episodes", []):
-            for sc in ep.get("scenes", []):
-                total_blocks += len(sc.get("blocks", []))
-
-        print("")
-        print("[DKB] 完了:")
-        print(f"  互換性:       {status_label}")
-        print(f"  エピソード数: {len(story_json.get('episodes', []))}")
-        print(f"  総ブロック数: {total_blocks}")
-        print(f"  制御文字除去: {compat.get('controlCharsRemoved', 0)} 件")
-        print(f"  未知コマンド: {len(compat.get('unknownCommands', []))} 種類")
-        print(f"  未登録Char:   {len(compat.get('unknownCharacterIds', []))} ID")
-        print(f"  出力先:       {output_path}")
+    _print_completion_summary(args, story_json, output_path)
 
     return 0
 

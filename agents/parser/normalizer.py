@@ -104,8 +104,10 @@ class Normalizer:
         """
         Args:
             story_id: Story ID (例: MAIN_S01_C02)
-            story_category: MAIN / EVT / RAID / OTHER / CHAR_MAIN / CHAR_EXTRA / CHAR_DATE
-            episode_id: Episode ID (例: MAIN_S01_C02_E01)。None の場合は story_id + _E01 を自動生成
+            story_category: MAIN / EVT / RAID / OTHER / CHAR_MAIN / CHAR_EXTRA /
+                CHAR_DATE
+            episode_id: Episode ID (例: MAIN_S01_C02_E01)。
+                None の場合は story_id + _E01 を自動生成
             story_metadata: Story メタデータ dict
             episode_metadata: Episode メタデータ dict
             source_file: 元ファイル名

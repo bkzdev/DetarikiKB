@@ -549,7 +549,7 @@ class StoryParser:
                         raw_line=token.raw,
                         parser_rule="branch_choice",
                     )
-                    for i, opt_text in enumerate(branch_options):
+                    for opt_text in branch_options:
                         new_choice.options.append(
                             {
                                 "optionText": opt_text,

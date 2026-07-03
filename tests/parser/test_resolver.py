@@ -62,7 +62,7 @@ def test_assign_variable_value(char_dict):
     )
 
     # $value1 = 29 -> max_num_index(=0) + 1 + 1 = slot "2"
-    speaker = resolver.assign_variable(
+    resolver.assign_variable(
         variable_name="$value1", source_character_id="29", value_index=1
     )
 
@@ -71,7 +71,8 @@ def test_assign_variable_value(char_dict):
 
 def test_scenario_cos_load(char_dict):
     resolver = SpeakerResolver(char_dict)
-    # まず変数にセットする (slotには直接割り当てない想定だか内部的に$numXとして処理される)
+    # まず変数にセットする
+    # (slotには直接割り当てない想定だが内部的に$numXとして処理される)
     resolver.assign_variable(
         variable_name="$num0", source_character_id="26", num_index=0
     )
