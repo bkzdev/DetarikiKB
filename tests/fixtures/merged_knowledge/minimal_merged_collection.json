@@ -48,6 +48,18 @@
       "relationships": 0,
       "timelineCandidates": 0
     },
+    "mergedEntityCounts": {
+      "characters": 0,
+      "locations": 0,
+      "organizations": 0,
+      "items": 0,
+      "lore": 0,
+      "events": 0,
+      "relationships": 0,
+      "timeline": 0
+    },
+    "conflictsCount": 0,
+    "unresolvedCount": 0,
     "inputResults": [
       {
         "path": "tests/fixtures/extraction/minimal_episode_extraction.json",

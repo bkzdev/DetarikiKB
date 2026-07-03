@@ -70,6 +70,32 @@
       }
     },
 
+    "MergedEntityCounts": {
+      "type": "object",
+      "description": "merged entity 8種の件数 (agents/merger/models.py MERGED_ENTITY_KEYS)。CandidateCountsとはtimelineCandidates/timelineのキー名が異なる点に注意 (Merged_Knowledge_Design.md §7)",
+      "required": [
+        "characters",
+        "locations",
+        "organizations",
+        "items",
+        "lore",
+        "events",
+        "relationships",
+        "timeline"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "characters": { "type": "integer", "minimum": 0 },
+        "locations": { "type": "integer", "minimum": 0 },
+        "organizations": { "type": "integer", "minimum": 0 },
+        "items": { "type": "integer", "minimum": 0 },
+        "lore": { "type": "integer", "minimum": 0 },
+        "events": { "type": "integer", "minimum": 0 },
+        "relationships": { "type": "integer", "minimum": 0 },
+        "timeline": { "type": "integer", "minimum": 0 }
+      }
+    },
+
     "SourceDocument": {
       "type": "object",
       "description": "merge対象となった1つのepisode_extraction入力を表す (PR #17 sourceDocuments拡張形式)",
@@ -149,6 +175,9 @@
         "invalidInputs",
         "skippedInputs",
         "candidateCounts",
+        "mergedEntityCounts",
+        "conflictsCount",
+        "unresolvedCount",
         "inputResults",
         "warnings",
         "errors"
@@ -181,6 +210,20 @@
         "candidateCounts": {
           "$ref": "#/definitions/CandidateCounts",
           "description": "全valid input合算のcandidate件数"
+        },
+        "mergedEntityCounts": {
+          "$ref": "#/definitions/MergedEntityCounts",
+          "description": "entities配下に実際に生成されたmerged entityの件数 (Character/Location/Organization最小merge導入により追加)"
+        },
+        "conflictsCount": {
+          "type": "integer",
+          "description": "全merged entityのconflicts配列の合計件数",
+          "minimum": 0
+        },
+        "unresolvedCount": {
+          "type": "integer",
+          "description": "status: unresolvedのmerged entity件数",
+          "minimum": 0
         },
         "inputResults": {
           "type": "array",
