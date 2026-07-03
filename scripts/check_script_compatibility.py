@@ -811,10 +811,10 @@ def main() -> int:
     summary = json_report["summary"]
     status = summary["parserCompatibility"]
     status_label = {
-        "compatible": "✅ compatible",
-        "warning": "⚠️  warning",
-        "needs_update": "🔶 needs_update",
-        "blocked": "🚫 blocked",
+        "compatible": "compatible",
+        "warning": "warning",
+        "needs_update": "needs_update",
+        "blocked": "blocked",
     }.get(status, status)
 
     print("")

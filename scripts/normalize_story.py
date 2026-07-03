@@ -353,10 +353,10 @@ def main() -> int:
         compat = story_json.get("compatibilityReport", {})
         status = compat.get("parserCompatibility", "unknown")
         status_label = {
-            "compatible": "✅ compatible",
-            "warning": "⚠️  warning",
-            "needs_update": "🔶 needs_update",
-            "blocked": "🚫 blocked",
+            "compatible": "compatible",
+            "warning": "warning",
+            "needs_update": "needs_update",
+            "blocked": "blocked",
         }.get(status, status)
 
         total_blocks = 0
@@ -412,7 +412,7 @@ def validate_schema(story_json: dict, schema_path: Path, quiet: bool = False) ->
             return 1
         else:
             if not quiet:
-                print("[DKB] JSON Schema 検証: ✅ 成功")
+                print("[DKB] JSON Schema 検証: 成功")
             return 0
 
     except Exception as e:
