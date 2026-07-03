@@ -60,6 +60,19 @@ class TestBasicTokenTypes:
         assert tokens[0].token_type == TokenType.TEXT
         assert tokens[0].text == "ようこそ、異形生物対策班へ。"
 
+    def test_ellipsis_only_line_is_text_type(self):
+        """句読点・省略記号のみの本文行 (「……」等、JAPANESE_PATTERNの
+        範囲外のUnicodeブロック) もTEXTとして扱われることを確認する。
+
+        実データdry-run trialで、「……」のみの行がJAPANESE_PATTERNに
+        一致せずUNKNOWN扱いになり、対応するモノローグ/ナレーションの
+        本文が欠落する不具合を発見した (feature/branch-choice-dry-run)。
+        """
+        tokens = tokenize_text("……\n")
+        assert len(tokens) == 1
+        assert tokens[0].token_type == TokenType.TEXT
+        assert tokens[0].text == "……"
+
     def test_hyphen_option_line(self):
         tokens = tokenize_text("- speed 0.1\n")
         assert len(tokens) == 1

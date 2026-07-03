@@ -283,7 +283,13 @@ class StoryParser:
         current_choice: BlockData | None = None
         current_option_idx: int = 0
         branch_options: list[str] = []
-        branch_stack: list[BlockData] = []  # #if ネスト
+        # branchごとに、その直前の (current_choice, current_option_idx)
+        # (ネストしたbranchなら外側のchoiceとそのoption位置、トップレベル
+        # ならNone/0) を退避するスタック。#endifで必ずpopして両方を戻す
+        # (current_option_idxだけ戻し忘れると、ネストしたbranch終了後に
+        # 外側choiceの誤ったoptionへブロックが混入する不具合になる。
+        # real data dry-run trialで発見、feature/branch-choice-dry-run)。
+        branch_stack: list[tuple[BlockData | None, int]] = []
 
         text_lines: list[str] = []
         text_line_start: int | None = None
@@ -524,9 +530,18 @@ class StoryParser:
                 if kw == "branch":
                     flush_text()
                     branch_options = token.args or []
-                    current_option_idx = 0
+                    # 現在の current_choice/current_option_idx (ネストした
+                    # branchの場合は外側のchoiceとそのoption位置、
+                    # トップレベルのbranchならNone/0) を退避してから
+                    # 新しいchoiceへ切り替える。#endifで必ずここへ戻ることで、
+                    # 対応する#endif以降のブロックが直前の選択肢の中に
+                    # 閉じ込められる不具合を防ぐ
+                    # (real data dry-run trialで発見、feature/branch-choice-dry-run)。
+                    outer_choice = current_choice
+                    outer_option_idx = current_option_idx
+                    branch_stack.append((outer_choice, outer_option_idx))
                     # 新しい choice ブロックを作成
-                    current_choice = BlockData(
+                    new_choice = BlockData(
                         block_type="choice",
                         source_file=source_file,
                         line_start=token.line_number,
@@ -535,21 +550,25 @@ class StoryParser:
                         parser_rule="branch_choice",
                     )
                     for i, opt_text in enumerate(branch_options):
-                        current_choice.options.append(
+                        new_choice.options.append(
                             {
                                 "optionText": opt_text,
                                 "blocks": [],
                             }
                         )
-                    scene.blocks.append(current_choice)
+                    # 新しいchoice自体を、外側の文脈 (シーン直下、または
+                    # ネストしている場合は外側choiceの現在のoption) へ配置
+                    # してからcurrent_choiceを切り替える
+                    _add_block(scene, outer_choice, outer_option_idx, new_choice)
+                    current_choice = new_choice
+                    current_option_idx = 0
                     continue
 
-                # #if → 分岐開始
+                # #if → 分岐開始 (選択肢インデックスのリセットのみ。
+                # push/popはbranch/#endif側が担う)
                 if kw == "#if":
                     flush_text()
-                    if current_choice is not None:
-                        branch_stack.append(current_choice)
-                        current_option_idx = 0
+                    current_option_idx = 0
                     continue
 
                 # #elseif / #else → 次の選択肢へ
@@ -558,13 +577,16 @@ class StoryParser:
                     current_option_idx += 1
                     continue
 
-                # #endif → 分岐終了
+                # #endif → 分岐終了。branchで退避した外側の
+                # (current_choice, current_option_idx) (トップレベルなら
+                # None/0) へ必ず両方戻す
                 if kw == "#endif":
                     flush_text()
                     if branch_stack:
-                        current_choice = branch_stack.pop()
+                        current_choice, current_option_idx = branch_stack.pop()
                     else:
                         current_choice = None
+                        current_option_idx = 0
                     continue
 
                 # その他の # 系

@@ -63,6 +63,26 @@ def test_sound_off_and_mono(char_dict):
     assert b2.text == "（モノローグ）"
 
 
+def test_ellipsis_only_monologue_not_lost(char_dict):
+    """「……」のみの本文行が、モノローグの本文として欠落せずに
+    正しく抽出されることを確認する回帰テスト
+    (feature/branch-choice-dry-run、tokenizer.pyのJAPANESE_PATTERN
+    範囲外のUnicodeブロックのみで構成される行がUNKNOWN化していた不具合)。
+    """
+    script = """$num0 = 1
+@ChTalkMono 0
+……
+"""
+    parser = StoryParser(char_dict=char_dict)
+    result = parser.parse_text(script)
+    scene = result.episodes[0].scenes[0]
+
+    assert len(scene.blocks) == 1
+    mono = scene.blocks[0]
+    assert mono.block_type == "monologue"
+    assert mono.text == "……"
+
+
 def test_chtalk_name():
     script = """@ChTalkName 0 美海＆恵茉 Story/64/m64_1_186
 ジャマー召喚！
@@ -155,6 +175,104 @@ def test_choice_branch():
     assert choice.options[1]["optionText"] == "選択肢B"
     assert len(choice.options[1]["blocks"]) == 1
     assert choice.options[1]["blocks"][0].text == "ルートB"
+
+
+def test_content_after_choice_endif_returns_to_scene_level():
+    """#endif以降のブロックが、選択肢の最後のoptionに閉じ込められず
+    シーンレベルへ正しく戻ることを確認する回帰テスト。
+
+    実データdry-run trialで、branch/#if/#else/#endifの直後に続く
+    大量のstage_direction/dialogueが、#endif以降であるにもかかわらず
+    最後のoption (#else側) のblocksに丸ごと取り込まれてしまう不具合を
+    発見した (feature/branch-choice-dry-run)。原因は#if側でbranch_stackへ
+    現在のchoiceそのものをpushしており、#endifで同じchoiceがpopされ
+    current_choiceがNoneに戻らなかったこと。
+    """
+    script = """branch 選択肢A 選択肢B
+#if $branch
+@ChTalk 0
+ルートA
+#else
+@ChTalk 0
+ルートB
+#endif
+@ChTalk 0
+分岐後のセリフ
+msg
+分岐後のナレーション
+"""
+    parser = StoryParser()
+    result = parser.parse_text(script)
+    scene = result.episodes[0].scenes[0]
+
+    # choice + 分岐後dialogue + 分岐後narration がシーンレベルに3件並ぶ
+    assert len(scene.blocks) == 3
+    choice, after_dialogue, after_narration = scene.blocks
+
+    assert choice.block_type == "choice"
+    assert len(choice.options[0]["blocks"]) == 1
+    assert choice.options[0]["blocks"][0].text == "ルートA"
+    assert len(choice.options[1]["blocks"]) == 1
+    assert choice.options[1]["blocks"][0].text == "ルートB"
+
+    assert after_dialogue.block_type == "dialogue"
+    assert after_dialogue.text == "分岐後のセリフ"
+
+    assert after_narration.block_type == "narration"
+    assert after_narration.text == "分岐後のナレーション"
+
+
+def test_nested_branch_inside_choice_option_restores_outer_choice():
+    """choiceのoption内にさらにネストしたbranchがあっても、内側の#endifで
+    外側のchoiceへ正しく戻ることを確認する (branch_stackのpush/pop対象を
+    branch呼び出し時のcurrent_choiceに変更した際の副作用が無いことの確認)。
+    """
+    script = """branch 外側A 外側B
+#if $branch
+branch 内側1 内側2
+#if $branch
+@ChTalk 0
+内側ルート1
+#else
+@ChTalk 0
+内側ルート2
+#endif
+@ChTalk 0
+外側Aの続き
+#else
+@ChTalk 0
+外側B
+#endif
+@ChTalk 0
+分岐後のセリフ
+"""
+    parser = StoryParser()
+    result = parser.parse_text(script)
+    scene = result.episodes[0].scenes[0]
+
+    assert len(scene.blocks) == 2
+    outer_choice, after = scene.blocks
+    assert outer_choice.block_type == "choice"
+    assert after.block_type == "dialogue"
+    assert after.text == "分岐後のセリフ"
+
+    # 外側option0の中に、内側choice + 外側Aの続き の2ブロックがあること
+    outer_opt0_blocks = outer_choice.options[0]["blocks"]
+    assert len(outer_opt0_blocks) == 2
+    inner_choice, outer_a_continued = outer_opt0_blocks
+    assert inner_choice.block_type == "choice"
+    assert outer_a_continued.block_type == "dialogue"
+    assert outer_a_continued.text == "外側Aの続き"
+
+    assert len(inner_choice.options[0]["blocks"]) == 1
+    assert inner_choice.options[0]["blocks"][0].text == "内側ルート1"
+    assert len(inner_choice.options[1]["blocks"]) == 1
+    assert inner_choice.options[1]["blocks"][0].text == "内側ルート2"
+
+    # 外側option1 (外側B) は1ブロックのみ
+    outer_opt1_blocks = outer_choice.options[1]["blocks"]
+    assert len(outer_opt1_blocks) == 1
+    assert outer_opt1_blocks[0].text == "外側B"
 
 
 def test_stage_direction():

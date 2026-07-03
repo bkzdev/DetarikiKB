@@ -215,3 +215,29 @@ def test_chtalk_family_still_dialogue_monologue_regardless_of_compat_report(
         "dialogue",
     ]
     assert story_json["compatibilityReport"]["unknownCommands"] == []
+
+
+def test_branch_choice_script_matches_on_both_paths(tmp_path):
+    """branch/#if/#else/#endifを含むスクリプトでも、check_script_
+    compatibility.py単体実行とNormalizerのcompatibilityReportが一致する
+    ことを確認する (feature/branch-choice-dry-run)。branch/choiceの
+    ブロック構造そのものはcheck_script_compatibility.pyの管轄外だが、
+    unknownCommands/newSpeechCommands/statusの判定には影響しないこと。
+    """
+    script = """branch 選択肢A 選択肢B
+#if $branch
+@ChTalk 0
+ルートA
+#else
+@ChTalk 0
+ルートB
+#endif
+@ChTalk 0
+分岐後のセリフ
+"""
+    standalone, embedded = _run_both_paths(tmp_path, script)
+
+    assert standalone == embedded
+    assert standalone["unknownCommands"] == set()
+    assert standalone["newSpeechCommands"] == set()
+    assert standalone["status"] == "compatible"

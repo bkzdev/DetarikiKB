@@ -108,7 +108,7 @@ CLAUDE.mdに既存の既知ギャップとして記載されている「`config/
 2. キャラクター辞書（`reference/parser/characters_reference.json` または `knowledge/dictionaries/*.yaml`）を実データが参照する番号帯まで拡充する（§3.3）
 3. `check_script_compatibility.py` 単体実行と `normalize_story.py --check-compat` 経由の判定差異の原因を特定し、解消方針を検討する（§3.4）
 4. `--check-compat` のレポート出力先をオプションで指定可能にするか、既定動作として明示的にドキュメント化する（§3.5）
-5. 選択肢（`branch`/`#if`）を含む実データでの追加dry-run実施（今回の2話には選択肢が1件も含まれていなかったため、choice関連のExtractor/Merger挙動は未検証のまま）
+5. ~~選択肢（`branch`/`#if`）を含む実データでの追加dry-run実施~~ → §6（2026-07-04実施）で対応完了。branch/choiceのブロック配置バグ3件と、句読点のみの本文行が欠落する不具合1件を発見・修正
 6. `RelationshipCandidate`/`TimelineCandidate`/`ItemCandidate`/`LoreCandidate`/`EventCandidate` は、実データに明示的な構造化タグ（`itemId`/`relationshipType`等）が無いため0件だった。自然文からの推定（LLM抽出）が無い限り、rule-based抽出だけでは実データからこれらのCandidateを得られないことが確認された（設計通りの制約であり、バグではない）
 
 ---
@@ -117,3 +117,42 @@ CLAUDE.mdに既存の既知ギャップとして記載されている「`config/
 
 - 実データ・生成物（`data/raw/dry_run/`、`data/normalized/dry_run/`、`data/extracted/dry_run/`、`data/reports/dry_run/`、`workspace/dry_runs/*/`）は一切commitしていない（すべて`.gitignore`で保護済み、`scripts/check_dry_run_inputs.py`で無検出を確認済み）
 - commitした内容: `scripts/normalize_story.py`・`scripts/check_script_compatibility.py`の絵文字print修正、回帰テスト`tests/scripts/test_console_output_encoding.py`、本ドキュメント、`TASKS.md`/`AI_CONTEXT.md`の軽微更新のみ
+
+---
+
+# 6. 実施記録（2026-07-04 branch / choice included dry-run）
+
+## 6.1 dry-run対象
+
+- 対象話数: 1話（選択肢`branch`/`#if`/`#else`/`#endif`を含むMAINカテゴリ相当のエピソード。既存の実データ6話には`branch`コマンドが無かったため、ユーザーに追加配置してもらった）
+- 分岐構造: `branch`（2択）+ `#if`/`#else`/`#endif`（`#elseif`無し、ネストなし）
+
+## 6.2 Parser dry-run結果
+
+- Parser成功（exit code 0、`--validate --check-compat`込み）
+- **修正前の総ブロック数: 312件 → 修正後: 623件**（後述のバグにより#endif以降のブロックがchoiceの最後のoptionに隠れていたため、修正で約2倍に増加）
+- dialogue件数（58件）・monologue件数（6件）が、生スクリプトの`@ChTalk`（58件）・`@ChTalkMono`（6件）出現数と完全一致することを確認
+- choice blockは2つのoptionそれぞれに4ブロックずつの対称な構造（修正前はoption側に315ブロックが誤って集中）
+
+## 6.3 Extractor / Merger dry-run結果
+
+- Extraction成功、schema validation・semantic validationともに成功
+- candidateCounts: characters=6、locations=1、他0
+- Merger成功。mergedEntityCounts=candidateCountsと一致、conflictCounts=0、warningCounts=0
+- CHAR_RAIN/CHAR_AKAGI_HINAが正しく`existingCharacterId`解決され、`canonicalIdSummary.totalAssigned=2`
+- choice内話者がCharacterCandidate抽出の対象外という既存設計（PR #7）が正しく機能していることを確認（choice内block IDはevidenceIndexに存在するが、CharacterCandidateのevidenceIdsからは参照されない）
+
+## 6.4 見つけた問題点（Parser本体のバグ、すべて修正済み）
+
+1. **`#endif`後にcurrent_choiceがトップレベルのNoneへ戻らない不具合（最重要）**: `#if`ハンドラが`branch`直後のcurrent_choice自身を退避スタックへpushしていたため、`#endif`で同じオブジェクトが戻るだけで、本来Noneに戻るべき状態に戻らなかった。修正: 退避スタックへのpush/popを`branch`コマンド呼び出し時点に変更
+2. **ネストしたbranchの新choiceが常にシーン直下へ追加される不具合**: 修正: 配置を`_add_block`経由に変更
+3. **ネストしたbranch終了後にoption位置が復元されない不具合**: 修正: 退避スタックの要素を`(current_choice, current_option_idx)`のタプルに変更
+4. **句読点・省略記号のみの本文行（「……」等）がUNKNOWN扱いになり本文が欠落する不具合**: `tokenizer.py`の日本語判定がGeneral Punctuationブロック（省略記号等）を含んでいなかった。修正: TEXT判定条件に「ASCII以外の文字を含む」を追加
+
+## 6.5 見つけたが今回修正しなかったもの
+
+実データ中の未登録コマンド（bare-word: `costume`/`fa`、`@`付き: `@TalkPosR`/`@TalkPosL`/`@ChEyeOff`/`@VisibleS`/`@FadeOutBlack`）を発見した。これらはbranch/choice固有の課題ではなく`script command coverage`と同じ性質の課題のため、今回は追加せずTASKS.mdに記録した（次回のcommand coverage作業へ持ち越し）。
+
+## 6.6 教訓: branch/choiceの検証はブロック構造の目視確認が必須
+
+`compatibilityReport`や`candidateCounts`のような集計指標だけでは、branch/choiceのブロック配置バグは検出できなかった（集計値は「合計は合っているが配置が間違っている」ケースを見逃す）。今回発見できたのは、choiceの各optionのblocks件数・line範囲を直接確認し、かつdialogue/monologue件数を生スクリプトの`@ChTalk`系コマンド出現数と突き合わせたため。今後branch/choiceを含む実データを検証する際は、この2点を必ず確認すること（詳細は`docs/runbooks/Real_Data_Dry_Run.md` §19）。

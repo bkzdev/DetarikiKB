@@ -367,3 +367,29 @@ print(counter.most_common(50))
 ## 18.6 残ったunknownの扱い
 
 分類しきれなかったunknown commandは、無理に分類せず`unknown`のまま残してよい。**破棄しないことが最優先**であり、`compatibilityReport.unknownCommands`・`report.unknownCommands`・`type: "unknown"`ブロックのいずれかに記録され続けている限り、後続バッチで再検討する機会は失われない。unknown件数が0になることを目標にしない（意味不明なコマンドを無理に既知カテゴリへ押し込めると、誤ったstage_direction分類やdirection_typeの誤用につながる）。
+
+---
+
+# 19. branch / choice を含む実データのdry-run（2026-07-04実施）
+
+選択肢・分岐（`branch`/`#if`/`#elseif`/`#else`/`#endif`）を含む実データでのdry-runは、既存の実データ6話には`branch`コマンドが1件も含まれていなかったため未実施だった。ユーザーに選択肢入りの実データを追加配置してもらい、初めて検証した。
+
+## 19.1 見つかった問題（Parser本体のバグ、すべて修正済み）
+
+branch/choiceの検証は、`compatibilityReport`や`unknownCommands`のような表面的な指標だけでは不十分で、**Normalized Story JSONの実際のブロック構造（特にchoiceの各optionのblocks件数・line範囲）を直接確認する必要がある**ことが分かった。実際に以下の重大なバグが見つかった。
+
+- **`#endif`後にシーンレベルへ戻らない**: トップレベルのbranchで`#if`が`branch`直後のcurrent_choice自身を退避スタックへpushしていたため、`#endif`で同じオブジェクトが戻ってくるだけで、本来`None`（シーンレベル）に戻るべき状態に戻らなかった。結果、`#endif`以降の内容（実データでは500行超）が最後のoptionへ丸ごと閉じ込められていた。
+- **ネストしたbranchの配置ミス**: `branch`コマンドが新しいchoiceブロックを常にシーン直下へ追加しており、既に別のchoiceのoption内で使われた場合に配置がずれていた。
+- **ネスト解除後のoption位置ずれ**: 退避スタックがcurrent_choiceのみを保持しoption位置を保持していなかったため、ネストしたbranch終了後に外側choiceの誤ったoptionへ後続ブロックが混入していた。
+
+これらはすべて`agents/parser/parser.py`の分岐状態管理（`branch_stack`のpush/popタイミング）に起因しており、`docs/runbooks/Real_Data_Dry_Run_Result_Template.md`と同じ数値検証だけでは検出できない。**branch/choiceを含む実データを検証する際は、必ず choice block の各 option の中身（件数・line_start/line_end・対応する raw script の範囲）を目視確認すること。**
+
+## 19.2 見つかった問題（Tokenizerのバグ、修正済み）
+
+`agents/parser/tokenizer.py`の日本語判定（`JAPANESE_PATTERN`）が、かな・カナ・漢字・全角記号の範囲のみを対象としており、句読点・省略記号（「……」等、Unicode General Punctuationブロック）を含まない行を見落としていた。「……」のみの本文行がUNKNOWN扱いになり、対応するモノローグ・ナレーションの本文が欠落する不具合につながっていた。
+
+**branch/choice以外でも、dialogue/monologue/narration件数を確認する際は、生スクリプトの`@ChTalk`系コマンド出現数と突き合わせて完全一致することを必ず確認すること**（§4のチェック項目参照）。今回はこの突き合わせによって発見した。
+
+## 19.3 choice内話者の扱い（設計通り、問題なし）
+
+choice内のdialogue/monologueのspeakerはCharacterCandidate抽出の対象外という既存設計（`agents/extractor/character.py`、Extraction_Pipeline.md §5.4）が実データでも正しく機能していることを確認した。choice内のblock IDはevidenceIndexには存在するが、どのCharacterCandidateのevidenceIdsからも参照されない。
