@@ -259,7 +259,69 @@ def check_relationship_basic(document: dict[str, Any]) -> list[SemanticValidatio
 
 
 # ----------------------------------------------------------------
-# 6. entrypoint
+# 6. timeline basic check
+# ----------------------------------------------------------------
+
+
+def check_timeline_basic(document: dict[str, Any]) -> list[SemanticValidationIssue]:
+    """TimelineCandidateのkindごとに、最低限期待されるフィールドがあるかを検証する
+
+    relationshipTypeと同様、Timelineの本格的な矛盾検出・順序整合性チェックは
+    まだ行わない (Extraction_Result_Schema.md §13, §16.4)。ここではkindと
+    付随フィールドの組み合わせが明らかに空であるケースの緩い警告にとどめる。
+    """
+    issues: list[SemanticValidationIssue] = []
+    for candidate in document.get("timelineCandidates", []) or []:
+        candidate_id = candidate.get("id")
+        kind = candidate.get("kind")
+
+        if kind == "relative_order" and not candidate.get("relativeTo"):
+            issues.append(
+                SemanticValidationIssue(
+                    rule="timeline_relative_order_missing_reference",
+                    severity="warning",
+                    message="kind: relative_orderですがrelativeToが空です",
+                    candidate_type="timeline_candidate",
+                    candidate_id=candidate_id,
+                    array_key="timelineCandidates",
+                )
+            )
+
+        if kind == "explicit_order" and (
+            candidate.get("orderValue") is None
+            and not candidate.get("sourceTimelineId")
+            and not candidate.get("nameCandidates")
+        ):
+            issues.append(
+                SemanticValidationIssue(
+                    rule="timeline_explicit_order_missing_value",
+                    severity="warning",
+                    message=(
+                        "kind: explicit_orderですがorderValue/sourceTimelineId/"
+                        "nameCandidatesがすべて空です"
+                    ),
+                    candidate_type="timeline_candidate",
+                    candidate_id=candidate_id,
+                    array_key="timelineCandidates",
+                )
+            )
+
+        if kind == "temporal_marker" and not candidate.get("markerType"):
+            issues.append(
+                SemanticValidationIssue(
+                    rule="timeline_temporal_marker_missing_type",
+                    severity="warning",
+                    message="kind: temporal_markerですがmarkerTypeが空です",
+                    candidate_type="timeline_candidate",
+                    candidate_id=candidate_id,
+                    array_key="timelineCandidates",
+                )
+            )
+    return issues
+
+
+# ----------------------------------------------------------------
+# 7. entrypoint
 # ----------------------------------------------------------------
 
 _ALL_CHECKS = (
@@ -268,6 +330,7 @@ _ALL_CHECKS = (
     check_empty_evidence_index,
     check_extraction_run_consistency,
     check_relationship_basic,
+    check_timeline_basic,
 )
 
 

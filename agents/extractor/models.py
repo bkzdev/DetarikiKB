@@ -91,6 +91,44 @@ RELATIONSHIP_CANDIDATE_VALID_DIRECTIONS = frozenset(
 RELATIONSHIP_TYPE_MEMBER_OF = "MEMBER_OF"
 RELATIONSHIP_TYPE_AFFILIATED_WITH = "AFFILIATED_WITH"
 
+# TimelineCandidate抽出 (Extraction_Result_Schema.md §13) 用の定数。
+# episode.metadataの明示的なcanonicalOrder/releaseOrder/displayOrder、Block上の
+# 明示的なtimelineId/timelineLabel/timePosition/orderValue、stage_direction等の
+# 明示的なflashback/flashforward/dayChange/timeShift/sceneTime構造フィールド
+# のみを対象とし、本文の自然文からの時系列推定 (「昔」「その後」「翌日」「回想」等)
+# は行わない。
+TIMELINE_CANDIDATE_TYPE = "timeline_candidate"
+TIMELINE_CANDIDATE_SOURCE_TYPE = "script"
+# 構造化ID/数値順序ありなら高め、ラベルのみなら低め (他Candidateと同じ二段階)。
+# temporal_marker (構造マーカーの有無のみで、id/name概念が無い) は固定confidence。
+TIMELINE_CANDIDATE_CONFIDENCE_RESOLVED = 0.9
+TIMELINE_CANDIDATE_CONFIDENCE_UNRESOLVED = 0.5
+TIMELINE_CANDIDATE_CONFIDENCE_MARKER = 0.7
+
+TIMELINE_KIND_EXPLICIT_ORDER = "explicit_order"
+TIMELINE_KIND_TEMPORAL_MARKER = "temporal_marker"
+
+TIMELINE_SCOPE_EPISODE = "episode"
+TIMELINE_SCOPE_BLOCK = "block"
+
+# episode.metadata上の明示的な順序フィールド。EpisodeMetadataはadditionalProperties
+# を許容するため、将来Parserが付与しうる拡張フィールドを想定する
+# (schemas/story.schema.json EpisodeMetadata定義)。存在するフィールドごとに
+# 個別のTimelineCandidateを生成し、優先順位付け・値の統合は行わない
+# (`displayOrder`の正式計算式・`canonicalOrder`の扱いは未確定, AI_CONTEXT.md §16)。
+EPISODE_ORDER_METADATA_FIELDS = ("canonicalOrder", "releaseOrder", "displayOrder")
+
+# Block上の明示的な構造マーカーフィールド -> markerTypeの対応
+# (BlockCommonはadditionalPropertiesを許容するため、将来Parserが付与しうる
+# 拡張フィールドを想定する。他Candidateのstage_direction拡張フィールドと同じ前提)。
+TIMELINE_MARKER_FIELDS = (
+    ("flashback", "flashback"),
+    ("flashforward", "flashforward"),
+    ("dayChange", "day_change"),
+    ("timeShift", "time_shift"),
+    ("sceneTime", "scene_time"),
+)
+
 
 @dataclass
 class ExtractionRunInfo:
@@ -291,6 +329,34 @@ class RelationshipCandidateAccumulator:
     is_resolved: bool = False
     existing_relationship_id: str | None = None
     evidence_ids: list[str] = field(default_factory=list)
+
+    def add_evidence(self, source_id: str) -> None:
+        if source_id not in self.evidence_ids:
+            self.evidence_ids.append(source_id)
+
+
+@dataclass
+class TimelineCandidateAccumulator:
+    """episode走査中、1時系列候補分の情報を集約する作業用構造体。
+
+    kindがTIMELINE_KIND_EXPLICIT_ORDERの場合はsource_timeline_id
+    (構造化ID) / order_value (数値順序) / name_candidates (ラベル表記) を、
+    TIMELINE_KIND_TEMPORAL_MARKERの場合はmarker_typeのみを使う。
+    """
+
+    kind: str
+    scope: str | None = None
+    source_timeline_id: str | None = None
+    name_candidates: list[str] = field(default_factory=list)
+    order_value: float | None = None
+    order_field: str | None = None
+    marker_type: str | None = None
+    is_resolved: bool = False
+    evidence_ids: list[str] = field(default_factory=list)
+
+    def add_name(self, name: str | None) -> None:
+        if name and name not in self.name_candidates:
+            self.name_candidates.append(name)
 
     def add_evidence(self, source_id: str) -> None:
         if source_id not in self.evidence_ids:
