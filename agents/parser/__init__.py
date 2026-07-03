@@ -13,6 +13,14 @@ Phase 1 モジュール:
     exporter   - JSON ファイル出力
 """
 
+from .character_dictionary import (
+    CharacterDictionaryEntry,
+    build_character_dictionary_coverage_report,
+    load_character_dictionary,
+    resolve_character_by_name,
+    resolve_character_by_source_id,
+    validate_character_dictionary,
+)
 from .exporter import (
     Exporter,
     export_json,
@@ -55,6 +63,13 @@ __all__ = [
     "Speaker",
     "SpeakerAssignmentRecord",
     "SpeakerResolver",
+    # character_dictionary
+    "CharacterDictionaryEntry",
+    "build_character_dictionary_coverage_report",
+    "load_character_dictionary",
+    "resolve_character_by_name",
+    "resolve_character_by_source_id",
+    "validate_character_dictionary",
     # parser
     "BlockData",
     "EpisodeData",

@@ -50,6 +50,13 @@ from agents.parser import (
 )
 
 DEFAULT_CHARACTERS_PATH = (
+    _PROJECT_ROOT / "knowledge" / "dictionaries" / "characters.yaml"
+)
+# レガシー辞書 (読み取り専用、CLAUDE.md記載の通り直接改造しない)。
+# --check-compat のcheck_script_compatibility.py呼び出しは、この辞書 (フラット
+# な{sourceCharacterId: name}のJSON) しか理解できないため、--characters に
+# YAMLパスが指定されている場合の互換性チェックはこちらへフォールバックする。
+LEGACY_CHARACTERS_PATH = (
     _PROJECT_ROOT / "reference" / "parser" / "characters_reference.json"
 )
 DEFAULT_SCHEMA_PATH = _PROJECT_ROOT / "schemas" / "story.schema.json"
@@ -130,7 +137,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--characters",
         default=str(DEFAULT_CHARACTERS_PATH),
-        help=f"キャラクター辞書 JSON (デフォルト: {DEFAULT_CHARACTERS_PATH})",
+        help=(
+            "キャラクター辞書 (.yaml: knowledge/dictionaries/characters.yaml "
+            "形式 / .json: characters_reference.json形式、拡張子で自動判別。"
+            f"デフォルト: {DEFAULT_CHARACTERS_PATH})"
+        ),
     )
     parser.add_argument(
         "--validate",
@@ -213,7 +224,7 @@ def main() -> int:
     char_dict = CharacterDictionary()
     char_path = Path(args.characters)
     if char_path.exists():
-        char_dict.load_from_json(char_path)
+        char_dict.load(char_path)
         if not args.quiet:
             print(f"[DKB] キャラクター辞書: {char_dict.size()} 件")
     else:
@@ -228,6 +239,14 @@ def main() -> int:
         try:
             import subprocess
 
+            # check_script_compatibility.pyは{sourceCharacterId: name}の
+            # フラットなJSON形式しか理解できないため、--charactersにYAML
+            # (knowledge/dictionaries/characters.yaml形式) が指定されている
+            # 場合はレガシーJSON辞書にフォールバックする。
+            compat_characters_path = args.characters
+            if Path(args.characters).suffix.lower() in (".yaml", ".yml"):
+                compat_characters_path = str(LEGACY_CHARACTERS_PATH)
+
             result = subprocess.run(
                 [
                     sys.executable,
@@ -236,7 +255,7 @@ def main() -> int:
                     "--commands",
                     args.commands,
                     "--characters",
-                    args.characters,
+                    compat_characters_path,
                     "--quiet",
                 ],
                 capture_output=True,

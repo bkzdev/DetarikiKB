@@ -1,0 +1,417 @@
+# Character Dictionary (人手管理のキャラクター辞書)
+# DKB Parser / Extractor / Merger が共通で参照する正規辞書
+#
+# Path: knowledge/dictionaries/characters.yaml
+# Version: 0.1
+#
+# reference/parser/characters_reference.json (読み取り専用レガシー参照、
+# CLAUDE.md記載の通り直接改造しない) から displayName を安全に移行した。
+# characterId (canonical ID, CHAR_{ROMANIZED_NAME}形式) は
+# 人手確認済みのもの (status: confirmed) のみ設定する。
+# 未確認のキャラクターは status: name_only のまま characterId: null とし、
+# 大量の未確認canonical IDを自動生成しない
+# (docs/architecture/06_AI/Canonical_ID_Policy.md §4-5)。
+#
+# 新しいキャラクターを confirmed にする場合は、人間が
+# ローマ字表記を確認した上でcharacterIdを設定し、statusを
+# confirmed に変更すること (Identifier_Specification.md §6.1、OD-001)。
+
+schemaVersion: "0.1"
+
+characters:
+  - sourceCharacterId: "1"
+    characterId: "CHAR_AKAGI_HINA"
+    displayName: "赤城陽菜"
+    aliases: []
+    status: "confirmed"
+    notes: null
+  - sourceCharacterId: "2"
+    characterId: null
+    displayName: "ユリアナ・フランドール"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "3"
+    characterId: null
+    displayName: "岸瑛里"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "4"
+    characterId: null
+    displayName: "田中小雪"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "5"
+    characterId: null
+    displayName: "青井七海"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "6"
+    characterId: null
+    displayName: "白咲美月"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "7"
+    characterId: null
+    displayName: "透海セイナ"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "8"
+    characterId: null
+    displayName: "東雲和果"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "9"
+    characterId: null
+    displayName: "桃谷小夜"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "10"
+    characterId: null
+    displayName: "緑川美香"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "11"
+    characterId: null
+    displayName: "桜月千影"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "12"
+    characterId: null
+    displayName: "日野原すもも"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "13"
+    characterId: null
+    displayName: "黒木風香"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "14"
+    characterId: null
+    displayName: "城戸アイ"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "15"
+    characterId: null
+    displayName: "坂下カエデ"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "16"
+    characterId: null
+    displayName: "戸田ルイ"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "17"
+    characterId: null
+    displayName: "鈴見知恵"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "18"
+    characterId: null
+    displayName: "藤宮リリー"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "19"
+    characterId: null
+    displayName: "ミーシャ・ワイル"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "20"
+    characterId: null
+    displayName: "高岡ルカ"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "21"
+    characterId: null
+    displayName: "未来希"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "22"
+    characterId: null
+    displayName: "睦峰美蘭"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "23"
+    characterId: null
+    displayName: "池澤ミオ"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "24"
+    characterId: null
+    displayName: "エミット"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "26"
+    characterId: "CHAR_RAIN"
+    displayName: "レイン"
+    aliases: []
+    status: "confirmed"
+    notes: null
+  - sourceCharacterId: "27"
+    characterId: null
+    displayName: "ブラックレイン"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "28"
+    characterId: null
+    displayName: "ラファム"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "29"
+    characterId: null
+    displayName: "レイヴェル"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "30"
+    characterId: null
+    displayName: "薊優花"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "31"
+    characterId: null
+    displayName: "三枝美咲"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "32"
+    characterId: null
+    displayName: "樫村奈緒"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "33"
+    characterId: null
+    displayName: "菊田蒼葉"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "34"
+    characterId: null
+    displayName: "菊田小梅"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "35"
+    characterId: null
+    displayName: "杉浦咲良"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "36"
+    characterId: null
+    displayName: "柴田エレナ"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "37"
+    characterId: null
+    displayName: "シェリル・セマート"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "51"
+    characterId: null
+    displayName: "風華絹"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "52"
+    characterId: null
+    displayName: "水野美兎"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "53"
+    characterId: null
+    displayName: "月坂霧菜"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "54"
+    characterId: null
+    displayName: "陽川真凛"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "70"
+    characterId: null
+    displayName: "リグラス"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "200"
+    characterId: null
+    displayName: "酒井芽衣菜"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "201"
+    characterId: null
+    displayName: "島谷果歩"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "202"
+    characterId: null
+    displayName: "浜村リカ"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "203"
+    characterId: null
+    displayName: "磯部香織里"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "204"
+    characterId: null
+    displayName: "多賀部紬"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "205"
+    characterId: null
+    displayName: "早田檸檬"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "206"
+    characterId: null
+    displayName: "武藤凛花"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "207"
+    characterId: null
+    displayName: "切干美海"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "208"
+    characterId: null
+    displayName: "雪駄恵茉"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "209"
+    characterId: null
+    displayName: "霜田霞"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "210"
+    characterId: null
+    displayName: "ムーリン"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "211"
+    characterId: null
+    displayName: "ママーリキッド"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "212"
+    characterId: null
+    displayName: "ルルーパウダー"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "213"
+    characterId: null
+    displayName: "ララーソリッド"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "214"
+    characterId: null
+    displayName: "ミミーバンド"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "215"
+    characterId: null
+    displayName: "クルセイド・ゼラフィム"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "216"
+    characterId: null
+    displayName: "ジャスミン"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "217"
+    characterId: null
+    displayName: "イヴ・ネモフィラ"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "218"
+    characterId: null
+    displayName: "ビオラ"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "219"
+    characterId: null
+    displayName: "ブレイン"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "220"
+    characterId: null
+    displayName: "フリージア"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "500"
+    characterId: null
+    displayName: "ルキア"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "501"
+    characterId: null
+    displayName: "プロッサ"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "502"
+    characterId: null
+    displayName: "キャラン"
+    aliases: []
+    status: "name_only"
+    notes: null
+  - sourceCharacterId: "503"
+    characterId: null
+    displayName: "メルン"
+    aliases: []
+    status: "name_only"
+    notes: null

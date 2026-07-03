@@ -75,10 +75,19 @@ class CharacterDictionary:
     キャラクター辞書。
 
     入力:
-        characters_reference.json 形式:
+        characters_reference.json 形式 (読み取り専用のレガシー参照辞書、
+        表示名のみ。CLAUDE.md記載の通りこのファイル自体は直接改造しない):
             {"1": "赤城陽菜", "26": "レイン", ...}
 
-    将来的には knowledge/dictionaries/characters.yaml へ移行する。
+        knowledge/dictionaries/characters.yaml 形式 (人手管理の正規辞書、
+        characterId <-> sourceCharacterId の対応も持てる。
+        `load_from_dictionary_yaml`/`load` 経由で読み込む):
+            characters:
+              - sourceCharacterId: "26"
+                characterId: "CHAR_RAIN"
+                displayName: "レイン"
+                aliases: []
+                status: "confirmed"
     """
 
     def __init__(self) -> None:
@@ -102,6 +111,32 @@ class CharacterDictionary:
                 self._name_map[str(char_id)] = value.get("name", f"ID:{char_id}")
                 if "id" in value:
                     self._id_map[str(char_id)] = value["id"]
+
+    def load_from_dictionary_yaml(self, path: str | Path) -> None:
+        """knowledge/dictionaries/characters.yaml 相当の人手管理辞書を
+        読み込む (agents/parser/character_dictionary.py 参照)。
+
+        displayNameがあれば常に_name_mapへ、characterId (canonical ID)
+        が設定されているエントリのみ_id_mapへ反映する。名前一致による
+        自動解決は行わない (load_character_dictionaryの制約と同じ)。
+        """
+        from .character_dictionary import load_character_dictionary
+
+        for entry in load_character_dictionary(path):
+            if entry.display_name:
+                self._name_map[entry.source_character_id] = entry.display_name
+            if entry.character_id:
+                self._id_map[entry.source_character_id] = entry.character_id
+
+    def load(self, path: str | Path) -> None:
+        """拡張子からフォーマットを判定して読み込む
+        (.yaml/.yml → load_from_dictionary_yaml、それ以外 → load_from_json)。
+        """
+        p = Path(path)
+        if p.suffix.lower() in (".yaml", ".yml"):
+            self.load_from_dictionary_yaml(p)
+        else:
+            self.load_from_json(p)
 
     def get_name(self, source_character_id: str) -> str | None:
         """キャラクター番号から表示名を取得する"""
