@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "0.1",
+  "documentType": "manual_overrides",
+  "overrides": [
+    {
+      "overrideId": "OVR_0001",
+      "overrideType": "field",
+      "operation": "set_field",
+      "targetType": "character",
+      "targetId": "UNRESOLVED_CHAR_0001",
+      "field": "canonicalId",
+      "value": "CHAR_NOISE",
+      "reason": "未登録キャラのcanonical ID手動割り当て",
+      "author": "bkzdev",
+      "createdAt": "2026-07-03",
+      "sourceType": "manual"
+    },
+    {
+      "overrideId": "OVR_0002",
+      "overrideType": "merge",
+      "operation": "merge_entities",
+      "targetType": "organization",
+      "mergeSourceIds": ["UNRESOLVED_ORG_0002"],
+      "mergeTargetId": "ORG_IGYO_SEIBUTSU_TAISAKUHAN",
+      "reason": "略称『対策班』を正式名称の組織へ統合",
+      "author": "bkzdev",
+      "createdAt": "2026-07-03",
+      "sourceType": "manual"
+    }
+  ]
+}

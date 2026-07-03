@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "0.1",
+  "id": "MAIN_S01_C02_E01_TL_EXPLICIT_CANONICALORDER",
+  "type": "timeline_entry",
+  "canonicalId": null,
+  "mergedId": null,
+  "displayName": null,
+  "aliases": [],
+  "status": "merged",
+  "kind": "explicit_order",
+  "scope": "episode",
+  "orderValue": 1,
+  "orderField": "canonicalOrder",
+  "label": null,
+  "markerType": null,
+  "sourceTimelineId": null,
+  "relativeTo": null,
+  "relation": null,
+  "relatedEventIds": [],
+  "sourceTypes": ["script"],
+  "confidence": 0.9,
+  "evidenceRefs": [
+    {
+      "evidenceId": "MAIN_S01_C02_E01",
+      "storyId": "MAIN_S01_C02",
+      "episodeId": "MAIN_S01_C02_E01",
+      "sceneId": null,
+      "blockId": null,
+      "sourceDocumentId": "MAIN_S01_C02_E01",
+      "evidenceType": "episode",
+      "confidence": 1.0
+    }
+  ],
+  "sourceCandidates": [
+    {
+      "candidateId": "MAIN_S01_C02_E01_CAND_TL001",
+      "candidateType": "timeline_candidate",
+      "sourceDocumentId": "MAIN_S01_C02_E01",
+      "episodeId": "MAIN_S01_C02_E01",
+      "evidenceIds": ["MAIN_S01_C02_E01"],
+      "extractionRunRef": "MAIN_S01_C02_E01",
+      "sourceType": "script",
+      "confidence": 0.9
+    }
+  ],
+  "extractionRunRefs": {
+    "MAIN_S01_C02_E01": {
+      "extractionVersion": "0.1.0",
+      "extractionMethod": "rule_based",
+      "modelProvider": null,
+      "modelName": null,
+      "promptVersion": null,
+      "extractedAt": null,
+      "parserCompatibilityAtExtraction": "compatible"
+    }
+  },
+  "fieldValues": {},
+  "conflicts": [],
+  "manualOverridesApplied": [],
+  "mergedFrom": ["MAIN_S01_C02_E01"],
+  "createdAt": null,
+  "updatedAt": null
+}

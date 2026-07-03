@@ -1,0 +1,8 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://detariki-kb/schemas/canonical_knowledge.schema.json",
+  "title": "Canonical Knowledge JSON (Stage C) - PLACEHOLDER",
+  "description": "【予約スキーマ・未実装】Stage C: Canonical Knowledge (手動レビューを通過し確定したエンティティの正規版) 用のプレースホルダー。Stage B merged knowledge (status: merged / canonicalId確定済み) をレビュー確定した結果を表現する予定。実体定義はCanonical化フェーズで設計する (docs/architecture/06_AI/Merged_Knowledge_Design.md §1.2 / §12)。現時点では名前とIDの予約のみで、検証制約は設けない。",
+  "type": "object",
+  "additionalProperties": true
+}

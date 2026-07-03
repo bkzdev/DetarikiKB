@@ -1,0 +1,533 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://detariki-kb/schemas/merged_knowledge.schema.json",
+  "title": "Merged Knowledge JSON (Stage B)",
+  "description": "Extraction Phase Stage B の merged knowledge (エンティティ単位に統合された1ドキュメント) のスキーマ。8種のtype (character/location/organization/item/lore/event/relationship/timeline_entry) をoneOfで判別する。docs/architecture/06_AI/Merged_Knowledge_Design.md 準拠 (v0.1)。timeline_entryはコレクション (timeline_entries.json) の1要素としても使う。",
+
+  "oneOf": [
+    { "$ref": "#/definitions/MergedCharacter" },
+    { "$ref": "#/definitions/MergedLocation" },
+    { "$ref": "#/definitions/MergedOrganization" },
+    { "$ref": "#/definitions/MergedItem" },
+    { "$ref": "#/definitions/MergedLore" },
+    { "$ref": "#/definitions/MergedEvent" },
+    { "$ref": "#/definitions/MergedRelationship" },
+    { "$ref": "#/definitions/MergedTimelineEntry" }
+  ],
+
+  "definitions": {
+
+    "SourceType": {
+      "type": "string",
+      "description": "情報源区分 (Extraction_Result_Schema.md §4.1と同一語彙)",
+      "enum": ["official", "script", "ai_extracted", "ai_inferred", "manual", "unknown"]
+    },
+
+    "Confidence": {
+      "type": "number",
+      "description": "確からしさ (0.0〜1.0)",
+      "minimum": 0.0,
+      "maximum": 1.0
+    },
+
+    "Status": {
+      "type": "string",
+      "description": "merged entityの状態 (Merged_Knowledge_Design.md §3.3 idStatus / §9 conflict)。merged=統合済み / unresolved=canonical ID未確定 / conflict=未解決衝突あり / deprecated=非推奨・打ち消し済み",
+      "enum": ["merged", "unresolved", "conflict", "deprecated"]
+    },
+
+    "EntityType": {
+      "type": "string",
+      "description": "merged knowledgeの種別discriminator",
+      "enum": [
+        "character",
+        "location",
+        "organization",
+        "item",
+        "lore",
+        "event",
+        "relationship",
+        "timeline_entry"
+      ]
+    },
+
+    "Direction": {
+      "type": "string",
+      "description": "Relationshipの方向 (extraction.schema.jsonと同一)",
+      "enum": ["source_to_target", "target_to_source", "bidirectional"]
+    },
+
+    "IdString": {
+      "type": "string",
+      "description": "canonical Entity ID / 暫定merge ID / Block ID等の識別子",
+      "pattern": "^[A-Z][A-Z0-9_-]+$"
+    },
+
+    "ExtractionRun": {
+      "type": "object",
+      "description": "抽出実行情報 (Stage AのextractionRunと同一構造)。extractionRunRefsの値として1回だけ保持する (Merged_Knowledge_Design.md §10.3 runRefs参照方式)",
+      "required": [
+        "extractionVersion",
+        "extractionMethod",
+        "modelProvider",
+        "modelName",
+        "promptVersion",
+        "extractedAt",
+        "parserCompatibilityAtExtraction"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "extractionVersion": { "type": "string" },
+        "extractionMethod": {
+          "type": "string",
+          "enum": ["rule_based", "llm", "manual", "hybrid"]
+        },
+        "modelProvider": { "type": ["string", "null"] },
+        "modelName": { "type": ["string", "null"] },
+        "promptVersion": { "type": ["string", "null"] },
+        "extractedAt": { "type": ["string", "null"] },
+        "parserCompatibilityAtExtraction": {
+          "type": "string",
+          "enum": ["compatible", "warning", "needs_update", "blocked"]
+        }
+      }
+    },
+
+    "MergedEvidenceRef": {
+      "type": "object",
+      "description": "merged entityの根拠 (埋め込み配列。Merged_Knowledge_Design.md §10.1)。evidenceIdはStage AのEvidenceRef.sourceIdに対応する。ここからNormalized Story JSONのBlock.source経由でRaw Scriptの行まで遡れる",
+      "required": ["evidenceId", "episodeId"],
+      "additionalProperties": false,
+      "properties": {
+        "evidenceId": { "$ref": "#/definitions/IdString" },
+        "storyId": { "$ref": "#/definitions/IdString" },
+        "episodeId": { "$ref": "#/definitions/IdString" },
+        "sceneId": { "type": ["string", "null"], "pattern": "^[A-Z][A-Z0-9_-]+$" },
+        "blockId": { "type": ["string", "null"], "pattern": "^[A-Z][A-Z0-9_-]+$" },
+        "sourceDocumentId": {
+          "type": ["string", "null"],
+          "description": "由来のepisode_extractionドキュメントID (通常episodeId)"
+        },
+        "evidenceType": {
+          "type": ["string", "null"],
+          "description": "根拠の粒度・種別 (Identifier_Specification.md §8の優先順位)",
+          "enum": [
+            "dialogue",
+            "monologue",
+            "narration",
+            "choice",
+            "stage_direction",
+            "scene",
+            "episode",
+            "story",
+            null
+          ]
+        },
+        "confidence": { "$ref": "#/definitions/Confidence" },
+        "textExcerpt": {
+          "type": ["string", "null"],
+          "description": "根拠本文の抜粋 (任意。必須にはしない)"
+        }
+      }
+    },
+
+    "SourceCandidate": {
+      "type": "object",
+      "description": "このmerged entityがどのStage A candidateから作られたかの追跡情報 (Merged_Knowledge_Design.md §10)。candidate id / evidenceIds / extractionRunを失わないための中核",
+      "required": [
+        "candidateId",
+        "candidateType",
+        "sourceDocumentId",
+        "episodeId",
+        "evidenceIds"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "candidateId": {
+          "type": "string",
+          "description": "Stage Aの暫定candidate ID (例: MAIN_S01_C02_E01_CAND_CHAR001)。provenance記録専用で参照キーには使わない (§10.4)"
+        },
+        "candidateType": {
+          "type": "string",
+          "enum": [
+            "character_candidate",
+            "location_candidate",
+            "organization_candidate",
+            "item_candidate",
+            "lore_candidate",
+            "event_candidate",
+            "relationship_candidate",
+            "timeline_candidate"
+          ]
+        },
+        "sourceDocumentId": {
+          "type": "string",
+          "description": "由来のepisode_extractionドキュメントID"
+        },
+        "episodeId": { "$ref": "#/definitions/IdString" },
+        "evidenceIds": {
+          "type": "array",
+          "description": "元candidateのevidenceIds (§4.1原則3: 失わない)",
+          "items": { "type": "string" }
+        },
+        "extractionRunRef": {
+          "type": ["string", "null"],
+          "description": "extractionRunRefs辞書のキー (通常episodeId)。実体はドキュメント直下extractionRunRefsに1回だけ格納 (§10.3)"
+        },
+        "sourceType": { "$ref": "#/definitions/SourceType" },
+        "confidence": { "$ref": "#/definitions/Confidence" }
+      }
+    },
+
+    "FieldValue": {
+      "type": "object",
+      "description": "属性単位のfact/inference分離値 (Merged_Knowledge_Design.md §4.1原則4)。fieldValuesの各値として使う",
+      "required": ["value", "sourceType", "confidence"],
+      "additionalProperties": false,
+      "properties": {
+        "value": { "description": "属性値 (null可、型は属性ごとに異なるため制約しない)" },
+        "sourceType": { "$ref": "#/definitions/SourceType" },
+        "confidence": { "$ref": "#/definitions/Confidence" },
+        "evidenceIds": {
+          "type": "array",
+          "description": "この属性値固有の根拠。entity直下evidenceRefs[].evidenceIdを参照する文字列配列",
+          "items": { "type": "string" }
+        },
+        "sourceCandidateIds": {
+          "type": "array",
+          "description": "この属性値の由来candidate。sourceCandidates[].candidateIdを参照する",
+          "items": { "type": "string" }
+        },
+        "isManualOverride": {
+          "type": "boolean",
+          "description": "手動補正で確定した値か (§8.3。trueなら再マージで自動上書きしない)"
+        }
+      }
+    },
+
+    "Conflict": {
+      "type": "object",
+      "description": "検出された衝突 (Merged_Knowledge_Design.md §9)。黙って解決せず記録する。resolutionStatusで対応状況を追跡する",
+      "required": ["conflictType", "severity", "resolutionStatus"],
+      "additionalProperties": false,
+      "properties": {
+        "conflictType": {
+          "type": "string",
+          "description": "衝突種別 (§9: name_conflict / duplicate_canonical_id / low_confidence_quarantined / merge_suggestion / field_value_conflict / relationship_conflict / timeline_conflict 等。enumで縛らず自由文字列)"
+        },
+        "field": {
+          "type": ["string", "null"],
+          "description": "衝突対象のフィールド名 (fieldValuesのキー等)。フィールド単位でない衝突はnull"
+        },
+        "values": {
+          "type": "array",
+          "description": "衝突している値の一覧 (各値の型は任意)"
+        },
+        "sourceCandidateIds": {
+          "type": "array",
+          "description": "衝突に関与したcandidate",
+          "items": { "type": "string" }
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["info", "warning", "error"]
+        },
+        "resolutionStatus": {
+          "type": "string",
+          "enum": ["unresolved", "auto_selected", "manual_resolved", "ignored"]
+        },
+        "selectedValue": {
+          "description": "auto_selected / manual_resolved の場合に採用された値 (任意型、null可)"
+        }
+      }
+    },
+
+    "MergedEntityBase": {
+      "type": "object",
+      "description": "全merged knowledge共通フィールド (Merged_Knowledge_Design.md §3.3)。allOfで各typeが継承するためadditionalPropertiesは制限しない",
+      "required": [
+        "schemaVersion",
+        "id",
+        "type",
+        "status",
+        "sourceTypes",
+        "confidence",
+        "evidenceRefs",
+        "sourceCandidates"
+      ],
+      "properties": {
+        "schemaVersion": { "type": "string", "const": "0.1" },
+        "id": {
+          "$ref": "#/definitions/IdString",
+          "description": "現時点で権威的な識別子。canonical確定済みならcanonicalIdと一致、未確定なら暫定merge ID (UNRESOLVED_{TYPE}_{number})"
+        },
+        "type": { "$ref": "#/definitions/EntityType" },
+        "canonicalId": {
+          "type": ["string", "null"],
+          "description": "確定済みcanonical Entity ID (Identifier_Specification.md §6/§7)。未確定はnull",
+          "pattern": "^[A-Z][A-Z0-9_-]+$"
+        },
+        "mergedId": {
+          "type": ["string", "null"],
+          "description": "canonical未確定時の暫定merge ID (§4.4 UNRESOLVED_{TYPE}_{number})。再マージで変わりうるため外部参照しない",
+          "pattern": "^[A-Z][A-Z0-9_-]+$"
+        },
+        "displayName": { "type": ["string", "null"] },
+        "aliases": {
+          "type": "array",
+          "description": "別名・表記揺れ (§5 conflict handlingで集約)",
+          "items": { "type": "string" }
+        },
+        "status": { "$ref": "#/definitions/Status" },
+        "sourceTypes": {
+          "type": "array",
+          "description": "構成candidateのsourceTypeの集合 (fact/inferenceの由来がひと目で分かる)",
+          "items": { "$ref": "#/definitions/SourceType" },
+          "minItems": 1
+        },
+        "confidence": {
+          "$ref": "#/definitions/Confidence",
+          "description": "統合後の代表confidence (§4.3: 構成candidateのmax)"
+        },
+        "evidenceRefs": {
+          "type": "array",
+          "description": "根拠の埋め込み配列。最低1件必須 (§10.1: Evidenceを持たないmerged entityは出力しない)",
+          "items": { "$ref": "#/definitions/MergedEvidenceRef" },
+          "minItems": 1
+        },
+        "sourceCandidates": {
+          "type": "array",
+          "description": "由来Stage A candidateの追跡。最低1件必須",
+          "items": { "$ref": "#/definitions/SourceCandidate" },
+          "minItems": 1
+        },
+        "extractionRunRefs": {
+          "type": "object",
+          "description": "episodeId をキーにしたExtractionRunの実体辞書 (§10.3 runRefs参照方式)。sourceCandidates[].extractionRunRefが参照する",
+          "additionalProperties": { "$ref": "#/definitions/ExtractionRun" }
+        },
+        "fieldValues": {
+          "type": "object",
+          "description": "属性名をキーにしたFieldValueの辞書 (displayName/description/organizationName/locationName等)。キー集合は固定しない",
+          "additionalProperties": { "$ref": "#/definitions/FieldValue" }
+        },
+        "conflicts": {
+          "type": "array",
+          "description": "このentityで検出された衝突 (§9)",
+          "items": { "$ref": "#/definitions/Conflict" }
+        },
+        "manualOverridesApplied": {
+          "type": "array",
+          "description": "適用済みmanual overrideのoverrideId一覧 (§8.4 audit trail)",
+          "items": { "type": "string" }
+        },
+        "mergedFrom": {
+          "type": "array",
+          "description": "統合元のepisodeId一覧 (§3.3。増分マージの単位)",
+          "items": { "type": "string" }
+        },
+        "createdAt": { "type": ["string", "null"], "description": "ISO 8601" },
+        "updatedAt": { "type": ["string", "null"], "description": "ISO 8601" }
+      }
+    },
+
+    "MergedCharacter": {
+      "description": "Merged_Knowledge_Design.md §5.1",
+      "allOf": [
+        { "$ref": "#/definitions/MergedEntityBase" },
+        {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "type": { "const": "character" },
+            "sourceCharacterIds": {
+              "type": "array",
+              "description": "統合元candidateのsourceCharacterId (ゲーム内キャラ番号。merge keyの第2候補、§5.1)",
+              "items": { "type": "string" }
+            }
+          }
+        }
+      ]
+    },
+
+    "MergedLocation": {
+      "description": "Merged_Knowledge_Design.md §5.2",
+      "allOf": [
+        { "$ref": "#/definitions/MergedEntityBase" },
+        {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "type": { "const": "location" },
+            "sceneRefs": {
+              "type": "array",
+              "description": "この場所と紐づくScene IDの和集合 (§5.2)",
+              "items": { "type": "string" }
+            }
+          }
+        }
+      ]
+    },
+
+    "MergedOrganization": {
+      "description": "Merged_Knowledge_Design.md §5.3",
+      "allOf": [
+        { "$ref": "#/definitions/MergedEntityBase" },
+        {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "type": { "const": "organization" }
+          }
+        }
+      ]
+    },
+
+    "MergedItem": {
+      "description": "Merged_Knowledge_Design.md §5.4",
+      "allOf": [
+        { "$ref": "#/definitions/MergedEntityBase" },
+        {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "type": { "const": "item" }
+          }
+        }
+      ]
+    },
+
+    "MergedLore": {
+      "description": "Merged_Knowledge_Design.md §5.5",
+      "allOf": [
+        { "$ref": "#/definitions/MergedEntityBase" },
+        {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "type": { "const": "lore" }
+          }
+        }
+      ]
+    },
+
+    "MergedEvent": {
+      "description": "Merged_Knowledge_Design.md §5.6",
+      "allOf": [
+        { "$ref": "#/definitions/MergedEntityBase" },
+        {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "type": { "const": "event" },
+            "participantEntityIds": {
+              "type": "array",
+              "description": "参加Character等のcanonical ID (participantCandidatesを§10.2の対応表で解決した結果)",
+              "items": { "type": "string" }
+            },
+            "locationEntityIds": {
+              "type": "array",
+              "description": "発生場所のcanonical Location ID",
+              "items": { "type": "string" }
+            }
+          }
+        }
+      ]
+    },
+
+    "MergedRelationship": {
+      "description": "Merged_Knowledge_Design.md §6。両端解決済みのみmerged/relationships/へ昇格。relationshipTypeはtaxonomy未確定のため自由文字列 (§6.3)",
+      "allOf": [
+        { "$ref": "#/definitions/MergedEntityBase" },
+        {
+          "type": "object",
+          "required": [
+            "type",
+            "sourceEntityId",
+            "targetEntityId",
+            "relationshipType",
+            "direction"
+          ],
+          "properties": {
+            "type": { "const": "relationship" },
+            "sourceEntityId": {
+              "type": "string",
+              "description": "関係の起点となる解決済みEntity ID"
+            },
+            "targetEntityId": {
+              "type": "string",
+              "description": "関係の終点となる解決済みEntity ID"
+            },
+            "relationshipType": {
+              "type": "string",
+              "description": "関係種別。taxonomyはRelationships.md未確定のため自由文字列を許容 (§6.3。暫定語彙: MEMBER_OF/AFFILIATED_WITH/RELATED_TO/APPEARS_WITH)"
+            },
+            "direction": { "$ref": "#/definitions/Direction" },
+            "temporalNote": {
+              "type": ["string", "null"],
+              "description": "関係が変化した場合の変化契機 (連番Relationship IDと対応)"
+            }
+          }
+        }
+      ]
+    },
+
+    "MergedTimelineEntry": {
+      "description": "Merged_Knowledge_Design.md §7。エンティティ統合はせず、kind別のエピソード横断集約の1要素。順序矛盾検出はしない",
+      "allOf": [
+        { "$ref": "#/definitions/MergedEntityBase" },
+        {
+          "type": "object",
+          "required": ["type", "kind"],
+          "properties": {
+            "type": { "const": "timeline_entry" },
+            "kind": {
+              "type": "string",
+              "description": "時系列候補の種類 (extraction.schema.jsonと同一)",
+              "enum": ["relative_order", "explicit_order", "temporal_marker"]
+            },
+            "scope": {
+              "type": ["string", "null"],
+              "description": "根拠の粒度 (episode metadata由来かBlock由来か)",
+              "enum": ["episode", "block", null]
+            },
+            "orderValue": {
+              "type": ["number", "null"],
+              "description": "明示的な数値順序 (explicit_order時)。順序の確定・矛盾検出はStage Bでは行わない"
+            },
+            "orderField": {
+              "type": ["string", "null"],
+              "description": "orderValueの取得元 (canonicalOrder/releaseOrder/displayOrder/orderValue/timePosition)"
+            },
+            "label": {
+              "type": ["string", "null"],
+              "description": "timelineLabel/timePosition(文字列)由来のラベル"
+            },
+            "markerType": {
+              "type": ["string", "null"],
+              "description": "temporal_marker時の構造マーカー種別",
+              "enum": ["flashback", "flashforward", "day_change", "time_shift", "scene_time", null]
+            },
+            "sourceTimelineId": {
+              "type": ["string", "null"],
+              "description": "Block上の明示的なtimelineId (canonical化はしない)"
+            },
+            "relativeTo": {
+              "type": ["string", "null"],
+              "description": "relative_order時の比較対象Episode ID"
+            },
+            "relation": {
+              "type": ["string", "null"],
+              "enum": ["before", "after", "same_time", null]
+            },
+            "relatedEventIds": {
+              "type": "array",
+              "description": "関連するEvent entityのcanonical ID (明示的なもののみ。推定接続はしない)",
+              "items": { "type": "string" }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

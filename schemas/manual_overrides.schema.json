@@ -1,0 +1,164 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://detariki-kb/schemas/manual_overrides.schema.json",
+  "title": "Manual Overrides JSON (Stage B)",
+  "description": "Stage B merged knowledgeを直接編集せず、Git管理される手動補正として適用するためのオーバーライドファイルのスキーマ。merged/配下は常に再生成可能な生成物に保ち、補正はこのファイル群で表現する。docs/architecture/06_AI/Merged_Knowledge_Design.md §8 準拠 (v0.1)。",
+  "type": "object",
+  "required": ["schemaVersion", "documentType", "overrides"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "type": "string", "const": "0.1" },
+    "documentType": { "type": "string", "const": "manual_overrides" },
+    "overrides": {
+      "type": "array",
+      "description": "適用するオーバーライドの配列 (空配列も許容)",
+      "items": { "$ref": "#/definitions/Override" }
+    }
+  },
+
+  "definitions": {
+
+    "SourceType": {
+      "type": "string",
+      "enum": ["official", "script", "ai_extracted", "ai_inferred", "manual", "unknown"]
+    },
+
+    "Direction": {
+      "type": "string",
+      "enum": ["source_to_target", "target_to_source", "bidirectional"]
+    },
+
+    "Override": {
+      "type": "object",
+      "description": "1件の手動補正 (Merged_Knowledge_Design.md §8.2)。sourceTypeは常にmanual。再マージ時もこのファイルから再適用されるため補正は失われない (§8.3)",
+      "required": [
+        "overrideId",
+        "overrideType",
+        "operation",
+        "targetType",
+        "reason",
+        "author",
+        "createdAt",
+        "sourceType"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "overrideId": {
+          "type": "string",
+          "description": "オーバーライドID (例: OVR_0001)。merged entityのmanualOverridesAppliedから参照される",
+          "pattern": "^[A-Z][A-Z0-9_-]+$"
+        },
+        "overrideType": {
+          "type": "string",
+          "description": "補正の大分類",
+          "enum": [
+            "entity",
+            "field",
+            "merge",
+            "split",
+            "relationship",
+            "timeline",
+            "ignore_candidate",
+            "resolve_conflict"
+          ]
+        },
+        "operation": {
+          "type": "string",
+          "description": "具体的な操作 (§8.2)。canonical ID割り当ては set_field で field=canonicalId として表現する",
+          "enum": [
+            "set_field",
+            "add_alias",
+            "remove_alias",
+            "merge_entities",
+            "split_entity",
+            "ignore_candidate",
+            "resolve_conflict",
+            "set_relationship_type",
+            "set_timeline_order"
+          ]
+        },
+        "targetType": {
+          "type": "string",
+          "description": "補正対象の種別 (mergedのentity種別、または未統合candidate)",
+          "enum": [
+            "character",
+            "location",
+            "organization",
+            "item",
+            "lore",
+            "event",
+            "relationship",
+            "timeline_entry",
+            "candidate"
+          ]
+        },
+        "targetId": {
+          "type": ["string", "null"],
+          "description": "補正対象の識別子 (canonical ID / 暫定merge ID / candidate ID)。merge_entities等で複数対象の場合はtargetIdsを使う"
+        },
+        "targetIds": {
+          "type": "array",
+          "description": "複数対象 (merge_entities の統合元、split_entity の分割結果等)",
+          "items": { "type": "string" }
+        },
+        "field": {
+          "type": ["string", "null"],
+          "description": "set_field / resolve_conflict の対象フィールド名 (例: canonicalId, displayName, description)"
+        },
+        "value": {
+          "description": "操作のペイロード値 (任意型、null可)。set_field の設定値、resolve_conflict の採用値等"
+        },
+        "alias": {
+          "type": ["string", "null"],
+          "description": "add_alias / remove_alias の対象別名"
+        },
+        "mergeSourceIds": {
+          "type": "array",
+          "description": "merge_entities で統合される側のID群",
+          "items": { "type": "string" }
+        },
+        "mergeTargetId": {
+          "type": ["string", "null"],
+          "description": "merge_entities で統合先となる正規ID"
+        },
+        "conflictRef": {
+          "type": ["string", "null"],
+          "description": "resolve_conflict が対象とするconflictの識別 (conflictType/field等)"
+        },
+        "relationshipType": {
+          "type": ["string", "null"],
+          "description": "set_relationship_type で設定する関係種別 (taxonomy未確定のため自由文字列)"
+        },
+        "direction": {
+          "$ref": "#/definitions/Direction",
+          "description": "relationship補正時の方向 (任意)"
+        },
+        "orderValue": {
+          "type": ["number", "null"],
+          "description": "set_timeline_order で設定する順序値"
+        },
+        "reason": {
+          "type": "string",
+          "description": "補正理由 (audit trail。Gitを見なくても文脈が分かるよう必須)"
+        },
+        "author": {
+          "type": "string",
+          "description": "補正者"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "作成日時 (ISO 8601または日付文字列)"
+        },
+        "note": {
+          "type": ["string", "null"],
+          "description": "補足メモ (任意)"
+        },
+        "sourceType": {
+          "type": "string",
+          "description": "常にmanual (§8.3。手動補正であることを固定)",
+          "const": "manual"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "0.1",
+  "id": "CHAR_RAIN",
+  "type": "character",
+  "canonicalId": "CHAR_RAIN",
+  "mergedId": null,
+  "displayName": "レイン",
+  "aliases": [],
+  "status": "merged",
+  "sourceTypes": ["script", "ai_extracted"],
+  "confidence": 0.9,
+  "evidenceRefs": [
+    {
+      "evidenceId": "MAIN_S01_C02_E01_DLG0007",
+      "storyId": "MAIN_S01_C02",
+      "episodeId": "MAIN_S01_C02_E01",
+      "sceneId": "MAIN_S01_C02_E01_SC001",
+      "blockId": "MAIN_S01_C02_E01_DLG0007",
+      "sourceDocumentId": "MAIN_S01_C02_E01",
+      "evidenceType": "dialogue",
+      "confidence": 0.9
+    }
+  ],
+  "sourceCandidates": [
+    {
+      "candidateId": "MAIN_S01_C02_E01_CAND_CHAR001",
+      "candidateType": "character_candidate",
+      "sourceDocumentId": "MAIN_S01_C02_E01",
+      "episodeId": "MAIN_S01_C02_E01",
+      "evidenceIds": ["MAIN_S01_C02_E01_DLG0007"],
+      "extractionRunRef": "MAIN_S01_C02_E01",
+      "sourceType": "script",
+      "confidence": 0.9
+    }
+  ],
+  "extractionRunRefs": {
+    "MAIN_S01_C02_E01": {
+      "extractionVersion": "0.1.0",
+      "extractionMethod": "rule_based",
+      "modelProvider": null,
+      "modelName": null,
+      "promptVersion": null,
+      "extractedAt": null,
+      "parserCompatibilityAtExtraction": "compatible"
+    }
+  },
+  "sourceCharacterIds": ["26"],
+  "fieldValues": {
+    "description": {
+      "value": "異形生物対策班の作戦参謀。",
+      "sourceType": "ai_extracted",
+      "confidence": 0.9,
+      "evidenceIds": ["MAIN_S01_C02_E01_DLG0007"],
+      "sourceCandidateIds": ["MAIN_S01_C02_E01_CAND_CHAR001"],
+      "isManualOverride": false
+    }
+  },
+  "conflicts": [],
+  "manualOverridesApplied": [],
+  "mergedFrom": ["MAIN_S01_C02_E01"],
+  "createdAt": null,
+  "updatedAt": null
+}
