@@ -3,8 +3,10 @@
 Extract Story Script
 CLIから Normalized Story JSON を episode_extraction (Stage A) へ変換する入口。
 
-LLM呼び出し・OpenAI/Anthropic/Ollama連携・prompt作成はまだ実装していない。
-候補配列 (characters/organizations/... 等) は空のまま出力する。
+Character/Location/Organization/Item/Lore/Event/Relationship/Timeline の
+8種のCandidateを、構造的な手がかりのみからrule-baseで抽出する
+(本文の自然文推定は行わない)。LLM呼び出し・OpenAI/Anthropic/Ollama連携・
+prompt作成はまだ実装していない。
 
 Usage:
     python scripts/extract_story.py \\

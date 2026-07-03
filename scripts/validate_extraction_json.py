@@ -73,7 +73,8 @@ def parse_args() -> argparse.Namespace:
         help=(
             "JSON Schema検証に加えてsemantic validationも実行する "
             "(evidenceIds実在確認、duplicate candidate id、"
-            "extractionRun整合性、relationship基本チェック等)"
+            "extractionRun整合性、relationship基本チェック、"
+            "timeline基本チェック等)"
         ),
     )
     parser.add_argument(
