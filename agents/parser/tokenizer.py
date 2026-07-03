@@ -137,6 +137,42 @@ class Tokenizer:
             "se",
             "segmentCorrection",
             "visibleAccessory",
+            # 実データdry-run trialで見つかった@なし演出コマンド群
+            # (docs/runbooks/Real_Data_Dry_Run_Result_Template.md §3.2)。
+            # 意味を完全解析せず、stage_direction として保持するために
+            # KEYWORD として認識する。agents/parser/parser.py の
+            # DIRECTION_TYPE_MAP と対にして追加すること。
+            "ch",
+            "pos",
+            "euler",
+            "wait",
+            "camera",
+            "fov",
+            "ui",
+            "rdraw",
+            "hide",
+            "uniq",
+            "mo",
+            "visible",
+            "sound",
+            "vo",
+            "prefab",
+            "set",
+            "click",
+            "nf",
+            "screen",
+            "scale",
+            "remove",
+            "wType",
+            "loading",
+            "active",
+            "color",
+            "wset",
+            "parent",
+            "light",
+            "image",
+            "distance",
+            "shake",
         }
     )
 

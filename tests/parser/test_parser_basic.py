@@ -177,3 +177,94 @@ def test_stage_direction():
     assert vis.direction_type == "character_display"
     assert vis.raw_command == "@Visibleoff"
     assert vis.normalized_command == "@VisibleOff"
+
+
+def test_real_data_camera_commands_become_stage_direction():
+    """実データdry-run trialでunknown扱いだったcamera/pos/euler/fov等が
+    stage_directionとして分類されることを確認する
+    (docs/runbooks/Real_Data_Dry_Run_Result_Template.md §3.2)。"""
+    script = """camera 0
+pos -7.94,1.4,22.08
+euler 3.821,141.302,0
+fov 21
+ch 1
+nf 0.3 500
+wait 0.5
+"""
+    parser = StoryParser(preserve_stage_directions=True)
+    result = parser.parse_text(script)
+    scene = result.episodes[0].scenes[0]
+
+    assert len(scene.blocks) == 7
+    for block in scene.blocks:
+        assert block.block_type == "stage_direction"
+
+    assert scene.blocks[0].raw_command == "camera"
+    assert scene.blocks[0].direction_type == "camera"
+    assert scene.blocks[1].raw_command == "pos"
+    assert scene.blocks[1].direction_type == "camera"
+    assert scene.blocks[2].raw_command == "euler"
+    assert scene.blocks[2].direction_type == "camera"
+    assert scene.blocks[3].raw_command == "fov"
+    assert scene.blocks[3].direction_type == "camera"
+    assert scene.blocks[4].raw_command == "ch"
+    assert scene.blocks[4].direction_type == "camera"
+    assert scene.blocks[5].raw_command == "nf"
+    assert scene.blocks[5].direction_type == "camera"
+    assert scene.blocks[6].raw_command == "wait"
+    assert scene.blocks[6].direction_type == "system"
+
+
+def test_dialogue_count_unaffected_by_interleaved_camera_commands(char_dict):
+    """camera系演出コマンドがセリフの間に挟まっても、dialogue/monologueの
+    数・本文・evidence用の行番号が変わらないことを確認する。"""
+    script = """$num0 = 26
+camera 0
+pos -7.94,1.4,22.08
+@ChTalk 0
+一言目のセリフ
+euler 3.821,141.302,0
+fov 21
+wait 0.5
+@ChTalkMono 0
+（モノローグ）
+ui 0
+"""
+    parser = StoryParser(char_dict=char_dict, preserve_stage_directions=True)
+    result = parser.parse_text(script)
+    scene = result.episodes[0].scenes[0]
+
+    dialogue_blocks = [b for b in scene.blocks if b.block_type == "dialogue"]
+    monologue_blocks = [b for b in scene.blocks if b.block_type == "monologue"]
+    unknown_blocks = [b for b in scene.blocks if b.block_type == "unknown"]
+    stage_blocks = [b for b in scene.blocks if b.block_type == "stage_direction"]
+
+    assert len(dialogue_blocks) == 1
+    assert dialogue_blocks[0].text == "一言目のセリフ"
+    assert dialogue_blocks[0].speaker.speaker_name == "レイン"
+
+    assert len(monologue_blocks) == 1
+    assert monologue_blocks[0].text == "（モノローグ）"
+
+    assert len(unknown_blocks) == 0
+    assert len(stage_blocks) == 6
+
+    # evidence用の行番号 (line_start/line_end) が壊れていないこと
+    assert dialogue_blocks[0].line_start == 5
+    assert monologue_blocks[0].line_end == 10
+
+
+def test_truly_unknown_command_still_reported_as_unknown():
+    """既知演出コマンド追加後も、本当に未知のコマンドは引き続き
+    unknownとして保持・報告されることを確認する。"""
+    script = """camera 0
+totallyUnknownCommand123 foo bar
+"""
+    parser = StoryParser(preserve_unknown=True, preserve_stage_directions=True)
+    result = parser.parse_text(script)
+    scene = result.episodes[0].scenes[0]
+
+    assert len(scene.blocks) == 2
+    assert scene.blocks[0].block_type == "stage_direction"
+    assert scene.blocks[1].block_type == "unknown"
+    assert "totallyUnknownCommand123" in scene.blocks[1].raw_text
