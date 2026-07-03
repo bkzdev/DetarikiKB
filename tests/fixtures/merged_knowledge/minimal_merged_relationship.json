@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "0.1",
+  "id": "REL_CHAR_AKAGI_HINA_TRUSTS_CHAR_RAIN_0001",
+  "type": "relationship",
+  "canonicalId": "REL_CHAR_AKAGI_HINA_TRUSTS_CHAR_RAIN_0001",
+  "mergedId": null,
+  "displayName": null,
+  "aliases": [],
+  "status": "merged",
+  "sourceEntityId": "CHAR_AKAGI_HINA",
+  "targetEntityId": "CHAR_RAIN",
+  "relationshipType": "TRUSTS",
+  "direction": "source_to_target",
+  "temporalNote": null,
+  "sourceTypes": ["script"],
+  "confidence": 0.9,
+  "evidenceRefs": [
+    {
+      "evidenceId": "MAIN_S01_C02_E01_DLG0012",
+      "storyId": "MAIN_S01_C02",
+      "episodeId": "MAIN_S01_C02_E01",
+      "sceneId": "MAIN_S01_C02_E01_SC001",
+      "blockId": "MAIN_S01_C02_E01_DLG0012",
+      "sourceDocumentId": "MAIN_S01_C02_E01",
+      "evidenceType": "dialogue",
+      "confidence": 0.9
+    }
+  ],
+  "sourceCandidates": [
+    {
+      "candidateId": "MAIN_S01_C02_E01_CAND_REL001",
+      "candidateType": "relationship_candidate",
+      "sourceDocumentId": "MAIN_S01_C02_E01",
+      "episodeId": "MAIN_S01_C02_E01",
+      "evidenceIds": ["MAIN_S01_C02_E01_DLG0012"],
+      "extractionRunRef": "MAIN_S01_C02_E01",
+      "sourceType": "script",
+      "confidence": 0.9
+    }
+  ],
+  "extractionRunRefs": {
+    "MAIN_S01_C02_E01": {
+      "extractionVersion": "0.1.0",
+      "extractionMethod": "rule_based",
+      "modelProvider": null,
+      "modelName": null,
+      "promptVersion": null,
+      "extractedAt": null,
+      "parserCompatibilityAtExtraction": "compatible"
+    }
+  },
+  "fieldValues": {},
+  "conflicts": [],
+  "manualOverridesApplied": [],
+  "mergedFrom": ["MAIN_S01_C02_E01"],
+  "createdAt": null,
+  "updatedAt": null
+}
