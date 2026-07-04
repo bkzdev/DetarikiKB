@@ -1,0 +1,60 @@
+# Character Profiles Template（公式プロフィール辞書の見本）
+#
+# scripts/validate_character_profiles.py / agents/parser/character_profiles.py
+# が実際に読み込むcharacter_profiles.yamlは、この見本と同じ構造を持つ
+# (docs/architecture/06_AI/Character_Profile_Dictionary_Design.md 参照)。
+#
+# このファイル自体は合成データのみで構成されており、実キャラクター名・
+# 実プロフィール本文・実自己紹介文は一切含まない。実際にプロフィールを
+# 投入する際は、この見本と同じ構造でknowledge/dictionaries/character_profiles.yaml
+# を編集し、characterIdはcharacters.yamlでstatus: confirmedになっている
+# ものだけを使うこと。
+
+schemaVersion: "0.1.0"
+documentType: "character_profiles"
+profiles:
+  # 標準的なエントリ例（各フィールドがすべて埋まっている場合）
+  - characterId: "CHAR_001_SYNTHETIC_HINA"
+    displayName: "合成陽菜"
+    reading:
+      kana: "ごうせい ひな"
+      romaji: "Synthetic Hina"
+    affiliation:
+      - "Synthetic Team 1"
+    heightCm: 153
+    birthday:
+      month: 4
+      day: 23
+      display: "4/23"
+    bloodType: "A"
+    cv: "Synthetic Voice Actor"
+    profileHighlight:
+      label: "好きなこと"
+      value: "合成データの食べ歩き"
+    selfIntroduction: |-
+      「合成プロフィールの自己紹介です。」
+
+      これはschema説明用の合成文章です。実キャラクターの自己紹介文では
+      ありません。複数行の自己紹介文を扱えることを確認するための例です。
+    source:
+      sourceType: "official_profile"
+      label: "Synthetic official profile"
+      referenceId: null
+      notes: "Synthetic example only."
+    status: "confirmed"
+    notes: "Synthetic template entry."
+
+  # 任意フィールドが未設定 (null / 空配列) の最小エントリ例
+  - characterId: "CHAR_002_SYNTHETIC_KAEDE"
+    displayName: "合成楓"
+    reading: null
+    affiliation: []
+    heightCm: null
+    birthday: null
+    bloodType: null
+    cv: null
+    profileHighlight: null
+    selfIntroduction: null
+    source: null
+    status: "draft"
+    notes: null
