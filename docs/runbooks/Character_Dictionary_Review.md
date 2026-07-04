@@ -118,11 +118,87 @@ uv run python scripts/check_character_dictionary_coverage.py data/raw/dry_run/ \
 
 ---
 
-# 12. 関連ドキュメント
+# 12. review packet（confirmed-batch用の人間確認packet）
+
+`scripts/check_character_dictionary_coverage.py --review-template-output`（§11）は、辞書に**一切登録が無い**（unknown）`sourceCharacterId`のみを、出現回数だけ添えて列挙する。実データdry-runがExtractor/Mergerまで進んだ後は、より情報量の多い`scripts/build_character_review_packet.py`を使うことを推奨する。
+
+## 12.1 目的
+
+`scripts/build_character_review_packet.py`は、merged knowledge collection（`schemas/merged_knowledge_collection.schema.json`準拠、`scripts/merge_extractions.py`の出力）から、**unknown（辞書未登録）とname_only（表示名のみ判明、未confirmed）の両方**を対象に、人間がconfirmed化を判断しやすいメタ情報（displayName・観測回数・登場エピソード数・登場ソースドキュメント数・辞書の既存状態）を付けたreview packetをYAML/CSVで書き出す。`status: confirmed`の辞書エントリに対応する（= 実運用では`status: merged`の）entityは、再レビュー不要のため自動的に除外される。
+
+## 12.2 生成コマンド例
+
+```bash
+# YAML形式（notes等の手入力に向く）
+uv run python scripts/build_character_review_packet.py \
+    --merged-collection workspace/dry_runs/<RUN_ID>/merged/merged_knowledge_collection.json \
+    --output workspace/review_packets/character_dictionary_review_batch_003.yaml \
+    --format yaml \
+    --batch-id character-dictionary-review-batch-003
+
+# CSV形式（表計算ソフトでの確認に向く）。両方欲しい場合は --format both
+uv run python scripts/build_character_review_packet.py \
+    --merged-collection workspace/dry_runs/<RUN_ID>/merged/merged_knowledge_collection.json \
+    --output workspace/review_packets/character_dictionary_review_batch_003 \
+    --format both
+```
+
+出力先は必ず`.gitignore`済みの`workspace/review_packets/`配下を指定すること（§14参照）。
+
+## 12.3 packetの編集方法
+
+生成されたpacketの各エントリには以下のフィールドがある。
+
+| フィールド | 意味 | 編集してよいか |
+|---|---|---|
+| `sourceCharacterId`/`displayName`/`existingDictionaryStatus`/`existingCharacterId`/`aliases`/`observedCount`/`appearedEpisodeCount`/`sourceDocumentCount` | 自動生成された参照情報 | 編集不要（人間が実データを確認する際の手がかりとして使う） |
+| `humanReviewStatus` | レビュー状態。§12.4参照 | 人間が確認結果に応じて変更する |
+| `humanConfirmedCharacterId` | 確定した場合のcanonical ID（`CHAR_{ROMANIZED_NAME}`形式） | `humanReviewStatus: confirmed`の場合のみ埋める |
+| `notes` | 確認の根拠（短い要約、実データ本文は書かない） | 自由記述 |
+
+## 12.4 humanReviewStatusの値
+
+| 値 | 意味 |
+|---|---|
+| `pending` | 未確認（デフォルト） |
+| `confirmed` | 人間が実データを確認し、`humanConfirmedCharacterId`を確定した |
+| `rejected` | 確認した結果、今回のバッチでは確定を見送る（別人物の可能性がある等） |
+| `needs_more_context` | 追加の確認が必要（他話での再確認、既存confirmedキャラクターとの類似性排除等） |
+
+`rejected`/`needs_more_context`のエントリはconfirmed-batchへ渡さず、次回以降のバッチで再検討する。
+
+## 12.5 confirmed-batchへ渡す方法
+
+`humanReviewStatus: confirmed`になったエントリだけを、`docs/templates/character_dictionary_confirmed_batch_input_template.yaml`と同じ構造の`workspace/local_inputs/character_confirmed_batch_XXX.yaml`（`.gitignore`対象）に切り出し、次のconfirmed-batch PRのセッションへ渡す。
+
+```yaml
+batchId: character-dictionary-confirmed-batch-003
+confirmedMappings:
+  - sourceCharacterId: "1000"
+    characterId: "CHAR_EXAMPLE_CONFIRMED"
+    displayName: "Example Character"
+    aliases: []
+    notes: "Human-confirmed from review packet batch 003."
+```
+
+## 12.6 commit禁止対象・AI推測禁止（再掲）
+
+- `scripts/build_character_review_packet.py`が生成するpacket自体（YAML/CSVいずれも）は**commitしない**（`workspace/review_packets/`は`.gitignore`対象、§14参照）
+- `workspace/local_inputs/character_confirmed_batch_*.yaml`も**commitしない**（実データ由来のdisplayName・確認メモを含みうるローカル入力のため）
+- `docs/templates/`配下の見本ファイル（`character_dictionary_review_packet_template.yaml`・`character_dictionary_confirmed_batch_input_template.yaml`）は合成データのみで構成されており、これはcommitしてよい
+- packetの`humanConfirmedCharacterId`は**必ず人間が実データを直接確認してから**埋める。AI（Claude等）がobservedCount・displayNameの一致だけを根拠に推測で埋めることは、本ドキュメント§3-4・§9のルールにより禁止する
+- packetには元セリフ・実ストーリー本文・raw payload・merged collection全文を含めない（`build_character_review_packet`の実装で機械的に保証、§12.1参照）
+
+---
+
+# 13. 関連ドキュメント
 
 - `docs/architecture/06_AI/Canonical_ID_Policy.md`（canonical ID全体の方針、confirmed化の上位ルール）
 - `docs/architecture/05_Parser/Identifier_Specification.md` §6.1（`CHAR_{ROMANIZED_NAME}`形式、OD-001ローマ字表記ルール未確定事項）
 - `docs/runbooks/Real_Data_Dry_Run.md`（実データdry-run全体の手順、実データ・生成物をcommitしないルール）
-- `docs/templates/character_dictionary_review_template.yaml`（人間確認用テンプレートの見本、合成データのみ）
-- `agents/parser/character_dictionary.py`（`load_character_dictionary`/`validate_character_dictionary`/`build_character_dictionary_coverage_report`/`build_review_candidates`の実装）
+- `docs/runbooks/Real_Data_Merged_Collection_Dry_Run.md`（Extractor→Merger dry-run手順、review packetの入力となるmerged collectionの生成元）
+- `docs/templates/character_dictionary_review_template.yaml`（`check_character_dictionary_coverage.py --review-template-output`用テンプレートの見本、合成データのみ）
+- `docs/templates/character_dictionary_review_packet_template.yaml`（`build_character_review_packet.py`用packetの見本、合成データのみ）
+- `docs/templates/character_dictionary_confirmed_batch_input_template.yaml`（confirmed-batch PRへ渡す入力形式の見本、合成データのみ）
+- `agents/parser/character_dictionary.py`（`load_character_dictionary`/`validate_character_dictionary`/`build_character_dictionary_coverage_report`/`build_review_candidates`/`build_character_review_packet`の実装）
 - `TASKS.md` §5（実データ・生成物をcommitしない既存ルール）

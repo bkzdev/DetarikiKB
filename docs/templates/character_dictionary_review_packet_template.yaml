@@ -1,0 +1,79 @@
+# Character Dictionary Review Packet Template（人間確認用packetの見本）
+#
+# scripts/build_character_review_packet.py が実際に生成するreview
+# packetは、この見本と同じ構造を持つ
+# (docs/runbooks/Character_Dictionary_Review.md 参照)。
+#
+# このファイル自体は合成データのみで構成されており、実データ由来の
+# sourceCharacterId・実キャラクター名は一切含まない。実データを確認した
+# 結果を書き込む際は、scripts/build_character_review_packet.pyが
+# ローカル (workspace/review_packets/ 配下等、.gitignore対象) へ書き出した
+# 実際のpacketファイルを直接編集すること。このテンプレート自体（実データ
+# 入りのもの）はcommitしない。
+
+reviewBatchId: character-dictionary-review-batch-003
+generatedFrom:
+  dictionary: knowledge/dictionaries/characters.yaml
+  source: workspace/dry_runs/20260705_000000/merged/merged_knowledge_collection.json
+
+entries:
+  # 辞書に一切登録が無い (unknown) sourceCharacterIdの例。
+  # humanConfirmedCharacterId/notesは、人間が実データを確認してから埋める。
+  # 埋めるまではhumanReviewStatus: pending・null値のままにしておく。
+  - sourceCharacterId: "234"
+    displayName: "Example Display Name"
+    existingDictionaryStatus: "unknown"
+    existingCharacterId: null
+    aliases: []
+    observedCount: 12
+    appearedEpisodeCount: 3
+    sourceDocumentCount: 2
+    humanReviewStatus: "pending"
+    humanConfirmedCharacterId: null
+    notes: ""
+
+  # 辞書に既にname_only (表示名のみ判明) として登録済みのsourceCharacterIdの例。
+  # 人間が実データを確認し、同一人物であることをローマ字表記込みで
+  # 確定できた場合のみ、humanReviewStatusをconfirmedに変更し
+  # humanConfirmedCharacterIdへCHAR_{ROMANIZED_NAME}形式のIDを記入する。
+  - sourceCharacterId: "1000"
+    displayName: "Example Display Name 2"
+    existingDictionaryStatus: "name_only"
+    existingCharacterId: null
+    aliases: []
+    observedCount: 3
+    appearedEpisodeCount: 1
+    sourceDocumentCount: 1
+    humanReviewStatus: "confirmed"
+    humanConfirmedCharacterId: "CHAR_EXAMPLE_CONFIRMED"
+    notes: "Human-confirmed example only. 実データではない合成例。複数話で同一人物と確認済み。"
+
+  # 名前が別の確認済みキャラクターと似ている・一致するだけでは
+  # confirmedにしない例。人間が別人格の可能性を排除できるまでは
+  # pendingのまま残す (needs_more_contextも使ってよい)。
+  - sourceCharacterId: "1001"
+    displayName: "Example Display Name (Possible Alias?)"
+    existingDictionaryStatus: "name_only"
+    existingCharacterId: null
+    aliases: []
+    observedCount: 1
+    appearedEpisodeCount: 1
+    sourceDocumentCount: 1
+    humanReviewStatus: "needs_more_context"
+    humanConfirmedCharacterId: null
+    notes: "displayNameが既存confirmedキャラクターと類似するが、別人格の可能性を排除できないため保留。"
+
+  # 人間が確認した結果、別人物と判断し確定を見送る (rejected) 例。
+  # rejectedは「今回のバッチではconfirmed化しない」という判断であり、
+  # 次回以降のバッチで再検討してよい。
+  - sourceCharacterId: "1002"
+    displayName: "Example Display Name 3"
+    existingDictionaryStatus: "unknown"
+    existingCharacterId: null
+    aliases: []
+    observedCount: 1
+    appearedEpisodeCount: 1
+    sourceDocumentCount: 1
+    humanReviewStatus: "rejected"
+    humanConfirmedCharacterId: null
+    notes: "一時的な変装スロットである可能性が高く、今回は確定を見送る。"

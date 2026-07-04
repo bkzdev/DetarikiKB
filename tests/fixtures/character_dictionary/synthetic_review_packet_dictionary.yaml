@@ -1,0 +1,22 @@
+# Synthetic character dictionary fixture for
+# tests/scripts/test_build_character_review_packet.py
+#
+# 合成データのみ (CHAR_TEST_* 等)。実データ由来のsourceCharacterId・
+# displayNameは一切含まない。
+
+schemaVersion: "0.1"
+
+characters:
+  - sourceCharacterId: "9001"
+    characterId: "CHAR_TEST_A"
+    displayName: "Test Character A"
+    aliases: []
+    status: "confirmed"
+    notes: null
+  - sourceCharacterId: "9002"
+    characterId: null
+    displayName: "Test Character B"
+    aliases:
+      - "TCB"
+    status: "name_only"
+    notes: null

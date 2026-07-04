@@ -1,0 +1,389 @@
+{
+  "schemaVersion": "0.1.0",
+  "documentType": "merged_knowledge_collection",
+  "generatedAt": "2026-07-05T00:00:00+00:00",
+  "sourceDocuments": [
+    {
+      "path": "tests/fixtures/character_dictionary/synthetic_review_packet_episode_001.json",
+      "documentId": "EP_REVIEW_PACKET_001",
+      "storyId": "TEST_REVIEW_PACKET",
+      "episodeId": "EP_REVIEW_PACKET_001",
+      "storyCategory": "MAIN",
+      "extractionVersion": "0.1.0",
+      "candidateCounts": {
+        "characters": 4,
+        "locations": 0,
+        "organizations": 0,
+        "items": 0,
+        "lore": 0,
+        "events": 0,
+        "relationships": 0,
+        "timelineCandidates": 0
+      }
+    },
+    {
+      "path": "tests/fixtures/character_dictionary/synthetic_review_packet_episode_002.json",
+      "documentId": "EP_REVIEW_PACKET_002",
+      "storyId": "TEST_REVIEW_PACKET",
+      "episodeId": "EP_REVIEW_PACKET_002",
+      "storyCategory": "MAIN",
+      "extractionVersion": "0.1.0",
+      "candidateCounts": {
+        "characters": 1,
+        "locations": 0,
+        "organizations": 0,
+        "items": 0,
+        "lore": 0,
+        "events": 0,
+        "relationships": 0,
+        "timelineCandidates": 0
+      }
+    }
+  ],
+  "entities": {
+    "characters": [
+      {
+        "schemaVersion": "0.1",
+        "id": "CHAR_TEST_A",
+        "type": "character",
+        "canonicalId": "CHAR_TEST_A",
+        "mergedId": null,
+        "displayName": "Test Character A",
+        "aliases": [],
+        "status": "merged",
+        "sourceTypes": ["script"],
+        "confidence": 0.9,
+        "evidenceRefs": [
+          {
+            "evidenceId": "EP_REVIEW_PACKET_001_DLG0001",
+            "storyId": "TEST_REVIEW_PACKET",
+            "episodeId": "EP_REVIEW_PACKET_001",
+            "sceneId": "EP_REVIEW_PACKET_001_SC001",
+            "blockId": "EP_REVIEW_PACKET_001_DLG0001",
+            "sourceDocumentId": "EP_REVIEW_PACKET_001",
+            "evidenceType": "dialogue",
+            "confidence": 0.9
+          }
+        ],
+        "sourceCandidates": [
+          {
+            "candidateId": "EP_REVIEW_PACKET_001_CAND_CHAR001",
+            "candidateType": "character_candidate",
+            "sourceDocumentId": "EP_REVIEW_PACKET_001",
+            "episodeId": "EP_REVIEW_PACKET_001",
+            "evidenceIds": ["EP_REVIEW_PACKET_001_DLG0001"],
+            "extractionRunRef": "EP_REVIEW_PACKET_001",
+            "sourceType": "script",
+            "confidence": 0.9
+          }
+        ],
+        "sourceCharacterIds": ["9001"],
+        "fieldValues": {},
+        "conflicts": [],
+        "manualOverridesApplied": [],
+        "mergedFrom": ["EP_REVIEW_PACKET_001"],
+        "createdAt": null,
+        "updatedAt": null
+      },
+      {
+        "schemaVersion": "0.1",
+        "id": "UNRESOLVED_CHAR_TEST_NAMEONLY",
+        "type": "character",
+        "canonicalId": null,
+        "mergedId": "UNRESOLVED_CHAR_TEST_NAMEONLY",
+        "displayName": "Test Character B",
+        "aliases": [],
+        "status": "unresolved",
+        "sourceTypes": ["script"],
+        "confidence": 0.5,
+        "evidenceRefs": [
+          {
+            "evidenceId": "EP_REVIEW_PACKET_001_DLG0002",
+            "storyId": "TEST_REVIEW_PACKET",
+            "episodeId": "EP_REVIEW_PACKET_001",
+            "sceneId": "EP_REVIEW_PACKET_001_SC001",
+            "blockId": "EP_REVIEW_PACKET_001_DLG0002",
+            "sourceDocumentId": "EP_REVIEW_PACKET_001",
+            "evidenceType": "dialogue",
+            "confidence": 0.5
+          },
+          {
+            "evidenceId": "EP_REVIEW_PACKET_002_DLG0001",
+            "storyId": "TEST_REVIEW_PACKET",
+            "episodeId": "EP_REVIEW_PACKET_002",
+            "sceneId": "EP_REVIEW_PACKET_002_SC001",
+            "blockId": "EP_REVIEW_PACKET_002_DLG0001",
+            "sourceDocumentId": "EP_REVIEW_PACKET_002",
+            "evidenceType": "dialogue",
+            "confidence": 0.5
+          }
+        ],
+        "sourceCandidates": [
+          {
+            "candidateId": "EP_REVIEW_PACKET_001_CAND_CHAR002",
+            "candidateType": "character_candidate",
+            "sourceDocumentId": "EP_REVIEW_PACKET_001",
+            "episodeId": "EP_REVIEW_PACKET_001",
+            "evidenceIds": ["EP_REVIEW_PACKET_001_DLG0002"],
+            "extractionRunRef": "EP_REVIEW_PACKET_001",
+            "sourceType": "script",
+            "confidence": 0.5
+          }
+        ],
+        "sourceCharacterIds": ["9002"],
+        "fieldValues": {},
+        "conflicts": [],
+        "manualOverridesApplied": [],
+        "mergedFrom": ["EP_REVIEW_PACKET_001", "EP_REVIEW_PACKET_002"],
+        "createdAt": null,
+        "updatedAt": null
+      },
+      {
+        "schemaVersion": "0.1",
+        "id": "UNRESOLVED_CHAR_TEST_UNKNOWN",
+        "type": "character",
+        "canonicalId": null,
+        "mergedId": "UNRESOLVED_CHAR_TEST_UNKNOWN",
+        "displayName": "Test Character Unknown",
+        "aliases": [],
+        "status": "unresolved",
+        "sourceTypes": ["script"],
+        "confidence": 0.4,
+        "evidenceRefs": [
+          {
+            "evidenceId": "EP_REVIEW_PACKET_001_DLG0003",
+            "storyId": "TEST_REVIEW_PACKET",
+            "episodeId": "EP_REVIEW_PACKET_001",
+            "sceneId": "EP_REVIEW_PACKET_001_SC001",
+            "blockId": "EP_REVIEW_PACKET_001_DLG0003",
+            "sourceDocumentId": "EP_REVIEW_PACKET_001",
+            "evidenceType": "dialogue",
+            "confidence": 0.4
+          }
+        ],
+        "sourceCandidates": [
+          {
+            "candidateId": "EP_REVIEW_PACKET_001_CAND_CHAR003",
+            "candidateType": "character_candidate",
+            "sourceDocumentId": "EP_REVIEW_PACKET_001",
+            "episodeId": "EP_REVIEW_PACKET_001",
+            "evidenceIds": ["EP_REVIEW_PACKET_001_DLG0003"],
+            "extractionRunRef": "EP_REVIEW_PACKET_001",
+            "sourceType": "script",
+            "confidence": 0.4
+          }
+        ],
+        "sourceCharacterIds": ["9999"],
+        "fieldValues": {},
+        "conflicts": [],
+        "manualOverridesApplied": [],
+        "mergedFrom": ["EP_REVIEW_PACKET_001"],
+        "createdAt": null,
+        "updatedAt": null
+      },
+      {
+        "schemaVersion": "0.1",
+        "id": "UNRESOLVED_CHAR_TEST_NO_SOURCE_ID",
+        "type": "character",
+        "canonicalId": null,
+        "mergedId": "UNRESOLVED_CHAR_TEST_NO_SOURCE_ID",
+        "displayName": "Test Character No Source ID",
+        "aliases": [],
+        "status": "unresolved",
+        "sourceTypes": ["script"],
+        "confidence": 0.3,
+        "evidenceRefs": [
+          {
+            "evidenceId": "EP_REVIEW_PACKET_001_DLG0004",
+            "storyId": "TEST_REVIEW_PACKET",
+            "episodeId": "EP_REVIEW_PACKET_001",
+            "sceneId": "EP_REVIEW_PACKET_001_SC001",
+            "blockId": "EP_REVIEW_PACKET_001_DLG0004",
+            "sourceDocumentId": "EP_REVIEW_PACKET_001",
+            "evidenceType": "dialogue",
+            "confidence": 0.3
+          }
+        ],
+        "sourceCandidates": [
+          {
+            "candidateId": "EP_REVIEW_PACKET_001_CAND_CHAR004",
+            "candidateType": "character_candidate",
+            "sourceDocumentId": "EP_REVIEW_PACKET_001",
+            "episodeId": "EP_REVIEW_PACKET_001",
+            "evidenceIds": ["EP_REVIEW_PACKET_001_DLG0004"],
+            "extractionRunRef": "EP_REVIEW_PACKET_001",
+            "sourceType": "script",
+            "confidence": 0.3
+          }
+        ],
+        "sourceCharacterIds": [],
+        "fieldValues": {},
+        "conflicts": [],
+        "manualOverridesApplied": [],
+        "mergedFrom": ["EP_REVIEW_PACKET_001"],
+        "createdAt": null,
+        "updatedAt": null
+      }
+    ],
+    "locations": [],
+    "organizations": [],
+    "items": [],
+    "lore": [],
+    "events": [],
+    "relationships": [],
+    "timeline": []
+  },
+  "report": {
+    "inputFiles": 2,
+    "resolvedInputFiles": 2,
+    "validInputs": 2,
+    "invalidInputs": 0,
+    "skippedInputs": [],
+    "candidateCounts": {
+      "characters": 5,
+      "locations": 0,
+      "organizations": 0,
+      "items": 0,
+      "lore": 0,
+      "events": 0,
+      "relationships": 0,
+      "timelineCandidates": 0
+    },
+    "mergedEntityCounts": {
+      "characters": 4,
+      "locations": 0,
+      "organizations": 0,
+      "items": 0,
+      "lore": 0,
+      "events": 0,
+      "relationships": 0,
+      "timeline": 0
+    },
+    "conflictsCount": 0,
+    "unresolvedCount": 3,
+    "unresolvedEntityCounts": {
+      "characters": 3,
+      "locations": 0,
+      "organizations": 0,
+      "items": 0,
+      "lore": 0,
+      "events": 0,
+      "relationships": 0,
+      "timeline": 0
+    },
+    "conflictCounts": {
+      "total": 0,
+      "bySeverity": {},
+      "byType": {},
+      "byEntityType": {}
+    },
+    "warningCounts": {
+      "total": 0,
+      "unresolvedRelationships": 0,
+      "skippedOverrides": 0,
+      "other": 0
+    },
+    "entityTypeSummaries": {
+      "characters": {
+        "candidateCount": 5,
+        "mergedCount": 4,
+        "unresolvedCount": 3,
+        "conflictCount": 0
+      },
+      "locations": {
+        "candidateCount": 0,
+        "mergedCount": 0,
+        "unresolvedCount": 0,
+        "conflictCount": 0
+      },
+      "organizations": {
+        "candidateCount": 0,
+        "mergedCount": 0,
+        "unresolvedCount": 0,
+        "conflictCount": 0
+      },
+      "items": {
+        "candidateCount": 0,
+        "mergedCount": 0,
+        "unresolvedCount": 0,
+        "conflictCount": 0
+      },
+      "lore": {
+        "candidateCount": 0,
+        "mergedCount": 0,
+        "unresolvedCount": 0,
+        "conflictCount": 0
+      },
+      "events": {
+        "candidateCount": 0,
+        "mergedCount": 0,
+        "unresolvedCount": 0,
+        "conflictCount": 0
+      },
+      "relationships": {
+        "candidateCount": 0,
+        "mergedCount": 0,
+        "unresolvedCount": 0,
+        "conflictCount": 0
+      },
+      "timeline": {
+        "candidateCount": 0,
+        "mergedCount": 0,
+        "unresolvedCount": 0,
+        "conflictCount": 0
+      }
+    },
+    "inputSummaries": [
+      {
+        "path": "tests/fixtures/character_dictionary/synthetic_review_packet_episode_001.json",
+        "status": "valid",
+        "documentId": "EP_REVIEW_PACKET_001",
+        "episodeId": "EP_REVIEW_PACKET_001",
+        "candidateCounts": {
+          "characters": 4,
+          "locations": 0,
+          "organizations": 0,
+          "items": 0,
+          "lore": 0,
+          "events": 0,
+          "relationships": 0,
+          "timelineCandidates": 0
+        },
+        "mergedEntityCounts": null
+      },
+      {
+        "path": "tests/fixtures/character_dictionary/synthetic_review_packet_episode_002.json",
+        "status": "valid",
+        "documentId": "EP_REVIEW_PACKET_002",
+        "episodeId": "EP_REVIEW_PACKET_002",
+        "candidateCounts": {
+          "characters": 1,
+          "locations": 0,
+          "organizations": 0,
+          "items": 0,
+          "lore": 0,
+          "events": 0,
+          "relationships": 0,
+          "timelineCandidates": 0
+        },
+        "mergedEntityCounts": null
+      }
+    ],
+    "inputResults": [
+      {
+        "path": "tests/fixtures/character_dictionary/synthetic_review_packet_episode_001.json",
+        "status": "valid",
+        "errors": [],
+        "warnings": []
+      },
+      {
+        "path": "tests/fixtures/character_dictionary/synthetic_review_packet_episode_002.json",
+        "status": "valid",
+        "errors": [],
+        "warnings": []
+      }
+    ],
+    "warnings": [],
+    "errors": []
+  }
+}

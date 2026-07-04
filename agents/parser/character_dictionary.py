@@ -329,3 +329,94 @@ def build_review_candidates(
         }
         for sid, count in sorted(unknown.items(), key=lambda kv: kv[1], reverse=True)
     ]
+
+
+def build_character_review_packet(
+    collection: dict[str, Any],
+    entries: list[CharacterDictionaryEntry],
+) -> list[dict[str, Any]]:
+    """merged knowledge collectionのcharacter entityから、人間が
+    sourceCharacterId -> characterId mappingを確認・記入しやすい
+    review packetの1エントリ形式を組み立てる (scripts/build_character_review_packet.py
+    から呼ばれる)。
+
+    既にstatus: mergedのentity (= 実運用ではstatus: confirmedの辞書エントリに
+    よって解決済み)、および辞書側で既にstatus: confirmedになっている
+    sourceCharacterIdは、再レビューが不要なため除外する。それ以外
+    (name_only、または辞書に一切登録が無いunknown) のみを対象とし、
+    observedCount (evidenceRefs件数) の降順で返す。
+
+    戻り値の各要素は sourceCharacterId・displayName・辞書の既存状態・
+    件数統計・空のレビュー用プレースホルダーのみで構成され、元セリフ・
+    raw payload・merged collection全文は含まない。
+    """
+    dict_by_source_id = {entry.source_character_id: entry for entry in entries}
+    packets_by_source_id: dict[str, dict[str, Any]] = {}
+    episode_ids_by_source_id: dict[str, set[str]] = {}
+    document_ids_by_source_id: dict[str, set[str]] = {}
+
+    for entity in collection.get("entities", {}).get("characters", []) or []:
+        # merged knowledge collection側の"merged" (Wiki層のSTATUS_MERGEDと
+        # 同じ値だが、Parser層をWiki/Merger層から独立させるためここでは
+        # 文字列リテラルで比較する)。
+        if entity.get("status") == "merged":
+            continue
+        source_ids = entity.get("sourceCharacterIds") or []
+        if not source_ids:
+            continue
+
+        evidence_refs = entity.get("evidenceRefs") or []
+        episode_ids = {
+            ref.get("episodeId") for ref in evidence_refs if ref.get("episodeId")
+        }
+        document_ids = {
+            ref.get("sourceDocumentId")
+            for ref in evidence_refs
+            if ref.get("sourceDocumentId")
+        }
+        display_name = entity.get("displayName")
+
+        for source_id in source_ids:
+            source_id = str(source_id)
+            dict_entry = dict_by_source_id.get(source_id)
+            if dict_entry is not None and dict_entry.status == STATUS_CONFIRMED:
+                continue
+
+            packet = packets_by_source_id.setdefault(
+                source_id,
+                {
+                    "sourceCharacterId": source_id,
+                    "displayName": None,
+                    "existingDictionaryStatus": (
+                        dict_entry.status if dict_entry else "unknown"
+                    ),
+                    "existingCharacterId": (
+                        dict_entry.character_id if dict_entry else None
+                    ),
+                    "aliases": list(dict_entry.aliases) if dict_entry else [],
+                    "observedCount": 0,
+                    "appearedEpisodeCount": 0,
+                    "sourceDocumentCount": 0,
+                    "humanReviewStatus": "pending",
+                    "humanConfirmedCharacterId": None,
+                    "notes": "",
+                },
+            )
+            if not packet["displayName"] and display_name:
+                packet["displayName"] = display_name
+            packet["observedCount"] += len(evidence_refs)
+            episode_ids_by_source_id.setdefault(source_id, set()).update(episode_ids)
+            document_ids_by_source_id.setdefault(source_id, set()).update(document_ids)
+
+    packets = list(packets_by_source_id.values())
+    for packet in packets:
+        source_id = packet["sourceCharacterId"]
+        packet["appearedEpisodeCount"] = len(
+            episode_ids_by_source_id.get(source_id, set())
+        )
+        packet["sourceDocumentCount"] = len(
+            document_ids_by_source_id.get(source_id, set())
+        )
+
+    packets.sort(key=lambda p: p["observedCount"], reverse=True)
+    return packets
