@@ -183,6 +183,12 @@ class Tokenizer:
             "image",
             "distance",
             "shake",
+            # branch/choice included dry-run (feature/branch-choice-dry-run)
+            # で見つかった@なし演出コマンド。agents/parser/parser.py の
+            # DIRECTION_TYPE_MAP と対にして追加すること。@付きコマンド
+            # (@TalkPosR等) はここへの追加不要 (先頭が@なら自動でCOMMAND)。
+            "costume",
+            "fa",
         }
     )
 

@@ -164,6 +164,8 @@ class TestRealDataStageDirectionKeywords:
             ("distance 1\n", "distance"),
             ("shake 0.5\n", "shake"),
             ("uniq 1\n", "uniq"),
+            ("costume 1 2\n", "costume"),
+            ("fa 3\n", "fa"),
         ],
     )
     def test_known_bare_word_stage_command_is_keyword(self, line, expected_command):
@@ -178,6 +180,26 @@ class TestRealDataStageDirectionKeywords:
         assert len(tokens) == 1
         assert tokens[0].token_type == TokenType.UNKNOWN
         assert tokens[0].command == "totallyUnknownCommand123"
+
+    @pytest.mark.parametrize(
+        "line,expected_command",
+        [
+            ("@TalkPosR\n", "@TalkPosR"),
+            ("@TalkPosL\n", "@TalkPosL"),
+            ("@ChEyeOff 0\n", "@ChEyeOff"),
+            ("@VisibleS 1\n", "@VisibleS"),
+            ("@FadeOutBlack 1\n", "@FadeOutBlack"),
+        ],
+    )
+    def test_branch_choice_dry_run_at_commands_are_command_type(
+        self, line, expected_command
+    ):
+        """@付きコマンドはtokenizer側の変更なしで自動的にCOMMANDになる
+        (branch/choice included dry-runで見つかった未登録コマンド)。"""
+        tokens = tokenize_text(line)
+        assert len(tokens) == 1
+        assert tokens[0].token_type == TokenType.COMMAND
+        assert tokens[0].command == expected_command
 
 
 # ----------------------------------------------------------------

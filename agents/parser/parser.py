@@ -93,6 +93,16 @@ DIRECTION_TYPE_MAP: dict[str, str] = {
     "image": "system",
     "distance": "camera",
     "shake": "camera",
+    # branch/choice included dry-run (feature/branch-choice-dry-run) で
+    # 見つかった演出コマンド群。意味を完全解析せず既存カテゴリへ機械的に
+    # 振り分ける (config/script_commands.yaml の stage_direction と対で追加)。
+    "costume": "character_display",
+    "fa": "character_display",
+    "@TalkPosR": "ui",
+    "@TalkPosL": "ui",
+    "@ChEyeOff": "character_display",
+    "@VisibleS": "character_display",
+    "@FadeOutBlack": "screen",
 }
 
 # 表記ゆれ → 正規化
