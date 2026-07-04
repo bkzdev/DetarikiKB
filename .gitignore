@@ -34,6 +34,13 @@ tests/fixtures/parser/CAB-csl_script_*.dec
 # behavior; only the dry-run scratch output area is ignored here.
 workspace/dry_runs/
 
+# Real data Wiki render dry-run output (docs/runbooks/Real_Data_Wiki_Render_Dry_Run.md).
+workspace/wiki_preview/
+workspace/wiki_render/
+site_src/
+docs/wiki_generated/
+generated/wiki/
+
 # Secrets / logs
 .env
 .env.*

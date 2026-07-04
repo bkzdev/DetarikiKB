@@ -99,7 +99,10 @@ Raw Script (.dec)
 
 - 実データ（実際の`.dec`スクリプト由来のセリフ・キャラクター名・merged knowledge collection）から生成したWikiページ・Markdownファイルは、**commitしない**。
 - 合成データ（`CHAR_TEST_*`等）から作った**サンプル**のみ、`docs/examples/wiki_output/`または`tests/fixtures/`に置いてよい（本PRで追加するものは§13参照）。
-- 将来、実データからのローカルdry-run render（§12 実装PR案6）を行う場合も、出力先は`.gitignore`済みの領域（`workspace/dry_runs/`等）を使う。
+- 将来、実データからのローカルdry-run render（§12 実装PR案6）を行う場合も、出力先は`.gitignore`済みの領域（`workspace/wiki_preview/`等）を使う。
+
+**実装状況（`feature/real-data-wiki-render-dry-run`で追加）**: 実データWiki render dry-run専用の手順書`docs/runbooks/Real_Data_Wiki_Render_Dry_Run.md`と結果記録テンプレート`docs/runbooks/Real_Data_Wiki_Render_Dry_Run_Result_Template.md`を追加した。`.gitignore`に`workspace/wiki_preview/`・`workspace/wiki_render/`・`site_src/`・`docs/wiki_generated/`・`generated/wiki/`を追加済み。このPR実施時点ではローカルに実データ由来merged knowledge collectionが存在しなかったため、実データでのdry-runは未実施（合成の縮退collectionでrendererの堅牢性のみ検証、詳細はTASKS.md参照）。
+
 - 公開時（GitHub Pages / Cloudflare Pages等）の運用方針は、本文書のスコープ外とし、別PRで決める（Non-goals参照）。
 
 ---

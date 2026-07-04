@@ -1,0 +1,172 @@
+{
+  "schemaVersion": "0.1.0",
+  "documentType": "merged_knowledge_collection",
+  "generatedAt": "2026-07-04T00:00:00+00:00",
+  "sourceDocuments": [],
+  "entities": {
+    "characters": [
+      {
+        "schemaVersion": "0.1",
+        "id": "CHAR_MIN_RESOLVED",
+        "type": "character",
+        "canonicalId": "CHAR_MIN_RESOLVED",
+        "status": "merged",
+        "sourceTypes": ["script"],
+        "confidence": 0.6,
+        "evidenceRefs": [
+          {
+            "evidenceId": "EP_MIN_0001",
+            "evidenceType": "dialogue",
+            "confidence": 0.6
+          }
+        ],
+        "sourceCandidates": [
+          {
+            "candidateId": "EP_MIN_CAND_0001",
+            "candidateType": "character_candidate",
+            "evidenceIds": ["EP_MIN_0001"],
+            "confidence": 0.6
+          }
+        ]
+      },
+      {
+        "schemaVersion": "0.1",
+        "id": "UNRESOLVED_CHAR_MIN_0001",
+        "type": "character",
+        "canonicalId": null,
+        "status": "unresolved",
+        "sourceTypes": ["script"],
+        "confidence": 0.3,
+        "evidenceRefs": [
+          {
+            "evidenceId": "EP_MIN_0002",
+            "evidenceType": "dialogue",
+            "confidence": 0.3
+          }
+        ],
+        "sourceCandidates": [
+          {
+            "candidateId": "EP_MIN_CAND_0002",
+            "candidateType": "character_candidate",
+            "evidenceIds": ["EP_MIN_0002"],
+            "confidence": 0.3
+          }
+        ]
+      }
+    ],
+    "locations": [],
+    "organizations": [],
+    "items": [],
+    "lore": [],
+    "events": [],
+    "relationships": [],
+    "timeline": []
+  },
+  "report": {
+    "inputFiles": 0,
+    "resolvedInputFiles": 0,
+    "validInputs": 0,
+    "invalidInputs": 0,
+    "skippedInputs": [],
+    "candidateCounts": {
+      "characters": 2,
+      "locations": 0,
+      "organizations": 0,
+      "items": 0,
+      "lore": 0,
+      "events": 0,
+      "relationships": 0,
+      "timelineCandidates": 0
+    },
+    "mergedEntityCounts": {
+      "characters": 2,
+      "locations": 0,
+      "organizations": 0,
+      "items": 0,
+      "lore": 0,
+      "events": 0,
+      "relationships": 0,
+      "timeline": 0
+    },
+    "conflictsCount": 0,
+    "unresolvedCount": 1,
+    "unresolvedEntityCounts": {
+      "characters": 1,
+      "locations": 0,
+      "organizations": 0,
+      "items": 0,
+      "lore": 0,
+      "events": 0,
+      "relationships": 0,
+      "timeline": 0
+    },
+    "conflictCounts": {
+      "total": 0,
+      "bySeverity": {},
+      "byType": {},
+      "byEntityType": {}
+    },
+    "warningCounts": {
+      "total": 1,
+      "unresolvedRelationships": 0,
+      "skippedOverrides": 0,
+      "other": 1
+    },
+    "entityTypeSummaries": {
+      "characters": {
+        "candidateCount": 2,
+        "mergedCount": 2,
+        "unresolvedCount": 1,
+        "conflictCount": 0
+      },
+      "locations": {
+        "candidateCount": 0,
+        "mergedCount": 0,
+        "unresolvedCount": 0,
+        "conflictCount": 0
+      },
+      "organizations": {
+        "candidateCount": 0,
+        "mergedCount": 0,
+        "unresolvedCount": 0,
+        "conflictCount": 0
+      },
+      "items": {
+        "candidateCount": 0,
+        "mergedCount": 0,
+        "unresolvedCount": 0,
+        "conflictCount": 0
+      },
+      "lore": {
+        "candidateCount": 0,
+        "mergedCount": 0,
+        "unresolvedCount": 0,
+        "conflictCount": 0
+      },
+      "events": {
+        "candidateCount": 0,
+        "mergedCount": 0,
+        "unresolvedCount": 0,
+        "conflictCount": 0
+      },
+      "relationships": {
+        "candidateCount": 0,
+        "mergedCount": 0,
+        "unresolvedCount": 0,
+        "conflictCount": 0
+      },
+      "timeline": {
+        "candidateCount": 0,
+        "mergedCount": 0,
+        "unresolvedCount": 0,
+        "conflictCount": 0
+      }
+    },
+    "inputSummaries": [],
+    "inputResults": [],
+    "warnings": [
+      "テスト用の長いwarningメッセージ。truncateの挙動を確認するためのテストデータで実データ本文ではない。文字数を稼ぐために同じ文言を繰り返す。文字数を稼ぐために同じ文言を繰り返す。文字数を稼ぐために同じ文言を繰り返す。文字数を稼ぐために同じ文言を繰り返す。文字数を稼ぐために同じ文言を繰り返す。文字数を稼ぐために同じ文言を繰り返す。文字数を稼ぐために同じ文言を繰り返す。文字数を稼ぐために同じ文言を繰り返す。文字数を稼ぐために同じ文言を繰り返す。"
+    ],
+    "errors": []
+  }
+}
