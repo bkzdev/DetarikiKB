@@ -44,11 +44,11 @@ characters:
     status: "name_only"
     notes: null
   - sourceCharacterId: "5"
-    characterId: null
+    characterId: "CHAR_005_AOI_NANAMI"
     displayName: "青井七海"
     aliases: []
-    status: "name_only"
-    notes: null
+    status: "confirmed"
+    notes: "review packet batch 003で人間確認済み。"
   - sourceCharacterId: "6"
     characterId: null
     displayName: "白咲美月"
@@ -62,11 +62,11 @@ characters:
     status: "name_only"
     notes: null
   - sourceCharacterId: "8"
-    characterId: null
+    characterId: "CHAR_008_SHINONOME_WAKA"
     displayName: "東雲和果"
     aliases: []
-    status: "name_only"
-    notes: null
+    status: "confirmed"
+    notes: "review packet batch 003で人間確認済み。"
   - sourceCharacterId: "9"
     characterId: null
     displayName: "桃谷小夜"
@@ -158,11 +158,11 @@ characters:
     status: "name_only"
     notes: null
   - sourceCharacterId: "24"
-    characterId: null
+    characterId: "CHAR_024_EMMITT"
     displayName: "エミット"
     aliases: []
-    status: "name_only"
-    notes: null
+    status: "confirmed"
+    notes: "review packet batch 003で人間確認済み。"
   - sourceCharacterId: "26"
     characterId: "CHAR_RAIN"
     displayName: "レイン"
@@ -182,11 +182,11 @@ characters:
     status: "name_only"
     notes: null
   - sourceCharacterId: "29"
-    characterId: null
+    characterId: "CHAR_029_RAVEL"
     displayName: "レイヴェル"
     aliases: []
-    status: "name_only"
-    notes: null
+    status: "confirmed"
+    notes: "review packet batch 003で人間確認済み。"
   - sourceCharacterId: "30"
     characterId: null
     displayName: "薊優花"
@@ -218,11 +218,11 @@ characters:
     status: "name_only"
     notes: null
   - sourceCharacterId: "35"
-    characterId: null
+    characterId: "CHAR_035_SUGIURA_SAKURA"
     displayName: "杉浦咲良"
     aliases: []
-    status: "name_only"
-    notes: null
+    status: "confirmed"
+    notes: "review packet batch 003で人間確認済み。"
   - sourceCharacterId: "36"
     characterId: null
     displayName: "柴田エレナ"
@@ -260,11 +260,11 @@ characters:
     status: "name_only"
     notes: null
   - sourceCharacterId: "70"
-    characterId: null
+    characterId: "CHAR_070_LIGULASS"
     displayName: "リグラス"
     aliases: []
-    status: "name_only"
-    notes: null
+    status: "confirmed"
+    notes: "review packet batch 003で人間確認済み。"
   - sourceCharacterId: "200"
     characterId: null
     displayName: "酒井芽衣菜"
@@ -284,11 +284,11 @@ characters:
     status: "name_only"
     notes: null
   - sourceCharacterId: "203"
-    characterId: null
+    characterId: "CHAR_203_ISOBE_KAORI"
     displayName: "磯部香織里"
     aliases: []
-    status: "name_only"
-    notes: null
+    status: "confirmed"
+    notes: "review packet batch 003で人間確認済み。"
   - sourceCharacterId: "204"
     characterId: null
     displayName: "多賀部紬"
@@ -308,23 +308,23 @@ characters:
     status: "name_only"
     notes: null
   - sourceCharacterId: "207"
-    characterId: null
+    characterId: "CHAR_207_KIRIBOSHI_MIMI"
     displayName: "切干美海"
     aliases: []
-    status: "name_only"
-    notes: null
+    status: "confirmed"
+    notes: "review packet batch 003で人間確認済み。"
   - sourceCharacterId: "208"
-    characterId: null
+    characterId: "CHAR_208_SETTA_EMA"
     displayName: "雪駄恵茉"
     aliases: []
-    status: "name_only"
-    notes: null
+    status: "confirmed"
+    notes: "review packet batch 003で人間確認済み。"
   - sourceCharacterId: "209"
-    characterId: null
+    characterId: "CHAR_209_SHIMODA_KASUMI"
     displayName: "霜田霞"
     aliases: []
-    status: "name_only"
-    notes: null
+    status: "confirmed"
+    notes: "review packet batch 003で人間確認済み。"
   - sourceCharacterId: "210"
     characterId: null
     displayName: "ムーリン"
@@ -362,17 +362,17 @@ characters:
     status: "name_only"
     notes: null
   - sourceCharacterId: "216"
-    characterId: null
+    characterId: "CHAR_216_JASMINE"
     displayName: "ジャスミン"
     aliases: []
-    status: "name_only"
-    notes: null
+    status: "confirmed"
+    notes: "review packet batch 003で人間確認済み。"
   - sourceCharacterId: "217"
-    characterId: null
+    characterId: "CHAR_217_EVE_NEMOPHILA"
     displayName: "イヴ・ネモフィラ"
     aliases: []
-    status: "name_only"
-    notes: null
+    status: "confirmed"
+    notes: "review packet batch 003で人間確認済み。"
   - sourceCharacterId: "218"
     characterId: null
     displayName: "ビオラ"
