@@ -125,6 +125,68 @@ def test_cli_invalid_dictionary_returns_exit_2(tmp_path):
     assert result.returncode == 2
 
 
+def test_cli_reports_status_breakdown(tmp_path):
+    """confirmed/name_onlyの内訳がstdoutに出ることを確認する。"""
+    dictionary_path = _write_dictionary(tmp_path)
+    script_path = _write_script(tmp_path)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            str(script_path),
+            "--dictionary",
+            str(dictionary_path),
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "confirmed" in result.stdout
+    assert "name_only" in result.stdout
+    assert "confirmed coverage" in result.stdout
+    assert "name_only coverage" in result.stdout
+
+
+def test_cli_review_template_output_writes_synthetic_yaml(tmp_path):
+    """--review-template-outputで、未登録IDのみを含む合成テンプレートYAML
+    が書き出され、displayName等の実データ内容が含まれないことを確認する。"""
+    dictionary_path = _write_dictionary(tmp_path)
+    script_path = _write_script(tmp_path)
+    template_output = tmp_path / "review" / "candidates.yaml"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            str(script_path),
+            "--dictionary",
+            str(dictionary_path),
+            "--review-template-output",
+            str(template_output),
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert template_output.exists()
+
+    content = template_output.read_text(encoding="utf-8")
+    assert "commitしないでください" in content
+
+    with open(template_output, encoding="utf-8") as f:
+        data = yaml.safe_load(f)
+    candidates = data["reviewCandidates"]
+    assert len(candidates) == 1
+    assert candidates[0]["sourceCharacterId"] == "9999"
+    assert candidates[0]["observedCount"] == 1
+    assert candidates[0]["confirmedCharacterId"] is None
+    assert candidates[0]["suggestedDisplayName"] is None
+    assert candidates[0]["status"] == "name_only"
+
+
 def test_cli_missing_dictionary_returns_exit_2(tmp_path):
     script_path = _write_script(tmp_path)
 

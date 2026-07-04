@@ -19,6 +19,7 @@ from agents.parser.character_dictionary import (
     STATUS_NAME_ONLY,
     CharacterDictionaryEntry,
     build_character_dictionary_coverage_report,
+    build_review_candidates,
     load_character_dictionary,
     resolve_character_by_name,
     resolve_character_by_source_id,
@@ -193,6 +194,46 @@ def test_validate_rejects_empty_display_name():
     assert any("displayNameが空" in issue for issue in issues)
 
 
+def test_validate_rejects_duplicate_alias_within_entry():
+    entries = [
+        CharacterDictionaryEntry(
+            source_character_id="9001",
+            display_name="A",
+            aliases=["Ace", "Ace"],
+        )
+    ]
+    issues = validate_character_dictionary(entries)
+    assert any("aliasesに重複した値があります" in issue for issue in issues)
+
+
+def test_validate_rejects_alias_shared_across_entries():
+    entries = [
+        CharacterDictionaryEntry(
+            source_character_id="9001", display_name="A", aliases=["Shared"]
+        ),
+        CharacterDictionaryEntry(
+            source_character_id="9002", display_name="B", aliases=["Shared"]
+        ),
+    ]
+    issues = validate_character_dictionary(entries)
+    assert any(
+        "alias 'Shared'" in issue and "9001" in issue and "9002" in issue
+        for issue in issues
+    )
+
+
+def test_validate_accepts_unique_aliases():
+    entries = [
+        CharacterDictionaryEntry(
+            source_character_id="9001", display_name="A", aliases=["Ace"]
+        ),
+        CharacterDictionaryEntry(
+            source_character_id="9002", display_name="B", aliases=["Bee"]
+        ),
+    ]
+    assert validate_character_dictionary(entries) == []
+
+
 def test_character_id_pattern_accepts_expected_format():
     assert CHARACTER_ID_PATTERN.match("CHAR_TEST_A")
     assert CHARACTER_ID_PATTERN.match("CHAR_RAIN")
@@ -269,6 +310,22 @@ def test_coverage_report_basic(sample_entries):
     assert report["topUnknownIds"][0]["sourceCharacterId"] == "9999"
 
 
+def test_coverage_report_distinguishes_confirmed_and_name_only(sample_entries):
+    """9001はconfirmed、9002はname_onlyという sample_entries の前提のもと、
+    知っている(known)側の内訳がconfirmed/name_onlyで分かれて出ることを
+    確認する（confirmedとname_onlyでは意味が違うため、混同しないこと）。"""
+    observed = {"9001": 5, "9002": 3, "9999": 2, "8888": 1}
+    report = build_character_dictionary_coverage_report(sample_entries, observed)
+
+    assert report["confirmedObservedCount"] == 1
+    assert report["nameOnlyObservedCount"] == 1
+    assert report["confirmedCoveragePercentage"] == 25.0
+    assert report["nameOnlyCoveragePercentage"] == 25.0
+    assert report["dictionaryTotalCount"] == 2
+    assert report["dictionaryConfirmedCount"] == 1
+    assert report["dictionaryNameOnlyCount"] == 1
+
+
 def test_coverage_report_no_observed_ids_is_full_coverage(sample_entries):
     report = build_character_dictionary_coverage_report(sample_entries, {})
     assert report["observedCount"] == 0
@@ -280,3 +337,40 @@ def test_coverage_report_top_unknown_capped_at_20(sample_entries):
     observed = {str(i): 1 for i in range(30)}
     report = build_character_dictionary_coverage_report(sample_entries, observed)
     assert len(report["topUnknownIds"]) == 20
+
+
+# ----------------------------------------------------------------
+# build_review_candidates
+# ----------------------------------------------------------------
+
+
+def test_build_review_candidates_lists_unknown_ids_only():
+    observed = {"9001": 5, "9999": 2, "8888": 7}
+    known_ids = {"9001"}
+    candidates = build_review_candidates(observed, known_ids)
+
+    ids = {c["sourceCharacterId"] for c in candidates}
+    assert ids == {"9999", "8888"}
+    # 出現回数の降順であること
+    assert candidates[0]["sourceCharacterId"] == "8888"
+    assert candidates[0]["observedCount"] == 7
+
+
+def test_build_review_candidates_contains_no_real_data_content():
+    """候補エントリはID・出現回数のみで、displayName等の実データ内容を
+    一切含まないプレースホルダーのみで構成されること。"""
+    candidates = build_review_candidates({"9999": 1}, known_ids=set())
+    assert candidates == [
+        {
+            "sourceCharacterId": "9999",
+            "observedCount": 1,
+            "suggestedDisplayName": None,
+            "confirmedCharacterId": None,
+            "status": STATUS_NAME_ONLY,
+            "reviewerNotes": None,
+        }
+    ]
+
+
+def test_build_review_candidates_empty_when_all_known():
+    assert build_review_candidates({"9001": 1}, known_ids={"9001"}) == []

@@ -151,6 +151,38 @@ def _validate_duplicates(entries: list[CharacterDictionaryEntry]) -> list[str]:
     return issues
 
 
+def _validate_alias_duplicates(entries: list[CharacterDictionaryEntry]) -> list[str]:
+    """aliasesの重複を検出する。
+
+    aliasesは検索補助 (resolve_character_by_name) にのみ使われ、同一人物
+    確定の根拠にはしない方針だが、重複値があると「最初に一致した方が
+    採用される」曖昧さが黙って発生するため、以下2種類を検出する。
+
+    - 同一エントリ内でaliasesの値が重複している
+    - 同じalias値が複数エントリ (sourceCharacterId違い) で使われている
+    """
+    issues: list[str] = []
+    alias_owners: dict[str, list[str]] = {}
+
+    for entry in entries:
+        if len(entry.aliases) != len(set(entry.aliases)):
+            issues.append(
+                f"sourceCharacterId '{entry.source_character_id}': "
+                "aliasesに重複した値があります"
+            )
+        for alias in entry.aliases:
+            alias_owners.setdefault(alias, []).append(entry.source_character_id)
+
+    for alias, owners in alias_owners.items():
+        if len(owners) > 1:
+            issues.append(
+                f"alias '{alias}' が複数キャラクター "
+                f"({', '.join(owners)}) で重複しています"
+            )
+
+    return issues
+
+
 def validate_character_dictionary(
     entries: list[CharacterDictionaryEntry],
 ) -> list[str]:
@@ -165,6 +197,7 @@ def validate_character_dictionary(
     for i, entry in enumerate(entries):
         issues.extend(_validate_single_entry(i, entry))
     issues.extend(_validate_duplicates(entries))
+    issues.extend(_validate_alias_duplicates(entries))
     return issues
 
 
@@ -208,9 +241,19 @@ def build_character_dictionary_coverage_report(
 
     戻り値のキーは実データの内容（本文・IDの生一覧）を含まないよう
     最小限にとどめる。呼び出し側がこれをそのままcommitしないよう注意する
-    こと（Real_Data_Dry_Run.md参照）。
+    こと（Real_Data_Dry_Run.md参照、docs/runbooks/Character_Dictionary_Review.md
+    §dry-run後のcoverage report確認手順）。
+
+    knownCount/coveragePercentageは「辞書に登録済み (statusを問わない)」の
+    割合であることに注意する。confirmed (existingCharacterIdとして解決され
+    mergeされる) とname_only (displayNameのみ、mergeではunresolvedのまま)
+    は意味が異なるため、confirmedObservedCount/nameOnlyObservedCountで
+    内訳を分けて確認できるようにしている
+    （名前一致だけでconfirmed扱いにしないルールの遵守状況を、辞書全体の
+    状態からも確認できるようにするため）。
     """
-    known_ids = {entry.source_character_id for entry in entries}
+    status_by_id = {entry.source_character_id: entry.status for entry in entries}
+    known_ids = set(status_by_id.keys())
     observed_ids = set(observed_source_ids.keys())
 
     known_observed = observed_ids & known_ids
@@ -219,9 +262,15 @@ def build_character_dictionary_coverage_report(
     observed_count = len(observed_ids)
     known_count = len(known_observed)
     unknown_count = len(unknown_observed)
-    coverage_percentage = (
-        round(100.0 * known_count / observed_count, 1) if observed_count else 100.0
+    confirmed_observed_count = sum(
+        1 for sid in known_observed if status_by_id[sid] == STATUS_CONFIRMED
     )
+    name_only_observed_count = sum(
+        1 for sid in known_observed if status_by_id[sid] == STATUS_NAME_ONLY
+    )
+
+    def _percentage(numerator: int) -> float:
+        return round(100.0 * numerator / observed_count, 1) if observed_count else 100.0
 
     top_unknown = sorted(
         (
@@ -236,6 +285,47 @@ def build_character_dictionary_coverage_report(
         "observedCount": observed_count,
         "knownCount": known_count,
         "unknownCount": unknown_count,
-        "coveragePercentage": coverage_percentage,
+        "coveragePercentage": _percentage(known_count),
+        "confirmedObservedCount": confirmed_observed_count,
+        "nameOnlyObservedCount": name_only_observed_count,
+        "confirmedCoveragePercentage": _percentage(confirmed_observed_count),
+        "nameOnlyCoveragePercentage": _percentage(name_only_observed_count),
+        "dictionaryTotalCount": len(entries),
+        "dictionaryConfirmedCount": sum(
+            1 for s in status_by_id.values() if s == STATUS_CONFIRMED
+        ),
+        "dictionaryNameOnlyCount": sum(
+            1 for s in status_by_id.values() if s == STATUS_NAME_ONLY
+        ),
         "topUnknownIds": top_unknown,
     }
+
+
+def build_review_candidates(
+    observed_source_ids: dict[str, int],
+    known_ids: set[str],
+) -> list[dict[str, Any]]:
+    """未登録sourceCharacterId (辞書に無いID) を、人間確認用テンプレートの
+    1エントリ形式で出現回数の降順に列挙する。
+
+    戻り値の各要素は displayName・本文などの実データ内容を含まず、
+    ID番号・出現回数と空のプレースホルダーのみで構成される。呼び出し側
+    (scripts/check_character_dictionary_coverage.py の
+    --review-template-output) は、これをcommit対象外のローカルパス
+    (workspace/dry_runs/配下等) へ書き出すこと
+    (docs/runbooks/Character_Dictionary_Review.md 参照)。
+    """
+    unknown = {
+        sid: count for sid, count in observed_source_ids.items() if sid not in known_ids
+    }
+    return [
+        {
+            "sourceCharacterId": sid,
+            "observedCount": count,
+            "suggestedDisplayName": None,
+            "confirmedCharacterId": None,
+            "status": STATUS_NAME_ONLY,
+            "reviewerNotes": None,
+        }
+        for sid, count in sorted(unknown.items(), key=lambda kv: kv[1], reverse=True)
+    ]

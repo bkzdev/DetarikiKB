@@ -16,6 +16,7 @@ Phase 1 モジュール:
 from .character_dictionary import (
     CharacterDictionaryEntry,
     build_character_dictionary_coverage_report,
+    build_review_candidates,
     load_character_dictionary,
     resolve_character_by_name,
     resolve_character_by_source_id,
@@ -74,6 +75,7 @@ __all__ = [
     # character_dictionary
     "CharacterDictionaryEntry",
     "build_character_dictionary_coverage_report",
+    "build_review_candidates",
     "load_character_dictionary",
     "resolve_character_by_name",
     "resolve_character_by_source_id",
