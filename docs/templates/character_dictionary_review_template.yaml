@@ -1,0 +1,43 @@
+# Character Dictionary Review Template（人間確認用テンプレートの見本）
+#
+# 実データ投入・dry-run実施後、scripts/check_character_dictionary_coverage.py
+# --review-template-output が生成する実際のレビュー用ファイルは、この見本と
+# 同じ構造を持つ (docs/runbooks/Character_Dictionary_Review.md 参照)。
+#
+# このファイル自体は合成データのみで構成されており、実データ由来の
+# sourceCharacterId・実キャラクター名は一切含まない。実データを確認した
+# 結果を書き込む際は、この見本をコピーしてローカル (workspace/dry_runs/
+# 配下等、.gitignore対象) で編集し、確認済みのエントリだけを
+# knowledge/dictionaries/characters.yaml へ手動で反映すること。
+# このテンプレート自体（実データ入りのもの）はcommitしない。
+
+reviewCandidates:
+  # 自動生成されるエントリの例（未登録sourceCharacterIdが見つかった場合）。
+  # suggestedDisplayName/confirmedCharacterId/reviewerNotesは人間が
+  # 実データを確認してから埋める。埋めるまではnullのままにしておく。
+  - sourceCharacterId: "999"
+    observedCount: 12
+    suggestedDisplayName: "Example Character"
+    confirmedCharacterId: "CHAR_EXAMPLE"
+    status: "confirmed"
+    reviewerNotes: "Human-confirmed example only. 実データではない合成例。"
+
+  # 確認前の状態はこのように空のプレースホルダーのまま
+  # (status: confirmed に変えてよいのは、人間が実データを確認し
+  # characterId を確定させた場合のみ)。
+  - sourceCharacterId: "1000"
+    observedCount: 3
+    suggestedDisplayName: null
+    confirmedCharacterId: null
+    status: "name_only"
+    reviewerNotes: null
+
+  # 名前が別の確認済みキャラクターと似ている・一致するだけでは
+  # confirmed にしない例。人間が別人格の可能性を排除できるまでは
+  # name_only のまま残す。
+  - sourceCharacterId: "1001"
+    observedCount: 1
+    suggestedDisplayName: "Example Character (Possible Alias?)"
+    confirmedCharacterId: null
+    status: "name_only"
+    reviewerNotes: "displayNameがCHAR_EXAMPLEと類似するが、別人格の可能性を排除できないため未確定。"
