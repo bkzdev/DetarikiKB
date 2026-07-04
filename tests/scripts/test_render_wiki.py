@@ -38,10 +38,40 @@ def test_cli_generates_expected_markdown_files(tmp_path):
     assert (output_dir / "index.md").is_file()
     assert (output_dir / "stories" / "index.md").is_file()
     assert (output_dir / "stories" / "EP_TEST_001.md").is_file()
+    assert (output_dir / "stories" / "EP_TEST_002.md").is_file()
     assert (output_dir / "characters" / "CHAR_TEST_RAIN.md").is_file()
     assert (output_dir / "reports" / "unresolved.md").is_file()
     # canonicalIdが無いキャラクターの個別ページは生成されない
     assert not (output_dir / "characters" / "UNRESOLVED_CHAR_TEST_0001.md").exists()
+
+
+def test_cli_generated_episode_page_has_expected_content(tmp_path):
+    """Episode pageにcandidateCounts表・related characters・front matter
+    が含まれることをCLI経由で確認する。"""
+    output_dir = tmp_path / "wiki_out"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            "--input",
+            str(FIXTURE_PATH),
+            "--output",
+            str(output_dir),
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    episode_page = (output_dir / "stories" / "EP_TEST_001.md").read_text(
+        encoding="utf-8"
+    )
+    assert 'page_type: "episode"' in episode_page
+    assert 'episode_id: "EP_TEST_001"' in episode_page
+    assert "## Candidate Counts" in episode_page
+    assert "## Related Characters" in episode_page
+    assert "Test Character Rain" in episode_page
+    assert "textExcerpt" not in episode_page
 
 
 def test_cli_with_validate_flag_succeeds_on_valid_fixture(tmp_path):

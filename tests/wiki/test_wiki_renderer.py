@@ -273,12 +273,78 @@ def test_render_story_index_page_links_to_episode(synthetic_collection):
     assert "[EP_TEST_001](stories/EP_TEST_001.md)" in page
 
 
-def test_render_episode_page_has_basic_info_no_dialogue(synthetic_collection):
+def test_render_story_index_page_lists_all_episodes(synthetic_collection):
+    """合成fixtureは2件のsourceDocuments (EP_TEST_001/EP_TEST_002) を持つ。
+    両方がdocumentId・candidate合計・statusつきで一覧に出ることを確認する。"""
+    page = render_story_index_page(synthetic_collection)
+    assert "[EP_TEST_002](stories/EP_TEST_002.md)" in page
+    assert "EP_TEST_001" in page and "EP_TEST_002" in page
+    # candidate合計 (EP_TEST_001: characters3+locations1=4) が表示される
+    assert "| 4 " in page
+    # inputResultsのstatusが表示される
+    assert "valid" in page
+
+
+def test_render_episode_page_has_front_matter_and_basic_info(synthetic_collection):
     source_document = synthetic_collection["sourceDocuments"][0]
-    page = render_episode_page(source_document)
+    page = render_episode_page(source_document, synthetic_collection)
+    assert page.startswith("---\n")
+    assert 'page_type: "episode"' in page
+    assert 'episode_id: "EP_TEST_001"' in page
+    assert 'story_id: "TEST_S01_C01"' in page
+    assert 'document_id: "EP_TEST_001"' in page
     assert "EP_TEST_001" in page
     assert "TEST_S01_C01" in page
     assert "本文セリフはこのページに掲載しません" in page
+
+
+def test_render_episode_page_candidate_counts_table(synthetic_collection):
+    source_document = synthetic_collection["sourceDocuments"][0]
+    page = render_episode_page(source_document, synthetic_collection)
+    assert "## Candidate Counts" in page
+    assert "| Characters | 3 |" in page
+    assert "| Locations | 1 |" in page
+    assert "| Timeline | 0 |" in page
+
+
+def test_render_episode_page_related_characters_summary(synthetic_collection):
+    """EP_TEST_001にはCHAR_TEST_RAIN(canonicalIdあり)・
+    CHAR_TEST_CONFLICT(canonicalIdあり)・UNRESOLVED_CHAR_TEST_0001
+    (canonicalIdなし) が関連する。resolvedはcanonicalId、unresolvedは
+    内部IDと"unresolved"表記で列挙されることを確認する。"""
+    source_document = synthetic_collection["sourceDocuments"][0]
+    page = render_episode_page(source_document, synthetic_collection)
+    assert "## Related Characters" in page
+    assert "Test Character Rain" in page
+    assert "`CHAR_TEST_RAIN`" in page
+    assert "Test Character Unknown" in page
+    assert "`UNRESOLVED_CHAR_TEST_0001`, unresolved" in page
+
+
+def test_render_episode_page_no_related_characters_message(synthetic_collection):
+    """EP_TEST_002には関連するcharacterが無い合成fixture。"""
+    source_document = synthetic_collection["sourceDocuments"][1]
+    page = render_episode_page(source_document, synthetic_collection)
+    assert "関連するキャラクターは記録されていません。" in page
+
+
+def test_render_episode_page_validation_section_when_available(synthetic_collection):
+    """EP_TEST_002はwarningsが1件あるinputResultを持つ合成fixture。"""
+    source_document = synthetic_collection["sourceDocuments"][1]
+    page = render_episode_page(source_document, synthetic_collection)
+    assert "## Validation" in page
+    assert "| Input status | valid |" in page
+    assert "| Warnings | 1 |" in page
+
+
+def test_render_episode_page_does_not_include_full_dialogue_text(
+    synthetic_collection,
+):
+    """evidenceRefsにtextExcerptが無い合成fixtureのため、本文らしき文字列が
+    出力に含まれないことを確認する。"""
+    source_document = synthetic_collection["sourceDocuments"][0]
+    page = render_episode_page(source_document, synthetic_collection)
+    assert "textExcerpt" not in page
 
 
 # ----------------------------------------------------------------
@@ -291,6 +357,7 @@ def test_build_pages_generates_expected_paths(synthetic_collection):
     assert "index.md" in pages
     assert "stories/index.md" in pages
     assert "stories/EP_TEST_001.md" in pages
+    assert "stories/EP_TEST_002.md" in pages
     assert "characters/CHAR_TEST_RAIN.md" in pages
     assert "characters/CHAR_TEST_CONFLICT.md" in pages
     assert "reports/unresolved.md" in pages
