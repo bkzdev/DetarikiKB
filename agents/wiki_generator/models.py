@@ -41,12 +41,15 @@ ENTITY_KEY_TO_TYPE: dict[str, str] = {
 GENERATED_FROM = "merged_knowledge_collection"
 
 # front matterに出力する順序 (Wiki_Output_Design.md §10の例と同じ並び)。
+# confidence/source_typesは任意フィールド (Character page等で使用)。
 _FRONT_MATTER_KEY_ORDER = (
     "title",
     "entity_type",
     "entity_id",
     "canonical_id",
     "status",
+    "confidence",
+    "source_types",
     "generated_from",
 )
 
