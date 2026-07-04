@@ -246,20 +246,28 @@ Relationship page（独立ページ）は現時点では見送り、Character/Or
 - 表示: entity種別ごとの件数、代表的なdisplayName（あれば）、`mergedId`（内部参照用、外部リンクにはしない）
 - テンプレート名（案）: `templates/wiki/unresolved_report.md.j2`
 
+**実装状況（`feature/unresolved-report-renderer-refinement`で拡張）**: `render_unresolved_report`（`agents/wiki_generator/renderer.py`）は、Overview（Total unresolved entities/Total conflicts/Total warnings/Invalid canonical IDs/Duplicate canonical IDs）・entity種別別セクション（8種、`is_page_eligible`で個別ページ対象外と判定されたentityのみ。Entity ID/Display Name/Status/Canonical ID/Evidence件数/Source Candidates件数の表）・Conflict Summary（`report.conflictCounts.bySeverity`/`byType`/`byEntityType`）・Warning Summary（`report.warningCounts`と`report.warnings`の先頭N件）・Canonical ID Summary（`report.canonicalIdSummary`、任意フィールドのため無ければセクション省略）・Relationship Type Summary（`report.relationshipTypeSummary`、`unknownTypes`を見出し付きで一覧表示、自動修正はしない）の順でセクションを出力する。§9.13〜9.15で独立ページとして構想していたConflict/Relationship type/Canonical ID summaryは、今回はこの単一のUnresolved reportページ内のセクションとして統合実装した（独立ページとして分離するかは未確定、Phase 2以降で再検討）。evidenceRefs/sourceCandidatesは件数のみ表示し、元セリフ全文・raw payloadは一切含めない。
+
 ## 9.13 Conflict report page
 
 - source: `report.conflictCounts`
 - 表示: `conflictType`別・`severity`別・entity type別の件数。個別conflictの詳細は該当entityページのwarning boxで確認する形とし、このページはサマリーに留める
+
+**実装状況**: `feature/unresolved-report-renderer-refinement`で、独立ページではなくUnresolved report内のConflict Summaryセクションとして実装済み（§9.12参照）。
 
 ## 9.14 Relationship type report page
 
 - source: `report.relationshipTypeSummary`
 - 表示: `knownTypes`/`unknownTypes`の内訳。taxonomy確定（`docs/architecture/04_Knowledge_Graph/Relationships.md`）前の暫定状況の可視化用
 
+**実装状況**: `feature/unresolved-report-renderer-refinement`で、独立ページではなくUnresolved report内のRelationship Type Summaryセクションとして実装済み（§9.12参照）。
+
 ## 9.15 Canonical ID report page
 
 - source: `report.canonicalIdSummary`
 - 表示: `totalAssigned`/`duplicateCount`/`invalidCount`と`warnings`
+
+**実装状況**: `feature/unresolved-report-renderer-refinement`で、独立ページではなくUnresolved report内のCanonical ID Summaryセクションとして実装済み（§9.12参照）。
 
 ## 9.16 Source / evidence index page
 
@@ -421,7 +429,7 @@ templates/wiki/unresolved_report.md.j2
 1. ~~**wiki renderer skeleton**~~ → `feature/wiki-renderer-skeleton`で対応完了。`agents/wiki_generator/`（既存の空placeholder package）に、`renderer.py`（Top page/Story index/Episode page簡易版/Character page/Unresolved report pageの生成関数）・`paths.py`（canonicalId優先URL方針の実装）・`models.py`（front matter組み立て）を実装し、`scripts/render_wiki.py`（CLI、`--validate`/`--clean`オプション付き）を追加した。当初計画の「個別ページ生成ロジックはまだ実装しない」段階を超え、Character page/Unresolved report pageまで最小実装した（合成fixtureのみ、実データ由来生成物のcommitなし）
 2. ~~**character page renderer with synthetic fixture**~~ → 上記1と同時に対応完了（`render_character_page`、canonicalIdありのresolved characterのみ生成）
 3. **episode page renderer with synthetic fixture**: 簡易版（sourceDocumentsベース）は1で対応済み。Episode本文相当の情報を持つ本格版は今後の課題（現状のmerged knowledge collectionにEpisode entityが存在しないため）
-4. ~~**unresolved report renderer**~~ → 上記1と同時に対応完了（全8種entity type対応、`reports/unresolved.md`）
+4. ~~**unresolved report renderer**~~ → 上記1と同時に対応完了（全8種entity type対応、`reports/unresolved.md`）。~~**unresolved report renderer refinement**~~ → `feature/unresolved-report-renderer-refinement`で対応完了（Overview/Conflict Summary/Warning Summary/Canonical ID Summary/Relationship Type Summaryセクション追加、entity種別別表にCanonical ID・Source Candidates列を追加）
 5. **MkDocs Material minimal site**: 生成したMarkdown群を実際にMkDocs Materialでビルドできることを確認する最小構成（本文書のNon-goals「MkDocs本格導入」とは異なり、ビルド可否の疎通確認のみ）
 6. **real data local render dry-run**: ローカルignored領域で、実データ由来のmerged knowledge collectionから実際にレンダリングしてみる（`docs/runbooks/Real_Data_Dry_Run.md`と同じ運用: 生成物はcommitしない）
 7. **public publishing workflow**: GitHub Pages / Cloudflare Pages等への公開ワークフロー（Non-goals、別PRで検討）

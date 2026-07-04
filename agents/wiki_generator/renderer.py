@@ -175,6 +175,211 @@ def render_character_page(entity: dict[str, Any]) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
+# report.warnings / canonicalIdSummary.warningsを表示する際の最大件数。
+# 超過分は件数のみ「...他N件」として要約する (生ログを丸ごと出さない方針)。
+_MAX_WARNINGS_DISPLAYED = 10
+
+
+def _render_overview_section(collection: dict[str, Any]) -> list[str]:
+    """Unresolved reportの概要 (Overview) セクションを組み立てる。
+
+    report.unresolvedEntityCounts / conflictCounts.total /
+    warningCounts.total / canonicalIdSummary.invalidCount・duplicateCount
+    から集計する (Wiki_Output_Design.md §9.12拡張)。
+    """
+    report = collection.get("report", {}) or {}
+    unresolved_counts = report.get("unresolvedEntityCounts") or {}
+    total_unresolved = sum(unresolved_counts.values())
+    total_conflicts = (report.get("conflictCounts") or {}).get(
+        "total", report.get("conflictsCount", 0)
+    )
+    total_warnings = (report.get("warningCounts") or {}).get("total", 0)
+    canonical_id_summary = report.get("canonicalIdSummary") or {}
+    invalid_count = canonical_id_summary.get("invalidCount", 0)
+    duplicate_count = canonical_id_summary.get("duplicateCount", 0)
+
+    return [
+        "## Overview",
+        "",
+        "| Field | Value |",
+        "|---|---:|",
+        f"| Total unresolved entities | {total_unresolved} |",
+        f"| Total conflicts | {total_conflicts} |",
+        f"| Total warnings | {total_warnings} |",
+        f"| Invalid canonical IDs | {invalid_count} |",
+        f"| Duplicate canonical IDs | {duplicate_count} |",
+        "",
+    ]
+
+
+def _render_entity_type_sections(collection: dict[str, Any]) -> tuple[list[str], int]:
+    """entity種別ごとのunresolved一覧セクション群を組み立てる。
+
+    Canonical ID列・Source Candidates件数列を追加した表を、種別 (Character/
+    Location/...) ごとに出力する。戻り値は (行リスト, 総unresolved件数)。
+    件数が0の種別はセクションごと省略する。
+    """
+    entities = collection.get("entities", {}) or {}
+    lines: list[str] = []
+    total_unresolved = 0
+    for entity_key in MERGED_ENTITY_KEYS:
+        unresolved = [
+            e for e in (entities.get(entity_key) or []) if not is_page_eligible(e)
+        ]
+        if not unresolved:
+            continue
+        total_unresolved += len(unresolved)
+        entity_type = ENTITY_KEY_TO_TYPE[entity_key]
+        lines.append(f"## {entity_type} ({len(unresolved)} 件)")
+        lines.append("")
+        lines.append(
+            "| Entity ID | Display Name | Status | Canonical ID "
+            "| Evidence | Source Candidates |"
+        )
+        lines.append("|---|---|---|---|---:|---:|")
+        for e in unresolved:
+            lines.append(
+                f"| {e.get('id', '?')} "
+                f"| {e.get('displayName') or '(不明)'} "
+                f"| {e.get('status', '')} "
+                f"| {e.get('canonicalId') or '-'} "
+                f"| {len(e.get('evidenceRefs') or [])} "
+                f"| {len(e.get('sourceCandidates') or [])} |"
+            )
+        lines.append("")
+    return lines, total_unresolved
+
+
+def _render_conflict_summary_section(collection: dict[str, Any]) -> list[str]:
+    """Conflict summaryセクションを組み立てる。
+
+    report.conflictCounts.bySeverity/byType/byEntityTypeを
+    | Group | Value | Count | の表で表示する。自動解決は行わない。
+    """
+    conflict_counts = (collection.get("report", {}) or {}).get("conflictCounts") or {}
+    lines = ["## Conflict Summary", ""]
+    if not conflict_counts.get("total"):
+        lines.append("記録されている矛盾はありません。")
+        lines.append("")
+        return lines
+
+    lines.append("| Group | Value | Count |")
+    lines.append("|---|---|---:|")
+    for group_label, group_key in (
+        ("Severity", "bySeverity"),
+        ("Type", "byType"),
+        ("Entity Type", "byEntityType"),
+    ):
+        for value, count in (conflict_counts.get(group_key) or {}).items():
+            lines.append(f"| {group_label} | {value} | {count} |")
+    lines.append("")
+    return lines
+
+
+def _render_warning_summary_section(collection: dict[str, Any]) -> list[str]:
+    """Warning summaryセクションを組み立てる。
+
+    report.warningCounts (total/unresolvedRelationships/skippedOverrides/
+    other) を表で示し、report.warningsは先頭_MAX_WARNINGS_DISPLAYED件のみ
+    列挙する (生payload・長い引用は出さない)。
+    """
+    report = collection.get("report", {}) or {}
+    warning_counts = report.get("warningCounts") or {}
+    unresolved_relationships = warning_counts.get("unresolvedRelationships", 0)
+    lines = [
+        "## Warning Summary",
+        "",
+        "| Field | Value |",
+        "|---|---:|",
+        f"| Total | {warning_counts.get('total', 0)} |",
+        f"| Unresolved Relationships | {unresolved_relationships} |",
+        f"| Skipped Overrides | {warning_counts.get('skippedOverrides', 0)} |",
+        f"| Other | {warning_counts.get('other', 0)} |",
+        "",
+    ]
+    lines.extend(_render_capped_list(report.get("warnings") or []))
+    return lines
+
+
+def _render_capped_list(items: list[str]) -> list[str]:
+    """文字列リストを先頭_MAX_WARNINGS_DISPLAYED件のみ列挙し、超過分は
+    件数のみ要約する共通ヘルパー (warnings / canonicalIdSummary.warnings
+    双方で使う)。
+    """
+    if not items:
+        return []
+    lines = []
+    for item in items[:_MAX_WARNINGS_DISPLAYED]:
+        lines.append(f"- {item}")
+    remaining = len(items) - _MAX_WARNINGS_DISPLAYED
+    if remaining > 0:
+        lines.append(f"- ...他 {remaining} 件")
+    lines.append("")
+    return lines
+
+
+def _render_canonical_id_summary_section(collection: dict[str, Any]) -> list[str]:
+    """Canonical ID summaryセクションを組み立てる。
+
+    report.canonicalIdSummaryはschema上任意フィールドのため、無い場合は
+    セクション自体を省略する (Validationセクションと同じ方針)。
+    """
+    canonical_id_summary = (collection.get("report", {}) or {}).get(
+        "canonicalIdSummary"
+    )
+    if canonical_id_summary is None:
+        return []
+    lines = [
+        "## Canonical ID Summary",
+        "",
+        "| Field | Value |",
+        "|---|---:|",
+        f"| Total Assigned | {canonical_id_summary.get('totalAssigned', 0)} |",
+        f"| Duplicate Count | {canonical_id_summary.get('duplicateCount', 0)} |",
+        f"| Invalid Count | {canonical_id_summary.get('invalidCount', 0)} |",
+        "",
+    ]
+    lines.extend(_render_capped_list(canonical_id_summary.get("warnings") or []))
+    return lines
+
+
+def _render_relationship_type_summary_section(
+    collection: dict[str, Any],
+) -> list[str]:
+    """Relationship type summaryセクションを組み立てる。
+
+    report.relationshipTypeSummaryはschema上任意フィールドのため、無い
+    場合はセクション自体を省略する。unknownTypesは自動修正せず、目立つ
+    見出しで一覧表示するのみ (Wiki_Output_Design.md方針)。
+    """
+    relationship_type_summary = (collection.get("report", {}) or {}).get(
+        "relationshipTypeSummary"
+    )
+    if relationship_type_summary is None:
+        return []
+    known_types = relationship_type_summary.get("knownTypes") or {}
+    unknown_types = relationship_type_summary.get("unknownTypes") or {}
+    normalized_types = relationship_type_summary.get("normalizedTypes") or {}
+
+    lines = [
+        "## Relationship Type Summary",
+        "",
+        "| Field | Count |",
+        "|---|---:|",
+        f"| Known Types | {len(known_types)} |",
+        f"| Unknown Types | {len(unknown_types)} |",
+        f"| Normalized Types | {len(normalized_types)} |",
+        "",
+    ]
+    if unknown_types:
+        lines.append("**Unknown Types（未知のrelationshipType。要確認）:**")
+        lines.append("")
+        for type_name, count in unknown_types.items():
+            lines.append(f"- {type_name}（{count} 件）")
+        lines.append("")
+    return lines
+
+
 def render_unresolved_report(collection: dict[str, Any]) -> str:
     """Unresolved report page (reports/unresolved.md) を生成する
     (Wiki_Output_Design.md §9.12)。
@@ -182,8 +387,10 @@ def render_unresolved_report(collection: dict[str, Any]) -> str:
     canonicalId未確定、またはstatusがmerged以外の全entity種別
     (character/location/organization/item/lore/event/relationship/
     timeline) を対象とする。件数が0の種別はセクションごと省略する。
+    Overview / entity種別別一覧 / Conflict summary / Warning summary /
+    Canonical ID summary / Relationship type summaryを表示する。
+    いずれも自動解決・自動修正は行わず、集計値と参照情報のみを示す。
     """
-    entities = collection.get("entities", {}) or {}
     front_matter = build_front_matter(
         {
             "title": "Unresolved Entities Report",
@@ -201,37 +408,18 @@ def render_unresolved_report(collection: dict[str, Any]) -> str:
         "",
     ]
 
-    total_unresolved = 0
-    for entity_key in MERGED_ENTITY_KEYS:
-        unresolved = [
-            e for e in (entities.get(entity_key) or []) if not is_page_eligible(e)
-        ]
-        if not unresolved:
-            continue
-        total_unresolved += len(unresolved)
-        entity_type = ENTITY_KEY_TO_TYPE[entity_key]
-        lines.append(f"## {entity_type} ({len(unresolved)} 件)")
-        lines.append("")
-        lines.append("| entity id | displayName | status | reason | evidence件数 |")
-        lines.append("|---|---|---|---|---|")
-        for e in unresolved:
-            reason = (
-                "canonicalId未確定"
-                if not e.get("canonicalId")
-                else f"status: {e.get('status')}"
-            )
-            lines.append(
-                f"| {e.get('id', '?')} "
-                f"| {e.get('displayName') or '(不明)'} "
-                f"| {e.get('status', '')} "
-                f"| {reason} "
-                f"| {len(e.get('evidenceRefs') or [])} |"
-            )
-        lines.append("")
+    lines.extend(_render_overview_section(collection))
 
+    entity_section_lines, total_unresolved = _render_entity_type_sections(collection)
+    lines.extend(entity_section_lines)
     if total_unresolved == 0:
         lines.append("未解決のentityはありません。")
         lines.append("")
+
+    lines.extend(_render_conflict_summary_section(collection))
+    lines.extend(_render_warning_summary_section(collection))
+    lines.extend(_render_canonical_id_summary_section(collection))
+    lines.extend(_render_relationship_type_summary_section(collection))
 
     return "\n".join(lines).rstrip() + "\n"
 
