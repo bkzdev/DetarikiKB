@@ -11,14 +11,14 @@
       "storyCategory": "MAIN",
       "extractionVersion": "0.1.0",
       "candidateCounts": {
-        "characters": 3,
+        "characters": 4,
         "locations": 1,
         "organizations": 0,
         "items": 0,
         "lore": 0,
         "events": 0,
-        "relationships": 0,
-        "timelineCandidates": 0
+        "relationships": 1,
+        "timelineCandidates": 1
       }
     },
     {
@@ -231,6 +231,60 @@
         "mergedFrom": ["EP_TEST_001"],
         "createdAt": null,
         "updatedAt": null
+      },
+      {
+        "schemaVersion": "0.1",
+        "id": "CHAR_TEST_DEPRECATED",
+        "type": "character",
+        "canonicalId": "CHAR_TEST_DEPRECATED",
+        "mergedId": null,
+        "displayName": "Test Character Deprecated",
+        "aliases": [],
+        "status": "deprecated",
+        "sourceTypes": ["script"],
+        "confidence": 0.4,
+        "evidenceRefs": [
+          {
+            "evidenceId": "EP_TEST_001_DLG0007",
+            "storyId": "TEST_S01_C01",
+            "episodeId": "EP_TEST_001",
+            "sceneId": "EP_TEST_001_SC001",
+            "blockId": "EP_TEST_001_DLG0007",
+            "sourceDocumentId": "EP_TEST_001",
+            "evidenceType": "dialogue",
+            "confidence": 0.4
+          }
+        ],
+        "sourceCandidates": [
+          {
+            "candidateId": "EP_TEST_001_CAND_CHAR005",
+            "candidateType": "character_candidate",
+            "sourceDocumentId": "EP_TEST_001",
+            "episodeId": "EP_TEST_001",
+            "evidenceIds": ["EP_TEST_001_DLG0007"],
+            "extractionRunRef": "EP_TEST_001",
+            "sourceType": "script",
+            "confidence": 0.4
+          }
+        ],
+        "extractionRunRefs": {
+          "EP_TEST_001": {
+            "extractionVersion": "0.1.0",
+            "extractionMethod": "rule_based",
+            "modelProvider": null,
+            "modelName": null,
+            "promptVersion": null,
+            "extractedAt": null,
+            "parserCompatibilityAtExtraction": "compatible"
+          }
+        },
+        "sourceCharacterIds": ["9003"],
+        "fieldValues": {},
+        "conflicts": [],
+        "manualOverridesApplied": [],
+        "mergedFrom": ["EP_TEST_001"],
+        "createdAt": null,
+        "updatedAt": null
       }
     ],
     "locations": [
@@ -293,8 +347,131 @@
     "items": [],
     "lore": [],
     "events": [],
-    "relationships": [],
-    "timeline": []
+    "relationships": [
+      {
+        "schemaVersion": "0.1",
+        "id": "REL_TEST_UNKNOWN",
+        "type": "relationship",
+        "canonicalId": null,
+        "mergedId": "REL_TEST_UNKNOWN",
+        "displayName": null,
+        "aliases": [],
+        "status": "unresolved",
+        "sourceTypes": ["script"],
+        "confidence": 0.5,
+        "evidenceRefs": [
+          {
+            "evidenceId": "EP_TEST_001_DLG0005",
+            "storyId": "TEST_S01_C01",
+            "episodeId": "EP_TEST_001",
+            "sceneId": "EP_TEST_001_SC001",
+            "blockId": "EP_TEST_001_DLG0005",
+            "sourceDocumentId": "EP_TEST_001",
+            "evidenceType": "dialogue",
+            "confidence": 0.5
+          }
+        ],
+        "sourceCandidates": [
+          {
+            "candidateId": "EP_TEST_001_CAND_REL001",
+            "candidateType": "relationship_candidate",
+            "sourceDocumentId": "EP_TEST_001",
+            "episodeId": "EP_TEST_001",
+            "evidenceIds": ["EP_TEST_001_DLG0005"],
+            "extractionRunRef": "EP_TEST_001",
+            "sourceType": "script",
+            "confidence": 0.5
+          }
+        ],
+        "extractionRunRefs": {
+          "EP_TEST_001": {
+            "extractionVersion": "0.1.0",
+            "extractionMethod": "rule_based",
+            "modelProvider": null,
+            "modelName": null,
+            "promptVersion": null,
+            "extractedAt": null,
+            "parserCompatibilityAtExtraction": "compatible"
+          }
+        },
+        "sourceEntityId": "CHAR_TEST_RAIN",
+        "targetEntityId": "UNRESOLVED_CHAR_TEST_0001",
+        "relationshipType": "MYSTERIOUS_BOND_TEST",
+        "direction": "source_to_target",
+        "temporalNote": null,
+        "fieldValues": {},
+        "conflicts": [],
+        "manualOverridesApplied": [],
+        "mergedFrom": ["EP_TEST_001"],
+        "createdAt": null,
+        "updatedAt": null
+      }
+    ],
+    "timeline": [
+      {
+        "schemaVersion": "0.1",
+        "id": "TL_TEST_UNKNOWN",
+        "type": "timeline_entry",
+        "canonicalId": null,
+        "mergedId": "TL_TEST_UNKNOWN",
+        "displayName": null,
+        "aliases": [],
+        "status": "unresolved",
+        "sourceTypes": ["script"],
+        "confidence": 0.5,
+        "evidenceRefs": [
+          {
+            "evidenceId": "EP_TEST_001_DLG0006",
+            "storyId": "TEST_S01_C01",
+            "episodeId": "EP_TEST_001",
+            "sceneId": "EP_TEST_001_SC001",
+            "blockId": "EP_TEST_001_DLG0006",
+            "sourceDocumentId": "EP_TEST_001",
+            "evidenceType": "dialogue",
+            "confidence": 0.5
+          }
+        ],
+        "sourceCandidates": [
+          {
+            "candidateId": "EP_TEST_001_CAND_TL001",
+            "candidateType": "timeline_candidate",
+            "sourceDocumentId": "EP_TEST_001",
+            "episodeId": "EP_TEST_001",
+            "evidenceIds": ["EP_TEST_001_DLG0006"],
+            "extractionRunRef": "EP_TEST_001",
+            "sourceType": "script",
+            "confidence": 0.5
+          }
+        ],
+        "extractionRunRefs": {
+          "EP_TEST_001": {
+            "extractionVersion": "0.1.0",
+            "extractionMethod": "rule_based",
+            "modelProvider": null,
+            "modelName": null,
+            "promptVersion": null,
+            "extractedAt": null,
+            "parserCompatibilityAtExtraction": "compatible"
+          }
+        },
+        "kind": "temporal_marker",
+        "scope": "block",
+        "orderValue": null,
+        "orderField": null,
+        "label": null,
+        "markerType": "flashback",
+        "sourceTimelineId": null,
+        "relativeTo": null,
+        "relation": null,
+        "relatedEventIds": [],
+        "fieldValues": {},
+        "conflicts": [],
+        "manualOverridesApplied": [],
+        "mergedFrom": ["EP_TEST_001"],
+        "createdAt": null,
+        "updatedAt": null
+      }
+    ]
   },
   "report": {
     "inputFiles": 2,
@@ -303,36 +480,36 @@
     "invalidInputs": 0,
     "skippedInputs": [],
     "candidateCounts": {
-      "characters": 3,
+      "characters": 4,
       "locations": 1,
       "organizations": 0,
       "items": 0,
       "lore": 0,
       "events": 0,
-      "relationships": 0,
-      "timelineCandidates": 0
+      "relationships": 1,
+      "timelineCandidates": 1
     },
     "mergedEntityCounts": {
-      "characters": 3,
+      "characters": 4,
       "locations": 1,
       "organizations": 0,
       "items": 0,
       "lore": 0,
       "events": 0,
-      "relationships": 0,
-      "timeline": 0
+      "relationships": 1,
+      "timeline": 1
     },
     "conflictsCount": 1,
-    "unresolvedCount": 2,
+    "unresolvedCount": 5,
     "unresolvedEntityCounts": {
-      "characters": 1,
+      "characters": 2,
       "locations": 1,
       "organizations": 0,
       "items": 0,
       "lore": 0,
       "events": 0,
-      "relationships": 0,
-      "timeline": 0
+      "relationships": 1,
+      "timeline": 1
     },
     "conflictCounts": {
       "total": 1,
@@ -348,9 +525,9 @@
     },
     "entityTypeSummaries": {
       "characters": {
-        "candidateCount": 3,
-        "mergedCount": 3,
-        "unresolvedCount": 1,
+        "candidateCount": 4,
+        "mergedCount": 4,
+        "unresolvedCount": 2,
         "conflictCount": 1
       },
       "locations": {
@@ -384,15 +561,15 @@
         "conflictCount": 0
       },
       "relationships": {
-        "candidateCount": 0,
-        "mergedCount": 0,
-        "unresolvedCount": 0,
+        "candidateCount": 1,
+        "mergedCount": 1,
+        "unresolvedCount": 1,
         "conflictCount": 0
       },
       "timeline": {
-        "candidateCount": 0,
-        "mergedCount": 0,
-        "unresolvedCount": 0,
+        "candidateCount": 1,
+        "mergedCount": 1,
+        "unresolvedCount": 1,
         "conflictCount": 0
       }
     },
@@ -403,14 +580,14 @@
         "documentId": "EP_TEST_001",
         "episodeId": "EP_TEST_001",
         "candidateCounts": {
-          "characters": 3,
+          "characters": 4,
           "locations": 1,
           "organizations": 0,
           "items": 0,
           "lore": 0,
           "events": 0,
-          "relationships": 0,
-          "timelineCandidates": 0
+          "relationships": 1,
+          "timelineCandidates": 1
         },
         "mergedEntityCounts": null
       },
@@ -450,14 +627,14 @@
     "errors": [],
     "relationshipTypeSummary": {
       "knownTypes": {},
-      "unknownTypes": {},
+      "unknownTypes": { "MYSTERIOUS_BOND_TEST": 1 },
       "normalizedTypes": {}
     },
     "canonicalIdSummary": {
       "totalAssigned": 2,
       "duplicateCount": 0,
-      "invalidCount": 0,
-      "warnings": []
+      "invalidCount": 1,
+      "warnings": ["TEST_CANONICAL_ID_BAD: canonicalId 'bad_format_test' の形式が不正です"]
     }
   }
 }

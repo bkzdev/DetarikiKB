@@ -244,15 +244,138 @@ def test_render_unresolved_report_lists_unresolved_location(synthetic_collection
     assert "Test Location Unknown" in report
 
 
+def test_render_unresolved_report_lists_unresolved_relationship(synthetic_collection):
+    """REL_TEST_UNKNOWN (canonicalId未確定のrelationship) が
+    Relationshipセクションに列挙されることを確認する。"""
+    report = render_unresolved_report(synthetic_collection)
+    assert "## relationship (1 件)" in report
+    assert "REL_TEST_UNKNOWN" in report
+
+
+def test_render_unresolved_report_lists_unresolved_timeline_entry(
+    synthetic_collection,
+):
+    """TL_TEST_UNKNOWN (canonicalId未確定のtimeline entry) が
+    timeline_entryセクションに列挙されることを確認する。"""
+    report = render_unresolved_report(synthetic_collection)
+    assert "## timeline_entry (1 件)" in report
+    assert "TL_TEST_UNKNOWN" in report
+
+
 def test_render_unresolved_report_excludes_resolved_character(synthetic_collection):
     report = render_unresolved_report(synthetic_collection)
     assert "CHAR_TEST_RAIN" not in report
+
+
+def test_render_unresolved_report_excludes_merged_character_with_canonical_id(
+    synthetic_collection,
+):
+    """canonicalId確定 + status: mergedのCHAR_TEST_CONFLICTは、conflictsが
+    あってもUnresolved reportには出さない (is_page_eligibleがTrueのため、
+    別途Character pageで扱う)。"""
+    report = render_unresolved_report(synthetic_collection)
+    assert "CHAR_TEST_CONFLICT" not in report
+
+
+def test_render_unresolved_report_includes_character_without_canonical_id(
+    synthetic_collection,
+):
+    report = render_unresolved_report(synthetic_collection)
+    assert "UNRESOLVED_CHAR_TEST_0001" in report
+
+
+def test_render_unresolved_report_includes_non_merged_status_character(
+    synthetic_collection,
+):
+    """CHAR_TEST_DEPRECATEDはcanonicalIdが確定しているがstatusが
+    mergedでないため、is_page_eligibleがFalseとなりUnresolved reportに
+    Canonical ID付きで列挙されることを確認する。"""
+    report = render_unresolved_report(synthetic_collection)
+    assert "CHAR_TEST_DEPRECATED" in report
+    assert (
+        "| CHAR_TEST_DEPRECATED | Test Character Deprecated | deprecated "
+        "| CHAR_TEST_DEPRECATED |" in report
+    )
 
 
 def test_render_unresolved_report_has_front_matter(synthetic_collection):
     report = render_unresolved_report(synthetic_collection)
     assert report.startswith("---\n")
     assert "Unresolved Entities Report" in report
+
+
+def test_render_unresolved_report_overview_section(synthetic_collection):
+    report = render_unresolved_report(synthetic_collection)
+    assert "## Overview" in report
+    assert "| Total unresolved entities | 5 |" in report
+    assert "| Total conflicts | 1 |" in report
+    assert "| Total warnings | 1 |" in report
+    assert "| Invalid canonical IDs | 1 |" in report
+    assert "| Duplicate canonical IDs | 0 |" in report
+
+
+def test_render_unresolved_report_entity_table_columns(synthetic_collection):
+    report = render_unresolved_report(synthetic_collection)
+    assert (
+        "| Entity ID | Display Name | Status | Canonical ID "
+        "| Evidence | Source Candidates |" in report
+    )
+    # canonicalId未確定の場合は "-" が表示される
+    assert (
+        "| UNRESOLVED_CHAR_TEST_0001 | Test Character Unknown "
+        "| unresolved | - | 1 | 1 |" in report
+    )
+
+
+def test_render_unresolved_report_conflict_summary(synthetic_collection):
+    report = render_unresolved_report(synthetic_collection)
+    assert "## Conflict Summary" in report
+    assert "| Severity | warning | 1 |" in report
+    assert "| Type | name_conflict | 1 |" in report
+    assert "| Entity Type | characters | 1 |" in report
+
+
+def test_render_unresolved_report_warning_summary(synthetic_collection):
+    report = render_unresolved_report(synthetic_collection)
+    assert "## Warning Summary" in report
+    assert "| Total | 1 |" in report
+    assert "EP_TEST_002: サンプルwarningメッセージ" in report
+
+
+def test_render_unresolved_report_canonical_id_summary(synthetic_collection):
+    report = render_unresolved_report(synthetic_collection)
+    assert "## Canonical ID Summary" in report
+    assert "| Total Assigned | 2 |" in report
+    assert "| Invalid Count | 1 |" in report
+    assert "TEST_CANONICAL_ID_BAD" in report
+
+
+def test_render_unresolved_report_relationship_type_summary_unknown_types(
+    synthetic_collection,
+):
+    """relationshipTypeSummary.unknownTypesは自動修正せず、目立つ見出し
+    付きで一覧表示されることを確認する。"""
+    report = render_unresolved_report(synthetic_collection)
+    assert "## Relationship Type Summary" in report
+    assert "| Unknown Types | 1 |" in report
+    assert "MYSTERIOUS_BOND_TEST" in report
+
+
+def test_render_unresolved_report_evidence_shown_as_count_only(synthetic_collection):
+    """entity種別別テーブルのEvidence列は件数のみで、evidenceIdや本文は
+    出さないことを確認する (元セリフ全文を出さない方針)。"""
+    report = render_unresolved_report(synthetic_collection)
+    assert "textExcerpt" not in report
+    assert "EP_TEST_001_DLG0002" not in report
+
+
+def test_render_unresolved_report_source_candidates_shown_as_count_only(
+    synthetic_collection,
+):
+    """entity種別別テーブルのSource Candidates列は件数のみで、
+    candidateIdやraw payloadは出さないことを確認する。"""
+    report = render_unresolved_report(synthetic_collection)
+    assert "EP_TEST_001_CAND_CHAR002" not in report
 
 
 # ----------------------------------------------------------------
@@ -279,8 +402,9 @@ def test_render_story_index_page_lists_all_episodes(synthetic_collection):
     page = render_story_index_page(synthetic_collection)
     assert "[EP_TEST_002](stories/EP_TEST_002.md)" in page
     assert "EP_TEST_001" in page and "EP_TEST_002" in page
-    # candidate合計 (EP_TEST_001: characters3+locations1=4) が表示される
-    assert "| 4 " in page
+    # candidate合計 (EP_TEST_001: characters4+locations1+relationships1
+    # +timelineCandidates1=7) が表示される
+    assert "| 7 " in page
     # inputResultsのstatusが表示される
     assert "valid" in page
 
@@ -302,9 +426,9 @@ def test_render_episode_page_candidate_counts_table(synthetic_collection):
     source_document = synthetic_collection["sourceDocuments"][0]
     page = render_episode_page(source_document, synthetic_collection)
     assert "## Candidate Counts" in page
-    assert "| Characters | 3 |" in page
+    assert "| Characters | 4 |" in page
     assert "| Locations | 1 |" in page
-    assert "| Timeline | 0 |" in page
+    assert "| Timeline | 1 |" in page
 
 
 def test_render_episode_page_related_characters_summary(synthetic_collection):
@@ -363,6 +487,8 @@ def test_build_pages_generates_expected_paths(synthetic_collection):
     assert "reports/unresolved.md" in pages
     # canonicalIdが無いキャラクターの個別ページは生成されない
     assert "characters/UNRESOLVED_CHAR_TEST_0001.md" not in pages
+    # canonicalIdはあるがstatus: mergedでないキャラクターも生成されない
+    assert "characters/CHAR_TEST_DEPRECATED.md" not in pages
 
 
 def test_write_pages_creates_files_under_tmp_path(synthetic_collection, tmp_path):
