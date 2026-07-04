@@ -25,7 +25,7 @@ _PROJECT_ROOT = Path(__file__).parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
-from agents.extractor import Extractor
+from agents.extractor import Extractor  # noqa: E402
 
 DEFAULT_SCHEMA_PATH = _PROJECT_ROOT / "schemas" / "extraction.schema.json"
 

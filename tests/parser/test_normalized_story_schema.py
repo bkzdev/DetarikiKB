@@ -76,5 +76,6 @@ def test_normalized_json_with_choice(schema):
         validate(instance=story_json, schema=schema)
     except ValidationError as e:
         pytest.fail(
-            f"Schema validation failed (choice block): {e.message}\nPath: {list(e.path)}"
+            f"Schema validation failed (choice block): {e.message}\n"
+            f"Path: {list(e.path)}"
         )

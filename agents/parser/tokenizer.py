@@ -114,6 +114,16 @@ class ScriptToken:
         return self.token_type == TokenType.COMMENT
 
 
+def _split_first_token(line: str) -> tuple[str, list[str]]:
+    """空白区切りの先頭トークンと残りの引数リストを返す。
+
+    呼び出し側 (Tokenizer._classify_*) は line が非空・非空白文字列である
+    ことを保証済みのため、line.split() は必ず1要素以上を返す。
+    """
+    parts = line.split()
+    return parts[0], parts[1:]
+
+
 # ----------------------------------------------------------------
 # Tokenizer
 # ----------------------------------------------------------------
@@ -214,163 +224,276 @@ class Tokenizer:
         return self.tokenize_lines(text.splitlines(keepends=True))
 
     def _tokenize_line(self, line_number: int, raw_line: str) -> ScriptToken | None:
-        """1行をトークン化する。None を返すと除外。"""
-        # 改行除去
-        original_raw = raw_line.rstrip("\r\n")
+        """1行をトークン化する。None を返すと除外。
 
-        # 制御文字除去
-        control_chars_removed = 0
+        各行分類は独立した _classify_* ヘルパーへ切り出し、ここでは
+        「空行/コメント行 (keep_empty/keep_comments次第で除外)」→
+        「その他の分類を順番に試す」という制御フローのみを担う
+        (挙動は分割前と同一、ruffのC901複雑度対策でのリファクタリング)。
+        """
+        original_raw = raw_line.rstrip("\r\n")
+        line, control_chars_removed = self._clean_line(original_raw)
+
+        if not line:
+            return (
+                self._empty_token(line_number, original_raw, control_chars_removed)
+                if self.keep_empty
+                else None
+            )
+
+        if line.startswith("//"):
+            return (
+                self._comment_token(
+                    line_number, line, original_raw, control_chars_removed
+                )
+                if self.keep_comments
+                else None
+            )
+
+        classifiers = (
+            self._classify_hyphen_option,
+            self._classify_num_variable,
+            self._classify_value_variable,
+            self._classify_at_command,
+            self._classify_dollar_variable,
+            self._classify_hash_keyword,
+            self._classify_known_keyword,
+            self._classify_text,
+        )
+        for classify in classifiers:
+            token = classify(line_number, line, original_raw, control_chars_removed)
+            if token is not None:
+                return token
+
+        return self._unknown_token(
+            line_number, line, original_raw, control_chars_removed
+        )
+
+    def _clean_line(self, original_raw: str) -> tuple[str, int]:
+        """制御文字除去・前後空白除去を行い、
+        (整形後の行, 除去した制御文字数) を返す。"""
         if self.strip_control_chars:
             cleaned = CONTROL_CHARS_PATTERN.sub("", original_raw)
-            control_chars_removed = len(original_raw) - len(cleaned)
-            line = cleaned.strip()
-        else:
-            line = original_raw.strip()
+            return cleaned.strip(), len(original_raw) - len(cleaned)
+        return original_raw.strip(), 0
 
-        # 空行
-        if not line:
-            if self.keep_empty:
-                return ScriptToken(
-                    line_number=line_number,
-                    raw=line,
-                    original_raw=original_raw,
-                    token_type=TokenType.EMPTY,
-                    control_chars_removed=control_chars_removed,
-                )
+    def _empty_token(
+        self, line_number: int, original_raw: str, control_chars_removed: int
+    ) -> ScriptToken:
+        return ScriptToken(
+            line_number=line_number,
+            raw="",
+            original_raw=original_raw,
+            token_type=TokenType.EMPTY,
+            control_chars_removed=control_chars_removed,
+        )
+
+    def _comment_token(
+        self,
+        line_number: int,
+        line: str,
+        original_raw: str,
+        control_chars_removed: int,
+    ) -> ScriptToken:
+        return ScriptToken(
+            line_number=line_number,
+            raw=line,
+            original_raw=original_raw,
+            token_type=TokenType.COMMENT,
+            text=line[2:].strip(),
+            control_chars_removed=control_chars_removed,
+        )
+
+    def _classify_hyphen_option(
+        self,
+        line_number: int,
+        line: str,
+        original_raw: str,
+        control_chars_removed: int,
+    ) -> ScriptToken | None:
+        """- speed 0.1 などの演出補助行"""
+        if not HYPHEN_LINE_PATTERN.match(line):
             return None
+        parts = line.split(maxsplit=1)
+        return ScriptToken(
+            line_number=line_number,
+            raw=line,
+            original_raw=original_raw,
+            token_type=TokenType.HYPHEN_OPTION,
+            command="-",
+            args=parts[1].split() if len(parts) > 1 else [],
+            control_chars_removed=control_chars_removed,
+        )
 
-        # コメント行
-        if line.startswith("//"):
-            if self.keep_comments:
-                return ScriptToken(
-                    line_number=line_number,
-                    raw=line,
-                    original_raw=original_raw,
-                    token_type=TokenType.COMMENT,
-                    text=line[2:].strip(),
-                    control_chars_removed=control_chars_removed,
-                )
-            return None
-
-        # ハイフン行 (- speed 0.1 など)
-        if HYPHEN_LINE_PATTERN.match(line):
-            parts = line.split(maxsplit=1)
-            return ScriptToken(
-                line_number=line_number,
-                raw=line,
-                original_raw=original_raw,
-                token_type=TokenType.HYPHEN_OPTION,
-                command="-",
-                args=parts[1].split() if len(parts) > 1 else [],
-                control_chars_removed=control_chars_removed,
-            )
-
-        # $numX = ID
+    def _classify_num_variable(
+        self,
+        line_number: int,
+        line: str,
+        original_raw: str,
+        control_chars_removed: int,
+    ) -> ScriptToken | None:
+        """$numX = ID"""
         num_match = NUM_VAR_PATTERN.match(line)
-        if num_match:
-            return ScriptToken(
-                line_number=line_number,
-                raw=line,
-                original_raw=original_raw,
-                token_type=TokenType.VARIABLE,
-                command=f"$num{num_match.group(1)}",
-                args=[num_match.group(2)],
-                control_chars_removed=control_chars_removed,
-            )
+        if not num_match:
+            return None
+        return ScriptToken(
+            line_number=line_number,
+            raw=line,
+            original_raw=original_raw,
+            token_type=TokenType.VARIABLE,
+            command=f"$num{num_match.group(1)}",
+            args=[num_match.group(2)],
+            control_chars_removed=control_chars_removed,
+        )
 
-        # $valueX = ID
+    def _classify_value_variable(
+        self,
+        line_number: int,
+        line: str,
+        original_raw: str,
+        control_chars_removed: int,
+    ) -> ScriptToken | None:
+        """$valueX = ID"""
         val_match = VALUE_VAR_PATTERN.match(line)
-        if val_match:
-            return ScriptToken(
-                line_number=line_number,
-                raw=line,
-                original_raw=original_raw,
-                token_type=TokenType.VARIABLE,
-                command=f"$value{val_match.group(1)}",
-                args=[val_match.group(2)],
-                control_chars_removed=control_chars_removed,
-            )
+        if not val_match:
+            return None
+        return ScriptToken(
+            line_number=line_number,
+            raw=line,
+            original_raw=original_raw,
+            token_type=TokenType.VARIABLE,
+            command=f"$value{val_match.group(1)}",
+            args=[val_match.group(2)],
+            control_chars_removed=control_chars_removed,
+        )
 
-        # 先頭トークン分解
-        parts = line.split()
-        first = parts[0]
-        rest_args = parts[1:]
+    def _classify_at_command(
+        self,
+        line_number: int,
+        line: str,
+        original_raw: str,
+        control_chars_removed: int,
+    ) -> ScriptToken | None:
+        """@ で始まるコマンド"""
+        first, rest_args = _split_first_token(line)
+        if not first.startswith("@"):
+            return None
+        return ScriptToken(
+            line_number=line_number,
+            raw=line,
+            original_raw=original_raw,
+            token_type=TokenType.COMMAND,
+            command=first,
+            args=rest_args,
+            control_chars_removed=control_chars_removed,
+        )
 
-        # @ で始まるコマンド
-        if first.startswith("@"):
-            return ScriptToken(
-                line_number=line_number,
-                raw=line,
-                original_raw=original_raw,
-                token_type=TokenType.COMMAND,
-                command=first,
-                args=rest_args,
-                control_chars_removed=control_chars_removed,
-            )
+    def _classify_dollar_variable(
+        self,
+        line_number: int,
+        line: str,
+        original_raw: str,
+        control_chars_removed: int,
+    ) -> ScriptToken | None:
+        """$ で始まる未分類変数行 (NUM/VALUE_VAR_PATTERN で捕捉できなかったもの)"""
+        first, rest_args = _split_first_token(line)
+        if not first.startswith("$"):
+            return None
+        return ScriptToken(
+            line_number=line_number,
+            raw=line,
+            original_raw=original_raw,
+            token_type=TokenType.VARIABLE,
+            command=first,
+            args=rest_args,
+            control_chars_removed=control_chars_removed,
+        )
 
-        # $ で始まる未分類変数行 (NUM/VALUE_VAR_PATTERN で捕捉できなかったもの)
-        if first.startswith("$"):
-            return ScriptToken(
-                line_number=line_number,
-                raw=line,
-                original_raw=original_raw,
-                token_type=TokenType.VARIABLE,
-                command=first,
-                args=rest_args,
-                control_chars_removed=control_chars_removed,
-            )
+    def _classify_hash_keyword(
+        self,
+        line_number: int,
+        line: str,
+        original_raw: str,
+        control_chars_removed: int,
+    ) -> ScriptToken | None:
+        """# で始まる分岐キーワード"""
+        first, rest_args = _split_first_token(line)
+        if not first.startswith("#"):
+            return None
+        return ScriptToken(
+            line_number=line_number,
+            raw=line,
+            original_raw=original_raw,
+            token_type=TokenType.KEYWORD,
+            command=first,
+            args=rest_args,
+            control_chars_removed=control_chars_removed,
+        )
 
-        # # で始まる分岐キーワード
-        if first.startswith("#"):
-            return ScriptToken(
-                line_number=line_number,
-                raw=line,
-                original_raw=original_raw,
-                token_type=TokenType.KEYWORD,
-                command=first,
-                args=rest_args,
-                control_chars_removed=control_chars_removed,
-            )
+    def _classify_known_keyword(
+        self,
+        line_number: int,
+        line: str,
+        original_raw: str,
+        control_chars_removed: int,
+    ) -> ScriptToken | None:
+        """既知キーワード (msg/name/branch など)"""
+        first, rest_args = _split_first_token(line)
+        if first not in self.KEYWORD_TOKENS:
+            return None
+        # name や branch はコマンド後に引数として本文が続く場合がある
+        text_part = " ".join(rest_args) if rest_args else None
+        return ScriptToken(
+            line_number=line_number,
+            raw=line,
+            original_raw=original_raw,
+            token_type=TokenType.KEYWORD,
+            command=first,
+            args=rest_args,
+            text=text_part,
+            control_chars_removed=control_chars_removed,
+        )
 
-        # 既知キーワード
-        if first in self.KEYWORD_TOKENS:
-            # name や branch はコマンド後に引数として本文が続く場合がある
-            text_part = " ".join(rest_args) if rest_args else None
-            return ScriptToken(
-                line_number=line_number,
-                raw=line,
-                original_raw=original_raw,
-                token_type=TokenType.KEYWORD,
-                command=first,
-                args=rest_args,
-                text=text_part,
-                control_chars_removed=control_chars_removed,
-            )
+    def _classify_text(
+        self,
+        line_number: int,
+        line: str,
+        original_raw: str,
+        control_chars_removed: int,
+    ) -> ScriptToken | None:
+        """日本語テキストを含む行、またはASCII以外の文字を含む行
+        (句読点・省略記号のみの間「……」等、JAPANESE_PATTERNの範囲外の
+        Unicodeブロックだけで構成される本文行を含む) → 本文とみなす。
+        実データdry-run trialで「……」のみの行がJAPANESE_PATTERNに一致せず
+        UNKNOWNになり、対応するモノローグの本文が欠落する不具合を発見した
+        (feature/branch-choice-dry-run)。
+        """
+        if not (JAPANESE_PATTERN.search(line) or not line.isascii()):
+            return None
+        return ScriptToken(
+            line_number=line_number,
+            raw=line,
+            original_raw=original_raw,
+            token_type=TokenType.TEXT,
+            text=line,
+            control_chars_removed=control_chars_removed,
+        )
 
-        # 日本語テキストを含む行、またはASCII以外の文字を含む行
-        # (句読点・省略記号のみの間「……」等、JAPANESE_PATTERNの範囲外の
-        # Unicodeブロックだけで構成される本文行を含む) → 本文とみなす。
-        # 実データdry-run trialで「……」のみの行がJAPANESE_PATTERNに一致せず
-        # UNKNOWNになり、対応するモノローグの本文が欠落する不具合を発見した
-        # (feature/branch-choice-dry-run)。
-        if JAPANESE_PATTERN.search(line) or not line.isascii():
-            return ScriptToken(
-                line_number=line_number,
-                raw=line,
-                original_raw=original_raw,
-                token_type=TokenType.TEXT,
-                text=line,
-                control_chars_removed=control_chars_removed,
-            )
-
-        # 純粋な英数字の行 (ラベル・ファイル名など)
-        # → UNKNOWN として保持
+    def _unknown_token(
+        self,
+        line_number: int,
+        line: str,
+        original_raw: str,
+        control_chars_removed: int,
+    ) -> ScriptToken:
+        """純粋な英数字の行 (ラベル・ファイル名など) → UNKNOWN として保持"""
+        first, rest_args = _split_first_token(line)
         return ScriptToken(
             line_number=line_number,
             raw=line,
             original_raw=original_raw,
             token_type=TokenType.UNKNOWN,
-            command=first if parts else None,
+            command=first or None,
             args=rest_args,
             control_chars_removed=control_chars_removed,
         )
