@@ -515,3 +515,91 @@ def test_write_pages_clean_removes_existing_output(synthetic_collection, tmp_pat
 
     assert not stale_file.exists()
     assert (tmp_path / "index.md").is_file()
+
+
+# ----------------------------------------------------------------
+# 縮退input（optional field欠落・空配列等）でのrenderer堅牢性
+# (feature/real-data-wiki-render-dry-runで見つかった、実データで
+# 起こり得る縮退パターンの回帰テスト。すべて合成fixtureのみを使う)
+# ----------------------------------------------------------------
+
+MINIMAL_FIXTURE_PATH = (
+    Path(__file__).parent.parent
+    / "fixtures"
+    / "wiki"
+    / "synthetic_minimal_collection.json"
+)
+
+
+@pytest.fixture
+def minimal_collection() -> dict:
+    """sourceDocumentsが空配列、report.canonicalIdSummary/
+    relationshipTypeSummaryが存在せず、entityのdisplayName等の任意
+    フィールドが欠落した縮退collection。"""
+    with open(MINIMAL_FIXTURE_PATH, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def test_build_pages_does_not_crash_on_empty_source_documents(minimal_collection):
+    """sourceDocumentsが空配列でもbuild_pagesが例外を送出しないことを
+    確認する。"""
+    pages = build_pages(minimal_collection)
+    assert "index.md" in pages
+    assert "stories/index.md" in pages
+    assert "reports/unresolved.md" in pages
+    # sourceDocumentsが空なのでepisode pageは1件も生成されない
+    assert not any(
+        path.startswith("stories/") and path != "stories/index.md" for path in pages
+    )
+
+
+def test_render_character_page_does_not_crash_on_missing_optional_fields(
+    minimal_collection,
+):
+    """aliases/mergedId/conflicts等の任意フィールドが欠落したentityでも
+    render_character_pageが例外を送出しないことを確認する。"""
+    resolved = minimal_collection["entities"]["characters"][0]
+    page = render_character_page(resolved)
+    assert "CHAR_MIN_RESOLVED" in page
+    assert "別名は登録されていません。" in page
+    assert "記録されている矛盾はありません" in page
+
+
+def test_render_unresolved_report_does_not_crash_without_optional_report_fields(
+    minimal_collection,
+):
+    """report.canonicalIdSummary/relationshipTypeSummaryが存在しない
+    collectionでも、render_unresolved_reportが例外を送出せず、該当
+    セクションを省略することを確認する。"""
+    report = render_unresolved_report(minimal_collection)
+    assert "## Overview" in report
+    assert "## Canonical ID Summary" not in report
+    assert "## Relationship Type Summary" not in report
+
+
+def test_render_unresolved_report_truncates_long_warning_message(minimal_collection):
+    """report.warningsに200文字を超える長いメッセージが含まれる場合、
+    切り詰められて表示されることを確認する (実データ由来の長い引用が
+    混入しても丸ごと転載しない安全策)。"""
+    report = render_unresolved_report(minimal_collection)
+    long_message = minimal_collection["report"]["warnings"][0]
+    assert len(long_message) > 200
+    assert long_message not in report
+    assert "...(省略)" in report
+
+
+def test_render_story_index_page_shows_no_episodes_message_for_empty_source_documents(
+    minimal_collection,
+):
+    page = render_story_index_page(minimal_collection)
+    assert "収録されているエピソードはありません。" in page
+
+
+def test_write_pages_does_not_crash_on_minimal_collection(minimal_collection, tmp_path):
+    """縮退collectionでもwrite_pagesまで一通り実行できることを確認する
+    (CLI経由のdry-runと同じ経路)。"""
+    pages = build_pages(minimal_collection)
+    written = write_pages(pages, tmp_path)
+    assert len(written) == len(pages)
+    for relative_path in pages:
+        assert (tmp_path / relative_path).is_file()

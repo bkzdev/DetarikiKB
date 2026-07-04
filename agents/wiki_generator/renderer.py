@@ -179,6 +179,10 @@ def render_character_page(entity: dict[str, Any]) -> str:
 # 超過分は件数のみ「...他N件」として要約する (生ログを丸ごと出さない方針)。
 _MAX_WARNINGS_DISPLAYED = 10
 
+# 1件のwarningメッセージとして表示する最大文字数。実データ由来の長い
+# 引用が万一混入していても、丸ごと転載しないための安全策。
+_MAX_WARNING_MESSAGE_LENGTH = 200
+
 
 def _render_overview_section(collection: dict[str, Any]) -> list[str]:
     """Unresolved reportの概要 (Overview) セクションを組み立てる。
@@ -301,16 +305,27 @@ def _render_warning_summary_section(collection: dict[str, Any]) -> list[str]:
     return lines
 
 
+def _truncate_message(message: str) -> str:
+    """1件のwarningメッセージが長すぎる場合に切り詰める。
+
+    実データ由来のwarningメッセージに万一長い引用が混入していても、
+    reportが実データ本文を大量に転載しないようにするための安全策。
+    """
+    if len(message) <= _MAX_WARNING_MESSAGE_LENGTH:
+        return message
+    return message[:_MAX_WARNING_MESSAGE_LENGTH] + "...(省略)"
+
+
 def _render_capped_list(items: list[str]) -> list[str]:
     """文字列リストを先頭_MAX_WARNINGS_DISPLAYED件のみ列挙し、超過分は
     件数のみ要約する共通ヘルパー (warnings / canonicalIdSummary.warnings
-    双方で使う)。
+    双方で使う)。各項目が長すぎる場合は_truncate_messageで切り詰める。
     """
     if not items:
         return []
     lines = []
     for item in items[:_MAX_WARNINGS_DISPLAYED]:
-        lines.append(f"- {item}")
+        lines.append(f"- {_truncate_message(str(item))}")
     remaining = len(items) - _MAX_WARNINGS_DISPLAYED
     if remaining > 0:
         lines.append(f"- ...他 {remaining} 件")
