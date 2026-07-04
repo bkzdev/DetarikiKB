@@ -402,7 +402,7 @@ templates/wiki/unresolved_report.md.j2
 |---|---|---|
 | Character/Location/Organization/Item/Lore/Event（canonicalIdあり） | `{type}/{canonicalId}.md` | `characters/CHAR_RAIN.md` |
 | 同上（canonicalIdなし = unresolved） | ページを生成しない。`reports/unresolved.md`にのみ一覧掲載 | （URLなし） |
-| Story/Episode | `stories/{storyId}/{episodeId}.md` | `stories/MAIN_S01_C02/MAIN_S01_C02_E01.md` |
+| Story/Episode | `stories/{storyId}/{episodeId}.md` | `stories/MAIN_S01_C02/MAIN_S01_C02_E01.md`（`feature/wiki-renderer-skeleton`のrenderer skeletonでは、暫定的にフラット構成`stories/{episodeId}.md`を採用。ネスト構成への移行は今後のepisode page renderer拡張で検討する） |
 | index系 | `{type}/index.md` | `characters/index.md` |
 | Timeline | `timelines/index.md`（単一集約ファイル、`Merged_Knowledge_Design.md` §7が「エンティティ統合しない」方針のため個別ページを持たない） | |
 
@@ -412,10 +412,10 @@ templates/wiki/unresolved_report.md.j2
 
 # 15. 将来の実装PR案
 
-1. **wiki renderer skeleton**: `agents/wiki_generator/`（現在は空placeholder package）に、merged knowledge collectionの読み込み・検証・空のページ構造出力までの骨格を作る。個別ページ生成ロジックはまだ実装しない（`agents/merger/`のmerge engine skeleton PRと同じ進め方）
-2. **character page renderer with synthetic fixture**: Character pageのみ実装。合成fixtureで検証
-3. **episode page renderer with synthetic fixture**: Episode pageを実装
-4. **unresolved report renderer**: Unresolved report pageを実装（Phase 1完了）
+1. ~~**wiki renderer skeleton**~~ → `feature/wiki-renderer-skeleton`で対応完了。`agents/wiki_generator/`（既存の空placeholder package）に、`renderer.py`（Top page/Story index/Episode page簡易版/Character page/Unresolved report pageの生成関数）・`paths.py`（canonicalId優先URL方針の実装）・`models.py`（front matter組み立て）を実装し、`scripts/render_wiki.py`（CLI、`--validate`/`--clean`オプション付き）を追加した。当初計画の「個別ページ生成ロジックはまだ実装しない」段階を超え、Character page/Unresolved report pageまで最小実装した（合成fixtureのみ、実データ由来生成物のcommitなし）
+2. ~~**character page renderer with synthetic fixture**~~ → 上記1と同時に対応完了（`render_character_page`、canonicalIdありのresolved characterのみ生成）
+3. **episode page renderer with synthetic fixture**: 簡易版（sourceDocumentsベース）は1で対応済み。Episode本文相当の情報を持つ本格版は今後の課題（現状のmerged knowledge collectionにEpisode entityが存在しないため）
+4. ~~**unresolved report renderer**~~ → 上記1と同時に対応完了（全8種entity type対応、`reports/unresolved.md`）
 5. **MkDocs Material minimal site**: 生成したMarkdown群を実際にMkDocs Materialでビルドできることを確認する最小構成（本文書のNon-goals「MkDocs本格導入」とは異なり、ビルド可否の疎通確認のみ）
 6. **real data local render dry-run**: ローカルignored領域で、実データ由来のmerged knowledge collectionから実際にレンダリングしてみる（`docs/runbooks/Real_Data_Dry_Run.md`と同じ運用: 生成物はcommitしない）
 7. **public publishing workflow**: GitHub Pages / Cloudflare Pages等への公開ワークフロー（Non-goals、別PRで検討）
