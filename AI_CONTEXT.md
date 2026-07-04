@@ -577,6 +577,7 @@ AIエージェントへ渡す指示例:
 - Wiki Page Template
 - `relationshipType` の語彙（`docs/architecture/04_Knowledge_Graph/Relationships.md`、現在空プレースホルダー。`Extraction_Result_Schema.md` §16.4も参照）
 - Candidate ID暫定形式（`Extraction_Result_Schema.md` §4.2）の実運用検証
+- **キャラクター公式プロフィール辞書の設計**（`TASKS.md` §3 Backlog「Character profile dictionary design」参照、未実装・未着手）: `knowledge/dictionaries/characters.yaml`はID解決用（`sourceCharacterId`/`characterId`/`displayName`/`aliases`/`status`/`notes`）に用途を限定し、読み仮名（kana/romaji）・所属・身長・誕生日・血液型・CV・自己紹介文・特記事項等の公式プロフィール情報は別ファイル（候補: `knowledge/dictionaries/character_profiles.yaml`）側で扱う方針。プロフィールは**confirmed済みcharacterId**にのみ紐づけ、AI抽出情報とは混ぜない。schema設計・Wiki Character page「基本プロフィール」section設計とも未着手
 
 ---
 
