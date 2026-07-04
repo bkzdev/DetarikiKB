@@ -1,0 +1,22 @@
+# Character Confirmed Batch Input Template（confirmed-batch PR用の入力形式見本）
+#
+# 次回以降のconfirmed-batch PR (例: feature/character-dictionary-confirmed-batch-003)
+# で、人間が確認済みのsourceCharacterId -> characterId mappingを渡す際の
+# 入力形式の見本。review packet (character_dictionary_review_packet_template.yaml)
+# のうち、humanReviewStatus: confirmed になったエントリだけをこの形式に
+# 切り出して渡すことを想定する。
+#
+# このファイル自体は合成データのみで構成されている。実際にmappingを
+# 提供する際は、この見本と同じ構造のファイルを
+# workspace/local_inputs/character_confirmed_batch_XXX.yaml
+# (.gitignore対象) に作成し、AIセッションへ渡すこと。このファイル自体は
+# 実データ（実キャラクター名等）を含む場合commitしない。
+
+batchId: character-dictionary-confirmed-batch-003
+
+confirmedMappings:
+  - sourceCharacterId: "1000"
+    characterId: "CHAR_EXAMPLE_CONFIRMED"
+    displayName: "Example Character"
+    aliases: []
+    notes: "Human-confirmed from review packet batch 003. 複数話で同一人物と確認済み。"

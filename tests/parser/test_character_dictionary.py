@@ -19,6 +19,7 @@ from agents.parser.character_dictionary import (
     STATUS_NAME_ONLY,
     CharacterDictionaryEntry,
     build_character_dictionary_coverage_report,
+    build_character_review_packet,
     build_review_candidates,
     load_character_dictionary,
     resolve_character_by_name,
@@ -374,3 +375,175 @@ def test_build_review_candidates_contains_no_real_data_content():
 
 def test_build_review_candidates_empty_when_all_known():
     assert build_review_candidates({"9001": 1}, known_ids={"9001"}) == []
+
+
+# ----------------------------------------------------------------
+# build_character_review_packet
+# ----------------------------------------------------------------
+
+
+@pytest.fixture
+def review_packet_dictionary_entries():
+    return [
+        CharacterDictionaryEntry(
+            source_character_id="9001",
+            display_name="Test Character A",
+            character_id="CHAR_TEST_A",
+            status=STATUS_CONFIRMED,
+        ),
+        CharacterDictionaryEntry(
+            source_character_id="9002",
+            display_name="Test Character B",
+            aliases=["TCB"],
+            status=STATUS_NAME_ONLY,
+        ),
+    ]
+
+
+@pytest.fixture
+def review_packet_collection():
+    return {
+        "entities": {
+            "characters": [
+                {
+                    "id": "CHAR_TEST_RESOLVED",
+                    "status": "merged",
+                    "canonicalId": "CHAR_TEST_A",
+                    "displayName": "Test Character A",
+                    "sourceCharacterIds": ["9001"],
+                    "evidenceRefs": [
+                        {"episodeId": "EP_TEST_001", "sourceDocumentId": "EP_TEST_001"}
+                    ],
+                },
+                {
+                    "id": "UNRESOLVED_CHAR_TEST_NAMEONLY",
+                    "status": "unresolved",
+                    "displayName": "Test Character B",
+                    "sourceCharacterIds": ["9002"],
+                    "evidenceRefs": [
+                        {
+                            "episodeId": "EP_TEST_001",
+                            "sourceDocumentId": "EP_TEST_001",
+                        },
+                        {
+                            "episodeId": "EP_TEST_002",
+                            "sourceDocumentId": "EP_TEST_002",
+                        },
+                    ],
+                },
+                {
+                    "id": "UNRESOLVED_CHAR_TEST_UNKNOWN",
+                    "status": "unresolved",
+                    "displayName": "Test Character Unknown",
+                    "sourceCharacterIds": ["9999"],
+                    "evidenceRefs": [
+                        {"episodeId": "EP_TEST_001", "sourceDocumentId": "EP_TEST_001"}
+                    ],
+                },
+                {
+                    "id": "UNRESOLVED_CHAR_TEST_NO_SOURCE_ID",
+                    "status": "unresolved",
+                    "displayName": "Test Character No Source ID",
+                    "sourceCharacterIds": [],
+                    "evidenceRefs": [{"episodeId": "EP_TEST_001"}],
+                },
+            ]
+        }
+    }
+
+
+def test_build_character_review_packet_excludes_confirmed_merged_entity(
+    review_packet_collection, review_packet_dictionary_entries
+):
+    """辞書でconfirmed済み(9001)、かつentity自体もstatus: mergedの場合は
+    再レビュー不要のため、packetに含めない。"""
+    packet = build_character_review_packet(
+        review_packet_collection, review_packet_dictionary_entries
+    )
+    source_ids = {entry["sourceCharacterId"] for entry in packet}
+    assert "9001" not in source_ids
+
+
+def test_build_character_review_packet_includes_name_only_with_dictionary_metadata(
+    review_packet_collection, review_packet_dictionary_entries
+):
+    packet = build_character_review_packet(
+        review_packet_collection, review_packet_dictionary_entries
+    )
+    entry = next(e for e in packet if e["sourceCharacterId"] == "9002")
+    assert entry["existingDictionaryStatus"] == STATUS_NAME_ONLY
+    assert entry["existingCharacterId"] is None
+    assert entry["aliases"] == ["TCB"]
+    assert entry["observedCount"] == 2
+    assert entry["appearedEpisodeCount"] == 2
+    assert entry["sourceDocumentCount"] == 2
+
+
+def test_build_character_review_packet_includes_unknown_entity(
+    review_packet_collection, review_packet_dictionary_entries
+):
+    packet = build_character_review_packet(
+        review_packet_collection, review_packet_dictionary_entries
+    )
+    entry = next(e for e in packet if e["sourceCharacterId"] == "9999")
+    assert entry["existingDictionaryStatus"] == "unknown"
+    assert entry["existingCharacterId"] is None
+    assert entry["aliases"] == []
+
+
+def test_build_character_review_packet_skips_entities_without_source_character_id(
+    review_packet_collection, review_packet_dictionary_entries
+):
+    packet = build_character_review_packet(
+        review_packet_collection, review_packet_dictionary_entries
+    )
+    source_ids = {entry["sourceCharacterId"] for entry in packet}
+    assert source_ids == {"9002", "9999"}
+
+
+def test_build_character_review_packet_sorted_by_observed_count_desc(
+    review_packet_collection, review_packet_dictionary_entries
+):
+    packet = build_character_review_packet(
+        review_packet_collection, review_packet_dictionary_entries
+    )
+    assert [entry["sourceCharacterId"] for entry in packet] == ["9002", "9999"]
+
+
+def test_build_character_review_packet_human_review_fields_initialized(
+    review_packet_collection, review_packet_dictionary_entries
+):
+    """humanReviewStatus/humanConfirmedCharacterId/notesは、AI推測による
+    埋め込みをせず常に空のプレースホルダーで初期化されることを確認する。"""
+    packet = build_character_review_packet(
+        review_packet_collection, review_packet_dictionary_entries
+    )
+    for entry in packet:
+        assert entry["humanReviewStatus"] == "pending"
+        assert entry["humanConfirmedCharacterId"] is None
+        assert entry["notes"] == ""
+
+
+def test_build_character_review_packet_does_not_include_raw_evidence_content(
+    review_packet_collection, review_packet_dictionary_entries
+):
+    """packetの各エントリは既定のキー集合のみで構成され、evidenceRefsや
+    textExcerpt等の生データをそのまま含まないことを確認する。"""
+    packet = build_character_review_packet(
+        review_packet_collection, review_packet_dictionary_entries
+    )
+    expected_keys = {
+        "sourceCharacterId",
+        "displayName",
+        "existingDictionaryStatus",
+        "existingCharacterId",
+        "aliases",
+        "observedCount",
+        "appearedEpisodeCount",
+        "sourceDocumentCount",
+        "humanReviewStatus",
+        "humanConfirmedCharacterId",
+        "notes",
+    }
+    for entry in packet:
+        assert set(entry.keys()) == expected_keys

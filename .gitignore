@@ -41,6 +41,16 @@ site_src/
 docs/wiki_generated/
 generated/wiki/
 
+# Character dictionary review packet / confirmed-batch local input
+# (docs/runbooks/Character_Dictionary_Review.md). これらは人間確認済み
+# mapping・実データ由来displayName等を含みうるローカル専用ファイルであり、
+# docs/templates/配下の合成テンプレートとは別物としてignoreする。
+workspace/review_packets/
+workspace/local_inputs/
+character_confirmed_batch_*.yaml
+character_dictionary_review_batch_*.yaml
+character_dictionary_review_batch_*.csv
+
 # Secrets / logs
 .env
 .env.*
