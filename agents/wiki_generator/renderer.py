@@ -288,15 +288,23 @@ def render_story_index_page(collection: dict[str, Any]) -> str:
         lines.append("")
         return "\n".join(lines).rstrip() + "\n"
 
-    lines.append("| storyId | episodeId | category |")
-    lines.append("|---|---|---|")
+    lines.append(
+        "| storyId | episodeId | documentId | candidate合計 | status | category |"
+    )
+    lines.append("|---|---|---|---:|---|---|")
     for doc in source_documents:
         episode_path = episode_page_path(doc)
         episode_id = doc.get("episodeId") or doc.get("documentId") or "?"
         episode_link = f"[{episode_id}]({episode_path})" if episode_path else episode_id
+        candidate_total = sum((doc.get("candidateCounts") or {}).values())
+        input_result = _find_input_result(collection, doc)
+        status = input_result.get("status", "") if input_result else ""
         lines.append(
             f"| {doc.get('storyId', '?')} "
             f"| {episode_link} "
+            f"| {doc.get('documentId', '')} "
+            f"| {candidate_total} "
+            f"| {status} "
             f"| {doc.get('storyCategory', '')} |"
         )
     lines.append("")
@@ -304,44 +312,168 @@ def render_story_index_page(collection: dict[str, Any]) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
-def render_episode_page(source_document: dict[str, Any]) -> str:
+# sourceDocuments[].candidateCounts / report.candidateCountsのキー ->
+# 表示ラベル (Wiki_Output_Design.md §13対応表と同じ8種、順序も揃える)。
+_CANDIDATE_COUNT_LABELS: tuple[tuple[str, str], ...] = (
+    ("characters", "Characters"),
+    ("locations", "Locations"),
+    ("organizations", "Organizations"),
+    ("items", "Items"),
+    ("lore", "Lore"),
+    ("events", "Events"),
+    ("relationships", "Relationships"),
+    ("timelineCandidates", "Timeline"),
+)
+
+
+def _render_candidate_counts_section(source_document: dict[str, Any]) -> list[str]:
+    candidate_counts = source_document.get("candidateCounts") or {}
+    lines = ["## Candidate Counts", "", "| Type | Count |", "|---|---:|"]
+    for key, label in _CANDIDATE_COUNT_LABELS:
+        lines.append(f"| {label} | {candidate_counts.get(key, 0)} |")
+    lines.append("")
+    return lines
+
+
+def _character_relates_to_episode(entity: dict[str, Any], episode_id: str) -> bool:
+    """このcharacter entityが指定episodeIdに関係するかを判定する。
+
+    evidenceRefs.episodeId / sourceCandidates.episodeId /
+    extractionRunRefsのキーのいずれかにepisodeIdが現れれば関係ありと
+    みなす (Wiki_Output_Design.md §13、Episode page拡張時のrelated
+    entity summary方針)。
+    """
+    for ref in entity.get("evidenceRefs") or []:
+        if ref.get("episodeId") == episode_id:
+            return True
+    for candidate in entity.get("sourceCandidates") or []:
+        if candidate.get("episodeId") == episode_id:
+            return True
+    return episode_id in (entity.get("extractionRunRefs") or {})
+
+
+def _find_related_characters(
+    collection: dict[str, Any], episode_id: str
+) -> list[dict[str, Any]]:
+    characters = collection.get("entities", {}).get("characters", []) or []
+    return [c for c in characters if _character_relates_to_episode(c, episode_id)]
+
+
+def _format_related_character(entity: dict[str, Any]) -> str:
+    """関連キャラクター1件をsummary形式で整形する。
+
+    canonicalIdが確定しページが生成されるentityはcanonicalIdを、
+    unresolvedのentityは内部id（`unresolved`と明記）を表示する。
+    通常Character pageが無いunresolvedへのリンクは張らない。
+    """
+    display_name = entity.get("displayName") or entity.get("id", "")
+    if is_page_eligible(entity):
+        return f"{display_name}（`{entity.get('canonicalId')}`）"
+    return f"{display_name}（`{entity.get('id')}`, unresolved）"
+
+
+def _render_related_characters_section(
+    collection: dict[str, Any], episode_id: str
+) -> list[str]:
+    related = _find_related_characters(collection, episode_id)
+    lines = ["## Related Characters", ""]
+    if not related:
+        lines.append("関連するキャラクターは記録されていません。")
+        lines.append("")
+        return lines
+    for entity in related:
+        lines.append(f"- {_format_related_character(entity)}")
+    lines.append("")
+    return lines
+
+
+def _find_input_result(
+    collection: dict[str, Any], source_document: dict[str, Any]
+) -> dict[str, Any] | None:
+    """sourceDocumentに対応するreport.inputResultsのエントリを、pathで
+    突き合わせて探す (どちらも同じpath文字列を持つ、既存のmerge engine実装
+    の出力形式に基づく)。見つからない場合はNoneを返す。
+    """
+    path = source_document.get("path")
+    if not path:
+        return None
+    for result in collection.get("report", {}).get("inputResults", []) or []:
+        if result.get("path") == path:
+            return result
+    return None
+
+
+def _render_validation_section(
+    collection: dict[str, Any], source_document: dict[str, Any]
+) -> list[str]:
+    """このepisodeのinputResultが取れる場合のみ、input status/errors件数/
+    warnings件数を表示する。取れない場合はセクション自体を省略する
+    (report全体を出しすぎない方針、Wiki_Output_Design.md §13)。
+    """
+    input_result = _find_input_result(collection, source_document)
+    if input_result is None:
+        return []
+    lines = [
+        "## Validation",
+        "",
+        "| 項目 | 値 |",
+        "|---|---|",
+        f"| Input status | {input_result.get('status', '')} |",
+        f"| Errors | {len(input_result.get('errors') or [])} |",
+        f"| Warnings | {len(input_result.get('warnings') or [])} |",
+        "",
+    ]
+    return lines
+
+
+def render_episode_page(
+    source_document: dict[str, Any], collection: dict[str, Any]
+) -> str:
     """Episode pageを生成する (Wiki_Output_Design.md §9.3)。
 
     現時点のmerged knowledge collectionにはepisode本文相当の情報が
     無いため、sourceDocumentsエントリ (candidateCounts等) から組み立てる
-    簡易ページとする。本文セリフは生成しない。
+    簡易ページとする。本文セリフは生成しない。collectionを渡すのは、
+    このepisodeに関係するcharacter entity summary・inputResultを
+    探すため。
     """
     episode_id = source_document.get("episodeId") or source_document.get("documentId")
+    document_id = source_document.get("documentId")
+    story_id = source_document.get("storyId")
+
     front_matter = build_front_matter(
         {
             "title": episode_id,
-            "entity_type": "episode",
-            "entity_id": episode_id,
+            "page_type": "episode",
+            "episode_id": episode_id,
+            "story_id": story_id,
+            "document_id": document_id,
             "generated_from": GENERATED_FROM,
         }
     )
-    candidate_counts = source_document.get("candidateCounts", {}) or {}
 
     lines = [
         front_matter,
         f"# {episode_id}",
         "",
-        "## 基本情報",
+        "## Summary",
         "",
         "| 項目 | 値 |",
         "|---|---|",
-        f"| Episode ID | {episode_id} |",
-        f"| Story ID | {source_document.get('storyId', '')} |",
-        f"| カテゴリ | {source_document.get('storyCategory', '')} |",
+        f"| Episode ID | {episode_id or ''} |",
+        f"| Story ID | {story_id or ''} |",
+        f"| Document ID | {document_id or ''} |",
+        f"| Source Path | {source_document.get('path', '')} |",
+        f"| Extraction Version | {source_document.get('extractionVersion', '')} |",
+        f"| Category | {source_document.get('storyCategory', '')} |",
         "",
-        "## Candidate件数",
-        "",
-        "| 種別 | 件数 |",
-        "|---|---|",
     ]
-    for key, count in candidate_counts.items():
-        lines.append(f"| {key} | {count} |")
-    lines.append("")
+
+    lines.extend(_render_candidate_counts_section(source_document))
+    if episode_id:
+        lines.extend(_render_related_characters_section(collection, episode_id))
+    lines.extend(_render_validation_section(collection, source_document))
+
     lines.append(
         "本文セリフはこのページに掲載しません (Wiki_Output_Design.md §4、§9.3)。"
     )
@@ -365,7 +497,7 @@ def build_pages(collection: dict[str, Any]) -> dict[str, str]:
     for source_document in collection.get("sourceDocuments", []) or []:
         path = episode_page_path(source_document)
         if path is not None:
-            pages[path] = render_episode_page(source_document)
+            pages[path] = render_episode_page(source_document, collection)
 
     for entity in collection.get("entities", {}).get("characters", []) or []:
         path = character_page_path(entity)

@@ -160,6 +160,8 @@ Relationship page（独立ページ）は現時点では見送り、Character/Or
 - 表示しないもの: エピソード本文
 - テンプレート名（案）: `templates/wiki/story_index.md.j2`
 
+**実装状況（`feature/episode-page-renderer-expansion`で拡張）**: `render_story_index_page`は、storyId・episodeId（Episode pageへのリンク）に加え、documentId・candidate合計件数・`report.inputResults`から突き合わせたstatus（見つからない場合は空欄）を1行にまとめた表を出力する。
+
 ## 9.3 Episode page
 
 - source: 個別`entities.*`のうち、`sourceCandidates[].episodeId`がこのエピソードに一致するもの（登場キャラクター・場所等の索引として）
@@ -167,6 +169,8 @@ Relationship page（独立ページ）は現時点では見送り、Character/Or
 - 表示しないもの: 本文セリフ全文（§4 evidence方針と同じ理由）
 - unresolved時の表示: このエピソード由来のunresolvedエンティティは名前のみ列挙し、リンクは張らない（個別ページが無いため）
 - テンプレート名（案）: `templates/wiki/episode.md.j2`
+
+**実装状況（`feature/episode-page-renderer-expansion`で拡張）**: `render_episode_page`（`agents/wiki_generator/renderer.py`）は、Summary（Episode ID/Story ID/Document ID/Source Path/Extraction Version/Category）・Candidate Counts表（8種、`Wiki_Output_Design.md` §13対応表と同じ順序・ラベル）・Related Characters（`entities.characters`の`evidenceRefs.episodeId`/`sourceCandidates.episodeId`/`extractionRunRefs`キーのいずれかがこのepisodeIdに一致するcharacterを列挙。canonicalIdがあれば`` `CHAR_XXX` ``、unresolvedなら内部idと`unresolved`表記）・Validation（`report.inputResults`をpathで突き合わせられた場合のみinput status/errors件数/warnings件数を表示、見つからない場合はセクション自体を省略）の順でセクションを出力する。front matterには`page_type: "episode"`（`entity_type`ではなくepisodeがmerged knowledge schema上のentityではないことを明示するため）・`episode_id`/`story_id`/`document_id`を追加した。`source_path`は本文Summary表のみに表示し、front matterには含めない（ローカルパス漏洩懸念への配慮）。Location/Organization等の関連entity summaryは今回未実装（characters優先、Phase 2で拡張予定）。
 
 ## 9.4 Character page
 

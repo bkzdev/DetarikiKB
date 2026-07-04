@@ -20,6 +20,24 @@
         "relationships": 0,
         "timelineCandidates": 0
       }
+    },
+    {
+      "path": "tests/fixtures/wiki/synthetic_episode_extraction_002.json",
+      "documentId": "EP_TEST_002",
+      "storyId": "TEST_S01_C01",
+      "episodeId": "EP_TEST_002",
+      "storyCategory": "MAIN",
+      "extractionVersion": "0.1.0",
+      "candidateCounts": {
+        "characters": 0,
+        "locations": 0,
+        "organizations": 0,
+        "items": 0,
+        "lore": 0,
+        "events": 0,
+        "relationships": 0,
+        "timelineCandidates": 0
+      }
     }
   ],
   "entities": {
@@ -279,9 +297,9 @@
     "timeline": []
   },
   "report": {
-    "inputFiles": 1,
-    "resolvedInputFiles": 1,
-    "validInputs": 1,
+    "inputFiles": 2,
+    "resolvedInputFiles": 2,
+    "validInputs": 2,
     "invalidInputs": 0,
     "skippedInputs": [],
     "candidateCounts": {
@@ -323,10 +341,10 @@
       "byEntityType": { "characters": 1 }
     },
     "warningCounts": {
-      "total": 0,
+      "total": 1,
       "unresolvedRelationships": 0,
       "skippedOverrides": 0,
-      "other": 0
+      "other": 1
     },
     "entityTypeSummaries": {
       "characters": {
@@ -395,6 +413,23 @@
           "timelineCandidates": 0
         },
         "mergedEntityCounts": null
+      },
+      {
+        "path": "tests/fixtures/wiki/synthetic_episode_extraction_002.json",
+        "status": "valid",
+        "documentId": "EP_TEST_002",
+        "episodeId": "EP_TEST_002",
+        "candidateCounts": {
+          "characters": 0,
+          "locations": 0,
+          "organizations": 0,
+          "items": 0,
+          "lore": 0,
+          "events": 0,
+          "relationships": 0,
+          "timelineCandidates": 0
+        },
+        "mergedEntityCounts": null
       }
     ],
     "inputResults": [
@@ -403,9 +438,15 @@
         "status": "valid",
         "errors": [],
         "warnings": []
+      },
+      {
+        "path": "tests/fixtures/wiki/synthetic_episode_extraction_002.json",
+        "status": "valid",
+        "errors": [],
+        "warnings": ["EP_TEST_002: サンプルwarningメッセージ"]
       }
     ],
-    "warnings": [],
+    "warnings": ["EP_TEST_002: サンプルwarningメッセージ"],
     "errors": [],
     "relationshipTypeSummary": {
       "knownTypes": {},
