@@ -122,6 +122,16 @@ stage_direction:
   - "image"                # 画像アセット読み込み
   - "distance"             # カメラ距離
   - "shake"                # 画面/カメラ揺れ演出
+  # branch/choice included dry-run (feature/branch-choice-dry-run) で
+  # 見つかった演出コマンド群。意味を完全解析せず既存カテゴリへ機械的に
+  # 振り分ける (agents/parser/parser.py の DIRECTION_TYPE_MAP と対で追加)。
+  - "costume"              # 衣装/コスチューム変更
+  - "fa"                   # 表情/フェイス変更
+  - "@TalkPosR"            # 会話位置設定 (右)
+  - "@TalkPosL"            # 会話位置設定 (左)
+  - "@ChEyeOff"            # キャラ視線オフ
+  - "@VisibleS"            # 表示 (バリエーション)
+  - "@FadeOutBlack"        # 画面フェードアウト (黒)
 
 # ----------------------------------------------------------------
 # ignored: 無視する行・コマンド

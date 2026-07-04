@@ -118,6 +118,26 @@ wait 0.5
     assert embedded["unknownCommands"] == set()
 
 
+def test_branch_choice_dry_run_commands_not_unknown_on_either_path(tmp_path):
+    """branch/choice included dry-runで見つかったcostume/fa/@TalkPosR/
+    @TalkPosL/@ChEyeOff/@VisibleS/@FadeOutBlackが、
+    どちらの経路でもunknownCommandsに現れないこと。"""
+    script = """costume 1 2
+fa 3
+@TalkPosR
+@TalkPosL
+@ChEyeOff 0
+@VisibleS 1
+@FadeOutBlack 1
+"""
+    standalone, embedded = _run_both_paths(tmp_path, script)
+
+    assert standalone["unknownCommands"] == set()
+    assert embedded["unknownCommands"] == set()
+    assert standalone["newSpeechCommands"] == set()
+    assert embedded["newSpeechCommands"] == set()
+
+
 def test_talk_camera_commands_not_misdetected_as_speech(tmp_path):
     """@TalkCamera3/@TalkCamera4はPR #30で既知コマンド化されているため、
     どちらの経路でも新規会話コマンド候補として誤検出されないこと。"""
