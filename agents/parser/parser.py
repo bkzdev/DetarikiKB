@@ -266,7 +266,7 @@ class StoryParser:
     # Internal parsing
     # ----------------------------------------------------------------
 
-    def _parse_tokens(
+    def _parse_tokens(  # noqa: C901 -- parse state dataclass refactorまでの暫定抑制。TASKS.md Known Issues参照
         self,
         tokens: list[ScriptToken],
         control_chars_removed: int,

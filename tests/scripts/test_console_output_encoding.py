@@ -60,7 +60,7 @@ def test_check_script_compatibility_cli_survives_cp932_console(tmp_path):
             str(tmp_path),
         ],
         capture_output=True,
-        text=True,
+        encoding="cp932",
         env=_cp932_env(),
     )
 
@@ -91,7 +91,7 @@ def test_normalize_story_cli_survives_cp932_console(tmp_path):
             "--check-compat",
         ],
         capture_output=True,
-        text=True,
+        encoding="cp932",
         env=_cp932_env(),
     )
 
