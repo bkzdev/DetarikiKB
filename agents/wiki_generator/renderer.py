@@ -77,7 +77,55 @@ def _render_conflicts_section(entity: dict[str, Any]) -> list[str]:
         conflict_type = conflict.get("conflictType", "unknown")
         severity = conflict.get("severity", "unknown")
         resolution = conflict.get("resolutionStatus", "unresolved")
-        lines.append(f"- {conflict_type}（severity: {severity}, {resolution}）")
+        field = conflict.get("field")
+        field_part = f", field: {field}" if field else ""
+        lines.append(
+            f"- {conflict_type}（severity: {severity}{field_part}, {resolution}）"
+        )
+    lines.append("")
+    return lines
+
+
+def _render_aliases_section(entity: dict[str, Any]) -> list[str]:
+    aliases = entity.get("aliases") or []
+    lines = ["## Aliases", ""]
+    if not aliases:
+        lines.append("別名は登録されていません。")
+        lines.append("")
+        return lines
+    for alias in aliases:
+        lines.append(f"- {alias}")
+    lines.append("")
+    return lines
+
+
+def _format_source_candidate(candidate: dict[str, Any]) -> str:
+    """1件のsourceCandidateを、summaryのみの1行に整形する
+    (candidateId/candidateType/episodeId/evidenceIds件数/
+    sourceDocumentId。元candidateの本文・raw payloadは含めない)。
+    """
+    parts = [f"candidateId: {candidate.get('candidateId', '?')}"]
+    if candidate.get("candidateType"):
+        parts.append(f"candidateType: {candidate['candidateType']}")
+    if candidate.get("episodeId"):
+        parts.append(f"episodeId: {candidate['episodeId']}")
+    parts.append(f"evidenceIds件数: {len(candidate.get('evidenceIds') or [])}")
+    if candidate.get("sourceDocumentId"):
+        parts.append(f"sourceDocumentId: {candidate['sourceDocumentId']}")
+    return " / ".join(parts)
+
+
+def _render_source_candidates_section(entity: dict[str, Any]) -> list[str]:
+    candidates = entity.get("sourceCandidates") or []
+    lines = ["## Source Candidates", ""]
+    if not candidates:
+        lines.append("由来candidateはありません。")
+        lines.append("")
+        return lines
+    lines.append(f"{len(candidates)} 件のcandidateから統合:")
+    lines.append("")
+    for candidate in candidates:
+        lines.append(f"- {_format_source_candidate(candidate)}")
     lines.append("")
     return lines
 
@@ -89,6 +137,7 @@ def render_character_page(entity: dict[str, Any]) -> str:
     呼ぶこと (canonicalId未確定のentityを渡さない)。
     """
     display_name = entity.get("displayName") or entity.get("id", "")
+    source_types = entity.get("sourceTypes") or []
     front_matter = build_front_matter(
         {
             "title": display_name,
@@ -96,26 +145,31 @@ def render_character_page(entity: dict[str, Any]) -> str:
             "entity_id": entity.get("id"),
             "canonical_id": entity.get("canonicalId"),
             "status": entity.get("status"),
+            "confidence": entity.get("confidence"),
+            "source_types": ", ".join(source_types) if source_types else None,
             "generated_from": GENERATED_FROM,
         }
     )
 
     lines = [front_matter, f"# {display_name}", ""]
 
-    aliases = entity.get("aliases") or []
-    lines.append("## 抽出情報")
+    lines.append("## Summary")
     lines.append("")
     lines.append("| 項目 | 値 |")
     lines.append("|---|---|")
-    lines.append(f"| 表示名 | {display_name} |")
-    lines.append(f"| 別名 | {', '.join(aliases) if aliases else '(なし)'} |")
-    lines.append(f"| ステータス | {entity.get('status', '')} |")
-    lines.append(f"| 情報源区分 | {', '.join(entity.get('sourceTypes') or [])} |")
-    lines.append(f"| 確度 (confidence) | {entity.get('confidence', '')} |")
-    lines.append(f"| 由来candidate数 | {len(entity.get('sourceCandidates') or [])} |")
+    lines.append(f"| Entity ID | {entity.get('id', '')} |")
+    lines.append(f"| Canonical ID | {entity.get('canonicalId', '')} |")
+    lines.append(f"| Status | {entity.get('status', '')} |")
+    lines.append(f"| Confidence | {entity.get('confidence', '')} |")
+    source_types_display = (
+        ", ".join(source_types) if source_types else "情報源区分は記録されていません。"
+    )
+    lines.append(f"| Source types | {source_types_display} |")
     lines.append("")
 
+    lines.extend(_render_aliases_section(entity))
     lines.extend(_render_evidence_section(entity))
+    lines.extend(_render_source_candidates_section(entity))
     lines.extend(_render_conflicts_section(entity))
 
     return "\n".join(lines).rstrip() + "\n"

@@ -189,6 +189,8 @@ Relationship page（独立ページ）は現時点では見送り、Character/Or
 - AI由来情報のラベル付け: `sourceTypes`に`ai_inferred`が含まれるフィールドは「AI推定」ラベルを付けるか、AI analysis pageへ分離する
 - テンプレート名（案）: `templates/wiki/character.md.j2`
 
+**実装状況（`feature/character-page-renderer-expansion`で拡張）**: `render_character_page`（`agents/wiki_generator/renderer.py`）は、Summary（Entity ID/Canonical ID/Status/Confidence/Source types）・Aliases（空なら「別名は登録されていません。」）・Evidence（既存のID参照のみ表示）・Source Candidates（candidateId/candidateType/episodeId/evidenceIds件数/sourceDocumentIdのsummary、元candidateのraw payloadは含めない）・Conflicts（空なら「記録されている矛盾はありません。」、存在する場合はconflictType/field/severity/resolutionStatusを表示）の順でセクションを出力する。front matterには`confidence`/`source_types`を任意フィールドとして追加した。関連Relationship・登場エピソード一覧・manualOverridesApplied表示・AI推定ラベル付けは、Relationship section（Phase 2）・AI analysis page（Phase 3）実装時にあわせて対応する（今回は未実装）。
+
 ## 9.5 Location page
 
 - source: `entities.locations`

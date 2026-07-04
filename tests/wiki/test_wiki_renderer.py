@@ -48,8 +48,13 @@ def resolved_character(synthetic_collection) -> dict:
 
 
 @pytest.fixture
-def unresolved_character(synthetic_collection) -> dict:
+def conflict_character(synthetic_collection) -> dict:
     return synthetic_collection["entities"]["characters"][1]
+
+
+@pytest.fixture
+def unresolved_character(synthetic_collection) -> dict:
+    return synthetic_collection["entities"]["characters"][2]
 
 
 # ----------------------------------------------------------------
@@ -97,6 +102,13 @@ def test_is_page_eligible_true_for_resolved_character(resolved_character):
     assert is_page_eligible(resolved_character) is True
 
 
+def test_is_page_eligible_true_for_merged_character_with_conflicts(conflict_character):
+    """conflictsが記録されていても、canonicalIdが確定しstatus: mergedで
+    あれば通常ページを生成する (conflictsの有無はページ生成可否に影響
+    しない、Wiki_Output_Design.md §5)。"""
+    assert is_page_eligible(conflict_character) is True
+
+
 def test_is_page_eligible_false_for_unresolved_character(unresolved_character):
     assert is_page_eligible(unresolved_character) is False
 
@@ -131,12 +143,49 @@ def test_render_character_page_contains_front_matter_and_fields(resolved_charact
     assert "Rain-chan" in page
 
 
+def test_render_character_page_shows_all_aliases(resolved_character):
+    """合成fixtureのCHAR_TEST_RAINは2件のaliasesを持つ。両方が
+    ## Aliasesセクションに列挙されることを確認する。"""
+    page = render_character_page(resolved_character)
+    assert "## Aliases" in page
+    assert "- Rain-chan" in page
+    assert "- Test Alias Rain" in page
+
+
+def test_render_character_page_no_aliases_message(conflict_character):
+    """CHAR_TEST_CONFLICTはaliasesが空の合成fixture。プレースホルダー
+    メッセージが表示されることを確認する。"""
+    page = render_character_page(conflict_character)
+    assert "別名は登録されていません。" in page
+
+
+def test_render_character_page_shows_source_types(resolved_character):
+    page = render_character_page(resolved_character)
+    assert "| Source types | script |" in page
+    assert 'source_types: "script"' in page
+
+
+def test_render_character_page_shows_confidence(resolved_character):
+    page = render_character_page(resolved_character)
+    assert "| Confidence | 0.9 |" in page
+    assert 'confidence: "0.9"' in page
+
+
 def test_render_character_page_evidence_is_reference_only(resolved_character):
     page = render_character_page(resolved_character)
     assert "evidenceId: EP_TEST_001_DLG0001" in page
     assert "episodeId: EP_TEST_001" in page
     assert "sceneId: EP_TEST_001_SC001" in page
     assert "blockId: EP_TEST_001_DLG0001" in page
+
+
+def test_render_character_page_evidence_summary_lists_all_refs(resolved_character):
+    """合成fixtureのCHAR_TEST_RAINは2件のevidenceRefsを持つ。両方が
+    参照情報として列挙されることを確認する。"""
+    page = render_character_page(resolved_character)
+    assert "2 件の参照:" in page
+    assert "evidenceId: EP_TEST_001_DLG0001" in page
+    assert "evidenceId: EP_TEST_001_DLG0003" in page
 
 
 def test_render_character_page_does_not_include_full_dialogue_text(
@@ -148,9 +197,34 @@ def test_render_character_page_does_not_include_full_dialogue_text(
     assert "textExcerpt" not in page
 
 
+def test_render_character_page_source_candidates_summary(resolved_character):
+    """合成fixtureのCHAR_TEST_RAINは2件のsourceCandidatesを持つ。
+    candidateId/candidateType/episodeId等のsummaryが列挙され、
+    元candidateのraw payloadは含まれないことを確認する。"""
+    page = render_character_page(resolved_character)
+    assert "## Source Candidates" in page
+    assert "candidateId: EP_TEST_001_CAND_CHAR001" in page
+    assert "candidateId: EP_TEST_001_CAND_CHAR003" in page
+    assert "candidateType: character_candidate" in page
+    assert "evidenceIds件数: 1" in page
+
+
 def test_render_character_page_conflicts_section_when_empty(resolved_character):
     page = render_character_page(resolved_character)
     assert "記録されている矛盾はありません" in page
+
+
+def test_render_character_page_conflicts_section_when_present(conflict_character):
+    """CHAR_TEST_CONFLICTはconflictsが1件ある合成fixture。
+    conflictType/field/severity/resolutionStatusが表示されることを
+    確認する (高度な自動解決はしない)。"""
+    page = render_character_page(conflict_character)
+    assert "1 件の矛盾が記録されています" in page
+    assert "name_conflict" in page
+    assert "field: displayName" in page
+    assert "severity: warning" in page
+    assert "unresolved" in page
+    assert "記録されている矛盾はありません" not in page
 
 
 # ----------------------------------------------------------------
@@ -218,6 +292,7 @@ def test_build_pages_generates_expected_paths(synthetic_collection):
     assert "stories/index.md" in pages
     assert "stories/EP_TEST_001.md" in pages
     assert "characters/CHAR_TEST_RAIN.md" in pages
+    assert "characters/CHAR_TEST_CONFLICT.md" in pages
     assert "reports/unresolved.md" in pages
     # canonicalIdが無いキャラクターの個別ページは生成されない
     assert "characters/UNRESOLVED_CHAR_TEST_0001.md" not in pages

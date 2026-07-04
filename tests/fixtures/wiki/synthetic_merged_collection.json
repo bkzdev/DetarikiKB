@@ -11,7 +11,7 @@
       "storyCategory": "MAIN",
       "extractionVersion": "0.1.0",
       "candidateCounts": {
-        "characters": 2,
+        "characters": 3,
         "locations": 1,
         "organizations": 0,
         "items": 0,
@@ -31,7 +31,7 @@
         "canonicalId": "CHAR_TEST_RAIN",
         "mergedId": null,
         "displayName": "Test Character Rain",
-        "aliases": ["Rain-chan"],
+        "aliases": ["Rain-chan", "Test Alias Rain"],
         "status": "merged",
         "sourceTypes": ["script"],
         "confidence": 0.9,
@@ -45,6 +45,16 @@
             "sourceDocumentId": "EP_TEST_001",
             "evidenceType": "dialogue",
             "confidence": 0.9
+          },
+          {
+            "evidenceId": "EP_TEST_001_DLG0003",
+            "storyId": "TEST_S01_C01",
+            "episodeId": "EP_TEST_001",
+            "sceneId": "EP_TEST_001_SC001",
+            "blockId": "EP_TEST_001_DLG0003",
+            "sourceDocumentId": "EP_TEST_001",
+            "evidenceType": "dialogue",
+            "confidence": 0.9
           }
         ],
         "sourceCandidates": [
@@ -54,6 +64,16 @@
             "sourceDocumentId": "EP_TEST_001",
             "episodeId": "EP_TEST_001",
             "evidenceIds": ["EP_TEST_001_DLG0001"],
+            "extractionRunRef": "EP_TEST_001",
+            "sourceType": "script",
+            "confidence": 0.9
+          },
+          {
+            "candidateId": "EP_TEST_001_CAND_CHAR003",
+            "candidateType": "character_candidate",
+            "sourceDocumentId": "EP_TEST_001",
+            "episodeId": "EP_TEST_001",
+            "evidenceIds": ["EP_TEST_001_DLG0003"],
             "extractionRunRef": "EP_TEST_001",
             "sourceType": "script",
             "confidence": 0.9
@@ -73,6 +93,68 @@
         "sourceCharacterIds": ["9001"],
         "fieldValues": {},
         "conflicts": [],
+        "manualOverridesApplied": [],
+        "mergedFrom": ["EP_TEST_001"],
+        "createdAt": null,
+        "updatedAt": null
+      },
+      {
+        "schemaVersion": "0.1",
+        "id": "CHAR_TEST_CONFLICT",
+        "type": "character",
+        "canonicalId": "CHAR_TEST_CONFLICT",
+        "mergedId": null,
+        "displayName": "Test Character Conflict",
+        "aliases": [],
+        "status": "merged",
+        "sourceTypes": ["script"],
+        "confidence": 0.7,
+        "evidenceRefs": [
+          {
+            "evidenceId": "EP_TEST_001_DLG0004",
+            "storyId": "TEST_S01_C01",
+            "episodeId": "EP_TEST_001",
+            "sceneId": "EP_TEST_001_SC001",
+            "blockId": "EP_TEST_001_DLG0004",
+            "sourceDocumentId": "EP_TEST_001",
+            "evidenceType": "dialogue",
+            "confidence": 0.7
+          }
+        ],
+        "sourceCandidates": [
+          {
+            "candidateId": "EP_TEST_001_CAND_CHAR004",
+            "candidateType": "character_candidate",
+            "sourceDocumentId": "EP_TEST_001",
+            "episodeId": "EP_TEST_001",
+            "evidenceIds": ["EP_TEST_001_DLG0004"],
+            "extractionRunRef": "EP_TEST_001",
+            "sourceType": "script",
+            "confidence": 0.7
+          }
+        ],
+        "extractionRunRefs": {
+          "EP_TEST_001": {
+            "extractionVersion": "0.1.0",
+            "extractionMethod": "rule_based",
+            "modelProvider": null,
+            "modelName": null,
+            "promptVersion": null,
+            "extractedAt": null,
+            "parserCompatibilityAtExtraction": "compatible"
+          }
+        },
+        "sourceCharacterIds": ["9002"],
+        "fieldValues": {},
+        "conflicts": [
+          {
+            "conflictType": "name_conflict",
+            "field": "displayName",
+            "values": ["Test Character Conflict", "Test Character Conflict Alt"],
+            "severity": "warning",
+            "resolutionStatus": "unresolved"
+          }
+        ],
         "manualOverridesApplied": [],
         "mergedFrom": ["EP_TEST_001"],
         "createdAt": null,
@@ -203,7 +285,7 @@
     "invalidInputs": 0,
     "skippedInputs": [],
     "candidateCounts": {
-      "characters": 2,
+      "characters": 3,
       "locations": 1,
       "organizations": 0,
       "items": 0,
@@ -213,7 +295,7 @@
       "timelineCandidates": 0
     },
     "mergedEntityCounts": {
-      "characters": 2,
+      "characters": 3,
       "locations": 1,
       "organizations": 0,
       "items": 0,
@@ -222,7 +304,7 @@
       "relationships": 0,
       "timeline": 0
     },
-    "conflictsCount": 0,
+    "conflictsCount": 1,
     "unresolvedCount": 2,
     "unresolvedEntityCounts": {
       "characters": 1,
@@ -235,10 +317,10 @@
       "timeline": 0
     },
     "conflictCounts": {
-      "total": 0,
-      "bySeverity": {},
-      "byType": {},
-      "byEntityType": {}
+      "total": 1,
+      "bySeverity": { "warning": 1 },
+      "byType": { "name_conflict": 1 },
+      "byEntityType": { "characters": 1 }
     },
     "warningCounts": {
       "total": 0,
@@ -248,10 +330,10 @@
     },
     "entityTypeSummaries": {
       "characters": {
-        "candidateCount": 2,
-        "mergedCount": 2,
+        "candidateCount": 3,
+        "mergedCount": 3,
         "unresolvedCount": 1,
-        "conflictCount": 0
+        "conflictCount": 1
       },
       "locations": {
         "candidateCount": 1,
@@ -303,7 +385,7 @@
         "documentId": "EP_TEST_001",
         "episodeId": "EP_TEST_001",
         "candidateCounts": {
-          "characters": 2,
+          "characters": 3,
           "locations": 1,
           "organizations": 0,
           "items": 0,
@@ -331,7 +413,7 @@
       "normalizedTypes": {}
     },
     "canonicalIdSummary": {
-      "totalAssigned": 1,
+      "totalAssigned": 2,
       "duplicateCount": 0,
       "invalidCount": 0,
       "warnings": []
