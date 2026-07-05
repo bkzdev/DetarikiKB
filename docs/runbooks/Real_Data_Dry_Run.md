@@ -125,6 +125,17 @@ uv run python scripts/normalize_story.py \
 uv run python scripts/check_script_compatibility.py data/raw/main/MAIN_S01_C02_E01.dec --output data/reports/
 ```
 
+- `story_manifest.yaml`（`docs/architecture/05_Parser/Story_Manifest_Design.md`）が用意できている場合は、任意で`--manifest`/`--raw-root`を追加すると`--story-id`/`--category`等を毎回手動指定する代わりにmanifestから自動解決できる（`--manifest`未指定時は本セクションの手順のまま変わらない）:
+
+```bash
+uv run python scripts/normalize_story.py \
+    --input EVENT/csl_script_event_250626_dancer_export/CAB-csl_script_event_250626_dancer-episode1.dec \
+    --output data/normalized/event/ \
+    --manifest workspace/story_manifest/story_manifest_candidates.yaml \
+    --raw-root . \
+    --validate --check-compat
+```
+
   - exit code `0`: compatible、`1`: needs_update、`2`: blocked。`1`/`2`の場合は`config/script_commands.yaml`または`reference/parser/characters_reference.json`相当のキャラクター辞書を確認してから先に進む（`CLAUDE.md`参照）。
 
 ---

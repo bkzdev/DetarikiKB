@@ -49,6 +49,11 @@ from agents.parser import (  # noqa: E402
     Normalizer,
     StoryParser,
 )
+from agents.parser.story_manifest import (  # noqa: E402
+    load_story_manifest,
+    resolve_manifest_episode,
+    resolve_story_category,
+)
 
 DEFAULT_CHARACTERS_PATH = (
     _PROJECT_ROOT / "knowledge" / "dictionaries" / "characters.yaml"
@@ -100,12 +105,16 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--story-id",
-        required=True,
-        help="Story ID (例: MAIN_S03_C68, EVT_0162)",
+        default=None,
+        help=(
+            "Story ID (例: MAIN_S03_C68, EVT_0162)。--manifest指定時に"
+            "一致するepisode entryが見つかった場合は省略できる"
+            "(明示的に指定した場合はそちらが優先される)"
+        ),
     )
     parser.add_argument(
         "--category",
-        required=True,
+        default=None,
         choices=[
             "MAIN",
             "EVT",
@@ -115,7 +124,12 @@ def parse_args() -> argparse.Namespace:
             "CHAR_EXTRA",
             "CHAR_DATE",
         ],
-        help="ストーリーカテゴリ",
+        help=(
+            "ストーリーカテゴリ。--manifest指定時に一致するepisode entryが"
+            "見つかった場合は省略できる(明示的に指定した場合はそちらが優先"
+            "される。characterカテゴリはCHAR_MAIN/CHAR_EXTRA/CHAR_DATEの"
+            "いずれか判定できないため、--manifestからは自動解決されない)"
+        ),
     )
 
     # オプション引数
@@ -186,6 +200,38 @@ def parse_args() -> argparse.Namespace:
         help="--category に応じたサブディレクトリへ出力する (main/ event/ など)",
     )
     parser.add_argument(
+        "--manifest",
+        default=None,
+        help=(
+            "story_manifest.yaml相当のパス (任意)。指定した場合のみ、"
+            "--inputに対応するepisode entryを検索し、storyId/episodeId/"
+            "storyTitle/episodeSubtitle/displayTitle/metadataStatusを"
+            "自動補完する (docs/architecture/05_Parser/Story_Manifest_Design.md "
+            "参照)。DEC本文からsubtitleを推測する処理ではない"
+        ),
+    )
+    parser.add_argument(
+        "--raw-root",
+        default=None,
+        help=(
+            "raw DECファイル群のルートディレクトリ (--manifest指定時のみ使用)。"
+            "指定するとinput pathをこのディレクトリからの相対パスに変換して"
+            "manifestのrawPathと比較する。未指定でもsourceFileNameによる"
+            "fallback照合は行われる"
+        ),
+    )
+    parser.add_argument(
+        "--manifest-strict",
+        action="store_true",
+        help=(
+            "--manifest指定時、一致するepisode entryが見つからない"
+            "(unmatched)、または複数のepisode entryと一致してしまう"
+            "(ambiguous) 場合にexit code 1で失敗する。未指定の場合は"
+            "warningを表示した上で処理を継続する (--story-id/--category "
+            "が明示的に指定されていることが前提)"
+        ),
+    )
+    parser.add_argument(
         "--quiet",
         "-q",
         action="store_true",
@@ -201,16 +247,138 @@ def parse_args() -> argparse.Namespace:
 
 
 def _print_startup_info(
-    args: argparse.Namespace, input_path: Path, episode_id: str, preserve_stage: bool
+    args: argparse.Namespace,
+    input_path: Path,
+    story_id: str,
+    category: str,
+    episode_id: str,
+    preserve_stage: bool,
 ) -> None:
     if args.quiet:
         return
     print("[DKB] normalize_story")
     print(f"[DKB] 入力ファイル: {input_path}")
-    print(f"[DKB] story_id:     {args.story_id}")
+    print(f"[DKB] story_id:     {story_id}")
     print(f"[DKB] episode_id:   {episode_id}")
-    print(f"[DKB] category:     {args.category}")
+    print(f"[DKB] category:     {category}")
     print(f"[DKB] 演出命令保持: {preserve_stage}")
+
+
+def _resolve_manifest_lookup(
+    args: argparse.Namespace, input_path: Path
+) -> tuple[Any, int | None]:
+    """--manifest指定時、input_pathに対応するepisode entryを検索する。
+
+    戻り値は (StoryManifestLookupResult | None, エラー時のexit code)。
+    --manifest未指定ならNone/Noneを返す (既存挙動のまま)。
+    --manifestで指定されたファイルが存在しない場合はexit code 1。
+    --manifest-strict指定時、unmatched/ambiguousならexit code 1。
+    """
+    if not args.manifest:
+        return None, None
+
+    manifest_path = Path(args.manifest)
+    if not manifest_path.exists():
+        print(
+            f"[エラー] --manifestファイルが見つかりません: {manifest_path}",
+            file=sys.stderr,
+        )
+        return None, 1
+
+    manifest = load_story_manifest(manifest_path)
+    raw_root = Path(args.raw_root) if args.raw_root else None
+    lookup_result = resolve_manifest_episode(manifest, input_path, raw_root)
+
+    if lookup_result.status == "matched":
+        if not args.quiet:
+            print(
+                f"[DKB] story_manifest一致: {lookup_result.story.story_id} / "
+                f"{lookup_result.episode.episode_id} "
+                f"(matched_by: {lookup_result.matched_by})"
+            )
+        return lookup_result, None
+
+    message = (
+        f"story_manifestに一致するepisode entryが見つかりません "
+        f"({lookup_result.status})"
+    )
+    if args.manifest_strict:
+        print(f"[エラー] {message}", file=sys.stderr)
+        return lookup_result, 1
+    print(
+        f"[警告] {message}。--story-id/--categoryの明示指定にフォールバックします",
+        file=sys.stderr,
+    )
+    return lookup_result, None
+
+
+def _resolve_story_and_category(
+    args: argparse.Namespace, lookup_result: Any
+) -> tuple[str | None, str | None, int | None]:
+    """--story-id/--categoryを、CLI引数優先・--manifest一致結果fallbackで
+    解決する。戻り値は (story_id, category, エラー時のexit code)。
+
+    どちらも解決できない場合はexit code 1
+    (--manifest未指定時の既存の「必須引数」相当の挙動を維持する)。
+    """
+    story_id = args.story_id
+    category = args.category
+
+    if lookup_result is not None and lookup_result.status == "matched":
+        if story_id is None:
+            story_id = lookup_result.story.story_id
+        if category is None:
+            category = resolve_story_category(lookup_result.story.category)
+            if category is None:
+                print(
+                    f"[警告] story_manifestのcategory "
+                    f"'{lookup_result.story.category}' から--categoryを"
+                    "自動解決できません。明示的に--categoryを指定してください",
+                    file=sys.stderr,
+                )
+
+    if story_id is None or category is None:
+        print(
+            "[エラー] --story-idと--categoryは必須です "
+            "(--manifestで自動解決できなかった場合は明示的に指定してください)",
+            file=sys.stderr,
+        )
+        return None, None, 1
+
+    return story_id, category, None
+
+
+def _resolve_episode_id(
+    args: argparse.Namespace, story_id: str, lookup_result: Any
+) -> str:
+    """--episode-idを、CLI引数優先・--manifest一致結果fallback・
+    `{story_id}_E01`デフォルトの順で解決する。"""
+    if args.episode_id:
+        return args.episode_id
+    if lookup_result is not None and lookup_result.status == "matched":
+        return lookup_result.episode.episode_id
+    return f"{story_id}_E01"
+
+
+def _resolve_identifiers(
+    args: argparse.Namespace, input_path: Path
+) -> tuple[str | None, str | None, str | None, Any, int | None]:
+    """--manifest lookup・--story-id/--category/--episode-idの解決を
+    まとめて行う (mainの複雑度を下げるためのヘルパー)。
+
+    戻り値は (story_id, category, episode_id, lookup_result,
+    エラー時のexit code)。エラー時は前4つがNoneになる。
+    """
+    lookup_result, manifest_exit_code = _resolve_manifest_lookup(args, input_path)
+    if manifest_exit_code is not None:
+        return None, None, None, None, manifest_exit_code
+
+    story_id, category, exit_code = _resolve_story_and_category(args, lookup_result)
+    if exit_code is not None:
+        return None, None, None, None, exit_code
+
+    episode_id = _resolve_episode_id(args, story_id, lookup_result)
+    return story_id, category, episode_id, lookup_result, None
 
 
 def _load_character_dict(args: argparse.Namespace) -> CharacterDictionary:
@@ -301,27 +469,94 @@ def _parse_story_file(
         return None, 1
 
 
+def _build_manifest_metadata(
+    args: argparse.Namespace, lookup_result: Any
+) -> tuple[dict, dict, dict | None]:
+    """story_manifest一致結果から、story_metadata/episode_metadataへ追加する
+    分と、source.manifestへ格納する情報を組み立てる。
+
+    --manifest未指定ならすべて空/Noneを返す (既存出力に一切影響しない)。
+    一致した場合のみstoryTitle/episodeSubtitle/displayTitle/metadataStatusを
+    追加する。**subtitleがnullの場合もそのままnullとして追加する**
+    (DEC本文から推測して埋めることはしない)。
+    """
+    if not args.manifest:
+        return {}, {}, None
+
+    manifest_source: dict[str, Any] = {
+        "manifestPath": args.manifest,
+        "manifestMatched": False,
+        "matchedBy": None,
+        "sourceFileName": None,
+        "rawPath": None,
+    }
+
+    if lookup_result is None or lookup_result.status != "matched":
+        return {}, {}, manifest_source
+
+    story = lookup_result.story
+    episode = lookup_result.episode
+
+    manifest_source.update(
+        {
+            "manifestMatched": True,
+            "matchedBy": lookup_result.matched_by,
+            "sourceFileName": episode.source_file_name,
+            "rawPath": episode.raw_path,
+        }
+    )
+
+    story_metadata: dict[str, Any] = {"metadataStatus": story.metadata_status}
+    if story.title is not None:
+        story_metadata["storyTitle"] = story.title
+    if story.display_title is not None:
+        story_metadata["displayTitle"] = story.display_title
+
+    episode_metadata: dict[str, Any] = {
+        "episodeSubtitle": episode.subtitle,
+        "metadataStatus": episode.metadata_status,
+    }
+    if episode.display_title is not None:
+        episode_metadata["displayTitle"] = episode.display_title
+
+    return story_metadata, episode_metadata, manifest_source
+
+
 def _normalize_story(
     args: argparse.Namespace,
     parse_result: Any,
+    story_id: str,
+    category: str,
     episode_id: str,
     input_path: Path,
+    lookup_result: Any = None,
 ) -> tuple[dict, int]:
-    """解析結果をNormalized Story JSONへ変換する。失敗時は ({}, 1) を返す。"""
+    """解析結果をNormalized Story JSONへ変換する。失敗時は ({}, 1) を返す。
+
+    --manifest指定時は、一致したepisode entry由来のstoryTitle/
+    episodeSubtitle/displayTitle/metadataStatusをmanifest_story_metadata/
+    manifest_episode_metadataとして合成する。**明示的に指定された
+    --story-title/--episode-titleが優先され、manifest由来の値で
+    上書きされない。**
+    """
     if not args.quiet:
         print("[DKB] 正規化中...")
 
-    story_metadata: dict = {}
+    manifest_story_metadata, manifest_episode_metadata, manifest_source = (
+        _build_manifest_metadata(args, lookup_result)
+    )
+
+    story_metadata: dict = dict(manifest_story_metadata)
     if args.story_title:
         story_metadata["storyTitle"] = args.story_title
 
-    episode_metadata: dict = {}
+    episode_metadata: dict = dict(manifest_episode_metadata)
     if args.episode_title:
         episode_metadata["episodeTitle"] = args.episode_title
 
     normalizer = Normalizer(
-        story_id=args.story_id,
-        story_category=args.category,
+        story_id=story_id,
+        story_category=category,
         episode_id=episode_id,
         story_metadata=story_metadata,
         episode_metadata=episode_metadata,
@@ -329,6 +564,7 @@ def _normalize_story(
         source_path=str(input_path),
         preserve_stage_directions=not args.no_stage_directions,
         commands_config_path=args.commands,
+        manifest_source=manifest_source,
     )
 
     try:
@@ -414,10 +650,17 @@ def main() -> int:
         print(f"[エラー] 入力ファイルが見つかりません: {input_path}", file=sys.stderr)
         return 1
 
-    episode_id = args.episode_id or f"{args.story_id}_E01"
+    story_id, category, episode_id, lookup_result, exit_code = _resolve_identifiers(
+        args, input_path
+    )
+    if exit_code is not None:
+        return exit_code
+
     preserve_stage = not args.no_stage_directions
 
-    _print_startup_info(args, input_path, episode_id, preserve_stage)
+    _print_startup_info(
+        args, input_path, story_id, category, episode_id, preserve_stage
+    )
 
     char_dict = _load_character_dict(args)
 
@@ -431,7 +674,9 @@ def main() -> int:
     if exit_code != 0:
         return exit_code
 
-    story_json, exit_code = _normalize_story(args, parse_result, episode_id, input_path)
+    story_json, exit_code = _normalize_story(
+        args, parse_result, story_id, category, episode_id, input_path, lookup_result
+    )
     if exit_code != 0:
         return exit_code
 

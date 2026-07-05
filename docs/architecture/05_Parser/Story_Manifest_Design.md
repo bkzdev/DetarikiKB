@@ -241,15 +241,19 @@ stories:
 
 ---
 
-# 14. parser/normalizerとの連携方針（将来方針、このPRでは未実装）
+# 14. parser/normalizerとの連携方針
 
-- 将来的に`scripts/normalize_story.py`は、`--story-id`/`--episode-id`/`--category`/`--story-title`/`--episode-title`を**手動指定する代わりに**、`story_manifest.yaml`と`--input`のrawPathを突き合わせて自動解決できるようにする（例: `--manifest story_manifest.yaml`のような任意引数を将来追加する）
-- **manifestが提供する責務**: `storyId`/`episodeId`/`category`/`title`/`subtitle`/`rawPath`の対応
+**`feature/normalize-story-manifest-integration`で実装完了。**
+
+- `agents/parser/story_manifest.py`（新規）に、`story_manifest.yaml`の読み込み・rawPath/sourceFileNameによるepisode entry検索を実装した。`load_story_manifest(path)`はファイルが存在しない場合は空の`StoryManifest`を返す（`character_profiles.py`の`load_character_profiles`と同じ方針）。`resolve_manifest_episode(manifest, input_path, raw_root=None)`が、`find_episode_by_raw_path`（優先順位1: `raw_root`相対の完全一致、優先順位2: 正規化input pathの末尾一致=suffix match）→`find_episode_by_source_filename`（優先順位3、複数一致時は呼び出し側でambiguous判定）の順に検索する
+- `scripts/normalize_story.py`に任意引数`--manifest`/`--raw-root`/`--manifest-strict`を追加した。`--story-id`/`--category`は`required=True`から`required=False`（デフォルトNone）に変更したが、**`--manifest`未指定時、または一致するepisode entryが見つからない場合は、従来通り実質必須**（明示指定が無ければexit code 1、既存の「必須引数」相当の挙動を維持する）
+- **manifestが提供する責務**: `storyId`/`episodeId`/`category`/`title`/`subtitle`/`displayTitle`/`metadataStatus`/`rawPath`/`sourceFileName`の対応
 - **parserが担う責務**: DEC本文を読み、Block/Scene/Dialogue等の構造化（変更なし）
-- **優先順位**: rawPathがmanifestに存在する場合はmanifest側の値を優先する。manifestに無い、またはmanifest自体が指定されない場合は、既存の手動`--story-id`/`--category`指定、またはファイル名からの推定ロジック（未実装、将来検討）をfallbackとして使う
-- **`subtitle`はparserがDEC本文から推測しない**（§11.1の方針をparser側にも適用する）。parserはmanifestが持つ`subtitle`値をそのまま`episodeSubtitle`（`Story_Metadata.md` §4.1）へ転記するだけに留める
-
-**本PRでは`agents/parser/`・`scripts/normalize_story.py`のコード変更は一切行わない。** 上記は将来PR（`normalize_story manifest integration`）のための設計メモである。
+- **優先順位**: `--story-id`/`--category`/`--episode-id`/`--story-title`が明示的に指定されていればそちらを優先し、manifest由来の値で上書きしない。`--manifest`一致時のみ、指定されなかった項目をmanifest由来の値で補う。`category`（manifest上は小文字`event`等）は`agents/parser/story_manifest.py`の`resolve_story_category()`で`--category`相当の大文字prefixへ変換する。`character`カテゴリはCHAR_MAIN/CHAR_EXTRA/CHAR_DATEのいずれか判定できないため自動解決しない（§6・§18 OD-003のまま、明示的な`--category`指定が必要）
+- **一致しない場合の挙動**: `--manifest-strict`未指定なら`[警告]`を表示した上で処理を継続する（`--story-id`/`--category`の明示指定が前提）。`--manifest-strict`指定時はunmatched/ambiguousいずれもexit code 1で失敗する
+- **Normalized Story JSONへの反映**: `agents/parser/normalizer.py`の`Normalizer`に任意の`manifest_source`引数を追加し、`source.manifest`（`manifestPath`/`manifestMatched`/`matchedBy`/`sourceFileName`/`rawPath`）として出典情報を記録する（`SourceInfo`は`additionalProperties: true`のためschema変更不要）。`story_metadata`/`episode_metadata`（いずれも既存の`additionalProperties: true`）へ、一致時のみ`storyTitle`/`displayTitle`/`episodeSubtitle`/`metadataStatus`を追加する。**`subtitle`がnullの場合もそのままnullとして`episodeSubtitle`へ反映する**（DEC本文から推測して埋めることはしない）
+- **`subtitle`はparserがDEC本文から推測しない**（§11.1の方針をparser側にも適用する。manifestが持つ`subtitle`値をそのまま`episodeSubtitle`へ転記するだけ）
+- **既存挙動の維持**: `--manifest`未指定時は、`--story-id`/`--category`明示指定＋既存の出力（`source`に`manifest`キーが追加されない、`metadata`に`metadataStatus`が追加されない）が完全に維持されることをテストで確認済み
 
 ---
 
