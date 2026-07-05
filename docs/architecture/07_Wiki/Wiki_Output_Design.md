@@ -196,6 +196,8 @@ Relationship page（独立ページ）は現時点では見送り、Character/Or
 - AI由来情報のラベル付け: `sourceTypes`に`ai_inferred`が含まれるフィールドは「AI推定」ラベルを付けるか、AI analysis pageへ分離する
 - テンプレート名（案）: `templates/wiki/character.md.j2`
 
+**基本プロフィールsection（設計のみ、`feature/character-profile-schema-design`。Wiki renderer実装は未着手）**: Character pageに、`knowledge/dictionaries/character_profiles.yaml`（公式プロフィール辞書、`docs/architecture/06_AI/Character_Profile_Dictionary_Design.md`参照）を参照元とする「基本プロフィール」sectionを追加する設計を行った。上記の`## Summary`等（AI抽出・merge由来）とは明確に区別する。表示候補フィールドは読み仮名（`reading.kana`/`reading.romaji`）・所属（`affiliation`）・身長（`heightCm`、"153cm"のように整形）・誕生日（`birthday.display`優先）・血液型（`bloodType`）・CV（`cv`）・キャラ別特記事項（`profileHighlight.label`: `profileHighlight.value`）・自己紹介文（`selfIntroduction`、複数行・引用量の公開方針は別途確認）。該当`characterId`のプロフィールが`character_profiles.yaml`に存在しない場合は「プロフィール未登録」と表示する方針とする。**本PRではWiki renderer側の実装（`agents/wiki_generator/renderer.py`）は行わない**（設計のみ）。
+
 **実装状況（`feature/character-page-renderer-expansion`で拡張）**: `render_character_page`（`agents/wiki_generator/renderer.py`）は、Summary（Entity ID/Canonical ID/Status/Confidence/Source types）・Aliases（空なら「別名は登録されていません。」）・Evidence（既存のID参照のみ表示）・Source Candidates（candidateId/candidateType/episodeId/evidenceIds件数/sourceDocumentIdのsummary、元candidateのraw payloadは含めない）・Conflicts（空なら「記録されている矛盾はありません。」、存在する場合はconflictType/field/severity/resolutionStatusを表示）の順でセクションを出力する。front matterには`confidence`/`source_types`を任意フィールドとして追加した。関連Relationship・登場エピソード一覧・manualOverridesApplied表示・AI推定ラベル付けは、Relationship section（Phase 2）・AI analysis page（Phase 3）実装時にあわせて対応する（今回は未実装）。
 
 ## 9.5 Location page

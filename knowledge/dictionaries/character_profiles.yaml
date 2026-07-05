@@ -1,0 +1,21 @@
+# Character Profiles (公式プロフィール辞書)
+#
+# Path: knowledge/dictionaries/character_profiles.yaml
+# Version: 0.1
+#
+# knowledge/dictionaries/characters.yaml (ID解決用辞書) とは別に、
+# confirmed済みcharacterIdに紐づく公式プロフィール情報 (読み仮名/所属/
+# 身長/誕生日/血液型/CV/キャラ別特記事項/自己紹介文) を保持する。
+#
+# 詳細な設計方針は docs/architecture/06_AI/Character_Profile_Dictionary_Design.md
+# を参照。characterIdはcharacters.yamlでstatus: confirmedになっている
+# ものだけを参照してよい (未確認のIDに対するプロフィール登録は不可)。
+#
+# このファイルは現時点で空 (実キャラクターのプロフィールデータはまだ
+# 投入していない)。投入は次のfollow-upタスク（TASKS.md「character profile
+# import batch 001」）で、人間が確認した公式プロフィール情報のみを対象に
+# 行う。
+
+schemaVersion: "0.1.0"
+documentType: "character_profiles"
+profiles: []

@@ -1,0 +1,198 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://detariki-kb/schemas/character_profiles.schema.json",
+  "title": "Character Profiles (公式プロフィール辞書)",
+  "description": "knowledge/dictionaries/character_profiles.yaml のスキーマ。knowledge/dictionaries/characters.yaml (ID解決用辞書) とは別に、confirmed済みcharacterIdに紐づく公式プロフィール情報 (読み仮名/所属/身長/誕生日/血液型/CV/キャラ別特記事項/自己紹介文) を保持する。docs/architecture/06_AI/Character_Profile_Dictionary_Design.md 準拠。",
+
+  "type": "object",
+  "required": ["schemaVersion", "documentType", "profiles"],
+  "additionalProperties": false,
+
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "description": "本スキーマのバージョン"
+    },
+    "documentType": {
+      "type": "string",
+      "description": "固定値 character_profiles",
+      "const": "character_profiles"
+    },
+    "profiles": {
+      "type": "array",
+      "description": "公式プロフィールエントリの一覧。空配列も有効 (未整備状態を表す)",
+      "items": { "$ref": "#/definitions/CharacterProfile" }
+    }
+  },
+
+  "definitions": {
+
+    "CharacterProfile": {
+      "type": "object",
+      "description": "1キャラクター分の公式プロフィール。characterIdはknowledge/dictionaries/characters.yamlでstatus: confirmedになっているものだけを参照してよい (Character_Profile_Dictionary_Design.md §4)",
+      "required": ["characterId", "displayName", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "characterId": {
+          "type": "string",
+          "pattern": "^CHAR_[A-Z0-9_-]+$",
+          "description": "characters.yamlのconfirmed済みcharacterIdと一致するcanonical ID (CHAR_ prefix必須)"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "description": "表示名"
+        },
+        "reading": {
+          "oneOf": [
+            { "$ref": "#/definitions/Reading" },
+            { "type": "null" }
+          ],
+          "description": "読み仮名 (kana/romaji)。未設定はnull"
+        },
+        "affiliation": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "所属。1件でも配列で保持する (例: [\"Synthetic Team 1\"])"
+        },
+        "heightCm": {
+          "oneOf": [
+            { "type": "integer" },
+            { "type": "null" }
+          ],
+          "description": "身長 (cm単位の整数値、単位はフィールド名で表現し値には含めない)"
+        },
+        "birthday": {
+          "oneOf": [
+            { "$ref": "#/definitions/Birthday" },
+            { "type": "null" }
+          ],
+          "description": "誕生日 (month/dayの構造化値、年は保持しない)"
+        },
+        "bloodType": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "null" }
+          ],
+          "description": "血液型 (表記ゆれ吸収のため自由文字列。A/B/O/AB/unknown程度を想定)"
+        },
+        "cv": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "null" }
+          ],
+          "description": "CV (声優)。将来項目として予約"
+        },
+        "profileHighlight": {
+          "oneOf": [
+            { "$ref": "#/definitions/ProfileHighlight" },
+            { "type": "null" }
+          ],
+          "description": "キャラ別特記事項 (【好きなこと】等)。キャラごとに1件のlabel/value構造"
+        },
+        "selfIntroduction": {
+          "oneOf": [
+            { "type": "string", "maxLength": 500 },
+            { "type": "null" }
+          ],
+          "description": "自己紹介文。複数行可、最大500字程度。公式プロフィール本文としてAI要約・AI考察とは分離する"
+        },
+        "source": {
+          "oneOf": [
+            { "$ref": "#/definitions/ProfileSource" },
+            { "type": "null" }
+          ],
+          "description": "出典情報"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["draft", "confirmed", "deprecated"],
+          "description": "このプロフィールエントリ自体の状態 (characters.yaml側のstatusとは別軸)"
+        },
+        "notes": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "null" }
+          ],
+          "description": "自由記述の補足 (実データ本文の転記はしない)"
+        }
+      }
+    },
+
+    "Reading": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kana": {
+          "oneOf": [{ "type": "string" }, { "type": "null" }]
+        },
+        "romaji": {
+          "oneOf": [{ "type": "string" }, { "type": "null" }]
+        }
+      }
+    },
+
+    "Birthday": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "month": {
+          "oneOf": [
+            { "type": "integer", "minimum": 1, "maximum": 12 },
+            { "type": "null" }
+          ]
+        },
+        "day": {
+          "oneOf": [
+            { "type": "integer", "minimum": 1, "maximum": 31 },
+            { "type": "null" }
+          ]
+        },
+        "display": {
+          "oneOf": [{ "type": "string" }, { "type": "null" }],
+          "description": "表示用文字列 (例: \"4/23\")。無ければmonth/dayから組み立てる想定 (組み立てロジックは本schemaの対象外)"
+        }
+      }
+    },
+
+    "ProfileHighlight": {
+      "type": "object",
+      "required": ["label", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "description": "特記事項の見出し (例: 好きなこと/将来の夢/怖いこと)"
+        },
+        "value": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "特記事項の内容 (1文程度の短文)"
+        }
+      }
+    },
+
+    "ProfileSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sourceType": {
+          "type": "string",
+          "enum": ["official_profile", "manual", "unknown"],
+          "description": "出典種別"
+        },
+        "label": {
+          "oneOf": [{ "type": "string" }, { "type": "null" }]
+        },
+        "referenceId": {
+          "oneOf": [{ "type": "string" }, { "type": "null" }]
+        },
+        "notes": {
+          "oneOf": [{ "type": "string" }, { "type": "null" }]
+        }
+      }
+    }
+  }
+}
