@@ -1,0 +1,137 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://detariki-kb/schemas/story_manifest.schema.json",
+  "title": "Story Manifest（raw DECファイル配置 ⇔ storyId/episodeId対応表）",
+  "description": "ローカルのraw DECファイル配置と、DKB内部のstoryId/episodeId/title/subtitle/rawPathの対応を保持する。docs/architecture/05_Parser/Story_Manifest_Design.md 準拠。characters.yaml/character_profiles.yamlと同様、実データ投入は別PRで人間確認の上行う（このPRではschema・template・script skeletonのみ）。",
+
+  "type": "object",
+  "required": ["schemaVersion", "documentType", "stories"],
+  "additionalProperties": false,
+
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "description": "本スキーマのバージョン"
+    },
+    "documentType": {
+      "type": "string",
+      "description": "固定値 story_manifest",
+      "const": "story_manifest"
+    },
+    "stories": {
+      "type": "array",
+      "description": "ストーリー単位のmanifestエントリ一覧。空配列も有効",
+      "items": { "$ref": "#/definitions/StoryManifestEntry" }
+    }
+  },
+
+  "definitions": {
+
+    "StoryManifestEntry": {
+      "type": "object",
+      "description": "1ストーリー分のmanifestエントリ。storyIdはdocs/architecture/05_Parser/Identifier_Specification.mdのStory ID形式に従う",
+      "required": [
+        "storyId",
+        "category",
+        "sourceKey",
+        "metadataStatus",
+        "rawDirectory",
+        "episodes"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "storyId": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$",
+          "description": "Identifier_Specification.md準拠のStory ID (例: EVT_250626_DANCER, MAIN_S01_C02)"
+        },
+        "category": {
+          "type": "string",
+          "enum": ["main", "event", "raid", "other", "character"],
+          "description": "正規化済みカテゴリ (agents/parser/exporter.pyの_category_to_subdirと同じ語彙、小文字)"
+        },
+        "sourceKey": {
+          "type": "string",
+          "minLength": 1,
+          "description": "raw DECファイル配置のディレクトリ名/ファイル名から抽出した安定キー (例: 250626_dancer)。表示用タイトルではない"
+        },
+        "title": {
+          "oneOf": [{ "type": "string" }, { "type": "null" }],
+          "description": "公式または表示用のストーリータイトル。DEC本文からは自動推測しない (人間入力または外部一覧importでのみ設定、null許容)"
+        },
+        "displayTitle": {
+          "oneOf": [{ "type": "string" }, { "type": "null" }],
+          "description": "Wiki表示用の完全なタイトル。無い場合はnull (Wiki側でstoryId等からfallback表示する)"
+        },
+        "metadataStatus": {
+          "type": "string",
+          "enum": ["pending", "confirmed", "title_unknown", "deprecated"],
+          "description": "このエントリのメタデータ確認状態 (characters.yamlのstatusとは別軸、Story_Manifest_Design.md §12)"
+        },
+        "rawDirectory": {
+          "type": "string",
+          "description": "raw DECファイルが置かれているディレクトリの相対パス。区切り文字は/に正規化する (例: EVENT/csl_script_event_250626_dancer_export)"
+        },
+        "notes": {
+          "oneOf": [{ "type": "string" }, { "type": "null" }],
+          "description": "自由記述の補足 (実データ本文の転記はしない)"
+        },
+        "episodes": {
+          "type": "array",
+          "description": "このストーリーに属するepisode一覧",
+          "items": { "$ref": "#/definitions/StoryManifestEpisodeEntry" }
+        }
+      }
+    },
+
+    "StoryManifestEpisodeEntry": {
+      "type": "object",
+      "description": "1エピソード分のmanifestエントリ",
+      "required": [
+        "episodeId",
+        "episodeNumber",
+        "rawPath",
+        "sourceFileName",
+        "metadataStatus"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "episodeId": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$",
+          "description": "Identifier_Specification.md準拠のEpisode ID (例: EVT_250626_DANCER_E01)"
+        },
+        "episodeNumber": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "raw DECファイル名から抽出したエピソード番号 (数値としてソートする、episode1/episode2/episode10の順)"
+        },
+        "subtitle": {
+          "oneOf": [{ "type": "string" }, { "type": "null" }],
+          "description": "エピソードサブタイトル。DEC本文からは自動推測しない (人間入力または外部一覧importでのみ設定、null許容)"
+        },
+        "displayTitle": {
+          "oneOf": [{ "type": "string" }, { "type": "null" }],
+          "description": "Wiki表示用の完全なタイトル。無い場合はnull"
+        },
+        "rawPath": {
+          "type": "string",
+          "description": "raw DECファイルの相対パス。区切り文字は/に正規化する (例: EVENT/csl_script_event_250626_dancer_export/CAB-csl_script_event_250626_dancer-episode1.dec)"
+        },
+        "sourceFileName": {
+          "type": "string",
+          "description": "raw DECファイル名のみ (例: CAB-csl_script_event_250626_dancer-episode1.dec)"
+        },
+        "metadataStatus": {
+          "type": "string",
+          "enum": ["pending", "confirmed", "title_unknown", "deprecated"],
+          "description": "このエピソードエントリのメタデータ確認状態"
+        },
+        "notes": {
+          "oneOf": [{ "type": "string" }, { "type": "null" }],
+          "description": "自由記述の補足 (実データ本文の転記はしない)"
+        }
+      }
+    }
+  }
+}
