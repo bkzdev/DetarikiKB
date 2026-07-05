@@ -77,6 +77,19 @@ story_manifest_candidates_*.yaml
 story_manifest_candidates_*.json
 *.dec
 
+# Story title/subtitle import candidates
+# (docs/runbooks/Story_Title_Subtitle_Import.md、
+# scripts/build_story_title_subtitle_candidates.py)。実Wiki一覧・実CSV由来の
+# title/subtitle候補は人間確認前のローカル専用データであり、
+# docs/templates/story_title_subtitle_candidates_template.yaml (合成データ)
+# とは別物としてignoreする。以前character_confirmed_batch_*.yamlパターンで
+# テンプレート自身が誤って一致した不具合と同種のため、明示的にnegationで
+# 除外する。
+story_title_subtitle_candidates_*.yaml
+story_title_subtitle_candidates_*.csv
+!docs/templates/story_title_subtitle_candidates_template.yaml
+title_subtitle_rows*.csv
+
 # Secrets / logs
 .env
 .env.*

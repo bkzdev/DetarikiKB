@@ -59,6 +59,10 @@
           "oneOf": [{ "type": "string" }, { "type": "null" }],
           "description": "公式または表示用のストーリータイトル。DEC本文からは自動推測しない (人間入力または外部一覧importでのみ設定、null許容)"
         },
+        "titleSource": {
+          "oneOf": [{ "$ref": "#/definitions/ManifestSource" }, { "type": "null" }],
+          "description": "titleの出典情報 (Story_Manifest_Design.md §11.5)。任意フィールド、無い場合はnull"
+        },
         "displayTitle": {
           "oneOf": [{ "type": "string" }, { "type": "null" }],
           "description": "Wiki表示用の完全なタイトル。無い場合はnull (Wiki側でstoryId等からfallback表示する)"
@@ -110,6 +114,10 @@
           "oneOf": [{ "type": "string" }, { "type": "null" }],
           "description": "エピソードサブタイトル。DEC本文からは自動推測しない (人間入力または外部一覧importでのみ設定、null許容)"
         },
+        "subtitleSource": {
+          "oneOf": [{ "$ref": "#/definitions/ManifestSource" }, { "type": "null" }],
+          "description": "subtitleの出典情報 (Story_Manifest_Design.md §11.5)。任意フィールド、無い場合はnull"
+        },
         "displayTitle": {
           "oneOf": [{ "type": "string" }, { "type": "null" }],
           "description": "Wiki表示用の完全なタイトル。無い場合はnull"
@@ -126,6 +134,39 @@
           "type": "string",
           "enum": ["pending", "confirmed", "title_unknown", "deprecated"],
           "description": "このエピソードエントリのメタデータ確認状態"
+        },
+        "notes": {
+          "oneOf": [{ "type": "string" }, { "type": "null" }],
+          "description": "自由記述の補足 (実データ本文の転記はしない)"
+        }
+      }
+    },
+
+    "ManifestSource": {
+      "type": "object",
+      "description": "title/subtitleの出典情報 (character_profiles.yamlのProfileSourceと同じ設計パターン、Story_Manifest_Design.md §11.5)",
+      "additionalProperties": false,
+      "properties": {
+        "sourceType": {
+          "type": "string",
+          "enum": [
+            "manual",
+            "official_game_ui",
+            "official_announcement",
+            "wiki_story_list",
+            "wiki_event_page",
+            "imported_candidate",
+            "unknown"
+          ],
+          "description": "出典種別 (Story_Manifest_Design.md §11.5参照)"
+        },
+        "label": {
+          "oneOf": [{ "type": "string" }, { "type": "null" }],
+          "description": "出典の自由記述ラベル (例: デタリキZ攻略Wiki ストーリー一覧)。URLそのものは記録しない"
+        },
+        "referenceId": {
+          "oneOf": [{ "type": "string" }, { "type": "null" }],
+          "description": "出典を特定するための参照ID (ページID等、URLそのものは記録しない)"
         },
         "notes": {
           "oneOf": [{ "type": "string" }, { "type": "null" }],

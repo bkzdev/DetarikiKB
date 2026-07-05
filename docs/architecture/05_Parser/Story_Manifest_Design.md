@@ -193,6 +193,64 @@ episode1.dec, episode2.dec, episode10.dec
 
 `displayTitle`が`null`の場合、Wiki側は`storyId`/`episodeId`、または「第{episodeNumber}話」のような機械的な表記でfallback表示する（§15）。`displayTitle`が設定されている場合はそれを優先する。`title`/`subtitle`から`displayTitle`を自動組み立てするロジックは、このPRでは実装しない（設計のみ）。
 
+## 11.4 story title と episode subtitle の違い（`feature/story-title-subtitle-import-design`で追記）
+
+- **`title`（ストーリータイトル）**: ストーリー（イベント/章等）全体の公式タイトル。1ストーリーにつき1つ
+- **`subtitle`（エピソードサブタイトル）**: 個々のepisodeの副題。episodeごとに異なりうる
+- 両者は独立した情報源・独立した判明タイミングを持ちうる（例: イベント名は公式告知の時点で判明するが、各話サブタイトルはゲーム内UIを実際にプレイして確認するまで分からない場合がある）。そのため`title`と`subtitle`は**別々に**`metadataStatus`・出典（§11.5）を持ち、片方が`confirmed`でももう片方は`pending`のままでよい
+- `displayTitle`（story/episode双方に存在）は、Wiki表示用に人間が最終的に整形した文字列であり、`title`/`subtitle`とは別に保持する（§11.3、`Story_Metadata.md` §2.4の「表示用とソート用を分ける」方針を踏襲）
+
+## 11.5 source種別設計
+
+`title`/`subtitle`の値がどこから来たかを区別するため、以下のsource種別を定義する（`character_profiles.yaml`の`ProfileSource`と同じ設計パターン、§13で後述するschemaの`titleSource`/`subtitleSource`に対応）。
+
+| sourceType | 意味 |
+|---|---|
+| `manual` | 人間が直接入力した値（出典URL等が無い、または口頭確認等） |
+| `official_game_ui` | ゲーム内UI（イベント画面・エピソード選択画面等）に実際に表示されている文字列から人間が転記したもの |
+| `official_announcement` | 公式Webサイト・公式SNS等の告知文言から人間が転記したもの |
+| `wiki_story_list` | 攻略Wiki等のストーリー一覧ページから取得した候補（`character-profile-wiki-url-discovery`等と同種の情報源） |
+| `wiki_event_page` | 攻略Wiki等の個別イベントページから取得した候補 |
+| `imported_candidate` | 上記以外の外部一覧・CSV等からimportされた候補で、具体的な出典分類が不明なもの |
+| `unknown` | 出典不明（`character_profiles.yaml`の`ProfileSource.sourceType`と同じデフォルト値） |
+
+`label`（自由記述、例:「デタリキZ攻略Wiki ストーリー一覧」）・`referenceId`（該当ページのID等、URLそのものは記録しない方針を維持）・`notes`を併せて保持できるようにする（§13のschema案）。
+
+## 11.6 official titleとAI-generated titleの分離
+
+- `story_manifest.yaml`の`title`/`subtitle`/`displayTitle`は、**常に公式情報（人間が確認・転記した値）のみ**を保持する。AIが本文やcontextから推測・要約したタイトルは一切含めない
+- AI生成タイトルを将来Wiki上で使いたい場合でも、`story_manifest.yaml`側には保持せず、`Wiki_Output_Design.md` §9.17のAI analysis page（Phase 3、未実装）側で`sourceType: ai_inferred`相当のラベル付き情報として別管理する
+- この分離は`Character_Profile_Dictionary_Design.md` §3（公式情報とAI推定情報の分離）と同じ原則であり、`story_manifest.yaml`という一つのファイル内で両者を混在させない
+
+## 11.7 import candidate → human review → confirmed manifest update の流れ
+
+1. 外部情報源（Wiki story list、公式告知、ゲーム画面メモ等）から取得した`title`/`subtitle`候補は、まず**import candidateドキュメント**（`documentType: "story_title_subtitle_candidates"`、`docs/templates/story_title_subtitle_candidates_template.yaml`参照）として保持する。**`story_manifest.yaml`へ直接書き込まない**
+2. すべてのcandidateは`reviewStatus: "pending"`で生成される（自動でconfirmedにはしない、`Canonical_ID_Policy.md`の「名前一致だけで自動確定しない」という既存の慎重な運用方針と同じ）
+3. 人間がcandidateをレビューし、`reviewStatus`を`confirmed`（採用）または`rejected`（不採用）に更新する
+4. `confirmed`と判断された値のみを、人間が`story_manifest.yaml`の該当エントリへ手動で反映する（`title`/`subtitle`/`displayTitle`/`titleSource`or`subtitleSource`/`metadataStatus: "confirmed"`を更新）
+5. この流れの詳細な手順は`docs/runbooks/Story_Title_Subtitle_Import.md`（新規）にまとめる。`character_profiles.yaml`のWiki import batchパターン（`docs/runbooks/Character_Profile_Wiki_Import.md`）と同じ「候補生成→人間確認→batch反映」の運用を踏襲する
+
+**このPRではimport candidateの生成方針・runbook・templateまでを整備し、`story_manifest.yaml`への実際の反映（confirmed metadata batch）は将来PR（`story manifest confirmed metadata batch 001`）で行う。**
+
+**実装状況**: candidate生成CLI `scripts/build_story_title_subtitle_candidates.py`（コアロジックは`agents/parser/story_title_subtitle_candidates.py`）を実装した。CSV（列: `storyId`/`episodeId`/`episodeNumber`/`proposedTitle`/`proposedDisplayTitle`/`proposedSubtitle`/`confidence`/`notes`）から候補を組み立て、`--manifest`指定時は各`storyId`/`episodeId`が既存manifestに実在するかを`foundInManifest`として記録する（**一致有無に関わらず候補は必ず出力する**、unmatchedを黙って除外しない）。生成される候補はすべて`reviewStatus: "pending"`固定であり、このscript自体は`story_manifest.yaml`を一切更新しない。手順の詳細は`docs/runbooks/Story_Title_Subtitle_Import.md`を参照。
+
+## 11.8 複数sourceが矛盾した場合の扱い
+
+- 同じ`storyId`/`episodeId`について、複数のcandidateソースが異なる`proposedTitle`/`proposedSubtitle`を提示した場合、**システムは自動的にどちらかを採用しない**
+- 人間レビュー時に、両方の値と出典（`sourceType`/`label`）を突き合わせ、`notes`に不一致があった旨を記録した上でどちらか（または統合した表記）を選ぶ
+- 優先順位の目安（あくまで人間判断の参考情報であり、自動適用はしない）:
+
+  ```text
+  official_announcement > official_game_ui > wiki_event_page
+    > wiki_story_list > manual > imported_candidate > unknown
+  ```
+
+## 11.9 表記ゆれ・全角半角・改行・記号差分の扱い
+
+- 全角/半角、句読点・記号（「」『』""等）の表記ゆれは、**システムが自動で正規化・統一しない**（AI推測による「正しい」表記への書き換え禁止という本セッション一貫の方針、`character profile import batch 001`での判断を踏襲）
+- 人間レビュー時に、原文ママを採用するか表記を統一するかを判断し、統一した場合は`notes`に「表記統一のため一部修正」等を明記する
+- 改行は`displayTitle`等の表示専用フィールドでのみ許容する想定とし（Wiki側でのMarkdown表示に使う）、`title`/`subtitle`本体への改行混入は人間レビュー時に確認する（強制的な除去処理は実装しない）
+
 ---
 
 # 12. metadataStatus方針
@@ -238,6 +296,22 @@ stories:
 ```
 
 合成データのみの完全なテンプレート例は`docs/templates/story_manifest_template.yaml`を参照（§16、実イベント名は使わない）。
+
+## 13.1 source tracking（`feature/story-title-subtitle-import-design`で追加）
+
+`title`（story）/`subtitle`（episode）の出典を記録できるよう、任意フィールド`titleSource`/`subtitleSource`を追加した（`character_profiles.yaml`の`ProfileSource`と同じ設計パターンの`ManifestSource`定義、§11.5のsourceType一覧を使う）。
+
+```yaml
+title: "Synthetic Sample Event"
+titleSource:
+  sourceType: "wiki_story_list"
+  label: "Synthetic wiki list"
+  referenceId: null
+  notes: null
+```
+
+- どちらも`oneOf: [ManifestSource, null]`でnull許容。既存の`metadataStatus`（値の確認状態）とは別軸で、「値そのものの出典」を記録する
+- **既存の`title`/`subtitle`必須性・null許容・`metadataStatus`の意味は変更していない。** 追加フィールドは両エントリとも`additionalProperties: false`のpropertiesへ追記したのみで、既存の`docs/templates/story_manifest_template.yaml`（`titleSource`/`subtitleSource`を含まない）はそのままschema検証を通過する（後方互換）
 
 ---
 
