@@ -109,16 +109,27 @@ uv run mkdocs serve
 
 ---
 
-# 9. 次にやること
+# 9. 目視確認は別途必要（`feature/mkdocs-local-preview-dry-run`で追記）
 
+**`mkdocs build --strict`が成功することと、実際の見た目が正しいことは別問題である。** リンク切れやschema違反はbuildで検出できるが、テーブルの見づらさ・長文のはみ出し・title/subtitle未設定時のfallback表示の自然さ・日本語表示崩れ等は目視でしか分からない。
+
+目視確認の具体的な手順・チェックリスト・結果記録テンプレートは`docs/runbooks/MkDocs_Local_Preview_Dry_Run.md`・`docs/templates/mkdocs_local_preview_result_template.md`を参照すること。実データでpreviewする場合の生成先は引き続き`workspace/wiki_preview/`配下（`.gitignore`対象）であり、生成物・一時MkDocs設定ファイルはcommitしない。
+
+---
+
+# 10. 次にやること
+
+- `mkdocs local preview real sample trial`（`docs/runbooks/MkDocs_Local_Preview_Dry_Run.md` §12）: 実際のローカル実データサンプルで目視確認を実施し、結果を記録する
 - `real data local render dry-run`（`Wiki_Output_Design.md` §15項目6）: 実データ由来merged knowledge collectionから実際にレンダリングし、本手順書でpreviewする
 - `public publishing workflow`（同§15項目7）: GitHub Pages / Cloudflare Pages等への公開ワークフロー設計・実装（本PRでは未着手）
 - Location/Organization/Item/Lore/Event page・Relationship section・Timeline page等Phase 2以降のページ種別が実装された場合、`docs/site_preview/index.md`の関連ドキュメント一覧を更新する
 
 ---
 
-# 10. 関連ドキュメント
+# 11. 関連ドキュメント
 
 - `docs/architecture/07_Wiki/Wiki_Output_Design.md`（Wiki出力設計、§11出力ディレクトリ案・§15実装PR案項目5）
 - `docs/runbooks/Real_Data_Wiki_Render_Dry_Run.md`（実データでのWiki render dry-run手順、本手順書の前段）
+- `docs/runbooks/MkDocs_Local_Preview_Dry_Run.md`（目視確認の具体的な手順・チェックリスト）
+- `docs/templates/mkdocs_local_preview_result_template.md`（目視確認結果の記録テンプレート）
 - `docs/site_preview/index.md`（本PRで追加したsite previewのトップページ）
