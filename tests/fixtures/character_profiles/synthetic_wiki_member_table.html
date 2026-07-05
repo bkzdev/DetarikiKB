@@ -1,0 +1,62 @@
+<!--
+tests/fixtures/character_profiles/synthetic_wiki_member_table.html
+
+合成HTMLフィクスチャ。scripts/import_character_profiles_from_wiki.py の
+テスト専用。実キャラ名・実プロフィール値・実Wiki本文は一切含まない。
+Test Character A/B/Unknownはいずれも架空のテスト用名称であり、
+tests/fixtures/character_dictionary/synthetic_review_packet_dictionary.yaml
+のCHAR_TEST_A (confirmed) / CHAR_TEST_B (name_only) と対応させて
+displayName照合ロジックを検証する。
+-->
+<!DOCTYPE html>
+<html>
+<head><title>Synthetic Wiki Member Table (test fixture)</title></head>
+<body>
+<table>
+<tr>
+  <th>キャラ名</th>
+  <th>よみがな</th>
+  <th>所属</th>
+  <th>身長(cm)</th>
+  <th>誕生日</th>
+  <th>血液型</th>
+  <th>特記事項</th>
+  <th>CV</th>
+  <th>実装日</th>
+</tr>
+<tr>
+  <td>Test Character A</td>
+  <td>てすときゃらくたーえー</td>
+  <td>Test Team</td>
+  <td>150cm</td>
+  <td>4/23</td>
+  <td>A</td>
+  <td>【好きなこと】テストデータ</td>
+  <td>Test Voice Actor</td>
+  <td>2026/01/01</td>
+</tr>
+<tr>
+  <td>Test Character B</td>
+  <td>てすときゃらくたーびー</td>
+  <td>Test Team</td>
+  <td>160</td>
+  <td>5/10</td>
+  <td>B</td>
+  <td>特になし</td>
+  <td></td>
+  <td>2026/01/02</td>
+</tr>
+<tr>
+  <td>Test Character Unknown</td>
+  <td></td>
+  <td></td>
+  <td></td>
+  <td></td>
+  <td></td>
+  <td></td>
+  <td></td>
+  <td>2026/01/03</td>
+</tr>
+</table>
+</body>
+</html>

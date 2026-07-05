@@ -51,6 +51,17 @@ character_confirmed_batch_*.yaml
 character_dictionary_review_batch_*.yaml
 character_dictionary_review_batch_*.csv
 
+# Character profile Wiki import candidates
+# (docs/runbooks/Character_Profile_Wiki_Import.md)。実Wiki由来のraw HTML・
+# プロフィール候補は人間確認前のローカル専用データであり、
+# tests/fixtures/配下の合成HTMLとは別物としてignoreする。
+workspace/profile_import/
+character_profile_candidates_batch_*.yaml
+character_profile_candidates_batch_*.csv
+wiki_member_profiles_batch_*.yaml
+wiki_member_profiles_batch_*.csv
+*.wiki.html
+
 # Secrets / logs
 .env
 .env.*
