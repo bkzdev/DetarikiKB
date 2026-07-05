@@ -14,6 +14,10 @@ from pathlib import Path
 
 import pytest
 
+from agents.parser.character_profiles import (
+    build_character_profile_index,
+    load_character_profiles,
+)
 from agents.wiki_generator import (
     build_front_matter,
     build_pages,
@@ -33,6 +37,13 @@ FIXTURE_PATH = (
     / "fixtures"
     / "wiki"
     / "synthetic_merged_collection.json"
+)
+
+CHARACTER_PROFILES_FIXTURE_PATH = (
+    Path(__file__).parent.parent
+    / "fixtures"
+    / "character_profiles"
+    / "synthetic_character_profiles.yaml"
 )
 
 
@@ -55,6 +66,16 @@ def conflict_character(synthetic_collection) -> dict:
 @pytest.fixture
 def unresolved_character(synthetic_collection) -> dict:
     return synthetic_collection["entities"]["characters"][2]
+
+
+@pytest.fixture
+def character_profiles_index() -> dict:
+    """CHAR_TEST_RAIN（confirmed、selfIntroduction/profileHighlightあり）と
+    CHAR_TEST_MINIMAL（draft、selfIntroduction/profileHighlight等がnull）
+    を持つ合成プロフィール索引。CHAR_TEST_CONFLICTはあえて含めない
+    (「プロフィール未登録」表示の確認用)。実WIKI由来データは含まない。"""
+    profiles = load_character_profiles(CHARACTER_PROFILES_FIXTURE_PATH)
+    return build_character_profile_index(profiles)
 
 
 # ----------------------------------------------------------------
@@ -225,6 +246,135 @@ def test_render_character_page_conflicts_section_when_present(conflict_character
     assert "severity: warning" in page
     assert "unresolved" in page
     assert "記録されている矛盾はありません" not in page
+
+
+# ----------------------------------------------------------------
+# render_character_page - 基本プロフィールsection
+# (feature/character-profile-renderer-section)
+# 合成fixture (tests/fixtures/character_profiles/synthetic_character_profiles.yaml)
+# のみを使う。実WIKI由来candidate・raw HTML・実自己紹介文は一切含まない。
+# ----------------------------------------------------------------
+
+
+def test_render_character_page_without_profiles_shows_placeholder(resolved_character):
+    """character_profilesを渡さない場合 (--character-profiles未指定相当) でも
+    既存の出力を壊さず、基本プロフィールsectionは「プロフィール未登録」表示に
+    なることを確認する。"""
+    page = render_character_page(resolved_character)
+    assert "## 基本プロフィール" in page
+    assert "プロフィール未登録" in page
+
+
+def test_render_character_page_shows_basic_profile_when_matched(
+    resolved_character, character_profiles_index
+):
+    """CHAR_TEST_RAINはcanonicalIdが合成プロフィール索引のcharacterIdと
+    一致するため、基本プロフィールsectionに各フィールドが表示される。"""
+    page = render_character_page(resolved_character, character_profiles_index)
+    assert "## 基本プロフィール" in page
+    assert "| ふりがな | てすとれいん |" in page
+    assert "| ローマ字 | Tesuto Rein |" in page
+    assert "| 所属 | Test Team Alpha |" in page
+    assert "| 血液型 | A |" in page
+    assert "| CV | Test Voice Actor |" in page
+    assert "| 出典 | Synthetic test fixture |" in page
+
+
+def test_render_character_page_formats_height_cm(
+    resolved_character, character_profiles_index
+):
+    page = render_character_page(resolved_character, character_profiles_index)
+    assert "| 身長 | 150cm |" in page
+
+
+def test_render_character_page_shows_birthday_display(
+    resolved_character, character_profiles_index
+):
+    page = render_character_page(resolved_character, character_profiles_index)
+    assert "| 誕生日 | 4/23 |" in page
+
+
+def test_render_character_page_shows_profile_highlight(
+    resolved_character, character_profiles_index
+):
+    page = render_character_page(resolved_character, character_profiles_index)
+    assert "### キャラ別特記事項" in page
+    assert "好きなこと: テストデータの整理" in page
+
+
+def test_render_character_page_shows_self_introduction_multiline(
+    resolved_character, character_profiles_index
+):
+    """selfIntroductionが複数行の場合、そのまま本文として表示される
+    ことを確認する。"""
+    page = render_character_page(resolved_character, character_profiles_index)
+    assert "### 自己紹介" in page
+    assert "こんにちは、これはテスト用の合成自己紹介文です。" in page
+    assert "複数行の表示を確認するためのダミーテキストです。" in page
+
+
+def test_render_character_page_no_matching_profile_shows_unregistered(
+    conflict_character, character_profiles_index
+):
+    """CHAR_TEST_CONFLICTは合成プロフィール索引に存在しないため、
+    「プロフィール未登録」と表示されCharacter page自体は生成が継続する
+    ことを確認する。"""
+    page = render_character_page(conflict_character, character_profiles_index)
+    assert "## 基本プロフィール" in page
+    assert "プロフィール未登録" in page
+    assert "Test Character Conflict" in page
+
+
+def test_render_character_page_self_introduction_null_shows_unregistered_message(
+    character_profiles_index,
+):
+    """CHAR_TEST_MINIMALはselfIntroduction/profileHighlightがnullの合成
+    プロフィール。selfIntroductionは「未登録」ではなく専用の未登録メッセージ、
+    profileHighlightも専用の未登録メッセージで表示されることを確認する。"""
+    entity = {
+        "id": "CHAR_TEST_MINIMAL_ENTITY",
+        "canonicalId": "CHAR_TEST_MINIMAL",
+        "displayName": "Test Character Minimal",
+        "status": "merged",
+        "sourceTypes": ["script"],
+        "confidence": 0.6,
+    }
+    page = render_character_page(entity, character_profiles_index)
+    assert "## 基本プロフィール" in page
+    assert "自己紹介は登録されていません。" in page
+    assert "特記事項は登録されていません。" in page
+    assert "| ふりがな | 未登録 |" in page
+    assert "| 身長 | 未登録 |" in page
+
+
+def test_render_character_page_no_canonical_id_shows_unregistered(
+    character_profiles_index,
+):
+    """canonicalIdが無いentity (通常はis_page_eligibleがFalseで呼ばれない
+    想定だが、防御的に落ちないことを確認する)。"""
+    entity = {"id": "CHAR_TEST_NO_CANONICAL", "displayName": "No Canonical"}
+    page = render_character_page(entity, character_profiles_index)
+    assert "プロフィール未登録" in page
+
+
+def test_build_pages_passes_character_profiles_through(
+    synthetic_collection, character_profiles_index
+):
+    """build_pagesにcharacter_profilesを渡すと、対応するCharacter pageに
+    反映されることを確認する。"""
+    pages = build_pages(synthetic_collection, character_profiles_index)
+    rain_page = pages["characters/CHAR_TEST_RAIN.md"]
+    assert "| CV | Test Voice Actor |" in rain_page
+
+
+def test_build_pages_without_character_profiles_keeps_existing_output(
+    synthetic_collection,
+):
+    """character_profiles省略時もbuild_pagesが従来通り動作することを
+    確認する (後方互換性)。"""
+    pages = build_pages(synthetic_collection)
+    assert "characters/CHAR_TEST_RAIN.md" in pages
+    assert "プロフィール未登録" in pages["characters/CHAR_TEST_RAIN.md"]
 
 
 # ----------------------------------------------------------------

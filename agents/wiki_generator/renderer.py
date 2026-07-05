@@ -26,6 +26,8 @@ import shutil
 from pathlib import Path
 from typing import Any
 
+from agents.parser.character_profiles import Birthday, CharacterProfile, Reading
+
 from .models import (
     ENTITY_KEY_TO_TYPE,
     GENERATED_FROM,
@@ -33,6 +35,8 @@ from .models import (
     build_front_matter,
 )
 from .paths import character_page_path, episode_page_path, is_page_eligible
+
+CharacterProfileIndex = dict[str, CharacterProfile]
 
 
 def _format_evidence_ref(ref: dict[str, Any]) -> str:
@@ -130,11 +134,130 @@ def _render_source_candidates_section(entity: dict[str, Any]) -> list[str]:
     return lines
 
 
-def render_character_page(entity: dict[str, Any]) -> str:
+def _format_or_placeholder(value: str | None) -> str:
+    return value if value else "未登録"
+
+
+def _format_affiliation(affiliation: list[str]) -> str:
+    if not affiliation:
+        return "未登録"
+    return "、".join(affiliation)
+
+
+def _format_height_cm(height_cm: int | None) -> str:
+    if height_cm is None:
+        return "未登録"
+    return f"{height_cm}cm"
+
+
+def _format_birthday(birthday: Birthday | None) -> str:
+    """birthday.displayを優先し、無ければmonth/dayから組み立てる
+    (Character_Profile_Dictionary_Design.md §7)。"""
+    if birthday is None:
+        return "未登録"
+    if birthday.display:
+        return birthday.display
+    if birthday.month is not None and birthday.day is not None:
+        return f"{birthday.month}/{birthday.day}"
+    return "未登録"
+
+
+def _format_reading(reading: Reading | None) -> tuple[str, str]:
+    if reading is None:
+        return "未登録", "未登録"
+    return (
+        _format_or_placeholder(reading.kana),
+        _format_or_placeholder(reading.romaji),
+    )
+
+
+def _render_profile_highlight_lines(
+    highlight: Any,
+) -> list[str]:
+    lines = ["### キャラ別特記事項", ""]
+    if highlight is None:
+        lines.append("特記事項は登録されていません。")
+    else:
+        lines.append(f"{highlight.label}: {highlight.value}")
+    lines.append("")
+    return lines
+
+
+def _render_self_introduction_lines(self_introduction: str | None) -> list[str]:
+    """selfIntroductionは複数行を想定するため、そのままMarkdown本文として
+    表示する (AI要約・AI考察とは別sectionとして分離、Character_Profile_
+    Dictionary_Design.md §7)。"""
+    lines = ["### 自己紹介", ""]
+    if not self_introduction:
+        lines.append("自己紹介は登録されていません。")
+    else:
+        lines.append(self_introduction)
+    lines.append("")
+    return lines
+
+
+def _render_basic_profile_section(
+    entity: dict[str, Any], character_profiles: CharacterProfileIndex | None
+) -> list[str]:
+    """「基本プロフィール」sectionを組み立てる (Wiki_Output_Design.md §9.4、
+    Character_Profile_Dictionary_Design.md §7)。
+
+    entityのcanonicalId (= characters.yamlのconfirmed済みcharacterId) と
+    character_profiles.yamlのcharacterIdが一致した場合のみプロフィールを
+    表示する。該当プロフィールが無い場合は「プロフィール未登録」と表示し、
+    section自体は省略しない。AI抽出・merge由来の`## Summary`等とは
+    明確に区別する。
+    """
+    lines = ["## 基本プロフィール", ""]
+
+    canonical_id = entity.get("canonicalId")
+    profile = (
+        character_profiles.get(canonical_id)
+        if character_profiles and canonical_id
+        else None
+    )
+    if profile is None:
+        lines.append("プロフィール未登録")
+        lines.append("")
+        return lines
+
+    kana, romaji = _format_reading(profile.reading)
+    source_label = profile.source.label if profile.source else None
+
+    lines.append("| 項目 | 値 |")
+    lines.append("|---|---|")
+    lines.append(f"| 名前 | {profile.display_name} |")
+    lines.append(f"| ふりがな | {kana} |")
+    lines.append(f"| ローマ字 | {romaji} |")
+    lines.append(f"| 所属 | {_format_affiliation(profile.affiliation)} |")
+    lines.append(f"| 身長 | {_format_height_cm(profile.height_cm)} |")
+    lines.append(f"| 誕生日 | {_format_birthday(profile.birthday)} |")
+    lines.append(f"| 血液型 | {_format_or_placeholder(profile.blood_type)} |")
+    lines.append(f"| CV | {_format_or_placeholder(profile.cv)} |")
+    lines.append(f"| Status | {profile.status} |")
+    lines.append(f"| 出典 | {_format_or_placeholder(source_label)} |")
+    lines.append("")
+
+    lines.extend(_render_profile_highlight_lines(profile.profile_highlight))
+    lines.extend(_render_self_introduction_lines(profile.self_introduction))
+
+    return lines
+
+
+def render_character_page(
+    entity: dict[str, Any],
+    character_profiles: CharacterProfileIndex | None = None,
+) -> str:
     """Character pageを生成する (Wiki_Output_Design.md §9.4)。
 
     呼び出し側は`is_page_eligible(entity)`がTrueの場合のみこの関数を
     呼ぶこと (canonicalId未確定のentityを渡さない)。
+
+    `character_profiles`は`characterId -> CharacterProfile`の索引
+    (`agents.parser.character_profiles.build_character_profile_index`の
+    戻り値)。Noneの場合は「基本プロフィール」sectionを「プロフィール
+    未登録」表示のまま出力する (呼び出し元が`--character-profiles`を
+    指定しなかった場合も既存の出力を壊さない)。
     """
     display_name = entity.get("displayName") or entity.get("id", "")
     source_types = entity.get("sourceTypes") or []
@@ -167,6 +290,7 @@ def render_character_page(entity: dict[str, Any]) -> str:
     lines.append(f"| Source types | {source_types_display} |")
     lines.append("")
 
+    lines.extend(_render_basic_profile_section(entity, character_profiles))
     lines.extend(_render_aliases_section(entity))
     lines.extend(_render_evidence_section(entity))
     lines.extend(_render_source_candidates_section(entity))
@@ -685,11 +809,18 @@ def render_episode_page(
     return "\n".join(lines).rstrip() + "\n"
 
 
-def build_pages(collection: dict[str, Any]) -> dict[str, str]:
+def build_pages(
+    collection: dict[str, Any],
+    character_profiles: CharacterProfileIndex | None = None,
+) -> dict[str, str]:
     """merged knowledge collectionから、生成するページ全体を組み立てる。
 
     戻り値は {相対パス (posix区切り): Markdown文字列}。ファイルへの
     書き出しは行わない (呼び出し側がwrite_pagesを使う)。
+
+    `character_profiles`は`characterId -> CharacterProfile`の索引
+    (省略時は全Character pageの「基本プロフィール」sectionが
+    「プロフィール未登録」表示になる)。
     """
     pages: dict[str, str] = {
         "index.md": render_index_page(collection),
@@ -705,7 +836,7 @@ def build_pages(collection: dict[str, Any]) -> dict[str, str]:
     for entity in collection.get("entities", {}).get("characters", []) or []:
         path = character_page_path(entity)
         if path is not None:
-            pages[path] = render_character_page(entity)
+            pages[path] = render_character_page(entity, character_profiles)
 
     return pages
 

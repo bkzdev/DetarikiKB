@@ -109,15 +109,16 @@ Wiki Character pageでは、これら3種類の情報源を明確に区別して
 
 ---
 
-# 7. Wiki Character pageへの将来表示方針
+# 7. Wiki Character pageへの表示方針
 
-（実装は行わない。方針のみ）
+**`feature/character-profile-renderer-section`で実装完了。**
 
-- Character page（`Wiki_Output_Design.md` §9.4）に「基本プロフィール」sectionを新設し、`character_profiles.yaml`から該当`characterId`のエントリを参照して表示する
+- Character page（`Wiki_Output_Design.md` §9.4）に「基本プロフィール」sectionを新設し、`character_profiles.yaml`から該当`characterId`のエントリを参照して表示する（`render_character_page`、`agents/wiki_generator/renderer.py`）
 - プロフィールが未登録のcharacterは「プロフィール未登録」と表示する（既存の「別名は登録されていません。」等と同じ、空状態を明示するパターンを踏襲）
-- 表示候補フィールド: 読み仮名（reading）/所属（affiliation）/身長（heightCm、"153cm"のように整形）/誕生日（birthday.display優先、無ければmonth/dayから組み立て）/血液型（bloodType）/CV（cv）/キャラ別特記事項（profileHighlight.label: profileHighlight.value）/自己紹介文（selfIntroduction）
+- 表示フィールド: 読み仮名（reading）/所属（affiliation）/身長（heightCm、"150cm"のように整形）/誕生日（birthday.display優先、無ければmonth/dayから組み立て）/血液型（bloodType）/CV（cv）/Status/出典（source.label）/キャラ別特記事項（profileHighlight.label: profileHighlight.value）/自己紹介文（selfIntroduction）
 - 「基本プロフィール」sectionは、既存の`## Summary`（AI抽出由来のEntity ID/Canonical ID/Status/Confidence等）とは明確に区別された見出しにする
-- 自己紹介文は公式プロフィールとして表示可能だが、引用量・公開方針の最終確認は別タスクで行う
+- 自己紹介文は複数行のままMarkdown本文として表示する（AI要約・AI考察とは別sectionに分離）
+- `scripts/render_wiki.py`に任意の`--character-profiles`引数を追加した。未指定でも既存の出力は変わらない（全Character pageが「プロフィール未登録」表示のまま）
 
 ---
 

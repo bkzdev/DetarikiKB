@@ -17,6 +17,13 @@ SCRIPT_PATH = PROJECT_ROOT / "scripts" / "render_wiki.py"
 FIXTURE_PATH = (
     PROJECT_ROOT / "tests" / "fixtures" / "wiki" / "synthetic_merged_collection.json"
 )
+CHARACTER_PROFILES_FIXTURE_PATH = (
+    PROJECT_ROOT
+    / "tests"
+    / "fixtures"
+    / "character_profiles"
+    / "synthetic_character_profiles.yaml"
+)
 
 
 def test_cli_generates_expected_markdown_files(tmp_path):
@@ -143,6 +150,109 @@ def test_cli_validate_rejects_schema_invalid_collection(tmp_path):
             str(invalid_input),
             "--output",
             str(tmp_path / "wiki_out"),
+            "--validate",
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 2
+
+
+def test_cli_without_character_profiles_keeps_existing_behavior(tmp_path):
+    """--character-profiles未指定でも既存の生成結果が変わらないことを
+    確認する (後方互換性)。"""
+    output_dir = tmp_path / "wiki_out"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            "--input",
+            str(FIXTURE_PATH),
+            "--output",
+            str(output_dir),
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    character_page = (output_dir / "characters" / "CHAR_TEST_RAIN.md").read_text(
+        encoding="utf-8"
+    )
+    assert "## 基本プロフィール" in character_page
+    assert "プロフィール未登録" in character_page
+
+
+def test_cli_with_character_profiles_shows_basic_profile(tmp_path):
+    """--character-profiles指定時、合成character_profiles.yamlの内容が
+    Character pageの基本プロフィールsectionへ反映されることを確認する。"""
+    output_dir = tmp_path / "wiki_out"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            "--input",
+            str(FIXTURE_PATH),
+            "--output",
+            str(output_dir),
+            "--character-profiles",
+            str(CHARACTER_PROFILES_FIXTURE_PATH),
+            "--validate",
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "character_profiles" in result.stdout
+    character_page = (output_dir / "characters" / "CHAR_TEST_RAIN.md").read_text(
+        encoding="utf-8"
+    )
+    assert "## 基本プロフィール" in character_page
+    assert "| CV | Test Voice Actor |" in character_page
+    assert "| 身長 | 150cm |" in character_page
+
+
+def test_cli_character_profiles_missing_file_returns_exit_1(tmp_path):
+    output_dir = tmp_path / "wiki_out"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            "--input",
+            str(FIXTURE_PATH),
+            "--output",
+            str(output_dir),
+            "--character-profiles",
+            str(tmp_path / "does_not_exist.yaml"),
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 1
+
+
+def test_cli_character_profiles_schema_invalid_returns_exit_2(tmp_path):
+    invalid_profiles = tmp_path / "invalid_profiles.yaml"
+    invalid_profiles.write_text(
+        'schemaVersion: "0.1.0"\ndocumentType: "character_profiles"\n'
+        'profiles:\n  - characterId: "NOT_VALID_FORMAT"\n'
+        '    displayName: "Test"\n    status: "confirmed"\n',
+        encoding="utf-8",
+    )
+    output_dir = tmp_path / "wiki_out"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            "--input",
+            str(FIXTURE_PATH),
+            "--output",
+            str(output_dir),
+            "--character-profiles",
+            str(invalid_profiles),
             "--validate",
         ],
         capture_output=True,
