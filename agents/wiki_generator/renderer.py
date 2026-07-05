@@ -22,6 +22,7 @@ Non-goals。将来のPRで拡張する)。
 
 from __future__ import annotations
 
+import re
 import shutil
 from pathlib import Path
 from typing import Any
@@ -764,6 +765,33 @@ def _render_validation_section(
     return lines
 
 
+# ローカル絶対パス判定用 (Windowsドライブレター形式 "C:/..." のみ。
+# UNC "//host/share" とPOSIX絶対パス "/..." は先頭の"/"で判定する)。
+_WINDOWS_DRIVE_PATTERN = re.compile(r"^[A-Za-z]:/")
+
+
+def _sanitize_source_path(path: str | None) -> str:
+    """`source_document.path`がローカル絶対パスの場合、ファイル名のみへ
+    縮約して表示する。
+
+    実データローカルdry-run時、`sourceDocuments[].path`にはExtractor/Merger
+    実行時のローカル絶対パス（環境依存、`C:\\Users\\...`等）がそのまま
+    入ることがある。Wiki Markdownへ環境依存の絶対パスを晒さないための
+    安全策（`docs/runbooks/MkDocs_Local_Preview_Dry_Run.md` source text
+    exposure check参照）。相対パスはそのまま表示する。
+    """
+    if not path:
+        return ""
+    normalized = path.replace("\\", "/")
+    is_absolute = bool(
+        _WINDOWS_DRIVE_PATTERN.match(normalized)
+    ) or normalized.startswith("/")
+    if not is_absolute:
+        return path
+    name = normalized.rsplit("/", 1)[-1]
+    return f"{name}（ローカル絶対パスのため縮約表示）"
+
+
 def render_episode_page(
     source_document: dict[str, Any], collection: dict[str, Any]
 ) -> str:
@@ -801,7 +829,7 @@ def render_episode_page(
         f"| Episode ID | {episode_id or ''} |",
         f"| Story ID | {story_id or ''} |",
         f"| Document ID | {document_id or ''} |",
-        f"| Source Path | {source_document.get('path', '')} |",
+        f"| Source Path | {_sanitize_source_path(source_document.get('path'))} |",
         f"| Extraction Version | {source_document.get('extractionVersion', '')} |",
         f"| Category | {source_document.get('storyCategory', '')} |",
         "",

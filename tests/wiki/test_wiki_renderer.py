@@ -576,6 +576,50 @@ def test_render_episode_page_has_front_matter_and_basic_info(synthetic_collectio
     assert "本文セリフはこのページに掲載しません" in page
 
 
+def test_render_episode_page_relative_source_path_shown_as_is(synthetic_collection):
+    """既存fixtureの相対パス (tests/fixtures/...) はそのまま表示される
+    ことを確認する (feature/mkdocs-local-preview-dry-run で追加した
+    ローカル絶対パス縮約表示は相対パスには影響しない)。"""
+    source_document = synthetic_collection["sourceDocuments"][0]
+    page = render_episode_page(source_document, synthetic_collection)
+    assert "tests/fixtures/wiki/synthetic_episode_extraction.json" in page
+
+
+def test_render_episode_page_sanitizes_windows_absolute_source_path(
+    synthetic_collection,
+):
+    """実データローカルdry-run時、sourceDocuments[].pathに環境依存の
+    Windowsローカル絶対パスが入っていても、ファイル名のみへ縮約されて
+    表示されることを確認する (ローカル絶対パス非公開方針、
+    docs/runbooks/MkDocs_Local_Preview_Dry_Run.md参照)。"""
+    source_document = dict(synthetic_collection["sourceDocuments"][0])
+    source_document["path"] = (
+        r"C:\Users\synthetic_user\project\data\extracted\synthetic_episode.json"
+    )
+    page = render_episode_page(source_document, synthetic_collection)
+    assert r"C:\Users\synthetic_user" not in page
+    assert "synthetic_episode.json" in page
+    assert "ローカル絶対パスのため縮約表示" in page
+
+
+def test_render_episode_page_sanitizes_posix_absolute_source_path(
+    synthetic_collection,
+):
+    source_document = dict(synthetic_collection["sourceDocuments"][0])
+    source_document["path"] = "/home/synthetic_user/project/data/synthetic_episode.json"
+    page = render_episode_page(source_document, synthetic_collection)
+    assert "/home/synthetic_user" not in page
+    assert "synthetic_episode.json" in page
+    assert "ローカル絶対パスのため縮約表示" in page
+
+
+def test_render_episode_page_missing_source_path_renders_empty(synthetic_collection):
+    source_document = dict(synthetic_collection["sourceDocuments"][0])
+    source_document.pop("path", None)
+    page = render_episode_page(source_document, synthetic_collection)
+    assert "| Source Path |  |" in page
+
+
 def test_render_episode_page_candidate_counts_table(synthetic_collection):
     source_document = synthetic_collection["sourceDocuments"][0]
     page = render_episode_page(source_document, synthetic_collection)
