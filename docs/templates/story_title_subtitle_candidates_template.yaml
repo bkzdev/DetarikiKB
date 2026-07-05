@@ -1,0 +1,35 @@
+# Story Title/Subtitle Candidates Template（合成データのみのテンプレート例）
+#
+# docs/architecture/05_Parser/Story_Manifest_Design.md §11.7・
+# docs/runbooks/Story_Title_Subtitle_Import.md 準拠。
+# scripts/build_story_title_subtitle_candidates.py の出力形式の見本。
+#
+# 重要: このファイルは合成データのみで構成する。実イベント名・実タイトル・
+# 実サブタイトル・実URLは一切使わない (storyId/episodeId/sourceKeyは
+# すべて架空の "250626_synthetic_dancer" を使った例)。
+#
+# このドキュメントは「import candidate」であり、story_manifest.yamlそのもの
+# ではない。すべてのcandidateはreviewStatus: pending (人間未確認) として
+# 生成される。story_manifest.yamlへの反映は、人間がレビューし
+# reviewStatus: confirmed と判断した値のみを手動で行う
+# (docs/runbooks/Story_Title_Subtitle_Import.md 参照)。
+
+schemaVersion: "0.1.0"
+documentType: "story_title_subtitle_candidates"
+source:
+  sourceType: "wiki_story_list"
+  label: "Synthetic story list"
+  fetchedAt: null
+candidates:
+  - storyId: "EVT_250626_SYNTHETIC_DANCER"
+    proposedTitle: null
+    proposedDisplayTitle: null
+    foundInManifest: true
+    episodes:
+      - episodeId: "EVT_250626_SYNTHETIC_DANCER_E01"
+        episodeNumber: 1
+        proposedSubtitle: "Synthetic episode subtitle"
+        confidence: "source_exact"
+        reviewStatus: "pending"
+        foundInManifest: true
+        notes: "Synthetic example only."

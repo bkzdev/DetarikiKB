@@ -190,3 +190,106 @@ def test_rejects_wrong_document_type():
     document = _document(_synthetic_story())
     document["documentType"] = "not_story_manifest"
     assert _validate(document) != []
+
+
+# ----------------------------------------------------------------
+# titleSource / subtitleSource (feature/story-title-subtitle-import-design)
+# ----------------------------------------------------------------
+
+
+def test_existing_template_still_validates_without_source_tracking_fields():
+    """titleSource/subtitleSourceを追加した後も、既存templateが
+    (これらのフィールドを含まないまま) schema検証を通ることを確認する
+    (後方互換性、Story_Manifest_Design.md §13.1)。"""
+    with open(TEMPLATE_PATH, encoding="utf-8") as f:
+        document = yaml.safe_load(f)
+    for story in document["stories"]:
+        assert "titleSource" not in story
+        for episode in story["episodes"]:
+            assert "subtitleSource" not in episode
+    assert _validate(document) == []
+
+
+def test_title_source_is_optional_and_defaults_absent():
+    """titleSourceを省略したエントリも引き続き有効であることを確認する。"""
+    assert _validate(_document(_synthetic_story())) == []
+
+
+def test_title_source_null_is_valid():
+    story = _synthetic_story(titleSource=None)
+    assert _validate(_document(story)) == []
+
+
+def test_title_source_with_wiki_story_list_is_valid():
+    story = _synthetic_story(
+        title="Synthetic Sample Event",
+        titleSource={
+            "sourceType": "wiki_story_list",
+            "label": "Synthetic wiki list",
+            "referenceId": None,
+            "notes": None,
+        },
+    )
+    story["metadataStatus"] = "confirmed"
+    assert _validate(_document(story)) == []
+
+
+def test_subtitle_source_with_official_game_ui_is_valid():
+    story = _synthetic_story()
+    story["episodes"][0]["subtitle"] = "Synthetic Episode Subtitle"
+    story["episodes"][0]["subtitleSource"] = {
+        "sourceType": "official_game_ui",
+        "label": None,
+        "referenceId": None,
+        "notes": None,
+    }
+    story["episodes"][0]["metadataStatus"] = "confirmed"
+    assert _validate(_document(story)) == []
+
+
+def test_rejects_invalid_title_source_source_type():
+    story = _synthetic_story(
+        titleSource={
+            "sourceType": "not_a_real_source_type",
+            "label": None,
+            "referenceId": None,
+            "notes": None,
+        }
+    )
+    assert _validate(_document(story)) != []
+
+
+def test_rejects_title_source_with_additional_properties():
+    story = _synthetic_story(
+        titleSource={
+            "sourceType": "manual",
+            "label": None,
+            "referenceId": None,
+            "notes": None,
+            "unexpectedField": "not allowed",
+        }
+    )
+    assert _validate(_document(story)) != []
+
+
+def test_all_manifest_source_type_choices_are_valid():
+    """Story_Manifest_Design.md §11.5で定義した全sourceTypeがschema上
+    有効であることを確認する。"""
+    for source_type in (
+        "manual",
+        "official_game_ui",
+        "official_announcement",
+        "wiki_story_list",
+        "wiki_event_page",
+        "imported_candidate",
+        "unknown",
+    ):
+        story = _synthetic_story(
+            titleSource={
+                "sourceType": source_type,
+                "label": None,
+                "referenceId": None,
+                "notes": None,
+            }
+        )
+        assert _validate(_document(story)) == [], f"failed for {source_type}"
