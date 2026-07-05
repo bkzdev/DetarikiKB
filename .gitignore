@@ -65,6 +65,18 @@ wiki_member_profiles_batch_*.csv
 # MkDocs build output (docs/runbooks/MkDocs_Local_Preview.md)
 site/
 
+# Story manifest candidates
+# (docs/architecture/05_Parser/Story_Manifest_Design.md、
+# scripts/build_story_manifest_candidates.py)。実raw DEC配置から機械的に
+# 生成した候補は人間確認前のローカル専用データであり、
+# docs/templates/story_manifest_template.yaml (合成データ) とは別物として
+# ignoreする。実.decファイル自体も、data/raw/以外の場所へローカルに
+# 展開される可能性があるため、念のため全体をignoreする。
+workspace/story_manifest/
+story_manifest_candidates_*.yaml
+story_manifest_candidates_*.json
+*.dec
+
 # Secrets / logs
 .env
 .env.*
