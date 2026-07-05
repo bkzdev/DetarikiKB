@@ -1,864 +1,118 @@
 # TASKS
 
-作業TODO管理用ファイル。`AI_CONTEXT.md` はプロジェクトの設計思想・仕様・引き継ぎ情報を扱い、こちらは「今何をしていて、次に何をするか」の作業状態を扱う。
+作業TODO管理用ファイル。`AI_CONTEXT.md`はプロジェクトの設計思想・仕様・引き継ぎ情報を扱い、こちらは「今何をしていて、次に何をするか」の作業状態を扱う。
 
-AI_CONTEXT.md にはこれ以上詳細なTODOを追記せず、作業状態の更新は本ファイルで行うこと。
-
-作業を開始・完了・変更するたびに、該当する章を更新すること。
+完了済みPRの詳細な作業ログ・テスト件数・diff statは `docs/project_history/Completed_PRs_2026-07.md` に移した。ここには重複記載しない。作業を開始・完了・変更するたびに、該当する章を更新すること。
 
 ---
 
-## 1. Current Focus
+## Current Focus
 
-- Parser Phase 1: 完了（`agents/parser/` 一式、`schemas/story.schema.json`、compatibility checker、テスト。main にマージ済み）
-- `docs/architecture/06_AI/Extraction_Pipeline.md`: 完了
-- `docs/architecture/06_AI/Extraction_Result_Schema.md`: 完了
-- `schemas/extraction.schema.json` 一式（validator: `scripts/validate_extraction_json.py`、fixture、schema tests: `tests/extraction/test_extraction_schema.py`）: 完了、`feature/extraction-json-schema` を PR #4 として main にマージ済み
-- `agents/extractor/` の最小skeleton: 実装完了。`feature/extractor-skeleton` を PR #5 として main にマージ済み
-  - Normalized Story JSON から最小 `episode_extraction` を生成（`agents/extractor/extractor.py`）
-  - `evidenceIndex` を構築（dialogue/monologue/narration/choice Blockから収集）
-  - `scripts/extract_story.py`（CLI）、`tests/extractor/test_extractor_skeleton.py`
-  - `extractionRun.extractionMethod` は `rule_based`（LLM未呼び出しを明示。enumに`rule_based`/`llm`/`manual`/`hybrid`を追加）
-  - 候補配列（characters/organizations/.../timelineCandidates）は空配列のまま。LLM呼び出し・provider連携・prompt作成は未実装
-- Extractor semantic validation: 実装完了。`feature/extractor-semantic-validation` を PR #6 として main にマージ済み
-  - `agents/extractor/validator.py`: evidenceIds実在確認 / duplicate candidate id検出 / empty evidenceIndex検出 / extractionRun整合性確認 / RelationshipCandidateの基本チェック（sourceCandidate・targetCandidate空文字はerror、自己参照はwarning）
-  - `scripts/validate_extraction_json.py --semantic`: JSON Schema検証に加えてsemantic validationを実行するオプション
-  - `tests/extractor/test_extraction_semantic_validation.py`、フィクスチャ2件（`invalid_semantic_missing_evidence_ref.json`、`invalid_semantic_duplicate_candidate_id.json`）
-- `CharacterCandidate` 最小抽出: 実装完了。`feature/character-candidate-extraction` を PR #7 として main にマージ済み
-  - speakerAssignments / dialogue・monologue Blockのspeakerからrule-baseでCharacterCandidateを生成。choice内の話者は対象外
-  - 同一speakerId（無ければsourceCharacterId、それも無ければspeakerName）は1候補に統合し、発言Block IDをすべてevidenceIdsに集約
-  - speakerIdが解決済みなら confidence 0.9・existingCharacterIdを設定、未解決（speakerName/sourceCharacterIdのみ）なら confidence 0.5・existingCharacterId は null
-  - sourceTypeは "script"（Extraction_Pipeline.md §7.1の語彙のうち、本文から機械的に抽出した情報に対応する区分）
-- `LocationCandidate` / `OrganizationCandidate` 最小抽出: 実装完了。`feature/location-organization-candidate-extraction` を PR #8 として main にマージ済み
-  - Scene.location と directionType: background のstage_direction BlockからLocationCandidateを生成。本文の自然文からの場所推定は行わない
-  - 明示的なorganizationId/organizationName（dialogue/monologue/narration/choice Block）、organizationId/organizationName/affiliation（speakerAssignments）からOrganizationCandidateを生成。本文中の固有名詞文字列推定は行わない
-  - Scene.location由来の候補はScene IDを、speakerAssignments由来のOrganizationCandidateはEpisode IDをevidenceとして使う（Block単位の根拠が無い場合のフォールバック、Extraction_Pipeline.md §6.1）。stage_direction Blockはevidenceとして使う場合のみevidenceIndexへ追加する（EVIDENCE_BLOCK_TYPESには含めない）
-  - story/episode metadataのrelatedOrganizations相当は今回のスコープ外（evidence粒度がStory/Episode単位のみになり検証が難しいため、Block/Episode単位で根拠が取れるものに限定）
-  - 構造化ID（locationId/organizationId）ありなら confidence 0.9、名前のみなら confidence 0.5
-- `ItemCandidate` / `LoreCandidate` / `EventCandidate` 最小抽出: 実装完了。`feature/item-lore-event-candidate-extraction` を PR #9 として main にマージ済み
-  - 明示的なitemId/itemName（dialogue/monologue/narration/choice Block、stage_direction Block）からItemCandidateを生成
-  - 明示的なloreId/termName（dialogue/monologue/narration/choice Blockのみ、最も保守的）からLoreCandidateを生成。stage_direction・speakerAssignments経由の抽出は行わない
-  - 明示的なeventId/eventName（dialogue/monologue/narration/choice Block、stage_direction Block）からEventCandidateを生成
-  - scene metadataからの抽出は今回のスコープ外（`schemas/story.schema.json`のScene定義が`additionalProperties: false`のため、Scene直下に任意の拡張フィールドを追加できない。Item/Event双方で同じ理由によりスコープ外とした）
-  - stage_direction由来のItem/Event候補は、Location同様に実際に根拠として使ったBlockのみevidenceIndexへ追加
-  - 構造化ID（itemId/loreId/eventId）ありなら confidence 0.9、名前/用語のみなら confidence 0.5
-  - LLM呼び出し・provider連携・prompt作成・`RelationshipCandidate`抽出は未着手
-- Extractor内部リファクタリング（`feature/extractor-refactor`）: 実装完了。`feature/extractor-refactor`をPR #10としてmainへマージ済み
-  - `agents/extractor/extractor.py`（998行）が肥大化していたため、挙動を変えずにCandidate種別ごとのファイルへ分割
-  - `agents/extractor/base.py`: 共通ヘルパー（`build_evidence_refs`/`evidence_from_block`/`merge_evidence_index`/`structured_identity_key`）
-  - `agents/extractor/character.py`/`location.py`/`organization.py`/`item.py`/`lore.py`/`event.py`: 各Candidate種別の抽出ロジック（`build_*_candidates`関数）
-  - `agents/extractor/extractor.py`: `Extractor`クラスは各モジュールの`build_*_candidates`を呼び出すオーケストレーションのみ（115行に縮小）に変更
-  - 出力JSON構造・candidate生成ルール・confidence値・sourceType・evidenceIdsの扱いはすべて変更なし（既存テスト135件がそのまま通ることで確認）
-  - `agents/extractor/models.py`・`agents/extractor/validator.py`・`agents/extractor/__init__.py`・`scripts/extract_story.py`・`scripts/validate_extraction_json.py`は変更なし
-- `RelationshipCandidate` 最小実装: 実装完了。`feature/relationship-candidate-extraction`をPR #11としてmainへマージ済み
-  - `agents/extractor/relationship.py`: `build_relationship_candidates`を新規追加。以下2種類の構造的な手がかりのみを対象とし、本文の自然文からの関係推定（「友人らしい」「敵対しているらしい」「同じ組織らしい」等）は一切行わない
-    - dialogue/monologue/narration/choice Blockに明示された`relationshipType` + (`sourceCandidate`/`targetCandidate` または `subjectId`/`objectId`) のペア。`relationshipId`があれば`existingRelationshipId`に設定
-    - `speakerAssignments`に明示された`organizationId`/`affiliation`からCharacter→Organizationの所属候補を生成（`organizationId`があれば`MEMBER_OF`、名前のみなら`AFFILIATED_WITH`）
-  - 同一source+target+relationshipTypeは1候補に統合しevidenceIdsを集約。自己参照（source==target）は生成しない
-  - confidenceは`relationshipId`ありまたはspeakerId+organizationId双方解決済みなら0.9、それ以外は0.5
-  - `direction`は許可値（`source_to_target`/`target_to_source`/`bidirectional`）以外が来た場合`source_to_target`にフォールバック
-  - `agents/extractor/extractor.py`: `build_relationship_candidates`を呼び出し、`relationships`配列に反映（従来は常に空配列）
-  - `agents/extractor/models.py`: `RELATIONSHIP_CANDIDATE_*`定数・`RelationshipCandidateAccumulator`を追加
-  - `agents/extractor/validator.py`は変更なし（既存の`check_relationship_basic`が空文字チェック・自己参照warningを既にカバー）
-  - `tests/extractor/test_relationship_candidate_extraction.py`: 17件追加（Block由来生成、統合、自然文推定されないことの確認、speakerAssignments由来の所属候補、CharacterCandidate/OrganizationCandidateとの共存、schema/semantic validation、CLI経由の疎通）
-  - `relationshipType`のtaxonomy本格整理・invalid directionのwarning化（現状は`source_to_target`へ静かにフォールバック）は今後の課題
-- `TimelineCandidate` 最小実装: 実装完了。`feature/timeline-candidate-extraction`をPR #12としてmainへマージ済み
-  - `agents/extractor/timeline.py`: `build_timeline_candidates`を新規追加。以下3種類の構造的な手がかりのみを対象とし、本文の自然文からの時系列推定（「昔」「その後」「翌日」「回想」等）は一切行わない
-    - `episode.metadata`に明示された`canonicalOrder`/`releaseOrder`/`displayOrder`（存在するフィールドごとに個別candidateを生成、優先順位付けはしない。scope: `episode`、evidenceはEpisode ID）
-    - dialogue/monologue/narration/choice/stage_direction Blockに明示された`timelineId`/`timelineLabel`/`timePosition`/`orderValue`（scope: `block`。`timePosition`は数値なら順序値、文字列ならラベル扱い）
-    - 同Blockに明示された`flashback`/`flashforward`/`dayChange`/`timeShift`/`sceneTime`構造フィールド（真偽値の有無のみ判定し値の中身は解釈しない。`kind: temporal_marker`）
-  - `schemas/extraction.schema.json`のTimelineCandidate定義を拡張: `kind`enumに`explicit_order`/`temporal_marker`を追加（既存`relative_order`は維持）、`scope`/`sourceTimelineId`/`nameCandidates`/`orderValue`/`orderField`/`markerType`フィールドを新規追加
-  - 同一timelineId、または同一scope+順序値/ラベル/マーカー種別の組み合わせは1候補に統合しevidenceIdsを集約
-  - confidenceは`timelineId`/`orderValue`/episode.metadata順序値ありなら0.9、ラベルのみなら0.5、temporal_markerは固定0.7
-  - Scene定義が`additionalProperties: false`かつmetadataフィールド自体を持たないため、scene単位の時系列情報は今回のスコープ外（Item/Event/LocationCandidateと同じ理由）
-  - EventCandidateとの紐づけ（eventCandidateId等）は実装せず、共存のみ確認（推定でEvent-Timeline間を接続しない）
-  - `agents/extractor/validator.py`: `check_timeline_basic`を追加（kindごとに付随フィールドが全て空のケースを緩いwarningとして検出。Timelineの本格的な矛盾検出・順序整合性チェックはまだ行わない）
-  - `agents/extractor/extractor.py`: `build_timeline_candidates`を呼び出し、`timelineCandidates`配列に反映（従来は常に空配列）
-  - `agents/extractor/models.py`: `TIMELINE_CANDIDATE_*`/`TIMELINE_KIND_*`/`TIMELINE_SCOPE_*`定数・`TimelineCandidateAccumulator`を追加
-  - `tests/extractor/test_timeline_candidate_extraction.py`: 18件追加
-  - LLM呼び出し・provider連携・prompt作成は未着手のまま
-- Stage A統合レビュー: 実施完了。`feature/stage-a-integration-review`をPR #13としてmainへマージ済み
-  - 全8種Candidate（Character/Location/Organization/Item/Lore/Event/Relationship/Timeline）について、設計・schema・実装・semantic validation・CLI・テストの整合性を横断確認。結果、出力JSON構造・required field・confidence/sourceType/evidenceIdsの扱いは全種で一貫しており、schema/impl間に不整合は無いことを確認
-  - 小修正のみ実施（新機能追加・出力構造変更・大規模リファクタリングは無し）:
-    - 古い記述の修正: `agents/extractor/__init__.py`・`scripts/extract_story.py`のdocstringが「候補配列は空のまま出力する」と記載されていたが、現在は8種すべてrule-based生成されるため実態に合わせて更新
-    - `scripts/validate_extraction_json.py`の`--semantic`ヘルプにtimeline基本チェックを追記（`check_timeline_basic`追加後も記載が漏れていた）
-    - `tests/extractor/test_stage_a_integration.py`を新規追加（7件）: 全8種Candidateが1エピソード内で共存し、candidate id重複無し・全evidenceIdsがevidenceIndexに実在・CandidateEnvelope共通フィールド一貫・schema validation・semantic validation・CLI連携（extract_story.py --validate → validate_extraction_json.py --semantic）すべてに通ることを確認
-  - 確認済みで問題無しだった点: duplicate candidate id検出は全8配列（`CANDIDATE_ARRAY_KEYS`）に効いている / candidate id接頭辞（CHAR/LOC/ORG/ITEM/LORE/EVENT/REL/TL）が種別ごとに分かれ衝突しない / evidenceIndexは「根拠として使ったもののみ追加」方針がepisode-level・stage_direction両方で守られている / relationship・timelineのbasic validationはwarning中心で過度に厳しくない
-- Stage B（Merged Knowledge）設計: 設計書作成完了。`feature/stage-b-merged-knowledge-design`をPR #14としてmainへマージ済み
-  - `docs/architecture/06_AI/Merged_Knowledge_Design.md` を新規作成（設計のみ。schema・Python実装・LLM・provider・promptは未着手）
-  - 主要な設計決定:
-    - マージ4原則: 既存ID最優先 / 名前一致だけで自動マージしない（マージ候補の「提案」に留め確定は手動補正） / Stage Aのevidence・provenanceを失わない / factとinferenceを混ぜない
-    - merge key: existing*Id（Characterは第2キーとしてsourceCharacterId、Locationは背景コマンド完全一致も許容）。未解決candidateは`merged/_unresolved/`へ集約し暫定merge ID（`UNRESOLVED_{TYPE}_{number}`）を採番、canonical昇格は手動補正で行う
-    - confidence集約はmax（平均・加重は採らない）。`confidence < 0.4`は要レビュー隔離
-    - Relationship: (resolved source, resolved target, relationshipType)がキー。両端解決済みのみ`merged/relationships/`へ昇格（未解決は`_unresolved/relationships.json`、Extraction_Result_Schema.md §15の「Stage Aに留め置く」から変更）。direction矛盾はbroad側（bidirectional）暫定採用。MEMBER_OF/AFFILIATED_WITHは別キーのまま統合せず格上げは提案止まり。fact系とinference系Relationshipは同一キーでも別レコード
-    - Timeline: エンティティ統合せず、kind別（explicit_order/temporal_marker）のエピソード横断集約`timeline_entries.json`までがStage B責務（Extraction_Pipeline.md §4.8の「マージ対象外」から位置づけ調整）。orderField間の優先順位付け・順序矛盾の本格検出はしない
-    - 手動補正: 独立overrideファイル（`knowledge/overrides/`、Git管理）をマージ時に適用。merged/配下は常に再生成可能な生成物。`sourceType: manual`/`confidence: 1.0`は再マージで上書きしない。`manualOverridesApplied`と適用先なしoverride検出でaudit trail
-    - conflict handling: 黙って解決せず暫定採用ルール+マージレポート（`data/extracted/reports/merge_report.json`）記録を必須化
-    - provenance: `sourceCandidates`（candidate ID保持）+ `extractionRuns`辞書（runRefs参照方式で重複排除）+ evidence埋め込みで、merged entityからRaw Script行まで遡及可能
-    - directory: 生成物は`data/extracted/`（_raw/merged/reports、Git管理外）、手動管理ソースは`knowledge/`（overrides/dictionaries、Git管理）に分離するハイブリッド案を推奨
-  - 実装PR分割案は同設計書§13（schema→merge engine skeleton→char/loc/org→item/lore/event→relationship→timeline→override loader→report generator）
-- Stage B schema作成: 初版完了。`feature/merged-knowledge-schema`をPR #15としてmainへマージ済み
-  - `schemas/merged_knowledge.schema.json`: 8種のmerged entity（character/location/organization/item/lore/event/relationship/timeline_entry）を`type`でoneOf判別。共通ベース`MergedEntityBase`（id/type/canonicalId/mergedId/displayName/aliases/status/sourceTypes/confidence/evidenceRefs/sourceCandidates/extractionRunRefs/fieldValues/conflicts/manualOverridesApplied/mergedFrom）を`allOf`で各typeが継承
-    - Stage Aのevidence/provenanceを失わない担保: `evidenceRefs`（埋め込みEvidenceRef）と`sourceCandidates`（candidateId/candidateType/sourceDocumentId/episodeId/evidenceIds/extractionRunRef保持）を**最低1件必須**（minItems: 1）。`extractionRunRefs`はepisodeId→ExtractionRunの辞書（runRefs参照方式で重複排除、設計§10.3）
-    - `fieldValues`: 属性単位のFieldValue（value/sourceType/confidence/evidenceIds/sourceCandidateIds/isManualOverride）でfact/inference分離を維持
-    - `conflicts`: conflictType/field/values/severity(info/warning/error)/resolutionStatus(unresolved/auto_selected/manual_resolved/ignored)/selectedValue。黙って解決しない方針をschema化
-    - `status`: merged/unresolved/conflict/deprecated。`relationshipType`はtaxonomy未確定のため自由文字列、`direction`はenum制限
-  - `schemas/manual_overrides.schema.json`: overrides配列。各overrideは`sourceType: manual`固定（const）+ overrideId/overrideType/operation(set_field/add_alias/remove_alias/merge_entities/split_entity/ignore_candidate/resolve_conflict/set_relationship_type/set_timeline_order)/targetType/reason/author/createdAt必須。merged/を直接編集せずGit管理overrideで補正する方針を反映
-  - `schemas/canonical_knowledge.schema.json`: Stage C用の予約placeholder（`additionalProperties: true`、実体定義なし）
-  - `tests/merged/test_merged_knowledge_schema.py`（21件）+ fixture4件（minimal_merged_character / minimal_merged_relationship / minimal_merged_timeline_entry / minimal_manual_override）。schema自体のDraft-07妥当性・正常fixture受理・evidenceRefs/sourceCandidates空の拒否・confidence範囲・status/sourceType/operation enum・relationship必須フィールド・override sourceType=manual固定などを検証
-  - 未着手（このPRのスコープ外）: Python merge engine実装、Stage B実データ生成、data/extracted/出力、Knowledge Graph、Wiki、LLM merge判断、relationshipType taxonomy確定、timeline矛盾検出
-- merge engine skeleton: 実装完了（最小スコープ）。`feature/merge-engine-skeleton`をPR #16としてmainへマージ済み
-  - `agents/merger/`を新規作成: `models.py`（`MergeReport`データクラス、`CANDIDATE_ARRAY_KEYS`/`MERGED_ENTITY_KEYS`定数）、`engine.py`（`MergeEngine`。検証ゲート+collection組み立てを1ファイルに統合）、`__init__.py`
-  - スコープを最小化: **単一入力ファイルのみ対応**（複数ファイル・ディレクトリ入力・`--overrides`予約引数は今回見送り、次PRへ持ち越し）
-  - 検証ゲート（`MergeEngine.validate_file`/`validate_document`）: `schemas/extraction.schema.json`によるJSON Schema検証 → 通過分のみ`agents/extractor/validator.py`の`run_semantic_validation`を実行。どちらかに失敗した入力はmerge対象にせず、`report.errors`/`report.skippedInputs`へ記録（黙って除外しない）
-  - `MergeEngine.merge_file`: 検証結果から`MergeReport`（inputFiles/validInputs/invalidInputs/skippedInputs/candidateCounts/warnings/errors）を構築し、`build_collection`で空のmerged knowledge collectionを組み立てる。entities配下8配列（characters/locations/organizations/items/lore/events/relationships/timeline）は常に空
-  - candidateCountsはStage A 8配列（`characters`/`locations`/`organizations`/`items`/`lore`/`events`/`relationships`/`timelineCandidates`）をそのままキーとして集計（本格mergeはまだ行わないため件数のみ）
-  - `scripts/merge_extractions.py`: `--input`（単一ファイル）/`--output`/`--quiet`のみ。invalidInputsが1件でもあればexit code 1、入力ファイル不在・ディレクトリ指定・出力失敗はexit code 2
-  - collection wrapperと`schemas/merged_knowledge.schema.json`の関係: **A案を採用**（collection wrapperはmerge engine previewの独自形式であり、`merged_knowledge.schema.json`自体はcollection全体ではなく個別entityの形を定義したスキーマのまま。collection wrapperのschema化（B案 `merged_knowledge_collection.schema.json`）は本格merge実装以降、collection構造が安定してから検討）
-  - `tests/merger/test_merge_engine_skeleton.py`（10件）: valid input成功、candidateCounts集計の正確性、8種entity配列の存在、schema-invalid/semantic-invalid inputの拒否、CLI成功/失敗/入力不在のexit code。既存の`tests/fixtures/extraction/`（minimal_episode_extraction.json / invalid_missing_evidence.json / invalid_semantic_missing_evidence_ref.json）を再利用し、新規fixtureは追加していない
-  - 未着手（次のPRへ持ち越し）: 複数ファイル入力、ディレクトリ入力、`--overrides`引数（manual override適用は未実装なので当面追加しない）、本格的なcandidate merge、canonical ID割り当て、relationship merge、timeline aggregation、collection schema化
-- merge engine 複数入力対応: 実装完了。`feature/merge-multiple-inputs`をPR #17としてmainへマージ済み
-  - `agents/merger/input_resolver.py`を新規作成: `resolve_input_entries(inputs, recursive)`。ファイルパス／ディレクトリパス（直下`*.json`、`--recursive`で`**/*.json`）／globパターン文字列（`*`/`?`/`[`を含む場合、Pythonの`glob`モジュールで展開しシェル展開に依存しない）を解決。同一ファイルを指す重複raw引数は最初の1回のみ処理。1件も解決できなかったraw引数は`path=None`のエントリとして残し黙って無視しない
-  - `MergeEngine.merge_inputs(inputs, recursive)`を追加（`merge_file`は`merge_inputs([str(path)])`への薄いラッパーとして維持、後方互換）。inputResultsの各エントリを3状態で区別: `valid`（検証通過）／`invalid`（読み込めたが schema またはsemantic validationに失敗）／`skipped`（1件もファイルへ解決できなかった raw 引数）
-  - `MergeReport`を拡張: `resolvedInputFiles`（展開・重複排除後に実際に見つかったファイル件数）、`inputResults`（path/status/errors/warningsを持つオブジェクト配列）を追加。`inputFiles`はraw `--input`引数の件数（展開前）のまま維持
-  - `candidateCounts`は全valid input合算のまま（`build_collection`が`(path, document)`のリストを受け取るよう変更、集計ロジック自体は不変）
-  - `sourceDocuments`を拡張: 既存の`episodeId`/`storyId`/`storyCategory`は維持しつつ、`path`/`documentId`（=episodeId）/`extractionVersion`（`extractionRun.extractionVersion`）/`candidateCounts`（そのドキュメント単体の内訳）を追加
-  - `scripts/merge_extractions.py`: `--input`を`nargs="+"`化（`--input a.json b.json`形式。複数`--input`フラグの繰り返しより実装・ヘルプがシンプルなためこちらを採用）、`--recursive`/`-r`を追加。exit code方針: 1件も解決できなければexit 2（早期return、出力は書かない）、invalidまたはskippedが1件でもあればexit 1、すべてvalidならexit 0
-  - 既存の単一入力テストのうち1件を新仕様に合わせて調整: `test_merge_file_with_schema_invalid_input_is_rejected`が`report["skippedInputs"]`を見ていた箇所を、3状態分離後の意味（skipped=未解決、invalid=検証失敗）に合わせて`inputResults`のstatus="invalid"チェックへ変更（他の単一入力テストは無変更で通過）
-  - `tests/fixtures/merger/second_valid_episode_extraction.json`を新規追加（複数入力・ディレクトリ入力テスト用の2件目のvalidフィクスチャ、LocationCandidate 1件）
-  - `tests/merger/test_merge_engine_skeleton.py`に9件追加（計19件）: 複数ファイル入力・candidateCounts合算・sourceDocuments件数・valid/invalid混在・ディレクトリ入力・存在しないpathの扱い（単独/valid混在）・CLI複数入力/ディレクトリ入力成功
-  - 未着手（次のPRへ持ち越し）: 本格的なcandidate merge、canonical ID割り当て、manual override適用、conflict解決、relationship merge、timeline aggregation、collection schema作成、Knowledge Graph、Wiki、LLM/provider/prompt
-- merged knowledge collection schema作成: 実装完了。`feature/merged-knowledge-collection-schema`をPR #18としてmainへマージ済み
-  - `schemas/merged_knowledge_collection.schema.json`を新規作成: merge engine (`agents/merger/engine.py`の`build_collection`/`MergeReport.to_dict`/`InputResult.to_dict`)が実際に返している形をそのままスキーマ化。トップレベル`schemaVersion`/`documentType`（const: `merged_knowledge_collection`）/`generatedAt`/`sourceDocuments`/`entities`/`report`はすべて`additionalProperties: false`で実装とずれたら検知できるようにした
-  - `CandidateCounts`共通定義: `characters`/`locations`/`organizations`/`items`/`lore`/`events`/`relationships`/`timelineCandidates`の8フィールド、すべて`integer`・`minimum: 0`・`additionalProperties: false`必須。`report.candidateCounts`と`sourceDocuments[].candidateCounts`の両方で同一定義を`$ref`共有
-  - `SourceDocument`: 必須`path`/`documentId`/`extractionVersion`/`candidateCounts`、任意`storyId`/`episodeId`/`storyCategory`（実装が実際に出す値）/`extractionRunId`（将来拡張用の予約フィールド、現状未使用でも許容）
-  - `MergeReport`: `inputFiles`/`resolvedInputFiles`/`validInputs`/`invalidInputs`/`skippedInputs`/`candidateCounts`/`inputResults`/`warnings`/`errors`をすべて必須化。`inputResults[].status`は`valid`/`invalid`/`skipped`のenumで制限
-  - `entities`配下8配列（`characters`/`locations`/`organizations`/`items`/`lore`/`events`/`relationships`/`timeline`。`candidateCounts`の`timelineCandidates`とキー名が異なる点はMerged_Knowledge_Design.md §7の既存設計通り）は現状常に空のため、要素の型は`object`のみに緩め、`schemas/merged_knowledge.schema.json`への本格的な`$ref`は見送った（下記TODO参照）
-  - **TODO（次のPR以降）**: `entities`配下の各配列要素を`schemas/merged_knowledge.schema.json`の各entity定義へ`$ref`で接続する。クロスファイル参照は`jsonschema.Draft7Validator`にRefResolver/base_uriの設定が必要になり、現状の「schemaは自己完結・`Draft7Validator(schema)`を素で呼ぶだけ」という他schemaとの一貫した運用から外れるため、entitiesが実際にmerged entityを持つようになった（本格candidate merge実装）タイミングで着手する
-  - `tests/fixtures/merged_knowledge/minimal_merged_collection.json`を新規追加（自作の最小collection fixture）
-  - `tests/merged/test_merged_knowledge_collection_schema.py`（15件）: schema自体のDraft-07妥当性、自作fixtureの受理、空entities配列の許容、`MergeEngine.merge_file`/`merge_inputs`の実出力（単一/複数/invalid混在/missing path混在）がすべてこのschemaに通ることの確認、`candidateCounts`必須検証（report/sourceDocuments両方）、`inputResults[].status`のenum制約、`candidateCounts`の負値拒否、`documentType`固定値検証、`entities`欠落キー検出、CLI (`scripts/merge_extractions.py`)出力のschema通過
-  - MergeEngine側のPythonコードは変更していない（schema側を現在の実装出力に合わせる方針を優先）
-- Character / Location / Organization 最小merge: 実装完了。`feature/merge-character-location-organization`をPR #19としてmainへマージ済み
-  - `agents/merger/entity_base.py`を新規作成（3種共通処理）: `build_merged_entities`（グルーピング→evidence/sourceCandidates/confidence集約→entity組み立てのオーケストレーション。当初cyclomatic complexity 14でruffのC901に抵触したため、`_group_candidates`/`_resolve_entity_identity`/`_build_entity_for_group`の3ヘルパーへ分割）、`build_merged_evidence_refs`（Stage AのevidenceIndex参照をMergedEvidenceRefへ変換。episode内のBlock走査からevidenceType（dialogue/monologue/narration/choice/scene/episode）を可能な範囲で判定）、`build_source_candidate`、`aggregate_name_candidates`（nameCandidates集約 + displayName conflict検出）
-  - `agents/merger/character.py`/`location.py`/`organization.py`を新規作成（`agents/extractor/`のbase.py + 種別ごとファイルという既存パターンを踏襲）
-  - merge key方針（Merged_Knowledge_Design.md §5.1〜§5.3、「迷った場合: 構造化IDありだけ自動merge、名前のみは個別unresolved entity」を採用）:
-    - Character: 優先1 `existingCharacterId`（canonical、status: merged）→ 優先2 `sourceCharacterId`（同値同士はmergeするがcanonical化しない、status: unresolved、IDは`UNRESOLVED_CHAR_SRC_{値}`で決定的に組み立て再マージでも安定）→ どちらも無ければ候補ごとに個別unresolved entity（`UNRESOLVED_CHAR_{連番4桁}`）。CharacterCandidateスキーマには`existingCharacterId`/`sourceCharacterId`以外の解決済み識別子フィールドが無いため、指示にあった優先度3「speakerId/characterId相当」は実質的に優先度1と同一フィールドを指す（既存フィールドで代替可能なため追加実装なし）
-    - Location: 優先1 `existingLocationId`（canonical）→ 無ければ個別unresolved entity（locationNameのみでの自動mergeは行わない）
-    - Organization: 優先1 `existingOrganizationId`（canonical）→ 無ければ個別unresolved entity
-    - 名前一致だけの複数candidate（同名・別episode）は自動でmergeしないことをテストで明示的に確認済み
-  - confidence集約: 構成candidateのconfidenceの最大値（max）
-  - sourceTypes: 構成candidateのsourceTypeを重複排除した配列
-  - evidenceRefs: Stage AのevidenceIndexから解決し、evidenceId/storyId/episodeId/sceneId/blockId/sourceDocumentId/evidenceType/confidenceを保持。evidenceが1件も無いgroupは出力しない
-  - sourceCandidates: candidateId/candidateType/sourceDocumentId/episodeId/evidenceIds/extractionRunRef/sourceType/confidenceを保持（元candidateの情報を失わない）
-  - extractionRunRefs: episodeIdをキーにした辞書で重複排除（同一episodeの`extractionRun`を複数candidateで共有していても1回のみ格納）
-  - conflicts: 同一構造化ID配下でnameCandidatesの表記が複数ある場合、`conflictType: field_value_conflict`/`field: displayName`/`severity: warning`/`resolutionStatus: unresolved`を記録（表記自体はaliasesへ全保持、高度な自動解決はしない）
-  - `agents/merger/engine.py`: `build_collection`が`build_character_entities`/`build_location_entities`/`build_organization_entities`を呼び出し、`entities.characters`/`locations`/`organizations`へ反映（Item/Lore/Event/Relationship/Timelineは引き続き空配列）
-  - `agents/merger/models.py`: `MergeReport`に`mergedEntityCounts`（8種の生成件数）/`conflictsCount`（全entityのconflicts合計）/`unresolvedCount`（status: unresolvedのentity件数）を追加
-  - **schema変更（理由付き）**: `schemas/merged_knowledge_collection.schema.json`のMergeReport定義に`mergedEntityCounts`（新規`MergedEntityCounts`共通定義、8フィールド。`candidateCounts`とは`timelineCandidates`/`timeline`のキー名が異なる点に注意）/`conflictsCount`/`unresolvedCount`を必須項目として追加。理由: `models.py`側でこれら3項目を常時出力するようにしたため、collection wrapperの実出力とschemaを一致させる必要があった（`schemas/merged_knowledge.schema.json`＝個別entity用schemaへの変更は無し、既存フィールドのみで表現できたため）
-  - `schemas/merged_knowledge.schema.json`への変更は無し（既存のMergedEntityBase/MergedCharacter/MergedLocation/MergedOrganization/Conflict定義で表現可能だったため）
-  - 既存テスト1件を新機能に合わせて調整: `test_output_collection_has_all_eight_entity_arrays`が「8配列すべて空」を検証していたが、`minimal_episode_extraction.json`フィクスチャに`sourceCharacterId`ありのCharacterCandidateが含まれるため、Character merge実装により`characters`が1件になった。テストを「characters以外は空、charactersは非空」に更新（他の単一/複数入力テストは無変更で通過）
-  - `tests/merger/test_entity_merge.py`（13件、新規）: `build_character_entities`/`build_location_entities`/`build_organization_entities`を直接呼び出すユニットテスト（実ファイルI/O不要、episode_extraction dictをインラインで組み立て）。existingCharacterId一致の統合、複数episodeにまたがるmerge、名前のみでの自動merge抑止、sourceCharacterIdのみの保守的merge、Location/Organizationの構造化ID一致・名前のみ抑止、evidenceRefs/sourceCandidates保持、extractionRunRefs重複排除、displayName conflict記録・非衝突時の無記録を検証
-  - `tests/merger/test_merge_engine_entities.py`（6件、新規）: `MergeEngine`経由の統合テスト（tmp_pathへ実ファイルを書き出し）。Character/Location/Organization同時生成、複数episode合算、`schemas/merged_knowledge.schema.json`（個別entity）への準拠、`schemas/merged_knowledge_collection.schema.json`（collection全体）への準拠、CLI (`scripts/merge_extractions.py`)出力のcollection schema通過
-  - 未着手（次のPRへ持ち越し）: Item/Lore/Event merge、Relationship merge、Timeline aggregation、canonical ID本格割り当て（手動補正）、manual override適用、conflictの本格解決、`entities`配下の`schemas/merged_knowledge.schema.json`への`$ref`接続（PR #18のTODOのまま据え置き。理由: 本PRはentitiesへの populate を実装したが、cross-file $refのRefResolver設定という別軸の判断は依然未着手のため）
-- Item / Lore / Event 最小merge: 実装完了。`feature/merge-item-lore-event`をPR #20としてmainへマージ済み
-  - `agents/merger/entity_base.py`: `build_merged_entities`/`aggregate_name_candidates`に`name_field`引数を追加（デフォルト`"nameCandidates"`）。LoreCandidateのみ名前候補配列が`termCandidates`（Extraction_Result_Schema.md §10）であるため、Character/Location/Organization/Item/Eventの共通処理をそのまま再利用しつつLoreだけ`name_field="termCandidates"`を渡す形にした
-  - `agents/merger/item.py`/`lore.py`/`event.py`を新規作成（Character/Location/Organizationと同じ`entity_base.py`利用パターン）
-  - merge key方針（構造化IDありのみ自動merge、無ければ個別unresolved entityという既存方針をそのまま適用。Item/Lore/Eventにはsource*Idのような中間的な第2キーが無いため、Location/Organizationと同じ2値のkind「id」/「unresolved」のみ）:
-    - Item: `existingItemId`のみ
-    - Lore: `existingLoreId`のみ
-    - Event: `existingEventId`のみ
-  - EventCandidateの`participantCandidates`/`locationCandidates`は、merged entityの`participantEntityIds`/`locationEntityIds`（`schemas/merged_knowledge.schema.json` MergedEvent定義）へ解決していない（空のまま）。理由: candidate ID → merged entity IDの対応表（Merged_Knowledge_Design.md §10.2）が無いと安全に解決できず、それはRelationship merge実装で扱う予定のため、今回のスコープでは意図的に見送った（TASKS.mdに明記）
-  - confidence集約（max）/sourceTypes重複排除/evidenceRefs/sourceCandidates/extractionRunRefs重複排除/displayName conflict検出は、既存のCharacter/Location/Organization実装と完全に共通の`entity_base.py`ロジックをそのまま再利用（新規実装なし）
-  - `agents/merger/engine.py`: `build_collection`が`build_item_entities`/`build_lore_entities`/`build_event_entities`を追加呼び出しし、`entities.items`/`lore`/`events`へ反映（Relationship/Timelineは引き続き空配列）
-  - schema変更は無し（`schemas/merged_knowledge.schema.json`・`schemas/merged_knowledge_collection.schema.json`とも既存定義で表現可能だったため。Character/Location/Organization merge実装時に追加した`mergedEntityCounts`等がそのまま8種フルに機能する）
-  - `tests/merger/test_entity_merge_item_lore_event.py`（13件、新規）: `build_item_entities`/`build_lore_entities`/`build_event_entities`を直接呼び出すユニットテスト。既存ID一致の統合、複数episodeにまたがるmerge、名前/用語のみでの自動merge抑止、evidenceRefs/sourceCandidates保持、extractionRunRefs重複排除、displayName conflict記録（LoreのtermCandidates経由も含む）、Character/Location/Organizationとの共存を検証
-  - `tests/merger/test_merge_engine_entities.py`に9件追加（計12件）: `MergeEngine`経由でItem/Lore/Eventが生成されること、`mergedEntityCounts`に反映されること、複数episode合算、個別entity schema・collection schema両方への準拠、CLI出力のcollection schema通過
-  - 既存テストへの影響: 無し（`test_output_collection_has_all_eight_entity_arrays`が使う`minimal_episode_extraction.json`にItem/Lore/Event candidateは含まれないため、既存アサーションはそのまま成立）
-  - 未着手（次のPRへ持ち越し）: Relationship merge、Timeline aggregation、canonical ID本格割り当て、manual override適用、conflictの本格解決、EventCandidateのparticipant/location解決、`entities`配下の`$ref`接続
-- Relationship 最小merge: 実装完了。`feature/merge-relationships`をPR #21としてmainへマージ済み
-  - `agents/merger/relationship.py`を新規作成。Character/Location/Organization/Item/Lore/Eventの`entity_base.build_merged_entities`（単一値キーによるグルーピング）とは異なる専用実装とした。理由: merge keyが`(sourceEntityId, targetEntityId, relationshipType, direction)`の4値組であること、source/target解決に既存entityの`sourceCandidates`参照が必要なこと、解決不能な候補は個別unresolved entityにせずそもそも生成しないこと
-  - `agents/merger/entity_base.py`: `_build_block_type_index`を`build_block_type_index`として公開関数化（relationship.pyからも再利用するため）。他の変更なし
-  - **source/target解決方針**（`Merged_Knowledge_Design.md` §10.2の対応表を簡易実装）: 2段階の解決を実装
-    1. `sourceCandidate`/`targetCandidate`の値が、既にmerge済みの何らかのentityの`sourceCandidates[].candidateId`と一致する場合 → そのentityの`id`へ解決（Stage A candidate idを指すケース）
-    2. 一致しない場合、値自体が既知のmerged entity `id`と一致する場合 → その値をそのまま使う（既にmerged entity id・構造化ID解決結果を指すケース。指示の優先度1と3はこの1回のチェックに自然に収束するため、別々の実装はしていない）
-    3. どちらにも一致しなければ解決不能（名前だけの場合等）→ **relationshipを生成せず**、`report.warnings`へ`{episodeId}/{candidateId}: sourceCandidate/targetCandidate ('値') をmerged entityへ解決できなかったためrelationship mergeをskipしました`という形式で記録（無理に確定しない。Merged_Knowledge_Design.md §6.1の「両端解決済みのみ昇格」方針を、ファイルベースの`_unresolved/`ではなくreport警告として簡易実装）
-  - merge key: `(sourceEntityId, targetEntityId, relationshipType, direction)`の完全一致。この4つが同じcandidate群を1つのmerged relationshipへ統合
-  - relationshipType: 自由文字列のまま保持（enum化・taxonomy整理は一切していない）。空文字・欠落は無効としてskip + warning記録
-  - direction: Stage Aで既にenum検証・フォールバック済み（PR #11実装）のため、Stage B側では追加の補正をせずそのまま透過。`schemas/merged_knowledge.schema.json`のDirection定義（3値: source_to_target/target_to_source/bidirectional）に「unknown」を追加する変更は行わなかった（指示にあったが、Stage A/B双方の既存schemaに無く、Stage A通過後は必ず3値のいずれかであることが保証されるため不要と判断。TASKS.mdに理由を記載）
-  - confidence集約（max）・sourceTypes重複排除・evidenceRefs/sourceCandidates/extractionRunRefs重複排除は、`entity_base.py`の共通ヘルパー（`build_merged_evidence_refs`/`build_source_candidate`/`build_block_type_index`）をそのまま再利用
-  - id/canonicalId: `REL_{sourceEntityId}_{relationshipTypeを正規化した断片}_{targetEntityId}`（Identifier_Specification.md §7準拠）。relationshipTypeは自由文字列のため、ID組み立て時のみ`[^A-Za-z0-9]+`を`_`に置換・大文字化してIdStringパターン（`^[A-Z][A-Z0-9_-]+$`）を満たすよう安全化（フィールド値自体は非破壊）。source/targetの両方が非UNRESOLVED（canonical）な場合のみstatus: merged・canonicalId設定、どちらかがUNRESOLVED_*の場合はstatus: unresolved・mergedId設定（関係先自体がまだcanonical化されていない場合、関係も暫定扱いとする）
-  - conflicts: 同一`(sourceEntityId, targetEntityId)`ペアに対して異なる`(relationshipType, direction)`の組み合わせが複数観測された場合（例: CHAR_A→CHAR_Bに対してTRUSTSとDISTRUSTSが両方存在）、該当する全entityの`conflicts`へ`conflictType: relationship_conflict`/`severity: warning`/`resolutionStatus: unresolved`を記録。同一グループ内では常にtype/directionが一致する（merge keyに含まれるため）ため、グルーピング後の2巡目でペア単位に横断チェックする方式で実装
-  - `agents/merger/engine.py`: `build_collection`で既存のcharacters/locations/organizations/items/lore/eventsを結合した`known_entities`を組み立て、`build_relationship_entities(valid_entries, known_entities)`を呼び出し。戻り値の警告を`report.warnings`へ追加。`report.mergedEntityCounts.relationships`は既存の汎用集計ループでそのまま反映（models.py変更不要）
-  - schema変更は無し（`schemas/merged_knowledge.schema.json`のMergedRelationship定義は既存のまま利用可能。`Direction`にunknownを追加しなかった判断は上記の通り）
-  - 当初`build_relationship_entities`がruffのC901複雑度エラー（14 > 10）に抵触したため、`_group_relationship_candidates`/`_build_relationship_entity`の2ヘルパーへ分割して解消
-  - `tests/merger/test_entity_merge_relationship.py`（13件、新規）: 解決済みentity id直接指定でのmerge、複数episodeにまたがるmerge、type違いでの別entity化、evidenceRefs/sourceCandidates/extractionRunRefs保持、candidate id経由の解決（同種・異種entity間）、source/target解決不能時のskip+warning、relationshipType空文字のskip、自由文字列保持、endpoint conflict検出を検証
-  - `tests/merger/test_merge_engine_entities.py`に7件追加（計19件）: `MergeEngine`経由のrelationship生成、`mergedEntityCounts`反映、複数episode合算、解決不能候補がクラッシュせずwarning記録されること、個別entity schema・collection schema両方への準拠、CLI出力のcollection schema通過、timelineが引き続き空配列であることの確認
-  - 既存テストへの影響: 無し
-  - 未着手（次のPRへ持ち越し）: Timeline aggregation、canonical ID本格割り当て、manual override適用、conflictの本格解決、relationshipType taxonomy整理、EventCandidateのparticipant/location解決（本PRのcandidate対応表を再利用すれば次PRで実装可能）、ファイルベースの`_unresolved/relationships.json`（現状はreport.warningsのみ）、`entities`配下の`$ref`接続
-- Timeline 最小merge: 実装完了。`feature/merge-timeline`をPR #22としてmainへマージ済み
-  - `agents/merger/timeline.py`を新規作成。Relationshipと同様、`entity_base.build_merged_entities`（単一値キーによるグルーピング、kind=="id"を無条件でstatus: mergedとする既存ロジック）はそのまま使わず専用実装とした。理由: Merged_Knowledge_Design.md §7.1「順序の確定（canonicalOrderの決定）はStage Bでは行わない」という設計方針により、TimelineはStage Bで**一切canonical化しない**（既存のCharacter/Location/Organization/Item/Lore/Eventの「構造化IDがあればstatus: merged」という扱いとは根本的に異なる）ため
-  - `agents/merger/entity_base.py`を2箇所拡張（他への影響なし）:
-    - `sanitize_id_segment`を新規の公開ヘルパーとして追加（`relationship.py`が独自に持っていた`_sanitize_id_segment`をここへ集約・公開化。`relationship.py`側はこの共通版をimportするよう変更、動作は不変）
-    - `aggregate_name_candidates`に`conflict_field`引数を追加（デフォルト`"displayName"`）。Timelineはconflictsのfield名として`"label"`を使うため、`name_field`引数（Lore対応で既存）と同じパターンで一般化した
-  - **merge key方針**（保守的な3段階、「迷う場合は個別unresolved」原則）:
-    1. `sourceTimelineId`がある場合 → それをmerge key（同じtimelineId同士は安全にmerge。ただしlabel/orderValueの食い違いはconflictとして記録）
-    2. `sourceTimelineId`が無く、`scope`+`kind`+`orderValue`が明示されている場合 → その3値の組み合わせをmerge key（orderField間の優先順位付けはしない、Extraction_Pipeline.md §4.8の既存方針を踏襲）
-    3. どちらも無い場合（temporal_marker等、labelのみ） → candidate単位で個別unresolved entry。**同じlabelだけ、同じmarkerTypeだけでは異なるepisodeのcandidateを自動mergeしない**ことをテストで明示的に確認
-  - kind/scope: `schemas/extraction.schema.json`のTimelineCandidateから素通し（`explicit_order`/`temporal_marker`/`relative_order`、`episode`/`block`）。schema変更なし
-  - **全merged timeline entryは常にstatus: unresolved、canonicalIdは常にnull**（§7.1の方針通り、Stage Bでは順序を確定しないため）。idは以下のようにmerge keyから決定的に組み立て（同じ入力なら同じ出力、§4.6）:
-    - kind="id"（timelineIdベース）: `UNRESOLVED_TL_ID_{timelineIdを正規化した断片}`
-    - kind="explicit"（scope+kind+orderValueベース）: `UNRESOLVED_TL_{scope:kind:orderValueを正規化した断片}`
-    - kind="unresolved"（個別）: `UNRESOLVED_TL_{4桁連番}`
-    - relationshipTypeと同様、`entity_base.sanitize_id_segment`で非英数字を`_`へ置換・大文字化してIdStringパターンを安全に満たす
-  - confidence集約（max）・sourceTypes重複排除・evidenceRefs/sourceCandidates/extractionRunRefs重複排除は、`entity_base.py`の共通ヘルパー（`build_merged_evidence_refs`/`build_source_candidate`/`build_block_type_index`）をそのまま再利用。label集約・conflict検出は`aggregate_name_candidates(candidates, conflict_field="label")`をそのまま再利用（Loreと同じ一般化パターン）
-  - **conflict**: 2種類実装
-    1. label conflict: 同一merge key配下で`nameCandidates`の表記が複数ある場合、`aggregate_name_candidates`が自動検出（`field: "label"`）
-    2. orderValue conflict（Timeline固有、新規実装）: `sourceTimelineId`ベースのグループ内で、複数の異なる非null `orderValue`が観測された場合、`conflictType: timeline_conflict`/`field: "orderValue"`/`severity: warning`/`resolutionStatus: unresolved`を記録。scope+kind+orderValueベースのグループはorderValue自体がmerge keyの一部のため、構造的にこのconflictは起こり得ない（テストで確認済み）
-  - relatedEventIds: 常に空配列（EventCandidateとの高度な接続は今回のNon-goalsとして明示的にスコープ外）
-  - **Timeline順序矛盾検出（contradiction detection）は今回実装していない**（TASKS.mdに明記の通り今後の課題）。今回のorderValue conflictは「同じtimelineIdに異なる値がある」という単純な食い違い検出であり、複数timeline entry間の順序整合性（例: A<B<Cの循環矛盾）を検証するものではない
-  - `agents/merger/engine.py`: `build_collection`が`build_timeline_entities(valid_entries)`を呼び出し、`entities.timeline`へ反映。`report.mergedEntityCounts.timeline`は既存の汎用集計ループでそのまま反映（models.py変更不要）
-  - schema変更は無し（`schemas/merged_knowledge.schema.json`のMergedTimelineEntry定義は既存のまま利用可能）
-  - `tests/merger/test_entity_merge_timeline.py`（13件、新規）: timelineId一致の統合、複数episodeにまたがるmerge、scope+kind+orderValue一致の統合、orderValue違いでの別entity化、label onlyでの自動merge抑止、temporal markerのentity化と複数episode非merge確認、evidenceRefs/sourceCandidates/extractionRunRefs保持、label conflict記録、orderValue conflict記録、値一致時のconflictなし確認
-  - `tests/merger/test_merge_engine_entities.py`に6件追加（計25件）: `MergeEngine`経由でtimeline entryが生成されRelationshipと共存できること、`mergedEntityCounts`反映、複数episode合算、個別entity schema・collection schema両方への準拠、CLI出力のcollection schema通過
-  - 既存テストへの影響: 無し（timelineは常に空配列だったため、既存アサーションと衝突しない）
-  - 未着手（次のPRへ持ち越し）: manual override loader、relationshipType taxonomy整理、EventCandidateのparticipant/location解決、timeline contradiction detection（順序整合性の本格検証）、canonical ID本格割り当て、conflictの本格解決、`entities`配下の`$ref`接続
-- manual override loader: 実装完了。`feature/manual-override-loader`ブランチで作業中
-  - `agents/merger/overrides.py`を新規作成: `load_manual_overrides`/`load_manual_overrides_schema`/`validate_manual_overrides`/`apply_manual_overrides`/`build_manual_overrides_report`。manual overrideは「AI抽出・merge結果を直接書き換えるのではなく、人間が明示した補正レイヤーとして後から重ねて適用するもの」として扱う（Merged_Knowledge_Design.md §8）
-  - **schema変更なし（重要）**: `schemas/manual_overrides.schema.json`は無変更で利用できた（`set_field`/`add_alias`/`remove_alias`という既存operationだけで、指示にあった全ての最小要件を表現できたため）。`schemas/merged_knowledge.schema.json`（個別entity schema）も無変更（displayName/aliases/status/canonicalId/fieldValuesの既存フィールドのみで表現可能だったため）
-    - displayNameの上書き → `operation: set_field, field: "displayName"`
-    - aliasesの追加/削除 → `operation: add_alias`/`remove_alias`（`alias`指定）
-    - statusの変更 → `operation: set_field, field: "status"`（既存statusのenum4値: merged/unresolved/conflict/deprecatedのいずれかのみ許可、それ以外はerror扱い）
-    - **hide/exclude相当のフラグ**: 新規フィールドを追加せず、既存の`status: "deprecated"`（PR #15で既に定義済み）を再利用して表現。理由: 新しい"hidden"/"excluded"的なフィールドを追加するより、既存enumの意味を「非表示相当」として運用する方が、schema変更ゼロで済み、後段（Wiki/Graph）側でも`status !== "deprecated"`の単純なフィルタ条件で扱えるため
-    - **notes/manualNotesの追加**: 新規フィールドを追加せず、既存の`fieldValues`（FieldsMap、additionalProperties許容）を再利用。`operation: set_field, field: "fieldValues.<key>"`という独自の"ドット区切りfield名"規約を導入し、`entity.fieldValues[key] = {value, sourceType: "manual", confidence: 1.0, isManualOverride: true}`を設定する形にした。既存のFieldValueスキーマ（value/sourceType/confidence必須、isManualOverride任意）にそのまま適合
-  - **schema変更（1箇所、理由付き）**: `schemas/merged_knowledge_collection.schema.json`のMergeReportに、新規`ManualOverridesReport`/`ManualOverrideResult`定義への参照として`manualOverrides`プロパティを追加（**必須ではなく任意プロパティ**として追加）。理由: `--overrides`未指定時は既存の出力に一切変更を加えない（「overrideなしの場合、既存挙動を壊さない」という指示を、`report.manualOverrides`キー自体が存在しないという形で厳密に満たすため。必須化すると常にこのキーを埋める必要が生じ、無指定時の出力が変わってしまう）
-  - **override対象の指定方法**（保守的な3段階、名前一致は絶対に使わない）:
-    1. `targetId`がmerged entityの`id`と一致 → そのentity
-    2. 一致しなければ`canonicalId`と一致 → そのentity
-    3. それでも一致しなければ、いずれかのentityの`sourceCandidates[].candidateId`と一致 → そのentity（Stage A candidate idでの指定にも対応）
-    4. どれにも一致しなければ`skipped`（displayName/aliasesとの名前一致は一切試みない。誤爆防止をテストで明示的に確認）
-  - `targetType`（character/location/organization/item/lore/event/relationship/timeline_entry）で検索対象のentities配列を先に絞り込む（他種別への誤爆を構造的に防止）
-  - **evidence/provenance保持**: `apply_manual_overrides`は`copy.deepcopy`で新しいcollectionを返し、対象entityの`evidenceRefs`/`sourceCandidates`/`extractionRunRefs`/`conflicts`は一切変更しない（displayName/status/canonicalId/aliases/fieldValuesのみを書き換える）ことをテストで確認
-  - **サポートするoperation**: `set_field`（displayName/status/canonicalId/fieldValues.<key>のみ許可、それ以外のfield名は`error`）、`add_alias`、`remove_alias`のみ。`merge_entities`/`split_entity`/`ignore_candidate`/`resolve_conflict`/`set_relationship_type`/`set_timeline_order`は今回未実装（該当するoperationが来た場合は`skipped`扱い、`error`にはしない。schema上はvalidな値のため）
-  - **report**: `report.manualOverrides`（`--overrides`指定時のみ出現）= `{enabled, overrideFiles, appliedCount, skippedCount, errorCount, results: [{overrideId, targetId, status: applied/skipped/error, reason, fieldsChanged}]}`
-  - `scripts/merge_extractions.py`: `--overrides`オプション追加（`nargs="+"`、`--input`と同じ慣習で複数ファイル指定可）。CLIフロー: (1) `--overrides`があれば全ファイルをmerge実行前に読み込み・schema検証（**1件でも検証失敗ならexit code 1**、無駄なmerge処理を避けるため merge前に検証） (2) 通常のmerge実行 (3) resolvedInputFiles==0ならexit 2（既存動作） (4) overrideがあれば適用してreportへ反映 (5) 出力書き込み (6) 既存のinvalid/skippedチェック（exit 1、既存動作）。`--overrides`未指定時は分岐に一切入らず、既存のCLI出力と完全に同一
-  - `main()`が新たにruffのC901複雑度警告に抵触したため`# noqa: C901`を付与（既存の`extract_story.py`のE402と同様、意図的な既知の例外として扱う。無理な分割はしなかった理由: CLIのmain関数はもともと逐次的なフロー制御が中心で、無理に関数分割すると可読性がかえって下がると判断したため）
-  - `tests/fixtures/merger/overrides/manual_overrides_valid.json`/`manual_overrides_invalid.json`を新規追加（自作の`CHAR_TEST_A`等の合成ID、実データ不使用）。**当初`tests/fixtures/merger/`直下に置いたところ、既存のディレクトリ入力テスト（`test_directory_input_resolves_json_files`等）がそのディレクトリ内の全`*.json`をStage A入力として拾ってしまい、manual override fixtureがStage A schema違反として検出され既存テストが2件failした。`tests/fixtures/merger/overrides/`という専用サブディレクトリへ移動して解消**（既存ディレクトリ入力テストの対象範囲を汚染しないため）
-  - `tests/merger/test_manual_overrides.py`（18件、新規）: manual override schema validation（valid/invalid fixture）、displayName上書き、alias追加/削除、status変更、不正status値のerror扱い、canonicalId指定、対象id不在時のskip、名前一致だけでは適用されないこと、candidate id経由の解決、evidence/provenance保持、元collectionを変更しない（deepcopy）こと、report集計、collection schema validation通過、CLI経由の適用・無指定時の既存挙動維持・invalid override fileでのexit 1
-  - 既存テストへの影響: fixture配置の1件のみ（上記の通り解消済み）。他は無変更で通過
-  - 未着手（次のPRへ持ち越し）: merge report強化、relationshipType taxonomy整理、timeline contradiction detection、canonical ID方針整理（自動割り当てではなく手動運用フローの確立）、Wiki出力設計、merge_entities/split_entity/ignore_candidate/resolve_conflict/set_relationship_type/set_timeline_orderの各operationサポート
-- merge report強化: 実装完了。`feature/merge-report-enhancements`ブランチで作業中
-  - 目的: 複数episode_extractionを統合したときに、何が入力され、何がvalid/invalid/skippedになり、どのcandidateから何件のmerged entityが作られ、どのwarning/conflict/manual overrideが発生したかをreport経由で把握しやすくする（既存の`report.candidateCounts`/`mergedEntityCounts`/`conflictsCount`/`unresolvedCount`は全体合算値のみで、type別・入力別の内訳が無かったため）
-  - **既存フィールドは一切変更していない**: `conflictsCount`/`unresolvedCount`（全体合算のflat int）はそのまま維持し、それぞれの「type別内訳」を新規フィールドとして追加する形にした（後方互換性を最優先。既存fixture/テストが参照しているキーを壊さないため）
-  - `agents/merger/models.py`: `MergeReport`に5フィールド追加
-    - `unresolvedEntityCounts`（8種type別のunresolved件数。`unresolvedCount`の内訳。形が`mergedEntityCounts`と同一のため、schema側は`MergedEntityCounts`定義をそのまま`$ref`で再利用）
-    - `conflictCounts`（`{total, bySeverity, byType, byEntityType}`。`conflictsCount`の内訳。`bySeverity`/`byType`/`byEntityType`はキー集合を固定せず`additionalProperties: integer`で許容——conflictType/severityは実際に発生したものだけを出す方針。ユーザー指示の「存在しないキーを無理に全部列挙する必要はない」を反映）
-    - `warningCounts`（`{total, unresolvedRelationships, skippedOverrides, other}`。`total`/`unresolvedRelationships`/`other`は`report.warnings`のみを対象にした集計で閉じている。`skippedOverrides`は別の情報源（`manualOverrides.skippedCount`）からの**参照値**であり、`total`には合算しない——両者の意味が異なる値を1つの`total`に混ぜると誤解を招くと判断したため、意図的に分離した）
-    - `entityTypeSummaries`（8種type別に`{candidateCount, mergedCount, unresolvedCount, conflictCount}`）
-    - `inputSummaries`（入力ファイル別に`{path, status, documentId, episodeId, candidateCounts, mergedEntityCounts}`）
-    - `CANDIDATE_TO_MERGED_KEY`/`MERGED_TO_CANDIDATE_KEY`（`CANDIDATE_ARRAY_KEYS`⇔`MERGED_ENTITY_KEYS`の相互対応表。`timelineCandidates`⇔`timeline`のみ名前が異なるため、`entityTypeSummaries`でcandidate件数とmerged件数を同じtype単位で突き合わせるのに使う）を新規公開定数として追加
-  - `agents/merger/engine.py`: `build_collection`に3つの非公開ヘルパー（`_summarize_entities`/`_summarize_warnings`/`_build_input_summaries`）を追加し、既存の集計ループを置き換え。関数を分けた理由: `build_collection`本体に集計ロジックを増やすとruffのC901（複雑度）に抵触しやすく、可読性も落ちるため
-    - `_summarize_entities`: entities 8種を1回走査し、`merged_entity_counts`/`conflicts_count`/`unresolved_count`（既存の全体合算）と同時に`unresolved_entity_counts`/`entity_type_summaries`/`conflict_counts`のtype別内訳を組み立てる
-    - `_summarize_warnings`: `report.warnings`から`unresolvedRelationships`を集計。**relationshipTypeが空で候補ごとskipされた警告と、source/target未解決でskipされた警告はテキストが異なる**ため、後者だけを対象にするマーカー文字列`agents/merger/relationship.py`の`UNRESOLVED_ENDPOINT_MARKER`定数を新規公開し、既存の警告文言はそのまま（テキスト自体は変更していない）、その定数をf-stringに埋め込む形にリファクタリングした。文字列の脆いsubstring判定を避けるため、判定対象の文言をrelationship.py側で定数として一元管理する設計にした
-    - `_build_input_summaries`: `report.inputResults`（valid/invalid/skipped全件）をベースに、`sourceDocuments`から`documentId`/`episodeId`/`candidateCounts`を`path`で逆引きして付与。invalid/skippedな入力は該当情報が無いため`null`
-  - **`inputSummaries.mergedEntityCounts`は常に`null`（方針B、ユーザー指示の選択肢A/Bのうち簡潔な方を採用）**: merged entityは複数episodeをまたいで統合されうる（例: 同一`existingCharacterId`のCharacterが複数episodeから1つのmerged entityに統合される）ため、1つのmerged entityを単一の入力ファイルへ排他的に「帰属」させる分割は正確には定義できない（`mergedFrom`配列を逆引きして「寄与した入力」を複数カウントする近似は可能だが、それは「排他的な分割」ではなく「重複ありの寄与カウント」になり意味が変わる。canonical ID方針・attributed vs owned semanticsの整理が今後必要になるため、今回はNon-goalsの「高度なconflict解決」「canonical ID自動割り当て」と同様に先送りとした）。`candidateCounts`は入力ドキュメント単位で自明に定まる値のため、そのままinputSummariesへ反映した
-  - **`report.manualOverrides`との整合性**: 構造は一切変更していない（`ManualOverridesReport`/`ManualOverrideResult`定義はそのまま）。`scripts/merge_extractions.py`側で、overrides適用直後に`collection["report"]["warningCounts"]["skippedOverrides"] = manual_overrides_report["skippedCount"]`を上書きする1行を追加しただけ（`build_collection`自体はoverrideの存在を一切知らないため、`warningCounts.skippedOverrides`は`merge_inputs`直後の時点では常に0で、CLI層で判明した時点のみ反映する設計）
-  - `schemas/merged_knowledge_collection.schema.json`: `MergeReport`に5フィールドを**必須**として追加（`unresolvedEntityCounts`/`conflictCounts`/`warningCounts`/`entityTypeSummaries`/`inputSummaries`）。新規定義: `ConflictCounts`/`WarningCounts`/`EntityTypeSummary`/`EntityTypeSummaries`/`InputSummary`（`unresolvedEntityCounts`は形が同一のため既存`MergedEntityCounts`定義を再利用し、新規定義は作らなかった）。`manualOverrides`は既存通り任意プロパティのまま維持
-  - 既存fixture更新: `tests/fixtures/merged_knowledge/minimal_merged_collection.json`と`tests/merger/test_manual_overrides.py`の`_minimal_collection()`ヘルパーに新規必須フィールドを追加（値はすべてゼロ/空。既存の「常に空配列・ゼロ件」という最小構成の意味は変えていない）
-  - `scripts/merge_extractions.py`: 新しいCLIオプションは追加していない（ユーザー指示通り）。既存の`--overrides`フローに1行（`warningCounts.skippedOverrides`の反映）を追加しただけ
-  - `tests/merger/test_merge_report_enhancements.py`（16件、新規）: 自作の2episode fixture（`RPTEST_*`という合成ID。未解決character 1件・`existingCharacterId`共通で名前が食い違うcharacter 2件・両端未解決のrelationship 1件・`sourceTimelineId`共通でorderValueが食い違うtimeline 2件を含む）を使い、`mergedEntityCounts`/`unresolvedEntityCounts`/`conflictCounts`（displayName conflict・timeline orderValue conflict双方の反映を個別確認）/`warningCounts`（unresolvedRelationships反映）/`entityTypeSummaries`（8種type全てにキーがあること、characters/relationshipsの値の妥当性）/`inputSummaries`（入力別candidateCounts一致、skipped inputの扱い、mergedEntityCountsが常にnullであること）/manualOverridesありなし両方でのcollection schema通過/`warningCounts.skippedOverrides`が`manualOverrides.skippedCount`と一致すること/CLI出力のcollection schema通過、を確認
-  - 既存テストへの影響: `tests/fixtures/merged_knowledge/minimal_merged_collection.json`と`test_manual_overrides.py`の`_minimal_collection()`ヘルパーの2箇所を新規必須フィールド追加に合わせて更新した以外は無変更で通過（既存327件 + 新規16件 = 343件）
-  - 未着手（次のPRへ持ち越し）: relationshipType taxonomy整理、timeline contradiction detection、canonical ID方針整理、real data dry-run procedure、Wiki出力設計
-- relationshipType taxonomy: 実装完了。`feature/relationship-type-taxonomy`ブランチで作業中
-  - 目的: `RelationshipCandidate`/merged relationshipの`relationshipType`表記ゆれ（大文字小文字・区切り文字・同義語）を安全に扱う。**taxonomyはまだ確定させず**（`docs/architecture/04_Knowledge_Graph/Relationships.md`は引き続き未確定プレースホルダー）、enum強制もしない。未知の値も破棄せず保持する
-  - `agents/merger/relationship_taxonomy.py`を新規作成
-    - `KNOWN_RELATIONSHIP_TYPES`: 暫定taxonomy16種（member_of/affiliated_with/ally_of/enemy_of/family_of/friend_of/mentor_of/subordinate_of/superior_of/appears_with/related_to/located_in/owns/uses/knows/unknown。ユーザー提示の候補をそのまま採用。既存の暫定語彙MEMBER_OF/AFFILIATED_WITH/RELATED_TO/APPEARS_WITH（`Merged_Knowledge_Design.md` §6.3）はsnake_case化した上で含む）
-    - `ALIASES`: 大文字小文字・区切り文字の違いではない、別語彙の同義語のみ（例: `belongs_to`→`member_of`）。**方向が入れ替わる可能性のある同義語（owned_by等）は誤変換の元になるため意図的に含めていない**
-    - `_slugify`: 非英数字を`_`に置換し小文字化（`entity_base.sanitize_id_segment`と同種だが小文字化する点のみ異なる）。この関数だけで"MEMBER_OF"/"member-of"/"member of"は全て"member_of"に一致するため、大文字小文字・区切り文字違いの吸収に別テーブルは不要
-    - `normalize_relationship_type(value) -> NormalizedRelationshipType`: `{originalValue, normalizedValue, isKnown, warnings}`を返す。未知の値はエラーにせず、slug化した値をnormalizedValueとして返す（isKnown: False、warningsに理由を記録）。空文字列は`isKnown: False`・`normalizedValue: ""`として扱う（呼び出し側の`agents/merger/relationship.py`は既存通り空文字を事前にskipするため、実際には呼ばれない安全弁）
-  - **entity.relationshipType自体は正規化しない（重要な設計判断）**: ユーザー提示の例では`relationshipType: normalizedValue`だったが、既存の`tests/merger/test_entity_merge_relationship.py`に`assert entity["relationshipType"] == "TRUSTS"`（taxonomy外）/`"MEMBER_OF"`（大文字のまま）/`"SOME_NOT_YET_STANDARDIZED_RELATION"`という、正規化すると必ず失敗する既存assertionが複数存在した（`test_relationship_type_is_kept_as_free_string`はそもそも「自由文字列としてそのまま保持されること」自体をテストする目的の既存テスト）。ユーザー指示にも「既存Relationship mergeテストを壊さない」という明示的な制約があったため、**entity.relationshipTypeはグループ内で最初に観測された元の表記をそのまま保持**し、正規化後の値は`fieldValues.relationshipTypeNormalization`へ格納する方針に倒した（ユーザー提示の代替案「originalを保持しつつnormalizedValueも持たせる方針でよい」を採用）
-  - **merge keyには正規化後の値を使う**: `agents/merger/relationship.py`の`_group_relationship_candidates`で`normalize_relationship_type(relationshipType).normalized_value`をmerge keyの一部にする。これにより"MEMBER_OF"/"member-of"/"member of"のような表記ゆれは1つのmerged relationshipに統合される（entity IDは`sanitize_id_segment`が大文字化するため、正規化前後どちらを渡しても同じID文字列になり、既存のID形式・既存テストのID assertionには影響なし）
-  - **original relationshipTypeの保持方法**: `fieldValues.originalRelationshipTypes`（グループ内で観測された全ての元表記のリスト）と`fieldValues.relationshipTypeNormalization`（`{normalizedValue, isKnown, warnings}`）の2つのFieldValueとして保持。両方とも`schemas/merged_knowledge.schema.json`の既存`fieldValues`（`additionalProperties: FieldValue`、value型は無制約）にそのまま収まるため、**このschemaは無変更**
-  - **未知typeの扱い**: relationship mergeそのものはskipしない（`build_relationship_entities`が返す`warnings`配列には未知typeの警告を追加していない。既存の「relationship mergeをskipした」警告と意味が異なる別集計のため、混ぜると`tests/merger/test_entity_merge_relationship.py`の複数の`assert warnings == []`（"TRUSTS"/"APPEARS_WITH"/"DISTRUSTS"等、taxonomy外の値を使う既存テスト）が壊れる）。代わりに`report.relationshipTypeSummary.unknownTypes`で件数を可視化する（ユーザー指示の「report warning**または**relationshipTypeSummaryに出る」の「または」を採用）
-  - `agents/merger/engine.py`: `_summarize_relationship_types(entities)`を新規追加し、`build_collection`内で`entities["relationships"]`のfieldValues（`originalRelationshipTypes`/`relationshipTypeNormalization`）から`report.relationshipTypeSummary = {knownTypes, unknownTypes, normalizedTypes}`を組み立てる。**両端未解決でentity化されなかった候補のrelationshipTypeはこの集計に含まれない**（entities経由でしか情報を得ないシンプルな実装を優先。`build_relationship_entities`の戻り値（`entities, warnings`の2-tuple）を変更すると`tests/merger/test_entity_merge_relationship.py`の13箇所のアンパックが壊れるため、シグネチャ変更を避けた）
-  - `agents/merger/models.py`: `MergeReport`に`relationship_type_summary`フィールドを追加（デフォルト値は空集計。`report.manualOverrides`とは異なりCLIオプション非依存で常に計算されるため、`to_dict()`で常に`relationshipTypeSummary`キーを出力する）
-  - `schemas/merged_knowledge_collection.schema.json`: `RelationshipTypeSummary`定義（`{knownTypes, unknownTypes, normalizedTypes}`、いずれも`additionalProperties: integer`または`string`でキー集合を固定しない）を新規追加し、`MergeReport.properties`に`relationshipTypeSummary`を追加。**`required`には含めない任意プロパティ**（MergeEngineの実出力には常に含まれるが、必須にすると既存fixture（`minimal_merged_collection.json`等）の更新が必要になるため。ユーザー指示の「必須にすると既存fixture更新が増える場合はoptionalでも構いません」を適用）
-  - `schemas/merged_knowledge.schema.json`は無変更（`relationshipType`は既存通り自由文字列、`fieldValues`は既存通り無制約のため、taxonomy正規化のための変更は不要だった）
-  - `tests/merger/test_relationship_taxonomy.py`（12件、新規）: `normalize_relationship_type`単体テスト。大文字小文字/ハイフン/空白の正規化、既知の同義語の正規化、未知typeの安全なslug化（破棄されないこと）、taxonomy定義自体の形式確認
-  - `tests/merger/test_relationship_type_normalization.py`（8件、新規）: `build_relationship_entities`経由の統合テスト。既知typeの複数表記が1つのmerged relationshipへ統合されること、original relationshipTypeがfieldValuesに残ること、未知typeが破棄されずwarningsも空のままであること、target/directionが違うものはmergeされないこと、`MergeEngine`/CLI経由で`report.relationshipTypeSummary`が既知/未知件数を正しく反映しcollection schema validationに通ること
-  - 既存テストへの影響: 無し。`tests/merger/test_entity_merge_relationship.py`（13件）を含む既存363件（343 + 新規20）すべて無変更で通過
-  - 未着手（次のPRへ持ち越し）: canonical ID方針整理、real data dry-run procedure、timeline contradiction detection、Wiki出力設計、relationshipType taxonomyの本確定（`docs/architecture/04_Knowledge_Graph/Relationships.md`）、`merge_entities`等の高度なoperationサポート
-- canonical ID policy: 実装完了。`feature/canonical-id-policy`ブランチで作業中
-  - 目的: merged entity/relationship/timeline entryに対するcanonical ID方針を明文化し、将来の安定ID割り当てに向けた安全なhelper/validationを追加する。**このPRでは既存merged entityへcanonical IDを自動付与しない**（Non-goals: 大量自動割り当て・実データ由来canonical ID作成・名前一致による自動生成はすべて対象外）
-  - `docs/architecture/06_AI/Canonical_ID_Policy.md`を新規作成（設計ドキュメント）。要点:
-    - `id`（処理結果内の技術的ID、`mergedId`と一致しうる不安定な値）と`canonicalId`（Wiki/Knowledge Base上で安定参照するための人間確認済みID）を区別
-    - `sourceCandidates[].candidateId`（provenance追跡専用、canonicalIdには絶対にならない）/ `existing*Id`（Parserの既知辞書由来、そのまま採用してよい）/ `sourceCharacterId`（構造化されてはいるが人間管理の辞書ではないため、canonical化はしない）の違いを明文化
-    - canonicalIdを自動付与してよい条件（人間管理の構造化辞書由来のみ）/ 付与してはいけない条件（名前一致・単一episode観測のみ・低confidence・LLM/自然文推定）を整理
-    - manual overrideとの関係（§7）、unresolved entityとの関係（§8。原則`canonicalId: null`、manual overrideで先行指定するケースはwarningに留めエラーにしない）、relationship/timelineのcanonical ID方針（§9。timelineは当面`canonicalId`を付与しない、relationshipはtaxonomy確定前に本格運用しない）、実データdry-run前の暫定方針（§10。既存キャラクター辞書経由のもののみ対象）、将来のmigration方針（§11、設計メモのみ・未実装）を記載
-  - `agents/merger/canonical_ids.py`を新規作成。命名は既存コード（`entity_base.py`の`sanitize_id_segment`/`build_merged_entities`等）に合わせた
-    - `sanitize_canonical_id_segment(value)`: `entity_base.sanitize_id_segment`をそのまま再利用（重複実装を避けるため）
-    - `build_canonical_id(entity_type, key)`: `{PREFIX}_{sanitize(key)}`形式でcanonical ID文字列を組み立てる。**merge pipelineからは一切呼び出されない**（将来のmanual override作成支援ツール等の土台としてのみ提供）
-    - `is_valid_canonical_id(value)`: `^[A-Z][A-Z0-9_-]+$`（Identifier_Specification.md §2.3、schemas/merged_knowledge.schema.jsonのIdStringと同一パターン）かつ既知prefixで始まっていることを確認する形式チェックのみ（意味的な正しさは検証しない）
-    - `classify_canonical_id_source(entity)`: `structured_id`（status:mergedかつid==canonicalId）/ `manual_override`（manualOverridesAppliedが非空）/ `unknown`（どちらの手がかりも無い、疑わしいケース）/ `none`（canonicalId未設定）をベストエフォートで分類。**per-field正確な由来追跡はできないため保守的な推測である旨を明記**
-    - `CanonicalIdValidationResult`（`{totalAssigned, duplicateCount, invalidCount, warnings}`）/ `validate_canonical_ids(collection)`: collection内の全canonicalIdについて、形式妥当性・entity typeに対応する接頭辞一致・同一type内および全type横断での重複・status:unresolvedへのcanonicalId付与をチェックし、warningsへ人間可読なメッセージを記録する
-  - **canonical ID形式**: `CHAR_<SLUG>`/`LOC_<SLUG>`/`ORG_<SLUG>`/`ITEM_<SLUG>`/`LORE_<SLUG>`/`EVENT_<SLUG>`/`REL_<SLUG>`/`TL_<SLUG>`。`Identifier_Specification.md` §6・§7の既存prefix（`CHAR_`/`ORG_`/`LOC_`/`ITEM_`/`EVENT_`/`LORE_`/`REL_`）とすべて一致させた。`TL_`（Timeline）はIdentifier_Specification.md未記載だが、既存実装（`agents/merger/timeline.py` `_ID_PREFIX = "TL"`）に合わせた。今回は形式チェックのみで大量生成はしていない
-  - `agents/merger/engine.py`: `build_collection`の最後に`report.canonical_id_summary = validate_canonical_ids({"entities": entities}).to_dict()`を追加（`_summarize_relationship_types`と同じ「entitiesが唯一の情報源」パターン）
-  - `agents/merger/models.py`: `MergeReport`に`canonical_id_summary`フィールドを追加（デフォルト空集計、`relationship_type_summary`と同じくCLIオプション非依存で常に計算・出力）
-  - **manual overrideとの関係**: manual overrideは`operation: set_field, field: "canonicalId"`（PR #23）で既にcanonicalIdを指定できる。このPRでは`scripts/merge_extractions.py`が`--overrides`適用**後**の完全なcollectionに対して`validate_canonical_ids(collection)`を再実行し、`report.canonicalIdSummary`を上書きする（`warningCounts.skippedOverrides`と同じ「CLI層で判明した値で上書きする」パターン）。**invalidなcanonicalIdがmanual overrideで指定された場合でも、CLIのexit codeは変更せずreport warningとして記録するに留めた**（既存挙動を壊しすぎる案を採用しなかった）。理由: `overrides.py`のoperation単位のerror/skip判定ロジックを変更すると「manual overrideの高度化」というNon-goalsに抵触するため。厳格化は将来のPRで検討する（`Canonical_ID_Policy.md` §7に明記）
-  - `schemas/merged_knowledge_collection.schema.json`: `CanonicalIdSummary`定義を新規追加し、`MergeReport.properties`に`canonicalIdSummary`を追加。**`required`には含めない任意プロパティ**（`relationshipTypeSummary`と同じ理由。既存fixtureの更新を避けるため）
-  - `schemas/merged_knowledge.schema.json`は無変更（`canonicalId`は既存通り`IdString`パターンの自由文字列のため、追加の型定義は不要だった）
-  - `tests/merger/test_canonical_ids.py`（22件、新規）: `sanitize_canonical_id_segment`/`build_canonical_id`/`is_valid_canonical_id`/`classify_canonical_id_source`の単体テスト、`validate_canonical_ids`の直接テスト（valid/invalid形式/接頭辞不一致/同一type内重複/全type横断重複/unresolvedへの付与警告/空文字skip）、名前のみcandidateからcanonicalIdが自動生成されないことの回帰確認、`MergeEngine`/CLI経由での`report.canonicalIdSummary`出力とcollection schema通過、既存`manual_overrides_valid.json`フィクスチャ（OVR_0003がcanonicalIdを指定）を使ったmanual override反映確認
-  - 既存テストへの影響: 無し。既存385件中363件（既存）+ 新規22件、すべて無変更で通過
-  - 未着手（次のPRへ持ち越し）: real data dry-run procedure、no-invisible-unicode-check（定型的なUnicode監査手順のドキュメント化）、timeline contradiction detection、Wiki出力設計、canonical ID辞書（`knowledge/dictionaries/*.yaml`）本体の実装、canonical ID migration tool
-- real data dry-run procedure: 実装完了。`feature/real-data-dry-run-procedure`ブランチで作業中
-  - 目的: 実データ（`.dec`スクリプト）を使ってParser → Extractor → Merger → Report確認までをローカル環境だけで試験実行できるよう、手順書・`.gitignore`・軽量な補助スクリプトを整備する。**実データ・生成物は一切commitしない**（ドキュメント・スクリプト・.gitignore整備のみ）
-  - 前提資料について: 指示にあった`docs/architecture/02_Data/Identifier_Specification_ja_v0.3.md`は存在しなかったため、実在する`docs/architecture/05_Parser/Identifier_Specification.md`（version 0.3 Draft）を代わりに読んだ。また`schemas/normalized_story.schema.json`という名前のファイルも存在しない（正規化済みStory JSONの構造は`agents/parser/normalizer.py`・`docs/architecture/05_Parser/Normalized_Story_JSON.md`が実体）。両方ともRunbook本文に明記した
-  - `docs/runbooks/Real_Data_Dry_Run.md`を新規作成（初のrunbookドキュメント、`docs/runbooks/`ディレクトリも新設）。目的/前提/実データをcommitしないルール/推奨ローカルディレクトリ構成/入力配置例/normalized JSON生成手順/extraction JSON生成手順/extraction validation手順/merge手順/manual override手順/report確認ポイント/よく見るwarning・error/dry-run後の掃除方法/commit前チェックリストの全セクションを含む。コマンド例は実在するCLI引数（`normalize_story.py`/`extract_story.py`/`validate_extraction_json.py`/`merge_extractions.py`の実際の`--input`/`--output`/`--overrides`等）に合わせた
-  - **`.gitignore`確認・追加**: 既存の`data/raw/**/*.dec`等6パターンは確認済み（変更なし）。不足していた3点を追加した
-    - `workspace/dry_runs/`: dry-run出力専用ディレクトリ。**`workspace/`全体はignoreしていない**（重要な判断）。理由: `workspace/experiments/`・`workspace/notebooks/`・`workspace/reviews/`・`workspace/tmp/`は既に`.gitkeep`でGit管理されており、`workspace/reviews/`には既存の人間作成レビュー文書（`Script_Compatibility_Analysis_ja_v0.1_updated.md`）がcommit済みだった。この既存運用を壊さないよう、dry-run出力専用の`workspace/dry_runs/`のみをignore対象にした
-    - `.env`/`.env.*`（`!.env.example`で例外化）: 従来.gitignoreに`.env`関連パターンが1つも無かった不足を補った
-    - `*.log`: 同様に不足していたログファイルパターンを追加
-    - `tests/fixtures/`配下は引き続き対象外（既存の`tests/fixtures/parser/CAB-csl_script_*.dec`という狭いパターンのみ維持。広い`tests/fixtures/`ignoreは追加していない）
-  - `scripts/check_dry_run_inputs.py`を新規作成（軽量な補助スクリプト、`--input`/`--output`のような本格pipeline実行はしない）
-    - `check_directories(root)`: `data/raw`/`data/normalized`/`data/extracted`/`data/reports`/`workspace`の存在確認
-    - `classify_forbidden_paths(tracked_files)` / `find_tracked_forbidden_paths(root)`: git tracked状態のファイル一覧に対して、commitしてはいけないパターン（実`.dec`/生成JSON/レポート/`workspace/dry_runs/`/`.env`/`*.log`）が無いかを判定する。前者は`git ls-files`呼び出しを含まない純粋関数として分離し、後者がそれを呼び出すラッパーにした（テスト容易性のため）
-    - `count_json_files(directory)` / `find_extraction_candidates(directory)`: 指定ディレクトリ配下のJSON件数、および`documentType: "episode_extraction"`を持つファイル（`merge_extractions.py --input`の対象候補）の一覧化
-    - CLIオプション: 引数なし実行（ディレクトリ存在確認 + tracked禁止パターン確認、exit code 0/1/2）、`--count-json DIR`、`--show-commands`（dry-run実行コマンド例を表示）、`--quiet`
-  - `tests/scripts/`ディレクトリを新規作成（`scripts/`配下テストの初例。既存の`scripts/`テストはすべてsubprocess経由のCLIスモークテストのみだったため、`scripts/`自体はパッケージ化されていない点を踏まえ、`importlib.util.spec_from_file_location`でファイルパスから直接moduleとして読み込む方式を採用した）
-    - `tests/scripts/test_check_dry_run_inputs.py`（13件、新規）: `check_directories`/`classify_forbidden_paths`（禁止パターン検出・`.gitkeep`/`.env.example`/`tests/fixtures/`許容・通常ソースファイル許容）/`count_json_files`/`find_extraction_candidates`の単体テスト、`--show-commands`/`--count-json`のCLIスモークテスト、このリポジトリ自体に対する実行でtracked禁止パターンが0件であることの回帰確認
-    - `tests/scripts/test_dry_run_docs.py`（7件、新規）: `.gitignore`に必須パターンが揃っていること、`tests/fixtures/`を広くignoreしていないこと（既存の狭いパターンは許容）、`Real_Data_Dry_Run.md`の存在・必須セクション・report確認フィールド一覧・実在するCLIスクリプト名への言及・実データ非commitルールの明記を確認
-  - 既存テストへの影響: 無し。既存385件 + 新規20件（`tests/scripts/`）、すべて無変更で通過
-  - 未着手（次のPRへ持ち越し）: no-invisible-unicode-check、timeline contradiction detection、Wiki出力設計、real data dry-run trial（実データを使った実際の試験運用そのもの。このPRは手順・ツール整備のみ）
-- no invisible unicode check: 実装完了。`feature/no-invisible-unicode-check`ブランチで作業中
-  - 目的: GitHubの hidden/bidirectional Unicode warningを毎回人力でスクラッチスクリプトを書いて確認していた作業（PR #23・#24の際に実施）を定型化し、リポジトリに恒久的なチェックスクリプトとして追加する。**GitHubのwarning自体は今後マージブロッカーにしない**方針を明確化した上で、レビューを欺ける可能性のある本当に危険な文字（bidi override/control、zero-width系）だけを検出する
-  - `scripts/check_invisible_unicode.py`を新規作成
-    - `is_dangerous_char(ch)`: コードポイントが明示的な危険リスト（`_DANGEROUS_CODEPOINTS`、bidi override/isolate/embedding・zero-width系・BOM・soft hyphen等15種）に含まれるか、または`unicodedata.category(ch) == "Cf"`もしくは`unicodedata.bidirectional(ch)`がbidi制御クラス（RLO/LRO/RLE/LRE/PDF/RLI/LRI/FSI/PDI）に該当するかを判定する。両方の判定を併用しているのは、Pythonバージョン間のunicodedata実装差異への保険（明示リストが主、category/bidirectionalが補完）
-    - `scan_text(path, text)`: ファイルI/Oを含まない純粋関数。行番号・列番号・コードポイント・Unicode名・その行の抜粋（60文字まで）を`Finding`として返す
-    - `is_excluded(rel_path)`: 走査root相対パスがディレクトリ名一致（`.git`/`.venv`/`venv`/`__pycache__`/`.pytest_cache`/`node_modules`）または先頭一致（`data/raw`/`data/normalized`/`data/extracted`/`data/reports`/`workspace/dry_runs`、`docs/runbooks/Real_Data_Dry_Run.md`の生成物置き場と同じ一覧）で除外対象かを判定する純粋関数
-    - `iter_target_files(directory)`: `.py`/`.json`/`.md`/`.yml`/`.yaml`/`.toml`/`.txt`のうち除外対象でないファイルを列挙
-    - `scan_file(path)`: UTF-8として読めないファイル（バイナリ等）は静かにスキップ（exit code 2の対象にはしない。対象拡張子をテキスト系に絞っているため実際に発生するのは稀）
-    - CLI: 引数なし実行でリポジトリ全体を走査、`--path`（複数指定可）で対象を絞り込み可能
-  - **「2バイト文字だからNG」にはしない**: 日本語・全角英数字・全角記号・罫線文字・矢印・通常のUnicode引用符（`“”‘’`等）はいずれも`category != "Cf"`かつbidi制御クラスに該当しないため、検出対象にならないことをテストで確認した（既存Markdown・JSON schema descriptionの日本語文を削除する必要は一切無い）
-  - `tests/scripts/test_check_invisible_unicode.py`（31件、新規）: 許可される文字（日本語・全角記号・矢印・罫線・通常引用符・日本語docstring混在コード）が通ること、危険な文字（U+202E、U+200B、U+FEFF、U+00AD、4種のbidi isolate）がすべて検出されること、検出結果にfile/line/column/codepoint/excerptが含まれること、除外ディレクトリ（`.venv`/`data/raw`等）配下は走査対象に含まれないこと、CLIのexit code 0/1/2（不正path指定時）、このリポジトリ自体を走査してもexit 0であることの回帰確認
-    - `importlib.util.spec_from_file_location`で`scripts/check_invisible_unicode.py`を直接moduleとして読み込む方式を採用（`scripts/`は非パッケージのため）。`Finding`が`@dataclass`かつ`from __future__ import annotations`を使っているため、実行前に`sys.modules[spec.name] = module`で登録しておく必要があった（登録しないと文字列注釈の遅延解決で`AttributeError`になる。`tests/scripts/test_check_dry_run_inputs.py`ではdataclassを使っていなかったため、このPRで初めて踏んだ落とし穴）
-  - 既存テストへの影響: 無し。既存405件 + 新規31件、すべて無変更で通過
-  - 未着手（次のPRへ持ち越し）: real data dry-run trial、ruff known issues cleanup（`TASKS.md` Known Issuesに記載済みの既存約15〜80件のruffエラー解消）、timeline contradiction detection、Wiki出力設計
-- real data dry-run trial: 実施完了。`feature/real-data-dry-run-trial`ブランチで作業中
-  - 目的: `docs/runbooks/Real_Data_Dry_Run.md`の手順に従い、実データ（`.dec`スクリプト）2話を使ってParser → Extractor → Validation → Merger → Report確認を小規模に試験実行し、実データ投入前に必要な改善点を洗い出す。**実データ・生成物は一切commitしていない**（`data/raw/dry_run/`・`data/normalized/dry_run/`・`data/extracted/dry_run/`・`data/reports/dry_run/`・`workspace/dry_runs/*/`はすべてignored領域、`scripts/check_dry_run_inputs.py`でtracked禁止パターン無しを確認済み）
-  - 対象: EVTカテゴリ1話・CHAR_MAINカテゴリ1話（選択肢`branch`/`#if`を含む話は今回の6話の候補データセットに1件も無く、次回dry-runの課題として記録）
-  - 結果詳細・数値サマリーは`docs/runbooks/Real_Data_Dry_Run_Result_Template.md`に記載（実データ本文・実セリフ・実データ由来IDは含めていない）
-  - **見つけたバグ・修正済み**: `scripts/normalize_story.py`・`scripts/check_script_compatibility.py`のコンソールサマリー表示に絵文字（✅/⚠️/🔶/🚫）が含まれており、Windows既定のcp932コンソールで`print()`自体が`UnicodeEncodeError`を送出していた。`normalize_story.py`側はJSON Schema検証が実際には成功しているのに広い`except Exception`に捕捉され「検証中にエラーが発生しました」と誤報告、`check_script_compatibility.py`側は未捕捉のまま`main()`内でtracebackとともにクラッシュしていた（CLAUDE.md記載の「意味のある終了コード0/1/2」が機能しなくなる重大な回帰）。コンソール表示専用の文字列からのみ絵文字を除去し（Markdownレポート内の絵文字は変更なし）、回帰防止に`tests/scripts/test_console_output_encoding.py`（2件、新規。`PYTHONIOENCODING=cp932`を子プロセスに渡しOSに依らず再現、修正前後で実際にfail/passすることを確認済み）を追加
-  - **見つけた既知の課題（今回は未修正、`docs/runbooks/Real_Data_Dry_Run_Result_Template.md` §3-4に詳細）**:
-    - パーサーのブロック分類カバレッジ不足: 実データでは全ブロックの58〜69%が`unknown`に分類される（dialogue/monologue自体は raw script の`@ChTalk`系コマンド出現数と完全一致し欠落無しだが、`pos`/`euler`/`fov`/`camera`/`wait`等の演出コマンド群が`stage_direction`として未認識のまま）。破棄はされておらず設計違反ではないが、`config/script_commands.yaml`のカバレッジ拡充が必要
-    - キャラクター辞書（`reference/parser/characters_reference.json`、66件登録）が実データの数値ID帯（200番台）をカバーしておらず、merge後の全12キャラクター・2場所エンティティが`status: unresolved`のまま（`canonicalIdSummary.totalAssigned = 0`）。実データ本格投入前の辞書拡充が実質的な前提条件と判明
-    - `check_script_compatibility.py`単体実行（`needs_update`、新規会話コマンド候補2件）と`normalize_story.py --check-compat`経由でNormalized JSONに埋め込まれる`compatibilityReport`（`warning`、新規会話コマンド候補0件）の判定が食い違うケースを確認。CLAUDE.md記載済みの「2ツール間の定義未統一」ギャップが実データで具体的に顕在化
-    - `normalize_story.py --check-compat`は内部で`check_script_compatibility.py`を`--output`指定なしで呼び出すため、レポートが常にプロジェクトルート直下`data/reports/`に出力され、dry-run手順が推奨する`data/reports/dry_run/`等のサブディレクトリに統一できない（`.gitignore`は深さに依らずカバーするため実害無し）
-    - `RelationshipCandidate`/`TimelineCandidate`/`ItemCandidate`/`LoreCandidate`/`EventCandidate`は実データに明示的な構造化タグ（`itemId`/`relationshipType`等）が無いため0件（設計通りの制約でありバグではない。LLM抽出が無い限りrule-baseだけでは得られないことを確認）
-  - 既存テストへの影響: 無し。既存438件（405+31+2）+ 新規2件、すべて無変更で通過
-  - 未着手（次のPRへ持ち越し）: 上記Known Issuesの各対応（演出コマンド辞書拡充、キャラクター辞書拡充、2ツール判定差異の解消、`--check-compat`出力先のカスタマイズ）、選択肢を含む実データでの追加dry-run、ruff known issues cleanup、timeline contradiction detection、Wiki出力設計
-- script command coverage improvement: 実装完了。`feature/script-command-coverage`ブランチで作業中
-  - 目的: real data dry-run trial（前PR）で`unknown`扱いになっていた演出系コマンドを、意味を完全解析せずに「既知のstage_directionコマンド」として扱えるようにし、unknown率を下げる
-  - 実データ6話（`data/raw/dry_run/`、ローカルignored領域のみ、commitなし）を`agents/parser/tokenizer.py`のTokenizerに直接かけて、`TokenType.UNKNOWN`になる裸のコマンド（@プレフィックス無し）と`TokenType.COMMAND`だが`STAGE_DIRECTION_COMMANDS`未登録の`@`コマンドを機械的に列挙し、対応漏れの正確な一覧を取得（TASKS.md記載の代表例だけでなく、実データ全体から網羅的に洗い出した）
-  - 追加したコマンド分類（既存カテゴリへ機械的に振り分け。新設したのは画面全体演出用の`screen`のみ）:
-    - camera: `ch`/`pos`/`euler`/`fov`/`camera`/`nf`/`light`/`distance`/`shake`/`@TalkCamera3`/`@TalkCamera4`
-    - motion: `mo`/`@MotionWait`
-    - sound: `sound`/`vo`
-    - ui: `ui`/`wType`/`wset`/`click`
-    - character_display: `hide`/`visible`/`scale`/`color`/`active`/`parent`/`@ChColor2`/`@ChColor2off`
-    - screen（新設）: `rdraw`/`screen`/`@FadeOutWhite`/`@TalkFadeIn`/`@DoubleScreen`
-    - system: `uniq`/`set`/`prefab`/`remove`/`loading`/`wait`/`@IsLoading`/`image`
-  - `agents/parser/tokenizer.py`: `Tokenizer.KEYWORD_TOKENS`に@プレフィックス無しコマンド30種を追加（追加しないと`TokenType.UNKNOWN`のまま止まり、`agents/parser/parser.py`側で`stage_direction`に振り分けようがないため）
-  - `agents/parser/parser.py`: `DIRECTION_TYPE_MAP`に上記37コマンド（@プレフィックスあり9種+無し28種）を追加。`STAGE_DIRECTION_COMMANDS`は`DIRECTION_TYPE_MAP.keys()`から自動導出されるため、この1箇所の追加で両方に反映される
-  - `config/script_commands.yaml`の`stage_direction`リストにも同じ37コマンドを追加し、`check_script_compatibility.py`側の既知コマンド判定にも反映（CLAUDE.md記載の「2つの辞書は統一されていないため両方に追加が必要」という既存制約に従った）
-  - **意図的に分類しなかったもの**: `@ChBlueMan/BlueMan2`（2件、コマンド名にスラッシュを含む不自然な形で意味不明）は今回も`unknown`のまま残した（「意味が不明なものは無理に細かく分類しない」方針）
-  - **実データでの効果測定**（`data/raw/dry_run/`、ローカルのみ、生成物はcommitなし）: EVTカテゴリ1話のunknownブロック率が68.8%（984/1431）→0.1%（1/1431）、CHAR_MAINカテゴリ1話が60.7%（511/842）→0%（0/842）に低下。dialogue（78件/57件）・monologue（7件）・narration（29件/13件）の件数はいずれも完全に不変（stage_direction判定の変更のみで会話抽出ロジックに一切触れていないため）。extraction/merge dry-runの数値（candidateCounts等）もPR #29と完全一致し、影響が無いことを確認
-  - **副次効果**: `@TalkCamera3`/`@TalkCamera4`は名前に"Talk"を含むため、`check_script_compatibility.py`の新規会話コマンド候補ヒント（`Talk`/`Mono`/`Name`/`Voice`/`Speech`/`Speak`）に誤って合致し「新規会話コマンド候補」として検出されていた（実際はカメラ演出コマンド）。既知コマンド化したことでこの誤検出が解消し、CHAR_MAINエピソードの新規会話コマンド候補件数が2件→0件に減少した
-  - **check_script_compatibility.pyとの整合性調査（今回は未修正、原因を特定しTASKS.mdへ記録）**: `agents/parser/normalizer.py`の`_build_compatibility_report`が`newSpeechCommands`を常に空配列でハードコードしており、`scripts/check_script_compatibility.py`の`_is_speech_candidate`ヒント判定ロジックを一切呼び出していないことが根本原因と判明。また`_build_compatibility_report`は`compat`を`"warning"`/`"compatible"`の2値しか返さず、`check_script_compatibility.py`の`_determine_compatibility`が持つ`"needs_update"`/`"blocked"`相当の判定が存在しない。修正には、現状「`agents/parser/`はconfig/script_commands.yamlを一切読まない」というアーキテクチャに踏み込み、speech_hintsをNormalizerへ配線し直す必要があり、今回のscript command coverage改善のスコープを超えるため見送った。**`feature/compatibility-check-consistency`で対応予定**
-  - テスト: `tests/parser/test_tokenizer.py`に`TestRealDataStageDirectionKeywords`（31件、新規。camera/pos/euler/fov等30種のbare-wordコマンドがKEYWORDとして認識されること、本当に未知の語は引き続きUNKNOWNのままであることを確認）、`tests/parser/test_parser_basic.py`に3件追加（camera系コマンドがstage_directionになること、演出コマンドがdialogue/monologueの間に挟まってもevidence用line_start/line_endを含め件数・内容が変わらないこと、既知コマンド追加後も本当に未知のコマンドはunknownとして残ることを確認）。実データ本文・実セリフは一切fixture化していない（既存テストfixtureと同じ形式の短い合成スクリプトのみ使用）
-  - 既存テストへの影響: 無し。既存438件 + 新規34件、すべて無変更で通過
-  - 未着手（次のPRへ持ち越し）: `feature/compatibility-check-consistency`（2ツール判定差異の解消）、キャラクター辞書拡充、選択肢を含む実データでの追加dry-run、ruff known issues cleanup、timeline contradiction detection、Wiki出力設計
-- character dictionary coverage improvement: 実装完了。`feature/character-dictionary-coverage`ブランチで作業中
-  - **調査結果**: 現在キャラクター辞書として使われているのは`reference/parser/characters_reference.json`（読み取り専用レガシー、CLAUDE.md記載の通り直接改造しない、66件登録、`{sourceCharacterId: 表示名}`のフラットな文字列のみ）。`agents/parser/resolver.py`の`CharacterDictionary._id_map`（canonical characterId用）は、この形式では**構造上常に空**——これが「real data dry-run trialでmerge後のcharactersが全てunresolvedになる」問題の直接的な根本原因と判明した（`existingCharacterId`は`Speaker.speaker_id`＝`_id_map`由来であり、displayNameが分かっていても`_id_map`が空なら常にNone）。`agents/merger/character.py`の`_character_merge_key`・`agents/merger/entity_base.py`の`_resolve_entity_identity`は`existingCharacterId`が設定されればそのまま`status: merged`にする既存ロジックが既にあり、**Merger側のコード変更は一切不要**と確認した。`knowledge/dictionaries/characters.yaml`が設計上の正しい将来配置場所であることを`docs/architecture/06_AI/Merged_Knowledge_Design.md` §2.4・`docs/architecture/06_AI/Extraction_Pipeline.md` §4.1で確認（既に`knowledge/dictionaries/.gitkeep`のみの空ディレクトリとして存在していた）。`CHAR_RAIN`（sourceId "26"）/`CHAR_AKAGI_HINA`（sourceId "1"）は、既存の多数のテスト・fixture（`tests/extractor/test_character_candidate_extraction.py`等）で既に確立済みの規約的canonical IDであることを確認し、これを新辞書へ正式に持ち込んだ（Non-goalsの「canonical ID自動割り当て」には該当しない、既存の人間の判断の辞書化）
-  - `knowledge/dictionaries/characters.yaml`を新規作成（人手管理の正規辞書、schemaVersion付き）。`reference/parser/characters_reference.json`の既存66件をdisplayNameとして安全に移行し（読み取り専用ファイル自体は変更していない）、`characterId`（canonical ID、`CHAR_{ROMANIZED_NAME}`形式）は上記2件（`CHAR_RAIN`/`CHAR_AKAGI_HINA`、`status: confirmed`）のみ設定。残り64件は`characterId: null`・`status: name_only`のまま（大量の未確認canonical ID自動生成はしない、`docs/architecture/06_AI/Canonical_ID_Policy.md` §4-5に従う）
-  - `agents/parser/character_dictionary.py`を新規作成: `CharacterDictionaryEntry`（sourceCharacterId/characterId/displayName/aliases/status/notes）、`load_character_dictionary(path)`、`validate_character_dictionary(entries)`（重複sourceCharacterId/characterId・不正なcharacterId形式・statusとcharacterIdの整合性等を検証）、`resolve_character_by_source_id(entries, id)`、`resolve_character_by_name(entries, name)`（**docstringで明示的に警告: 自動解決には使わない**、名前一致だけでの確定を防ぐ設計）、`build_character_dictionary_coverage_report(entries, observed_source_ids)`
-  - `agents/parser/resolver.py`: `CharacterDictionary`に`load_from_dictionary_yaml(path)`（新形式読み込み、displayNameは常に`_name_map`へ、characterIdが設定されている場合のみ`_id_map`へ反映）と`load(path)`（拡張子で`.yaml`/`.yml` → 新形式、それ以外 → 既存`load_from_json`に自動振り分け）を追加。既存の`load_from_json`・`_name_map`/`_id_map`の意味は一切変更していない
-  - `scripts/normalize_story.py`: `DEFAULT_CHARACTERS_PATH`を`knowledge/dictionaries/characters.yaml`に変更（実際にcanonical ID解決が効くようにする本改修の核）。`char_dict.load_from_json`呼び出しを拡張子自動判別の`char_dict.load`に変更。`--check-compat`の内部subprocess呼び出しは、`check_script_compatibility.py`がフラットJSON形式しか理解できないため、`--characters`がYAMLの場合はレガシーJSON辞書（`LEGACY_CHARACTERS_PATH`）へ自動フォールバックするようにした（check_script_compatibility.py自体は無変更）
-  - `scripts/check_character_dictionary_coverage.py`を新規作成: 対象ディレクトリ/ファイルを`StoryParser`で実際に解析し、`episode.speakerAssignments`から観測sourceCharacterId出現回数を集計、辞書と突き合わせてobserved/known/unknown件数・カバレッジ率・頻出unknown ID上位20件を表示する。実データ本文・セリフは一切出力しない（ID番号と件数のみ）。レポートはローカル確認用でcommit対象ではない。exit code: 0=成功、1=対象ファイル無し、2=辞書読み込み/検証失敗
-  - **実データでの効果測定**（`data/raw/dry_run/`、ローカルのみ、生成物はcommitなし。PR #29/#30と同じEVT/CHAR_MAIN各1話）: Parser/Extraction/Merge全て成功、dialogue（78/57件）・monologue（7件）・narration（29/13件）・candidateCounts・mergedEntityCountsはPR #30と完全一致（悪影響無し）。**この2話に限っては、既存の66件のうちCHAR_RAIN/CHAR_AKAGI_HINAどちらも登場しないため、unresolved件数自体はPR #30から変化なし（characters 12/12件unresolvedのまま）**——これは辞書のconfirmedエントリが2件のみという保守的な選択の結果であり、機構自体は別途、合成fixtureおよびCHAR_RAIN/CHAR_AKAGI_HINAを含む手動smoke testで実際に解決されることを確認済み（下記）。`scripts/check_character_dictionary_coverage.py`を6話全体に対して実行したところ、observedCount=23、knownCount=12（52.2%、辞書に名前だけでも登録されている件数）、unknownCount=11、頻出unknown上位は234(7件)/225(5件)/230(5件)/222(4件)等——次にconfirmedへ昇格させるべき候補として記録
-  - **手動smoke test（実データ不使用、CHAR_RAIN/CHAR_AKAGI_HINA使用）**: `tests/fixtures/parser/basic_dialogue.dec`（sourceCharacterId 26/1/29使用、既存fixture）でParser→Extractor→Mergerを通し、26→`existingCharacterId: CHAR_RAIN`→merge後`status: merged`・`canonicalId: CHAR_RAIN`、1→同様に`CHAR_AKAGI_HINA`、29（name_only、辞書に無い）→`existingCharacterId: null`のまま・merge後`status: unresolved`であることを確認
-  - テスト: `tests/parser/test_character_dictionary.py`（20件、新規。load/validate/resolve/coverage reportの単体テスト、すべて`CHAR_TEST_*`等の合成データ）、`tests/parser/test_resolver.py`に7件追加（`CharacterDictionary.load_from_dictionary_yaml`/`load`の拡張子判別、confirmed→speaker_id設定・name_only→speaker_id無し・未登録→unresolved）、`tests/parser/test_character_dictionary_pipeline.py`（2件、新規。StoryParser→Normalizer→Extractor→`agents.merger.character.build_character_entities`のフルパイプライン統合テストで、confirmedキャラは`existingCharacterId`→`status: merged`、name_onlyキャラは`existingCharacterId: null`→`status: unresolved`のまま、両方とも`evidenceRefs`/`sourceCandidates`が保持されることを確認）、`tests/scripts/test_check_character_dictionary_coverage.py`（4件、新規。CLIスモークテスト、exit code 0/1/2）。実データ由来fixtureは一切追加していない
-  - 既存テストへの影響: 無し。既存473件 + 新規31件 = 504件、すべて無変更で通過
-  - **今回あえて実装しなかったこと**: 実データから見つかった未登録sourceCharacterId（234/225/230/222等）の大量confirmed化（Non-goals「大量の未確認キャラ辞書dump」「canonical ID自動割り当ての本格実装」に該当するため）、`resolve_character_by_name`を自動解決パイプラインに組み込むこと（名前一致だけでの自動確定は禁止方針）、`check_script_compatibility.py`自体の辞書形式対応（スコープ外、`--check-compat`はレガシーJSONへフォールバックする形で回避）
-  - 未着手（次のPRへ持ち越し）: 実データで見つかった頻出unknown ID（234/225/230/222等）の人間によるローマ字確認・confirmed化、`feature/compatibility-check-consistency`、選択肢を含む実データでの追加dry-run、ruff known issues cleanup、timeline contradiction detection、Wiki出力設計
-- compatibility check consistency: 実装完了。`feature/compatibility-check-consistency`ブランチで作業中
-  - **調査結果**: `scripts/check_script_compatibility.py`（`check_file`）は`config/script_commands.yaml`をロードし、`known_commands`/`speech_commands`/`case_variants_map`/`speech_hints`を使ってunknownCommands・newSpeechCommands・branch_issues・case_variants等を検出し、`_determine_compatibility`で`compatible`/`warning`/`needs_update`/`blocked`の4値を判定する（parse_error/critical branch issue→blocked、new_speech_commands/changed_command_patterns/high branch issue→needs_update、unknown_commands/unknown_character_ids/control_chars/case_variants→warning、それ以外→compatible）。一方`agents/parser/normalizer.py`の`_build_compatibility_report`は`agents/parser/parser.py`のStoryParserが自前で検出した`unknown_commands`（tokenizer/parser.pyのDIRECTION_TYPE_MAP・KEYWORD_TOKENSベース、YAML不参照）のみを使い、`newSpeechCommands`を常に空配列でハードコード、`compat`も`warning`/`compatible`の2値しか返さなかった。両者は完全に独立した実装であり、`config/script_commands.yaml`は`check_script_compatibility.py`側でしか参照されていなかった。加えて、`agents/parser/parser.py`の`TokenType.UNKNOWN`分岐が`unknown_commands`の辞書キーに生の行の先頭30文字（`token.raw[:30]`）を使っており、他の2箇所（`@`コマンド・keyword）や`check_script_compatibility.py`の`first_token`ベースのキーと不整合だったことも判明（実データでは該当ケースがほぼ発生しないため実害は無かったが、修正した）
-  - `agents/parser/compatibility.py`を新規作成（大規模リファクタは避け、判定ロジックのみ共有化）: `load_command_config(path)`（config/script_commands.yaml読み込み）、`get_new_speech_hints(config)`、`is_speech_candidate(command, hints)`、`detect_new_speech_commands(unknown_commands, hints)`（unknown_commands dictから会話コマンド候補を抽出、schemas/story.schema.jsonのnewSpeechCommands形状に一致）、`determine_compatibility_status(**bool flags)`（`_determine_compatibility`と完全に同じ判定順序をFileCompatibilityResult非依存にした純関数）
-  - `agents/parser/normalizer.py`: `Normalizer.__init__`に`commands_config_path`引数を追加（None時は従来通りnewSpeechCommands常に空配列、既存呼び出し元・既存テストとの後方互換を維持）。指定時は`_build_compatibility_report`が`load_command_config`+`get_new_speech_hints`+`detect_new_speech_commands`で実際にnewSpeechCommandsを判定し、`determine_compatibility_status`で4値ステータスを判定するようになった
-  - `scripts/normalize_story.py`: 既存の`--commands`引数（config/script_commands.yamlパス、従来`--check-compat`のsubprocess呼び出しにのみ渡していた）を`Normalizer(commands_config_path=args.commands)`にも渡すよう配線。CLIの引数・デフォルト値・ヘルプ文言は変更していない
-  - `scripts/check_script_compatibility.py`: `_is_speech_candidate`・`get_new_speech_hints`のローカル定義を削除し`agents/parser/compatibility.py`から共有（`is_speech_candidate`は呼び出し名のみ変更、`get_new_speech_hints`はimportに置換）。`_determine_compatibility(result)`は`FileCompatibilityResult`からbool値を組み立てて共有の`determine_compatibility_status`を呼ぶ薄いラッパーに変更（判定順序・結果は完全に不変）。`load_command_config`・`build_known_command_set`・`build_case_variants_map`・`get_speech_commands`・`load_characters`はこのスクリプト固有のconfig解釈のため変更していない
-  - `agents/parser/parser.py`: `TokenType.UNKNOWN`分岐の`unknown_commands`キーを`token.raw[:30]`から`token.command`（無ければraw fallback）に修正し、他の2箇所・check_script_compatibility.pyとキー形式を統一
-  - **実データでの検証**（`data/raw/dry_run/`、PR #29〜#31と同じEVT/CHAR_MAIN各1話、ローカルのみ・生成物commitなし）: standalone実行と`--check-compat`埋め込みのcompatibilityReportが両話とも`status`/`unknownCommands`/`newSpeechCommands`まで完全一致することを確認（EVT話: warning/[@ChBlueMan/BlueMan2]/[]、CHAR_MAIN話: warning/[]/[] — CHAR_MAIN話はPR #29で「standalone needs_update・2件」対「embedded warning・0件」という食い違いの発端になった話そのものだが、PR #30で@TalkCamera3/@TalkCamera4が既知コマンド化済みのため、今回のデータでは食い違いの種自体が既に解消されており、両経路とも一致してwarning/0/0になることを確認）。合成データでは`@BrandNewTalkVariant`（未登録+Talk含有）→両経路needs_update/newSpeechCommands一致、`@BrandNewUnrelatedCommand`（未登録+ヒット無し）→両経路warning/newSpeechCommands=[]一致を個別に確認。dialogue（78/57件）・monologue（0/7件）・narration（29/13件）・candidateCounts・mergedEntityCountsはPR #31と完全一致（悪影響無し）
-  - **保証するフィールド・保証しないフィールド（完全一致が難しい部分の明記）**: `unknownCommands`・`newSpeechCommands`・`parserCompatibility`（4値）は両経路で一致するようにした。一方、`branch_issues`（孤立#elseif/#else/#endif等）と`case_variants`（表記ゆれ使用箇所の検出）は`agents/parser/`のStoryParserが追跡機能を持たないため、Normalizer側からは`determine_compatibility_status`へ常に`False`で渡している（`has_critical_branch_issue`/`has_high_severity_branch_issue`/`has_case_variants`）。また、check_script_compatibility.pyの`is_command_line`判定は`@`/`$`始まり・既知コマンドのみを「コマンド行」とみなすため、**config/script_commands.yamlに未登録の裸のバレット単語（`@`無し）はstandalone側では検出されずunknownCommandsに現れない**が、実Parser（tokenizer.py）は同じ行を`TokenType.UNKNOWN`として検出する、という非対称ケースが残る（実データでは稀、PR #30で頻出パターンは既に登録済み）。これらは今回の主目的（newSpeechCommands/status不一致の解消）の範囲外の既知の限界として記録し、大規模リファクタは行わなかった
-  - テスト: `tests/parser/test_compatibility.py`（23件、新規。共有モジュールの単体テスト）、`tests/parser/test_normalizer_compatibility_report.py`（5件、新規。Normalizerのcommands_config_path有無での挙動、後方互換性）、`tests/parser/test_compatibility_consistency.py`（7件、新規。check_script_compatibility.pyの`check_file`とStoryParser+Normalizerを同一の合成スクリプトに対して実行し、unknownCommands/newSpeechCommands/statusが一致することを直接比較。PR #30の演出コマンドがunknownにならないこと、@TalkCamera3/4が誤検出されないこと、`@ChTalk`系のdialogue/monologue分類が不変であることも確認）。実データ由来fixtureは追加していない（config/script_commands.yaml自体はプロジェクト設定として実ファイルを使用）
-  - 既存テストへの影響: 無し。既存504件 + 新規35件 = 539件、すべて無変更で通過
-  - 未着手（次のPRへ持ち越し）: `branch_issues`/`case_variants`のStoryParser側追跡実装、check_script_compatibility.pyの裸バレット単語検出強化、実データ頻出未確認キャラクターIDのconfirmed化、選択肢を含む実データでの追加dry-run、ruff known issues cleanup、Wiki出力設計
-- branch / choice included dry-run: 実装完了。`feature/branch-choice-dry-run`ブランチで作業中
-  - 目的: 選択肢・分岐（branch/#if/#elseif/#else/#endif）を含む実データで、現在のbranch/choice処理がどこまで安全に動くか確認する。既存の実データ6話には`branch`コマンドが1件も含まれておらず、ユーザーに選択肢入りの新規実データ（`main1 #9.dec`、branch 1件・`#if $branch == 0`/`#else`/`#endif`構成の2択）を追加配置してもらい検証した
-  - **発見したバグ（3件、すべて修正済み）**:
-    1. **`#endif`後にcurrent_choiceがNoneへ戻らない不具合（最重要）**: `agents/parser/parser.py`の`#if`ハンドラが、`branch`で作られたばかりの`current_choice`自身を`branch_stack`へpushしていたため、`#endif`で同じオブジェクトがpopされて戻るだけで、トップレベルのbranchでは本来`None`に戻るべきところが戻らなかった。結果、`#endif`以降のシーン全体（実データでは500行以上、315ブロック相当）が最後のoptionの中に丸ごと閉じ込められてしまっていた。修正: `branch_stack`へのpush/popを`branch`コマンド呼び出し時点（新しいchoiceへ切り替える前の状態を退避）に変更
-    2. **ネストしたbranchで新しいchoiceが常にシーン直下へ追加される不具合**: `branch`ハンドラが`scene.blocks.append(current_choice)`を無条件に呼んでおり、既に別のchoiceのoption内にいる場合でもネストした新choiceがシーン直下に置かれてしまっていた。修正: 新choiceの配置を`_add_block(scene, outer_choice, outer_option_idx, new_choice)`経由に変更
-    3. **ネストしたbranch終了後にcurrent_option_idxが復元されない不具合**: 上記2件の修正の過程で発覚。`branch_stack`が`current_choice`のみを退避しており`current_option_idx`を退避していなかったため、ネストしたbranchの`#endif`で外側のchoiceは正しく復元されても、外側のoption位置がネストしたbranch内での最後の値のまま残り、後続ブロックが誤ったoptionに混入していた。修正: `branch_stack`の要素を`(current_choice, current_option_idx)`のタプルに変更
-    4. **句読点・省略記号のみの本文行（「……」等）が本文として認識されない不具合**: `agents/parser/tokenizer.py`の`JAPANESE_PATTERN`（かな/カナ/漢字/全角記号の範囲のみ）が、General Punctuationブロックの省略記号「…」（U+2026）を含まないため、「……」のみの行がUNKNOWN扱いになり、対応するモノローグ・ナレーションの本文が欠落していた。実データで`@ChTalkMono`の6件中1件がこれで欠落していた。修正: TEXT判定条件に`or not line.isascii()`を追加（ASCII以外の文字を含む行は本文とみなす、pure ASCII bare wordのみ従来通りUNKNOWN候補として残す）
-  - **実データでの効果測定**（`data/raw/dry_run/`、ローカルのみ、生成物はcommitなし）: 修正前は総ブロック数312（choice以降が全て隠れていたため）、修正後は623（choice以降のブロックが正しくシーンレベルに戻り、かつ省略記号のみの本文が復元されたため約2倍に増加）。dialogue件数58件・monologue件数6件が、生スクリプトの`@ChTalk`（58件）・`@ChTalkMono`（6件）出現数と完全一致することを確認。choice blockは2つのoptionそれぞれに4ブロックずつの対称な構造になった（修正前はoption1に315ブロックが誤って集中）
-  - **choice内話者のCharacterCandidate除外は仕様通り**: `choice内の話者は今回のスコープでは対象外とする`という既存設計（`agents/extractor/character.py`、PR #7時点で決定）が実データでも正しく機能していることを確認（choice内dialogueのblock IDはevidenceIndexには存在するが、どのCharacterCandidateのevidenceIdsにも使われていない）
-  - Extraction/Merger: schema validation・semantic validation・merge全て成功。candidateCounts（characters=6, locations=1）、conflictCounts=0、warningCounts=0。CHAR_RAIN/CHAR_AKAGI_HINAが正しく`existingCharacterId`解決され、canonicalIdSummary.totalAssigned=2
-  - **見つけたが今回修正しなかったもの**: 実データのbare-word未登録コマンド（`costume`/`fa`、character_display/costume系と思われる）と`@`付き未登録コマンド（`@TalkPosR`/`@TalkPosL`/`@ChEyeOff`/`@VisibleS`/`@FadeOutBlack`）を発見。これらは`script command coverage`カテゴリの追加であり、branch/choice固有の課題ではないため、TASKS.mdに記録した上で今回は追加しなかった（別途command coverage追加PRの対象）
-  - テスト: `tests/parser/test_parser_basic.py`に3件追加（`#endif`以降がシーンレベルに戻ること、ネストしたbranchが外側choiceを正しく復元すること、省略記号のみのモノローグが欠落しないこと）、`tests/parser/test_tokenizer.py`に1件追加（省略記号のみの行がTEXT型になること）、`tests/parser/test_compatibility_consistency.py`に1件追加（branch/choiceを含むスクリプトでも両経路が一致すること）。実データ由来fixtureは追加していない（すべて既存テストと同じ形式の短い合成スクリプト）
-  - 既存テストへの影響: 無し。既存539件 + 新規5件 = 544件、すべて無変更で通過
-  - 未着手（次のPRへ持ち越し）: ~~実データで見つかった未登録コマンド（costume/fa/@TalkPosR等）のscript command coverage追加~~ → `feature/script-command-coverage-followup`で対応完了（詳細は本セクション後述のエントリ参照）、`branch_issues`/`case_variants`のStoryParser側追跡実装、実データ頻出未確認キャラクターIDのconfirmed化、ruff known issues cleanup、Wiki出力設計
-- ruff known issues cleanup: 実装完了。`feature/ruff-known-issues-cleanup`ブランチで作業（挙動変更なし、Parser/Extractor/Merger仕様変更は非目的）
-  - 目的: `uv run ruff check scripts agents tests`で検出されていた既存エラー（Known Issuesに記載の約20件、内訳C901複雑度6件・E501長行複数・F841未使用変数3件・E402インポート順2件）を、今後のCI導入に向けて解消する
-  - **C901複雑度の解消（6件中5件）**: `agents/parser/tokenizer.py::_tokenize_line`（14→クリア、`_classify_*`系ヘルパーへの分類チェーン方式で分割）、`scripts/check_script_compatibility.py::main`（11→クリア）・`build_markdown_report`（21→クリア、セクション単位の`_build_*_section`ヘルパーへ分割）・`check_file`（25→クリア、`_process_line`＋`_check_character_id_line`/`_check_branch_keyword`/`_check_conditional_directive`/`_check_command_line`へ分割）、`scripts/normalize_story.py::main`（26→クリア、`_load_character_dict`/`_run_compatibility_check`/`_parse_story_file`/`_normalize_story`/`_export_story`/`_print_completion_summary`のフェーズ単位ヘルパーへ分割）。いずれも入出力・print文言・終了コードは分割前と完全一致することをpytest（544件）と手動CLIスモークテストで確認
-  - **`agents/parser/parser.py::_parse_tokens`（43>10）は意図的に未対応**: 12個以上の`nonlocal`状態変数（pending_speech_*/forced_name_override/current_choice/current_option_idx/branch_stack/text_lines等）が`flush_text()`クロージャと全トークン種別ハンドラ間で密結合しており、安全に分割するには状態を`dataclass`へ切り出す規模のリファクタが必要になる。実データ生成の中核ロジックであり本PRの目的（挙動不変のruff cleanup）を超えるリスクがあるため、Known Issuesとして据え置いた（詳細は§4参照）
-  - **E501/F841/E402の解消**: `scripts/check_script_compatibility.py`（F841×3: `branch_options`/`last_command`/`pending_speech`が完全なdead codeであることをgrep確認の上削除）、`tests/parser/test_resolver.py`（F841×1）、`agents/parser/normalizer.py`・`tests/parser/test_normalized_story_schema.py`（E501の折り返し）、`scripts/extract_story.py`・`scripts/normalize_story.py`（E402、`sys.path.insert`後のimportに`# noqa: E402`を付与、既存の`validate_extraction_json.py`等と同じ確立済みパターン）
-  - **副次的に発見したcp932 UnicodeEncodeErrorバグ2件（ruffとは無関係、修正済み）**: `scripts/check_script_compatibility.py`の`argparse`の`description`/`epilog`と、`scripts/normalize_story.py`の`--check-compat`ブロック時エラーメッセージに、Windows cp932コンソールでエンコードできないemダッシュ「—」（U+2014）が含まれており、`--help`実行時や該当パス通過時にクラッシュしていた。PR #29と同じ理由・同じ対処法（ASCIIハイフン「-」へ置換）で修正
-  - テスト: 新規テストファイルは追加していない（既存テストの挙動保証のみが目的）。既存544件がすべて無変更で通過。`tests/parser/test_character_dictionary.py`・`test_character_dictionary_pipeline.py`・`test_compatibility.py`・`test_compatibility_consistency.py`・`test_normalizer_compatibility_report.py`・`test_script_compatibility.py`・`test_parser_basic.py`・`test_tokenizer.py`・`tests/scripts/test_console_output_encoding.py`（branch/choice・character dictionary・compatibility consistency・cp932関連）を個別に再実行し142件通過を確認
-  - `uv run ruff check scripts agents tests`: 残り1件（`_parse_tokens`のC901、上記の理由でKnown Issue）。`uv run ruff format scripts agents tests --check`: 全105ファイルクリーン
-  - 実データ・生成物（data/raw、data/normalized、data/extracted、data/reports、workspace/dry_runs等）はコミット対象外。今回のPRで新規に追加した実データ由来fixtureは無し
-  - 未着手（次のPRへ持ち越し）: `agents/parser/parser.py::_parse_tokens`のC901解消（dataclassベースの状態オブジェクトへのリファクタが必要、Parser本体の大規模設計変更にあたるため別PRで慎重に検討）、GitHub Actions CIへの`ruff check`/`ruff format --check`組み込み
-- script command coverage followup: 実装完了。`feature/script-command-coverage-followup`ブランチで作業（挙動変更は演出コマンドの新規分類追加のみ、Parser/Extractor/Merger仕様変更は非目的）
-  - 目的: `feature/branch-choice-dry-run`（PR #33）のdry-runで見つかった未登録コマンド7種（`costume`/`fa`/`@TalkPosR`/`@TalkPosL`/`@ChEyeOff`/`@VisibleS`/`@FadeOutBlack`）を、意味推定しすぎずstage_directionの既存カテゴリへ分類する
-  - **分類結果**: `costume`→`character_display`、`fa`→`character_display`（表情/フェイス変更と推定、既存`@FaceLow`と同カテゴリ）、`@TalkPosR`/`@TalkPosL`→`ui`（既存`@TalkPos`/`@TalkPosLLL`/`@TalkPosRRR`と同カテゴリ）、`@ChEyeOff`→`character_display`（既存`@ChCharaEyeOff`と同カテゴリ）、`@VisibleS`→`character_display`（既存`@Visible`/`@VisibleOff`と同カテゴリ）、`@FadeOutBlack`→`screen`（既存`@FadeOutWhite`と同カテゴリ）。新カテゴリの追加は不要だった（すべて既存6カテゴリ: background/sound/character_display/camera/motion/ui/video/system/screenのいずれかに収まった）
-  - `config/script_commands.yaml`: 7コマンドを`stage_direction`セクションへ追加
-  - `agents/parser/parser.py`: `DIRECTION_TYPE_MAP`へ7エントリ追加（`STAGE_DIRECTION_COMMANDS`は`DIRECTION_TYPE_MAP.keys()`から自動導出されるため追加変更不要）
-  - `agents/parser/tokenizer.py`: `KEYWORD_TOKENS`へ`costume`/`fa`のみ追加（`@`付き5コマンドは先頭が`@`であれば自動的に`TokenType.COMMAND`になるためtokenizer側の変更不要、既存の設計通り）
-  - `scripts/check_script_compatibility.py`・`agents/parser/compatibility.py`は変更なし（`config/script_commands.yaml`を読み込むだけで両経路とも既知コマンド扱いになる、`feature/compatibility-check-consistency`で共有化済みのロジックをそのまま利用）
-  - テスト（すべて合成fixture、実データ由来fixtureは追加せず）: `tests/parser/test_tokenizer.py`に7件追加（`costume`/`fa`がKEYWORDになること2件、`@TalkPosR`等5コマンドがCOMMAND型になることの確認5件）、`tests/parser/test_parser_basic.py`に2件追加（7コマンドすべてが期待通りの`direction_type`でstage_directionになること、7コマンドがセリフの間に挟まってもdialogue/monologueの件数・本文・line_start/line_endが変わらないこと）、`tests/parser/test_compatibility_consistency.py`に1件追加（7コマンドがstandalone実行・`--check-compat`埋め込みの両経路でunknownCommands/newSpeechCommandsに現れないこと）。既存544件+新規10件=554件、すべて無変更で通過
-  - CLIスモークテスト（合成`.dec`、ローカルのみ）: `check_script_compatibility.py`単体実行・`normalize_story.py --check-compat`経由の両方で7コマンドを含む合成スクリプトが`parserCompatibility: compatible`・`unknownCommands: []`になることを確認。生成された正規化JSONで7コマンドすべてが期待通りの`directionType`のstage_directionブロックになっていることも直接確認
-  - `uv run ruff check scripts agents tests`: 残り1件（`_parse_tokens`のC901、既存Known Issue、本PR無関係）。`uv run ruff format scripts agents tests --check`: 全105ファイルクリーン
-  - **実データでの再dry-run**: 未実施。このリポジトリのworktree環境には実`.dec`データが存在しない（`data/raw/`配下は`.gitkeep`のみ、実データは`.gitignore`対象でユーザーのローカル環境にのみ存在するため）。合成fixtureでの検証のみで代替した
-  - 未着手（次のPRへ持ち越し）: `branch_issues`/`case_variants`のStoryParser側追跡実装、実データ頻出未確認キャラクターIDのconfirmed化、`agents/parser/parser.py::_parse_tokens`のC901解消、GitHub Actions CI導入、Wiki出力設計
-- GitHub Actions CI: 実装完了。`feature/github-actions-ci`ブランチで作業
-  - 目的: PRごとに最低限の安全確認（pytest・不可視Unicode検査・dry-run入力安全確認・ruff format/check）を自動実行するCIを追加する
-  - `.github/workflows/ci.yml`を新規追加: トリガーは`pull_request`・`push`（`main`ブランチ）、`ubuntu-latest`上で`astral-sh/setup-uv@v5`（キャッシュ有効）+ `actions/setup-python@v5`（Python 3.12）+ `uv sync --locked`のセットアップ後、`uv run pytest`・`uv run python scripts/check_invisible_unicode.py`・`uv run python scripts/check_dry_run_inputs.py`・`uv run ruff format scripts agents tests --check`・`uv run ruff check scripts agents tests`を順に実行
-  - **Python versionの補正**: ユーザー指示では3.10だったが、`pyproject.toml`の`requires-python = ">=3.12"`と矛盾するため（`uv sync`が3.10では失敗する）、実際にプロジェクトが要求する3.12を採用した
-  - **`agents/parser/parser.py::_parse_tokens`のC901（43>10）**: 推奨案Aを採用し、`def _parse_tokens(`行末に`# noqa: C901`を追加（コメントで「parse state dataclass refactorまでの暫定抑制」と明記）。これにより`uv run ruff check scripts agents tests`がCIでクリーンに通るようになった。大規模リファクタは今回も実施していない（Known Issueとして引き続きTASKS.md §4に残す）
-  - `scripts/check_dry_run_inputs.py`: **コード変更不要だった**。既存実装が既に「`data/raw`等が存在しなくてもエラーにしない（`(未作成)`表示のみ）」「git tracked禁止パターンが無ければexit 0」を満たしており、実データが一切無いこのworktree環境でも`exit 0`になることを確認済み（CI環境でも同様に動作する）
-  - `scripts/check_invisible_unicode.py`: 変更なし。危険な不可視制御文字が無い状態でexit 0になることを確認済み
-  - テスト: 新規テストファイルは追加していない（CI workflow自体へのテストは不要、既存テストの挙動保証のみ）。既存554件がすべて無変更で通過
-  - `uv run ruff check scripts agents tests`: クリーン（`_parse_tokens`の`# noqa: C901`により）。`uv run ruff format scripts agents tests --check`: 全105ファイルクリーン
-  - 未着手（次のPRへ持ち越し）: `agents/parser/parser.py::_parse_tokens`のparse state dataclassリファクタ本体、実データ頻出未確認キャラクターIDのconfirmed化、Wiki出力設計、実データdry-run拡大
-- character dictionary confirmed review workflow: 実装完了。`feature/character-dictionary-confirmed-review`ブランチで作業
-  - 目的: 実データdry-runで見つかった未確認`sourceCharacterId`を、人間が安全に確認・confirmed化できる運用（ドキュメント・レビュー用テンプレート・coverage script改善・辞書validation強化）を整備する。**このPRではAIの推測によるconfirmed entry追加は一切行っていない**
-  - **現状確認結果**（着手前に確認、`knowledge/dictionaries/characters.yaml`時点）:
-    - 総エントリ数: 66件
-    - `status: confirmed`: 2件（`sourceCharacterId "1"` → `CHAR_AKAGI_HINA`、`"26"` → `CHAR_RAIN`。いずれも既存テスト・fixtureで確立済みの規約、`feature/character-dictionary-coverage`で辞書化済み）
-    - `status: name_only`: 64件（`characterId: null`）
-    - `sourceCharacterId`が設定されている件数: 66/66（全件）
-    - `characterId`が設定されている件数: 2/66（confirmedの2件のみ）
-    - `aliases`: 全66件で空配列（`[]`）のまま未使用
-    - `existingCharacterId`が付与される条件: `agents/parser/resolver.py`の`CharacterDictionary._id_map`に`characterId`が登録されている場合のみ（`status: confirmed`のときだけ`load_from_dictionary_yaml`が`_id_map`へ反映する）。`_resolve_character_id`は`displayName`が分かっていれば（statusを問わず）`Speaker.is_resolved=True`にするが、これは「表示名解決」であって「canonical ID確定」ではない。`speakerId`（→ Extractorの`existingCharacterId`）は`characterId`経由でのみ設定される
-    - `status: name_only`が常にunresolvedのままになること: `tests/parser/test_character_dictionary_pipeline.py::test_name_only_character_never_auto_resolved`で確認済み（表示名が分かっていても`existingCharacterId`は`None`のまま、Merger側も`status: unresolved`のまま）
-  - **新規ドキュメント** `docs/runbooks/Character_Dictionary_Review.md`: confirmed化ルールを明文化（status意味の整理、confirmed化してよい条件4点・いけない条件4点、sourceCharacterId/characterId/displayName/aliases/notesの扱い、実データ由来dumpをcommitしないルール、人間確認済みmappingのみcommitするルール、名前一致だけではresolvedにしないルール、dry-run後のcoverage report確認手順）。`docs/runbooks/Real_Data_Dry_Run.md`に§20として本ドキュメントへのポインタを追加（`--review-template-output`オプションの説明込み）
-  - **新規テンプレート** `docs/templates/character_dictionary_review_template.yaml`: 人間確認用テンプレートの見本。**合成データのみ**（`sourceCharacterId: "999"`/`"1000"`/`"1001"`という架空ID、`Example Character`という架空名。実データ由来のID・キャラクター名は一切含まない）。confirmed化してよい例・未確認のまま残す例・名前類似だけでは確定しない例を1件ずつ収録
-  - **`agents/parser/character_dictionary.py`の改善**:
-    - `build_character_dictionary_coverage_report`を拡張: `confirmedObservedCount`/`nameOnlyObservedCount`/`confirmedCoveragePercentage`/`nameOnlyCoveragePercentage`/`dictionaryTotalCount`/`dictionaryConfirmedCount`/`dictionaryNameOnlyCount`を追加（既存の`observedCount`/`knownCount`/`unknownCount`/`coveragePercentage`/`topUnknownIds`は変更なし、既存呼び出し元・既存テストへの影響なし）
-    - `build_review_candidates`を新規追加: 未登録`sourceCharacterId`を出現回数降順で列挙し、`suggestedDisplayName`/`confirmedCharacterId`/`reviewerNotes`が全て`null`のプレースホルダー形式で返す（実データの表示名・本文は一切含まない）
-    - `validate_character_dictionary`に`aliases`重複検出を追加（`_validate_alias_duplicates`）: 同一エントリ内の重複値、および同じalias値が複数エントリで使われているケース（`resolve_character_by_name`が最初に一致した方だけを返す曖昧さの防止）の両方を検出
-    - 「confirmedなのにsourceCharacterIdが空」は、既存の`_validate_single_entry`が全エントリ共通でsourceCharacterId空を拒否するため、確認の結果**追加実装不要**と判断（statusを問わず既にカバー済み）
-  - **`scripts/check_character_dictionary_coverage.py`の改善**: 辞書のstatus内訳（confirmed/name_only件数）と、confirmed/name_only別のcoverage内訳をコンソール出力に追加。`--review-template-output <path>`オプションを新規追加し、未登録ID一覧を人間確認用YAMLへローカル書き出しできるようにした（出力ヘッダーに「commitしないでください」の注意書きを埋め込み済み）
-  - テスト（すべて合成データ、実データ由来fixtureは追加せず）: `tests/parser/test_character_dictionary.py`に9件追加（aliases重複検出3件、coverage report status内訳1件、`build_review_candidates`3件）、`tests/scripts/test_check_character_dictionary_coverage.py`に2件追加（status内訳のstdout確認、`--review-template-output`が合成テンプレートを書き出すことの確認）。既存554件+新規9件=563件、すべて無変更で通過
-  - **本番辞書に対するCLIスモークテスト**（合成`.dec`スクリプトのみ使用、実データ不使用）: `knowledge/dictionaries/characters.yaml`（66件、confirmed 2/name_only 64）に対し、confirmed 2件+未登録1件を含む合成スクリプトを実行し、`status内訳: confirmed=2/name_only=64`・`confirmed coverage: 2件(66.7%)`・`--review-template-output`が実データ内容を含まない合成レビュー候補1件を正しく書き出すことを確認
-  - **実データでの再dry-run確認**: 未実施。このworktree環境には実`.dec`データが存在しない（`data/raw/`配下は`.gitkeep`のみ）ため、既存dry-runデータに対するcoverage再測定は実施できなかった（`feature/script-command-coverage-followup`と同じ制約）
-  - **今回あえてconfirmed化しなかったもの**: `TASKS.md`既存記載の実データ頻出unknown ID（234/225/230/222等）を含む、すべての未確認`sourceCharacterId`。これらはユーザーからの明示的なmapping提供が無い限り、Claudeの推測でconfirmed化しない方針（本PRの最重要制約）。人間がローマ字表記を確認し、`docs/runbooks/Character_Dictionary_Review.md`の手順で個別に反映することを引き続き推奨する
-  - `uv run ruff check scripts agents tests`: クリーン（`_parse_tokens`の既存`# noqa: C901`のみ）。`uv run ruff format scripts agents tests --check`: 全105ファイルクリーン
-  - 未着手（次のPRへ持ち越し）: 実データ頻出未確認キャラクターIDの人間による個別confirmed化（本PRが整備した運用に沿って別途実施）、`agents/parser/parser.py::_parse_tokens`のparse state dataclassリファクタ、Wiki出力設計、実データdry-run拡大
-- character dictionary reference JSON import batch 001: 実装完了。`feature/character-dictionary-confirmed-batch-001`ブランチで作業
-  - 目的: 以前提供済みのキャラクター辞書JSON（`reference/parser/characters_reference.json`）を、`knowledge/dictionaries/characters.yaml`へ安全に取り込む第1回batch。**このPRでもAIの推測によるconfirmed entry追加は一切行っていない**
-  - **入力元の確認**: `reference/parser/characters_reference.json`（`sourceCharacterId → displayName`のフラットなレガシー辞書、読み取り専用、67行・66件）を入力元として使用。リポジトリ内に他の`characters.json`相当ファイルは存在しないことを確認済み（`schemas/character.schema.json`はスキーマ定義でありデータではない、`tests/fixtures/merged_knowledge/minimal_merged_character.json`は無関係な合成fixture）
-  - **差分確認結果（実データ本文なし、ID・件数のみ）**:
-    - JSON側総件数: 66件 / YAML側総件数: 66件
-    - `sourceCharacterId`が一致する件数: 66件（全件）
-    - YAMLに未登録の`sourceCharacterId`（JSONのみ）: **0件**
-    - YAML側にしか存在しない`sourceCharacterId`（JSONのみ）: **0件**
-    - displayNameが異なる`sourceCharacterId`: **0件**
-    - confirmed件数: 2件（変更前後とも） / name_only件数: 64件（変更前後とも）
-    - **結論: `reference/parser/characters_reference.json`は`feature/character-dictionary-coverage`（過去のPR）で既に`knowledge/dictionaries/characters.yaml`へ完全移行済みであり、この入力元に対しては追加で取り込むべき差分が無い**。そのため`knowledge/dictionaries/characters.yaml`自体は今回のPRで一切変更していない
-  - **新規補助スクリプト** `scripts/compare_character_dictionaries.py`: JSON参照辞書とYAML正規辞書の差分を確認する（既定はdry-run、`--write`指定時のみYAML未登録IDを`status: name_only`として追記）。将来、更新版の参照JSONや別バッチが提供された際に同じ手順で安全に差分確認・取り込みができるよう、今回の「差分ゼロ」という結果に関わらず整備した
-    - `--write`時の動作: 新規追加は必ず`status: name_only`・`characterId: null`・`notes: "Imported from reference character dictionary; requires human confirmation."`固定。`characterId`の自動生成は一切行わない。既存の`confirmed`エントリは絶対に上書きしない（ファイル末尾へのテキスト追記のみで既存行を変更しないため、構造的に上書き不可能）
-    - displayNameが異なる既存エントリを検出した場合は、上書きせず標準エラー出力へwarningとして報告するのみ（`--write`でも自動修正しない）
-    - 既存の`knowledge/dictionaries/characters.yaml`の構成（`schemaVersion`が先、`characters:`リストがファイル末尾）を前提にした最小限のテキスト追記方式を採用（コメント・既存整形を壊す全体再ダンプは避けた）
-  - テスト（すべて合成データ、実データ由来fixtureは追加せず）: `tests/scripts/test_compare_character_dictionaries.py`（14件、新規）。JSON側にありYAML側にないIDがname_onlyとして追加されること、既存confirmed/name_onlyエントリが上書きされないこと、displayName conflictがwarningとして報告されること、JSON由来entryが絶対にconfirmedにならないこと、characterIdが自動生成されないこと、invalid dictionaryの検出、dry-run時にファイルが一切変更されないことを確認。既存563件+新規14件=577件、すべて無変更で通過
-  - **本番データに対するdry-run確認**（`reference/parser/characters_reference.json`・`knowledge/dictionaries/characters.yaml`、実データではなくどちらも既存のリポジトリ管理ファイル）: `scripts/compare_character_dictionaries.py`（dry-run、`--write`無し）を実行し、差分確認結果の通り一致66件・不一致0件・conflict0件を確認。ファイルは変更されていない（`git status --short`で確認）
-  - **実データ（`.dec`）でのcoverage再確認**: 未実施。このworktree環境には実`.dec`データが存在しない（`data/raw/`配下は`.gitkeep`のみ）ため、`scripts/check_character_dictionary_coverage.py`による実データcoverage再測定は実施できなかった（`feature/character-dictionary-confirmed-review`と同じ制約）
-  - **今回あえてconfirmed化しなかったもの**: 今回の入力元（`characters_reference.json`）に差分が無かったため新規confirmed化は0件。実データ頻出unknown ID（234/225/230/222等）を含む、すべての未確認`sourceCharacterId`は引き続きconfirmed化していない（本PRの最重要制約、ユーザーからの明示的なmapping提供が無い限りAIが推測でconfirmed化しない）
-  - `uv run ruff check scripts agents tests`: クリーン（`_parse_tokens`の既存`# noqa: C901`のみ）。`uv run ruff format scripts agents tests --check`: 全107ファイルクリーン
-  - 未着手（次のPRへ持ち越し）: 更新版・別ソースのキャラクター辞書JSONが提供された場合のbatch 002（`scripts/compare_character_dictionaries.py --write`で取り込み）、実データ頻出未確認キャラクターIDの人間による個別confirmed化、`agents/parser/parser.py::_parse_tokens`のparse state dataclassリファクタ、Wiki出力設計
-- wiki output design: 実装完了。`feature/wiki-output-design`ブランチで作業（**Wiki生成パイプラインの実装は行わず、設計のみ**）
-  - 目的: Stage B（`agents/merger/`）が出力するmerged knowledge collectionから、将来どのようなWikiページを生成するかの構成・責務・テンプレート方針を整理する
-  - **新規ドキュメント** `docs/architecture/07_Wiki/Wiki_Output_Design.md`（既存の空プレースホルダーディレクトリ`07_Wiki/`を使用。新規ディレクトリは作成していない）: 目的・Knowledge BaseとWikiの関係（source of truthはmerged knowledge collection、Wikiページは生成物であり手編集しない）・公式情報/AI要約/AI考察/manual overrideの分離方針（`AI_CONTEXT.md` §4.5の具体化）・evidenceRefsの扱い（元セリフ全文を転載しない、参照情報のみ残す）・unresolved entity/canonicalIdなしentityの表示方針（`status: unresolved`は個別ページを生成せずUnresolved reportへ集約）・hidden/excluded entityの扱い・実データ由来生成物をcommitしない方針・ページ種別（Phase 1〜3）・各ページの責務・Markdown front matter方針・出力ディレクトリ案・テンプレート方針・merged collectionとの対応表・URL/slug方針・将来の実装PR案（7件）・Non-goalsを網羅
-  - **既存プレースホルダーの更新**: `docs/architecture/07_Wiki/Character_Page.md`/`Organization_Page.md`/`Story_Page.md`/`Timeline_Page.md`（いずれも0バイトの空ファイルだった）に、`Wiki_Output_Design.md`の該当セクションへのポインタを追記（内容の重複を避けるため、詳細は単一の設計書に集約する方針）。`Search.md`は本PRの対象ページ種別に含まれないため変更していない
-  - **ページ種別の優先順位**:
-    - Phase 1: Top page / Story index / Episode page / Character page / Unresolved report page
-    - Phase 2: Location / Organization / Item / Lore / Event page、Relationship section（独立ページではなくCharacter/Organizationページ内のセクションとする方針）、Timeline page
-    - Phase 3: AI analysis / speculation page、Evidence / source index page、Knowledge Graph view
-  - **出力ディレクトリ案**: `site_src/`（リポジトリ直下、生成物専用、`.gitignore`対象）を推奨。`docs/`配下は既に設計文書・ランブックの手書き置き場のため、生成物と混在させない（`Merged_Knowledge_Design.md` §11.1と同じ判断）
-  - **URL/slug方針**: canonicalIdがある場合のみ`{type}/{canonicalId}.md`形式で生成（例: `characters/CHAR_RAIN.md`）。名前ベースslugは原則避ける（displayName変更でURLが変わるため）。canonicalId未確定（`status: unresolved`）は通常ページを生成せずUnresolved reportにのみ掲載
-  - **evidence表示方針**: evidenceId/episodeId/sceneId/blockIdの参照情報と件数要約のみ表示し、元セリフ全文は転載しない。AI要約と元データ参照は分離する
-  - **AI考察の分離方針**: `sourceType: ai_inferred`のフィールド/Relationshipは、公式情報・抽出情報（`script`/`ai_extracted`/`official`）と必ず別セクションまたは別ページに分離し、「AI-generated analysis」等の明示ラベルを付ける
-  - **合成サンプル**（実データ不使用）: `docs/examples/wiki_output/README.md`（合成データのみで構成する方針の明記）・`character_page_example.md`（`CHAR_EXAMPLE`という架空ID）・`episode_page_example.md`（`EXAMPLE_S01_C01_E01`という架空ID）
-  - テスト（新規）: `tests/docs/test_wiki_output_design_docs.py`（8件）。設計書の存在・必須セクション（§1〜16）の網羅・必須ページ種別への言及・実データ非commit方針の明記・AI考察分離方針の明記・canonicalId優先URL方針の明記・設計書と合成サンプルに実キャラクター名（レイン/赤城陽菜等）が紛れ込んでいないことを確認。既存585件-8件=577件+新規8件=585件、すべて無変更で通過
-  - `uv run ruff check scripts agents tests`: クリーン（`_parse_tokens`の既存`# noqa: C901`のみ）。`uv run ruff format scripts agents tests --check`: 全108ファイルクリーン
-  - **今回あえて実装しなかったこと**: Wiki生成パイプライン本体（Python実装）、実データ由来Wikiページ生成、MkDocs Material本格導入、GitHub Pages/Cloudflare Pages設定、Knowledge Graph生成、LLM/provider/prompt実装、AI考察本文の生成、canonical ID自動割り当て、キャラクター辞書の推測confirmed化、テンプレートエンジン（Jinja2等）の依存追加可否の確定（実装PRで判断する方針のみ記載）
-  - 未着手（次のPRへ持ち越し）: wiki renderer skeleton（`agents/wiki_generator/`）、character/episode page rendererの実装、unresolved report renderer、MkDocs Material minimal site、実データ頻出未確認キャラクターIDの人間による個別confirmed化、`agents/parser/parser.py::_parse_tokens`のparse state dataclassリファクタ
-- wiki renderer skeleton: 実装完了。`feature/wiki-renderer-skeleton`ブランチで作業（**合成fixtureのみ使用、実データ由来Wikiページのcommitなし**）
-  - 目的: merged knowledge collectionからWiki Markdownを生成する最小renderer skeletonを実装する。`Wiki_Output_Design.md` §15実装PR案の1〜4（wiki renderer skeleton、character page renderer、episode page renderer簡易版、unresolved report renderer）をまとめて対応した
-  - **module構成**: 既存の空placeholder package `agents/wiki_generator/`を使用（新規パッケージは作成していない）
-    - `agents/wiki_generator/paths.py`: canonicalId優先URL方針の実装。`is_page_eligible(entity)`（canonicalIdが設定されておりstatus: mergedの場合のみTrue）、`character_page_path`/`episode_page_path`
-    - `agents/wiki_generator/models.py`: front matter組み立て（`build_front_matter`、YAML文字列の最小限safe quote helper）、entity種別定数
-    - `agents/wiki_generator/renderer.py`: `render_index_page`/`render_story_index_page`/`render_episode_page`/`render_character_page`/`render_unresolved_report`（ページ種別ごとに独立した関数、将来のJinja2差し替えを見据えた分割）、`build_pages`（collectionから全ページを組み立てるオーケストレーション）、`write_pages`（ファイル書き出し、`--clean`相当のオプション付き）
-  - **CLI** `scripts/render_wiki.py`: `--input`（merged knowledge collection JSON）・`--output`（出力先ディレクトリ）・`--clean`（生成前に出力先を削除）・`--validate`（`schemas/merged_knowledge_collection.schema.json`でschema検証、`jsonschema.Draft7Validator`を使用、既存の`scripts/validate_extraction_json.py`と同じ方式）。exit code: 0成功/1入力読み込み失敗/2schema検証失敗（`--validate`時のみ）
-  - **生成対象（Phase 1最小）**: `index.md`（Top page）・`stories/index.md`（Story index）・`stories/{episodeId}.md`（Episode page、sourceDocumentsベースの簡易版。現状のmerged knowledge collectionにEpisode entity相当が無いため、本文は生成せず基本情報+candidateCounts一覧のみ）・`characters/{canonicalId}.md`（Character page、canonicalIdありのresolved characterのみ）・`reports/unresolved.md`（Unresolved report、8種entity type全てが対象）
-  - **canonicalIdあり/なしの扱い**: `is_page_eligible`（canonicalId設定済み かつ status: merged）を満たすentityのみ個別ページを生成する。満たさないentity（canonicalId未確定、status: unresolved/conflict/deprecated）は個別ページを一切生成せず、`reports/unresolved.md`へ集約する（`Wiki_Output_Design.md` §5と同じ判定基準）
-  - **front matter方針**: `title`/`entity_type`/`entity_id`/`canonical_id`/`status`/`generated_from`をこの順で出力（`Wiki_Output_Design.md` §10の例に準拠）。ただし`status`はスキーマの実際のenum値（`merged`等）をそのまま使い、設計書の例にあった`"resolved"`という非スキーマ値は採用していない（スキーマ整合性を優先）
-  - **evidenceRefs表示方針**: `evidenceId`/`episodeId`/`sceneId`/`blockId`の参照情報のみを1行にまとめて表示し、`textExcerpt`等の本文は一切出力しない（テストで確認済み）
-  - **合成fixture** `tests/fixtures/wiki/synthetic_merged_collection.json`（新規、`schemas/merged_knowledge_collection.schema.json`でschema検証済み）: `CHAR_TEST_RAIN`（canonicalIdありresolved character）・`UNRESOLVED_CHAR_TEST_0001`（canonicalIdなしunresolved character）・`UNRESOLVED_LOC_TEST_0001`（unresolved location）・`sourceDocuments`（`EP_TEST_001`/`TEST_S01_C01`）・`report.unresolvedEntityCounts`/`conflictCounts`/`canonicalIdSummary`等を含む。実データ由来の名前・ID・セリフは一切使用していない
-  - テスト（すべて合成fixture）: `tests/wiki/test_wiki_renderer.py`（22件、新規）でrenderer関数単体を検証、`tests/scripts/test_render_wiki.py`（6件、新規）でCLIスモークテスト（正常系・`--validate`成功/失敗・`--clean`・入力エラー）。既存585件+新規28件=613件、すべて無変更で通過
-  - `docs/architecture/07_Wiki/Wiki_Output_Design.md`を軽微更新: §15実装PR案1〜4を完了扱いに更新、§14 URL方針にEpisode pageの暫定フラット構成（`stories/{episodeId}.md`、本来案は`stories/{storyId}/{episodeId}.md`）についての注記を追加
-  - `uv run ruff check scripts agents tests`: クリーン（`_parse_tokens`の既存`# noqa: C901`のみ）。`uv run ruff format scripts agents tests --check`: 全115ファイルクリーン
-  - **今回あえて実装しなかったこと**: Location/Organization/Item/Lore/Event page、Relationship section、Timeline page、AI analysis page（すべてWiki_Output_Design.md Phase 2/3、Non-goals）、実データ由来Wikiページ生成・commit、MkDocs Material本格導入、GitHub Pages/Cloudflare Pages設定、Knowledge Graph生成、LLM実装、canonical ID自動割り当て、キャラクター辞書の推測confirmed化、Jinja2等テンプレートエンジンの依存追加確定、schema collection内の`entities`配下への`$ref`接続（既存のPR #18 TODOのまま）
-  - 未着手（次のPRへ持ち越し）: character/episode page rendererの拡張（Location/Organization/Item/Lore/Event page追加、Episode pageの本文相当情報対応）、unresolved report rendererの改善（conflict warning box等）、MkDocs Material minimal site、実データ頻出未確認キャラクターIDの人間による個別confirmed化、`agents/parser/parser.py::_parse_tokens`のparse state dataclassリファクタ
-- character page renderer expansion: 実装完了。`feature/character-page-renderer-expansion`ブランチで作業（**合成fixtureのみ使用、実データ由来Wikiページのcommitなし**）
-  - 目的: `wiki renderer skeleton`（PR #40）で生成しているCharacter pageを、merged character entityの主要情報を見やすく表示する実用的な内容に拡張する
-  - **追加した表示項目**（`agents/wiki_generator/renderer.py::render_character_page`）:
-    - Summary表(既存): Entity ID / Canonical ID / Status / Confidence / Source types
-    - Aliases（新規セクション化）: 箇条書きで全件列挙。空なら「別名は登録されていません。」
-    - Evidence（既存、変更なし）: evidenceId/episodeId/sceneId/blockIdの参照情報のみ、複数件を全件列挙
-    - Source Candidates（新規、既存の件数表示から詳細summaryへ拡張）: candidateId/candidateType/episodeId/evidenceIds件数/sourceDocumentIdを1行ずつ列挙。元candidateのraw payloadは含めない
-    - Conflicts（既存を拡張）: `field`を追加表示（conflictType/severity/field/resolutionStatus）。空なら「記録されている矛盾はありません。」
-  - **front matter拡張**: `confidence`/`source_types`を任意フィールドとして追加（`agents/wiki_generator/models.py`の`_FRONT_MATTER_KEY_ORDER`に追加）。既存の`title`/`entity_type`/`entity_id`/`canonical_id`/`status`/`generated_from`は変更なし
-  - **canonicalIdあり/なし・unresolvedの扱い**: `is_page_eligible`（canonicalId設定済み かつ status: merged）の判定基準は変更なし。conflictsが存在してもstatus: mergedであれば通常ページを生成することをテストで明示的に確認した（conflictsの有無はページ生成可否に影響しない）
-  - **言語方針の判断**: タスク例では表項目が英語ラベルだったが、既存の`render_character_page`実装・`Wiki_Output_Design.md`の合成サンプル（`docs/examples/wiki_output/`）が日本語本文で統一されていたため、セクション見出し（`## Summary`/`## Aliases`/`## Evidence`/`## Source Candidates`/`## Conflicts`）は既存踏襲の英語のまま、本文・プレースホルダーメッセージは日本語で統一した（プロジェクト全体の一貫性を優先）
-  - **合成fixture拡張** `tests/fixtures/wiki/synthetic_merged_collection.json`: `CHAR_TEST_RAIN`にaliases2件・evidenceRefs2件・sourceCandidates2件へ拡張、新規`CHAR_TEST_CONFLICT`（aliasesは空、conflicts1件、`sourceTypes`/`confidence`あり）を追加。`report`内の関連カウント（`candidateCounts`/`mergedEntityCounts`/`conflictsCount`/`conflictCounts`/`entityTypeSummaries`/`canonicalIdSummary`等）も整合するよう更新し、`schemas/merged_knowledge_collection.schema.json`で再検証済み。実データ由来の名前・ID・セリフは使用していない
-  - テスト（すべて合成fixture）: `tests/wiki/test_wiki_renderer.py`に8件追加（aliases全件表示・空時プレースホルダー・sourceTypes表示・confidence表示・evidenceRefs複数件表示・sourceCandidates summary・conflicts表示（あり/なし）・conflictsがあってもpage-eligibleであること）。既存fixtureのインデックス変更に伴い既存テストの`unresolved_character`フィクスチャ参照を修正、`conflict_character`フィクスチャを追加。既存613件+新規8件=621件、すべて無変更で通過
-  - `docs/architecture/07_Wiki/Wiki_Output_Design.md` §9.4に実装状況を軽微追記（実装済み表示項目・今回対象外の関連Relationship/AI推定ラベル付け等を明記）
-  - `uv run ruff check scripts agents tests`: クリーン（`_parse_tokens`の既存`# noqa: C901`のみ）。`uv run ruff format scripts agents tests --check`: 全115ファイルクリーン
-  - **今回あえて実装しなかったこと**: Relationship section（関連Relationship表示）、登場エピソード一覧表示、`manualOverridesApplied`の明示表示、AI推定ラベル付け（`sourceTypes`に`ai_inferred`が含まれる場合のAI analysis page分離、Phase 3待ち）、Location/Organization/Item/Lore/Event page本格実装、Timeline page本格実装、MkDocs本格導入、GitHub/Cloudflare Pages設定、Knowledge Graph生成、LLM実装、canonical ID自動割り当て、キャラクター辞書の推測confirmed化、Jinja2依存追加の確定
-  - 未着手（次のPRへ持ち越し）: episode page rendererの拡張、unresolved report rendererの改善、MkDocs Material minimal site、実データ頻出未確認キャラクターIDの人間による個別confirmed化、`agents/parser/parser.py::_parse_tokens`のparse state dataclassリファクタ
-- episode page renderer expansion: 実装完了。`feature/episode-page-renderer-expansion`ブランチで作業（**合成fixtureのみ使用、実データ由来Wikiページのcommitなし**）
-  - 目的: `wiki renderer skeleton`（PR #40）で生成しているEpisode pageを、`sourceDocuments`/`report`/`candidateCounts`を使って実用的な表示に拡張する
-  - **追加した表示項目**（`agents/wiki_generator/renderer.py::render_episode_page`）:
-    - Summary表（拡張）: Episode ID / Story ID / Document ID / Source Path / Extraction Version / Category
-    - Candidate Counts表（新規、既存の生キー表示からラベル付き8種表へ拡張）: Characters/Locations/Organizations/Items/Lore/Events/Relationships/Timeline（`timelineCandidates`は表示名`Timeline`）
-    - Related Characters（新規）: `entities.characters`のうち、`evidenceRefs.episodeId`/`sourceCandidates.episodeId`/`extractionRunRefs`キーのいずれかがこのepisodeIdに一致するcharacterをsummary列挙。canonicalIdがあれば``displayName（`CHAR_XXX`）``、unresolvedなら内部idと`unresolved`表記（通常Character pageは生成されないため、リンクは張らない）
-    - Validation（新規、任意）: `report.inputResults`をsourceDocumentの`path`で突き合わせられた場合のみ、Input status/Errors件数/Warnings件数を表示。突き合わせられない場合はセクション自体を省略する（§5の通り、report全体は出しすぎない方針）
-  - **sourceDocumentsとの対応**: `render_episode_page`のシグネチャを`(source_document, collection)`に変更（関連character検索・inputResults突き合わせに`collection`全体が必要なため）。生成pathは既存の`episode_page_path`（`stories/{episodeId}.md`、episodeId無しは`documentId`にフォールバック、名前ベースslugは使わない）を変更なしで踏襲
-  - **front matter拡張**: `page_type: "episode"`（Episodeはmerged knowledge schema上のentityではないため、Character page等が使う`entity_type`とは区別）・`episode_id`/`story_id`/`document_id`を追加（`agents/wiki_generator/models.py`の`_FRONT_MATTER_KEY_ORDER`に追加）。`source_path`はローカルパス漏洩懸念に配慮し、front matterには含めずSummary表側にのみ表示する方針を採用
-  - **evidenceRefs表示方針**: 変更なし。元セリフ全文・実データ本文・長い引用は表示しない
-  - **stories/index.mdの拡張**: `render_story_index_page`にdocumentId・candidate合計件数・`report.inputResults`突き合わせによるstatus列を追加
-  - **合成fixture拡張** `tests/fixtures/wiki/synthetic_merged_collection.json`: `sourceDocuments`を2件（`EP_TEST_001`/`EP_TEST_002`）に拡張。`EP_TEST_002`はcandidateCounts全て0（関連キャラクターなしの検証用）、`report.inputResults`にwarnings 1件を持つエントリを追加（`report.inputFiles`/`resolvedInputFiles`/`validInputs`/`warningCounts`/`report.warnings`/`inputSummaries`も整合するよう更新）。`schemas/merged_knowledge_collection.schema.json`で再検証済み。実データ由来の名前・ID・セリフは使用していない
-  - テスト（すべて合成fixture）: `tests/wiki/test_wiki_renderer.py`に7件追加（front matter・candidateCounts表・related characters summary（resolved/unresolved混在）・関連なしメッセージ・Validationセクション表示・本文非表示確認・story index拡張確認）、`tests/scripts/test_render_wiki.py`に1件追加（CLI経由でのEpisode page内容確認）。既存621件+新規7件=628件、すべて無変更で通過
-  - `docs/architecture/07_Wiki/Wiki_Output_Design.md` §9.2・§9.3に実装状況を軽微追記
-  - `uv run ruff check scripts agents tests`: クリーン（`_parse_tokens`の既存`# noqa: C901`のみ）。`uv run ruff format scripts agents tests --check`: 全115ファイルクリーン
-  - **今回あえて実装しなかったこと**: Location/Organization等の関連entity summary（characters優先、Phase 2で検討）、report全体のサマリー表示（inputResult突き合わせできる範囲のみに限定）、Relationship section本格実装、Timeline page本格実装、MkDocs本格導入、GitHub/Cloudflare Pages設定、Knowledge Graph生成、LLM実装、canonical ID自動割り当て、キャラクター辞書の推測confirmed化、Jinja2依存追加の確定
-  - 未着手（次のPRへ持ち越し）: unresolved report rendererの改善、relationship section renderer、MkDocs Material minimal site、実データ頻出未確認キャラクターIDの人間による個別confirmed化、`agents/parser/parser.py::_parse_tokens`のparse state dataclassリファクタ
-- unresolved report renderer refinement: 実装完了。`feature/unresolved-report-renderer-refinement`ブランチで作業（**合成fixtureのみ使用、実データ由来Wikiページのcommitなし**）
-  - 目的: `wiki renderer skeleton`（PR #40）以来の`reports/unresolved.md`を、実データレビューで実用に足る内容へ拡張する
-  - **追加した表示項目**（`agents/wiki_generator/renderer.py::render_unresolved_report`、新規ヘルパー関数群）:
-    - Overview（新規）: `report.unresolvedEntityCounts`合計・`conflictCounts.total`・`warningCounts.total`・`canonicalIdSummary.invalidCount`/`duplicateCount`を表で表示
-    - entity種別別表（拡張）: 既存のEntity ID/Display Name/Status/evidence件数に加え、Canonical ID列（未確定は`-`）・Source Candidates件数列を追加。対象entityは`is_page_eligible`がFalse（canonicalId未確定、またはstatus: merged以外）の全8種
-    - Conflict Summary（新規）: `report.conflictCounts.bySeverity`/`byType`/`byEntityType`を`| Group | Value | Count |`表で表示。自動解決はしない
-    - Warning Summary（新規）: `report.warningCounts`（total/unresolvedRelationships/skippedOverrides/other）を表で表示し、`report.warnings`は先頭`_MAX_WARNINGS_DISPLAYED`（定数、10）件のみ列挙、超過分は件数のみ要約
-    - Canonical ID Summary（新規）: `report.canonicalIdSummary`（totalAssigned/duplicateCount/invalidCount/warnings）を表示。schema上任意フィールドのため、無い場合はセクション自体を省略（Validationセクションと同じ方針）
-    - Relationship Type Summary（新規）: `report.relationshipTypeSummary`（knownTypes/unknownTypes/normalizedTypesの件数）を表示。`unknownTypes`は見出し付きで型名・件数を一覧表示するのみで、自動修正はしない。schema上任意フィールドのため無い場合はセクション自体を省略
-  - **ページ適格性の判定方針**: 既存の`is_page_eligible`（`agents/wiki_generator/paths.py`）をそのまま流用。canonicalId確定+status:merged → 個別ページ、それ以外 → Unresolved report。全entity種別で共通の判定関数のため、新規ロジック追加は不要だった
-  - **evidenceRefs/sourceCandidates表示方針**: entity種別別表では件数のみ表示（既存のCharacter page/Episode pageと同じID参照のみ・元セリフ全文なしの方針を踏襲、個別のID一覧化はしない）
-  - **合成fixture拡張** `tests/fixtures/wiki/synthetic_merged_collection.json`: `entities.relationships`に`REL_TEST_UNKNOWN`（canonicalId未確定、`relationshipType: "MYSTERIOUS_BOND_TEST"`）・`entities.timeline`に`TL_TEST_UNKNOWN`（canonicalId未確定、`kind: "temporal_marker"`）を追加。`entities.characters`に`CHAR_TEST_DEPRECATED`（canonicalId確定済みだが`status: "deprecated"`、is_page_eligibleがFalseになる非merged statusの検証用）を追加。`report.relationshipTypeSummary.unknownTypes`に`MYSTERIOUS_BOND_TEST: 1`、`report.canonicalIdSummary.warnings`に検証メッセージ1件・`invalidCount: 1`を追加。関連するcandidateCounts/mergedEntityCounts/unresolvedEntityCounts/entityTypeSummaries/inputSummariesも整合するよう更新。`schemas/merged_knowledge_collection.schema.json`で再検証済み。実データ由来の名前・ID・セリフは使用していない
-  - テスト（すべて合成fixture）: `tests/wiki/test_wiki_renderer.py`に新規17件追加（Overview表示・entity種別別表のCanonical ID/Source Candidates列・relationship/timeline unresolvedエントリ表示・canonicalId確定済み+status:merged characterの除外・canonicalIdなしcharacterの表示・非mergedステータスcharacterの表示・Conflict Summary・Warning Summary・Canonical ID Summary・Relationship Type Summary（unknownTypes）・evidence/sourceCandidatesがID参照/件数のみで元セリフ本文を含まないことの確認）。既存に加え、既存2件のテスト（Candidate Counts表・Story index candidate合計）をfixture拡張に伴う数値変更に合わせて更新。全641件、すべて通過
-  - `docs/architecture/07_Wiki/Wiki_Output_Design.md` §9.12に実装状況を追記。§9.13〜9.15（Conflict/Relationship type/Canonical ID report page）は独立ページではなくUnresolved report内のセクションとして統合実装したことを明記
-  - `uv run ruff check scripts agents tests`: クリーン（`_parse_tokens`の既存`# noqa: C901`のみ）。`uv run ruff format scripts agents tests --check`: 全116ファイルクリーン
-  - **今回あえて実装しなかったこと**: 実データWiki生成・実データ由来生成物のcommit、unresolved entityの自動解決、conflictの自動解決、relationshipTypeの自動修正、canonical ID自動割り当て、Location/Organization/Item/Lore/Event pageの本格実装、Timeline pageの本格実装、MkDocs本格導入、GitHub/Cloudflare Pages設定、Knowledge Graph生成、LLM/provider/prompt実装、AI考察本文の生成、キャラクター辞書の推測confirmed化、Parser大規模再設計、Jinja2依存追加の確定
-  - 未着手（次のPRへ持ち越し）: relationship section renderer、MkDocs Material minimal site、実データローカルレンダリングdry-run、Location/Organization page renderer
-- real data wiki render dry-run: 実施完了（**ただし実データ由来merged knowledge collectionがローカル環境に存在しなかったため、実データでのWiki render dry-runは未実行**）。`feature/real-data-wiki-render-dry-run`ブランチで作業
-  - **実施状況**: ローカル環境（`data/raw/dry_run/`・`data/normalized/`）には実データ由来のNormalized Story JSONまでは存在したが、Extractor/Merger出力（`episode_extraction`・`merged_knowledge_collection.json`）は生成されていなかった。指示（本タスクの§5「実データが無い場合は無理に作らないこと」）に従い、Extractor/Merger実行による新規merged collection作成は行わず、代わりに以下を実施した
-  - **runbook追加**: `docs/runbooks/Real_Data_Wiki_Render_Dry_Run.md`（目的・前提・入力/出力先の想定・実行コマンド例・commit禁止対象・`.gitignore`確認・実データが無い場合の代替確認・確認項目・よくある失敗・結果記録方法・次にやること・commit前チェックリストの構成、`Real_Data_Dry_Run.md`と対になるWiki render専用版）
-  - **result template追加**: `docs/runbooks/Real_Data_Wiki_Render_Dry_Run_Result_Template.md`（Run ID/input path/output directory/renderer command/schema validation/generated file counts/character page count/episode page count/unresolved report有無/unresolved・conflict・warning・canonicalId・relationshipType summary/errors/warnings/findings/follow-up/commit確認の記録項目。今回の実施記録を「記録例」として追記）
-  - **`.gitignore`更新**: `workspace/wiki_preview/`・`workspace/wiki_render/`・`site_src/`・`docs/wiki_generated/`・`generated/wiki/`を追加（`git check-ignore -v`で動作確認済み）
-  - **synthetic fixtureでの代替検証**: 既存の`tests/fixtures/wiki/synthetic_merged_collection.json`で`scripts/render_wiki.py --validate --clean`を実行しexit code 0・全ページ種別生成を再確認。加えて、`sourceDocuments`が空配列・`report.canonicalIdSummary`/`relationshipTypeSummary`が存在しない・entityの任意フィールド（displayName/aliases/canonicalId等）が欠落した縮退collection（一時ファイル、非commit）で`render_wiki.py`がクラッシュしないことを確認した
-  - **見つかった軽微な問題と修正**: 縮退collectionの検証で、`report.warnings`の長いメッセージ（200文字超）が切り詰められず全文表示されることに気づいた。`agents/wiki_generator/renderer.py`に`_truncate_message`/`_MAX_WARNING_MESSAGE_LENGTH`（200文字）を追加し、`_render_capped_list`から呼び出すよう変更（超過分は末尾に`...(省略)`を付与）。他の縮退パターン（optional field欠落・None値・空配列・candidateCounts欠落・sourceDocuments空）はすべて既存実装で問題なく動作し、修正不要だった
-  - **回帰テスト追加**: `tests/fixtures/wiki/synthetic_minimal_collection.json`（新規、縮退collection一式）と`tests/wiki/test_wiki_renderer.py`に6件追加（sourceDocuments空でのbuild_pages非クラッシュ・任意フィールド欠落characterでのrender_character_page非クラッシュ・canonicalIdSummary/relationshipTypeSummary欠落でのrender_unresolved_report非クラッシュとセクション省略確認・長いwarningメッセージのtruncate確認・空sourceDocumentsでのstory index表示確認・縮退collectionでのwrite_pages非クラッシュ）。既存641件+新規6件=647件、すべて通過
-  - `uv run pytest`: 647 passed。`check_invisible_unicode.py`/`check_dry_run_inputs.py`: 問題なし。`uv run ruff check scripts agents tests`: クリーン。`uv run ruff format scripts agents tests --check`: 全115ファイルクリーン
-  - **今回あえて実装しなかったこと**: 実データ由来Wikiページ・merged collection・生成Markdownのcommit、unresolved entity/conflict/relationshipTypeの自動解決・自動修正、canonical ID自動割り当て、Location/Organization/Item/Lore/Event pageの本格実装、Relationship section本格実装、Timeline pageの本格実装、MkDocs本格導入、GitHub/Cloudflare Pages設定、Knowledge Graph生成、LLM/provider/prompt実装、AI考察本文の生成、キャラクター辞書の推測confirmed化、Parser大規模再設計、Jinja2依存追加の確定
-  - 未着手（次のPRへ持ち越し）: 実データ由来merged knowledge collectionが用意でき次第、本runbookで改めて実データdry-runを実施し結果を記録する、relationship section renderer、Location/Organization page renderer、MkDocs Material minimal site
-- real data merged collection dry-run: **実施完了（実データでExtractor→Merger→Wiki render handoffまで完走を確認）**。`feature/real-data-merged-collection-dry-run`ブランチで作業
-  - **実施状況**: ローカル環境に実データ由来のNormalized Story JSON（8ファイル、main/character/event/other/raidカテゴリ）が存在したため、`scripts/extract_story.py`（episodeごとに8回実行）→`scripts/merge_extractions.py`→`scripts/render_wiki.py`の一連のパイプラインを実データで実行できた
-  - **runbook追加**: `docs/runbooks/Real_Data_Merged_Collection_Dry_Run.md`（目的・前提・入力/出力先の想定・Extractor実行手順・Merger実行手順・Wiki renderへ渡す手順・commit禁止対象・`.gitignore`確認・確認項目・よくある失敗・結果記録方法・次にやること・commit前チェックリストの構成。`Real_Data_Dry_Run.md`のExtractor/Merger部分と`Real_Data_Wiki_Render_Dry_Run.md`の橋渡しとなる手順書）
-  - **result template追加**: `docs/runbooks/Real_Data_Merged_Collection_Dry_Run_Result_Template.md`（Run ID/input path/extraction・merge output path/各command/schema validation/extraction result counts/merged entity counts/unresolved・conflict・warning counts/canonicalId・relationshipType summary/errors/Wiki render handoff結果/findings/follow-up/commit確認の記録項目。今回の実施記録を記載）
-  - **`.gitignore`**: 既存のパターン（`workspace/dry_runs/`・`workspace/wiki_preview/`・`data/extracted/**/*.json`・`data/normalized/**/*.json`等）で既にすべてカバー済みのため変更不要だった
-  - **実データdry-run結果**（抽象化した件数のみ、詳細はresult template参照）: Extraction result合算 characters 36/locations 6/他0件、extractionErrors 0件。Merged entity counts characters 30/locations 6/他0件。Unresolved entity counts は全件unresolved（既知の課題＝キャラクター辞書の数値ID帯不足によるもので、本PRのスコープでは辞書拡充を行わない）。Conflict counts total 1件（field_value_conflict）。Warning counts total 0件。Canonical ID summary totalAssigned 0件（全件unresolvedのため）。Relationship type summary knownTypes/unknownTypesとも0種（relationships自体が0件、実データに構造化タグが無いため。既知の制約）
-  - **Wiki render handoff**: 実施した。`scripts/render_wiki.py --validate --clean`がexit code 0で完了、schema検証OK、Markdown 11件生成（index.md/stories/index.md/stories/\*.md×8/reports/unresolved.md）。character page count 0件（全キャラクターunresolvedのため想定通り）。生成物を目視確認し、`textExcerpt`・実セリフ本文・ローカル絶対パスの混入が無いことを確認した（source text exposure check: passed）
-  - **見つかった問題**: なし。Extractor/Merger/Rendererとも実データ8話に対してエラー・クラッシュなく完走した。PR #43/#44で追加した既存の堅牢性（optional field欠落対応・warning truncate等）がそのまま有効に機能したため、今回は軽微修正・追加の回帰テストとも不要だった
-  - `uv run pytest`: 647 passed（既存件数のまま、変更なし）。`check_invisible_unicode.py`/`check_dry_run_inputs.py`: 問題なし。`uv run ruff check scripts agents tests`: クリーン。`uv run ruff format scripts agents tests --check`: 全115ファイルクリーン
-  - **今回あえて実装しなかったこと**: 実データ由来JSON/Markdown生成物のcommit、キャラクター辞書の数値ID帯拡充・推測confirmed化、unresolved entity/conflict/relationshipTypeの自動解決・自動修正、canonical ID自動割り当て、Location/Organization/Item/Lore/Event page等Phase 2以降の実装、MkDocs本格導入、GitHub/Cloudflare Pages設定、Knowledge Graph生成、LLM/provider/prompt実装、AI考察本文の生成、Parser大規模再設計、Jinja2依存追加の確定
-  - 未着手（次のPRへ持ち越し）: キャラクター辞書の数値ID帯拡充（実データの多くのキャラクターがunresolvedのまま）、relationshipType/canonical ID taxonomy本確定、relationship section renderer、Location/Organization page renderer、MkDocs Material minimal site
-- character dictionary confirmed batch 002: **人間確認済みmapping未提供のため、`knowledge/dictionaries/characters.yaml`は変更していない**。`feature/character-dictionary-confirmed-batch-002`ブランチで作業
-  - **実施状況**: 本バッチの目的（実データdry-runで全件unresolvedだったキャラクターのうち、人間確認済みmappingがあるものだけをconfirmed化する）に必要な「人間が明示的に確認したsourceCharacterId → characterId mapping」の入力（`workspace/local_inputs/`等のローカル一時ファイル、または会話内での明示的な提供）が、今回のセッションには存在しなかった。`docs/runbooks/Character_Dictionary_Review.md` §9「人間確認済みmappingだけcommitするルール」に従い、AI推測・名前一致だけでのconfirmed化は一切行わず、辞書は無変更のまま据え置いた
-  - **現状のcoverage再確認**（`uv run python scripts/check_character_dictionary_coverage.py data/raw/dry_run/`、ローカルの実データ.decファイルに対して実行、結果は数値のみ記録）: `knowledge/dictionaries/characters.yaml` 66件中 confirmed 2件（`CHAR_AKAGI_HINA`/`CHAR_RAIN`、変更なし）/ name_only 64件（変更なし）。対象ファイル7件・observedCount 27・knownCount 16・unknownCount 11・coverage 59.3%（confirmed coverage 7.4%・name_only coverage 51.9%）。top unknown sourceCharacterId（件数のみ、実データ本文・表示名は記録しない）: 234(7件)/225(5件)/230(5件)/83(4件)/222(4件)/232(4件)/85(3件)/86(3件)/258(2件)/257(2件)/228(2件) — いずれも前回セッション（AI_CONTEXT.md記載の real data dry-run trial 時点）から不変
-  - **`--review-template-output`動作確認**: `workspace/dry_runs/`配下（`.gitignore`済み）へレビュー用テンプレート（11件のunknown ID、`sourceCharacterId`/`observedCount`のみ、実データ本文・表示名は含まない設計）を生成できることを再確認。生成後すぐにローカルから削除し、commitしていない
-  - **`compare_character_dictionaries.py`再確認**: `reference/parser/characters_reference.json`とのdiffが引き続き0件（confirmed 2/name_only 64が一致、YAML/JSON双方に片方のみのID・displayName不一致とも0件）であることを再確認。変更なし
-  - **辞書ファイル自体**: 一切変更していない（`git status --short`で`knowledge/dictionaries/characters.yaml`が変更対象に出ていないことを確認）
-  - **実データdry-run再実行**: 実施していない。辞書に変更が無いため、Extractor/Merger/Wiki renderの出力は`feature/real-data-merged-collection-dry-run`（PR #45）で既に記録済みの結果（unresolved characters 30件、canonicalIdSummary.totalAssigned 0件等）から変化しない
-  - **回帰テスト**: 追加していない。`tests/parser/test_character_dictionary.py`（duplicate sourceCharacterId/characterId検出、confirmed statusにcharacterId必須、name_only entryへのcharacterId付与拒否等）・`tests/parser/test_character_dictionary_pipeline.py`（`test_confirmed_character_resolved_through_full_pipeline`/`test_name_only_character_never_auto_resolved`）に、本バッチが必要とする回帰テストが既に`character dictionary confirmed review workflow`（既存PR）で網羅済みであることを確認した
-  - `uv run pytest`: 647 passed（既存件数のまま、変更なし）。`check_invisible_unicode.py`/`check_dry_run_inputs.py`: 問題なし。`uv run ruff check scripts agents tests`: クリーン。`uv run ruff format scripts agents tests --check`: クリーン
-  - **今回あえて実装しなかったこと**: AI推測によるconfirmed化、名前一致だけによるconfirmed化、characterId自動生成、sourceCharacterIdの推測補完、unresolved entityの自動解決、conflictの自動解決、relationshipTypeの自動修正、実データ由来生成物のcommit
-  - 未着手（次のPRへ持ち越し）: 人間確認済みmappingが提供され次第、本バッチ手順（coverage確認→confirmed化→dry-run再実行→結果記録）を実施する。人間による実データ確認・ローマ字表記確定作業自体は本セッションのスコープ外（`docs/runbooks/Character_Dictionary_Review.md`の運用に従い、人間が行う）
-- character dictionary review packet: 実装完了。`feature/character-dictionary-review-packet`ブランチで作業（**辞書のconfirmed化は行わず、review packet生成の仕組みのみ追加**）
-  - 目的: batch 002で判明した「人間確認済みmapping入力が無いとconfirmed化できない」というボトルネックを解消するため、実データdry-runで未解決だったキャラクターについて、人間がsourceCharacterId→characterId mappingを確認・記入しやすいreview packetを生成する仕組みを整える
-  - **新規追加関数** `build_character_review_packet`（`agents/parser/character_dictionary.py`）: merged knowledge collectionの`entities.characters`から、辞書でstatus: confirmed（= 実運用ではentity自体もstatus: merged）に対応するsourceCharacterIdを除外し、それ以外（name_only／辞書に一切登録が無いunknown）のみを対象に、`sourceCharacterId`/`displayName`/`existingDictionaryStatus`/`existingCharacterId`/`aliases`/`observedCount`（evidenceRefs件数）/`appearedEpisodeCount`/`sourceDocumentCount`と、空の`humanReviewStatus: pending`/`humanConfirmedCharacterId: null`/`notes: ""`プレースホルダーを組み立てる。observedCount降順でソート。元セリフ・raw payload・merged collection全文は一切含まない
-  - **新規CLI** `scripts/build_character_review_packet.py`: `--merged-collection`/`--dictionary`/`--output`/`--format {yaml,csv,both}`/`--batch-id`/`--quiet`。YAML（notes等の手入力向け）・CSV（表計算ソフト向け）の両方に対応。出力先はローカル（`workspace/review_packets/`配下）のみを想定し、CLI自体が生成物をcommitすることはない
-  - **新規template** `docs/templates/character_dictionary_review_packet_template.yaml`（packetの見本、`pending`/`confirmed`/`rejected`/`needs_more_context`の4状態それぞれの合成例を含む）・`docs/templates/character_dictionary_confirmed_batch_input_template.yaml`（次のconfirmed-batch PRへ渡す入力形式の見本）。いずれも合成データのみ
-  - **`docs/runbooks/Character_Dictionary_Review.md`更新**: §12「review packet（confirmed-batch用の人間確認packet）」を新設し、目的・生成コマンド例・packetの編集方法・humanReviewStatusの4状態の意味・confirmed-batchへ渡す方法（`workspace/local_inputs/character_confirmed_batch_XXX.yaml`）・commit禁止対象・AI推測禁止を明文化した
-  - **`.gitignore`更新**: `workspace/review_packets/`・`workspace/local_inputs/`・`character_confirmed_batch_*.yaml`・`character_dictionary_review_batch_*.yaml`・`character_dictionary_review_batch_*.csv`を追加。追加時に、テンプレートファイル名`character_confirmed_batch_input_template.yaml`が自身の追加した`character_confirmed_batch_*.yaml`パターンに誤って一致してしまう不具合に気づき、`character_dictionary_confirmed_batch_input_template.yaml`へリネームして解消した（`git check-ignore -v`で全パターンを個別確認済み）
-  - **実データでのreview packet生成**: 実施した。ローカルの実データ（Normalized Story JSON 8ファイル）から`extract_story.py`→`merge_extractions.py`でmerged collectionを再生成し、`build_character_review_packet.py --format both`を実行、22件のレビュー候補（YAML/CSV）が生成されることを確認した。生成物に`textExcerpt`/`evidenceRefs`/`sourceCandidates`等の生データが含まれないことを`grep`で確認し、確認後すぐにローカルから削除・commitしていない（`git status --short`で確認済み）
-  - **合成fixture** `tests/fixtures/character_dictionary/synthetic_review_packet_collection.json`（新規、confirmed済み1件・name_only該当1件・unknown該当1件・sourceCharacterIdなし1件の4character entityを含む合成collection、schema検証済み）・`synthetic_review_packet_dictionary.yaml`（対応する合成辞書）
-  - テスト: `tests/parser/test_character_dictionary.py`に8件追加（confirmed+merged entityの除外・name_only entityの辞書メタ情報付与・unknown entityの扱い・sourceCharacterIdなしentityのスキップ・observedCount降順ソート・humanReview系プレースホルダーの初期化・生データ非混入確認）。`tests/scripts/test_build_character_review_packet.py`（新規）に7件追加（YAML/CSV生成・confirmed除外・name_only/unknown混在・humanReviewプレースホルダー・禁止コンテンツ非混入・入力ファイル無しでのexit code 1確認）。既存639件+新規15件=662件想定、全件通過
-  - `uv run pytest`/`check_invisible_unicode.py`/`check_dry_run_inputs.py`/`ruff format --check`/`ruff check`: 実行結果は最終報告参照
-  - **今回あえて実装しなかったこと**: `knowledge/dictionaries/characters.yaml`のconfirmed化、AI推測によるmapping作成、名前一致だけによるmapping作成、characterIdの自動生成、実データ由来review packet/merged collectionのcommit
-  - 未着手（次のPRへ持ち越し）: 人間が生成されたreview packetを確認し、`humanReviewStatus: confirmed`にしたエントリを`workspace/local_inputs/character_confirmed_batch_003.yaml`へ切り出したうえで、次の`feature/character-dictionary-confirmed-batch-003`で辞書へ反映する
-- character dictionary confirmed batch 003: **実施完了（人間確認済みmapping12件を`knowledge/dictionaries/characters.yaml`へconfirmed化）**。`feature/character-dictionary-confirmed-batch-003`ブランチで作業
-  - **入力**: `feature/character-dictionary-review-packet`で生成したreview packet（`character_dictionary_review_batch_003.csv`）を人間が確認し、`existingDictionaryStatus: name_only`だった12件（sourceCharacterId 5/8/24/29/35/70/203/207/208/209/216/217）を`humanReviewStatus: confirmed`とし、`humanConfirmedCharacterId`（`CHAR_{数値}_{ROMANIZED_NAME}`形式、人間の希望により数値プレフィックス採用）・`notes: "review packet batch 003で人間確認済み。"`を記入したもの。`existingDictionaryStatus: unknown`（displayName自体が「不明人物(ID:XXX)」で未判明）の10件は引き続き`pending`のまま、confirmed化していない
-  - **`knowledge/dictionaries/characters.yaml`更新**: 12エントリの`characterId`（null→`CHAR_005_AOI_NANAMI`等）・`status`（`name_only`→`confirmed`）・`notes`（null→確認メモ）を更新。既存confirmed 2件（CHAR_AKAGI_HINA/CHAR_RAIN）は変更なし。confirmed 2件→14件、name_only 64件→52件
-  - **重複・衝突チェック**: `validate_character_dictionary`でVALIDATION: OK（duplicate sourceCharacterId/characterIdなし、confirmed statusのcharacterId必須も満たす）。`compare_character_dictionaries.py`でreference JSONとの差分は引き続き0件（sourceCharacterId一致数66、displayName不一致0）
-  - **実データdry-run再実行**: 実施した。ローカルの実データ由来raw `.dec`（6ファイル、TEST_01/TEST_02の合成fixture分は除く）を`normalize_story.py`（デフォルト辞書＝更新後の`characters.yaml`を使用）で再normalize→`extract_story.py`→`merge_extractions.py`の順に再実行。結果: `canonicalIdSummary.totalAssigned` 0件→12件、`mergedEntityCounts.characters`のうちconfirmed化した12件すべてがcanonicalId付きでmerged character（`entities.characters[].status: merged`）として解決されることを確認。conflict/warning/error はいずれも0件
-  - **Wiki render再実行**: 実施した。`render_wiki.py --validate --clean`で12件全てのCharacter page（`characters/CHAR_005_AOI_NANAMI.md`等）が新たに生成されることを確認。生成物に`textExcerpt`・ローカル絶対パスの混入が無いことを`grep`で確認
-  - 回帰テスト: 追加していない（`characters.yaml`のデータ変更のみで、`agents/parser/character_dictionary.py`のロジック自体に変更は無いため、既存のvalidation/coverage/review packetテストがそのまま適用範囲）
-  - `uv run pytest`: 661 passed（変更なし）。`check_invisible_unicode.py`/`check_dry_run_inputs.py`: 問題なし。`uv run ruff check scripts agents tests`: クリーン。`uv run ruff format scripts agents tests --check`: クリーン
-  - **今回あえて実装しなかったこと**: `existingDictionaryStatus: unknown`の10件（234/225/230/222/232/83/258/86/85/257）のconfirmed化（人間確認済みmappingが提供されていないため）、AI推測によるmapping作成、characterId自動生成、実データ由来merged collection/Wiki Markdownのcommit
-  - 未着手（次のPRへ持ち越し）: 残る未確認10件について、人間が実データを直接確認しdisplayNameを特定できた場合、次のreview packet/confirmed-batchサイクルで反映する
-- character profile schema design: **実装完了（設計・schema・validator・helper・templateのみ。実プロフィールデータ投入は行わず）**。`feature/character-profile-schema-design`ブランチで作業
-  - 目的: `knowledge/dictionaries/characters.yaml`はID解決用辞書のまま維持し、公式プロフィール情報（読み仮名/所属/身長/誕生日/血液型/CV/キャラ別特記事項/自己紹介文）を管理する専用辞書`knowledge/dictionaries/character_profiles.yaml`の設計を追加する
-  - **設計ドキュメント**: `docs/architecture/06_AI/Character_Profile_Dictionary_Design.md`（新規）。characters.yamlとの役割分担・Source of Truth方針・confirmed済みcharacterIdへの紐づけ方針・公式プロフィール/AI抽出/AI考察の分離方針・フィールドごとの扱い（reading/affiliation/heightCm/birthday/bloodType/cv/profileHighlight/selfIntroduction/source/status）・Wiki Character pageへの将来表示方針・実データ投入を今回行わない方針をまとめた
-  - **schema**: `schemas/character_profiles.schema.json`（新規）。root（schemaVersion/documentType（const "character_profiles"）/profiles配列）+ CharacterProfile（characterId: `CHAR_[A-Z0-9_-]+`パターン必須/displayName必須/status: draft・confirmed・deprecated）+ 補助definitions（Reading/Birthday（month 1-12・day 1-31）/ProfileHighlight（label/value必須、value maxLength 200）/ProfileSource（sourceType: official_profile・manual・unknown））。selfIntroductionはmaxLength 500
-  - **辞書ファイル**: `knowledge/dictionaries/character_profiles.yaml`（新規、`profiles: []`の空配列のみ。実キャラクターのプロフィールは投入していない）
-  - **helper** `agents/parser/character_profiles.py`（新規）: `CharacterProfile`/`Reading`/`Birthday`/`ProfileHighlight`/`ProfileSource`データクラス、`load_character_profiles`/`validate_character_profiles`/`build_character_profile_index`/`get_character_profile`関数。`validate_character_profiles`はcharacterId重複・CHAR_ prefix形式・heightCm型・birthday範囲・profileHighlight非空・selfIntroduction文字数に加え、`character_dictionary`（characters.yamlのエントリ一覧）を渡した場合はcharacterIdがconfirmed済みかどうかも検証する
-  - **CLI** `scripts/validate_character_profiles.py`（新規）: `--profiles`/`--characters`/`--schema`/`--quiet`。schema検証→整合性検証（characters.yamlとの照合含む）の順に実行し、status内訳（draft/confirmed/deprecated件数）を表示する
-  - **template** `docs/templates/character_profiles_template.yaml`（新規、合成データのみ）: 全フィールドが埋まったエントリ例と、任意フィールドがすべてnull/空配列の最小エントリ例の2件。実キャラ名・実プロフィール本文は一切含まない。実際の`characters.yaml`と照合すると（架空IDのため）意図的にエラーになることを確認済み（クロスチェック機能の動作確認）
-  - **`docs/architecture/07_Wiki/Wiki_Output_Design.md` §9.4更新**: Character pageに「基本プロフィールsection」を追加する設計を軽微追記（`character_profiles.yaml`参照、既存の`## Summary`とは区別、未登録は「プロフィール未登録」表示、Wiki renderer実装は本PRでは行わない）
-  - テスト: `tests/parser/test_character_profiles.py`に24件（load/validate各種、characters.yamlとの整合性チェック含む）・`tests/scripts/test_validate_character_profiles.py`に8件（CLIスモークテスト）追加。全て合成データのみ。既存661件+新規32件=693件、全件通過
-  - `uv run pytest`: 693 passed。`check_invisible_unicode.py`/`check_dry_run_inputs.py`: 問題なし。`uv run ruff check scripts agents tests`: クリーン（`_validate_single_profile`のC901をヘルパー分割で解消）。`uv run ruff format scripts agents tests --check`: クリーン
-  - **今回あえて実装しなかったこと**: 実キャラクターのプロフィールデータ投入、実データ由来プロフィール/自己紹介文/公式本文/セリフのcommit、`characters.yaml`へのプロフィール項目追加、`characters.yaml`のconfirmed化、AI推測によるプロフィール作成、Wiki rendererへのプロフィール表示実装
-  - 未着手（次のPRへ持ち越し）: character profile import batch 001（人間が確認した実プロフィールデータの投入）、character profile renderer section（Wiki Character pageへの実装）、character dictionary confirmed batch 004（残る未確認10件のconfirmed化）
-- character profile wiki import pipeline: **実装完了（取得・変換・検証の仕組みとローカルdry-runのみ。character_profiles.yamlへの実プロフィール投入は行わず）**。`feature/character-profile-wiki-import-pipeline`ブランチで作業
-  - 目的: デタリキZ攻略Wikiのメンバー一覧テーブルから、`knowledge/dictionaries/character_profiles.yaml`へ投入可能な中間形式（import candidate）を取得・変換・照合する仕組みを追加する
-  - **helper** `agents/parser/character_profile_wiki_import.py`（新規）: 標準ライブラリ（`html.parser.HTMLParser`）のみでHTML `<table>`を抽出する`extract_tables`、認識済み見出し数で対象テーブルを選ぶ`find_member_table`（`_MIN_RECOGNIZED_HEADERS`未満は検出失敗）、列見出し正規化（`normalize_header`、「実装日」等は無視）、フィールドパーサー（`parse_height_cm`/`parse_birthday`/`parse_profile_highlight`/`parse_reading`/`parse_affiliation`）、`build_profile_from_row`（selfIntroductionは常にnull）、`match_candidates`（confirmed済みcharacterIdへのdisplayName完全一致のみ自動match、characterIdは自動生成しない）、`build_candidate_document`を実装。新規依存は追加していない
-  - **CLI** `scripts/import_character_profiles_from_wiki.py`（新規）: `--source-url`/`--input-html`（排他）/`--characters`/`--output`/`--format {yaml,csv,both}`/`--user-agent`/`--dry-run`/`--quiet`。取得前に`urllib.robotparser`でrobots.txtを確認し（取得不可なら安全側に倒してexit code 3）、1ページのみ取得（個別ページ巡回はしない）。`--dry-run`指定時はcandidate fileを書き出さず標準出力にsummary（matched/unmatched件数）のみ表示する
-  - **character_profiles.yamlとの対応表**: キャラ名→displayName、よみがな→reading.kana（romajiは常にnull）、所属→affiliation（配列）、身長(cm)→heightCm（整数化）、誕生日→birthday（month/day/display）、血液型→bloodType、特記事項→profileHighlight（label/value分解）、CV→cv。実装日は対応項目なしのため無視。**自己紹介文は一覧テーブルに存在しないため常にnull**（個別ページ取得はfuture task）
-  - **displayName照合方針**: characters.yamlで`status: confirmed`のエントリのみを対象にdisplayName完全一致で自動match。`name_only`/未登録は`unmatched`として人間確認に回す（`reason`付き）。characterIdは一切自動生成しない
-  - **runbook** `docs/runbooks/Character_Profile_Wiki_Import.md`（新規）: 目的・取得元候補・対応表・自己紹介文取得しない方針・人間確認後にimportする方針・commit禁止対象・サイト負荷配慮（1ページのみ取得）・WIKI構造変更への備え・失敗時fallback・次のimport batchへの流れをまとめた
-  - **`.gitignore`更新**: `workspace/profile_import/`・`character_profile_candidates_batch_*.yaml`・`character_profile_candidates_batch_*.csv`・`wiki_member_profiles_batch_*.yaml`・`wiki_member_profiles_batch_*.csv`・`*.wiki.html`を追加。`tests/fixtures/character_profiles/`配下の合成HTMLは対象外であることを`git check-ignore -v`で確認済み
-  - **合成fixture** `tests/fixtures/character_profiles/synthetic_wiki_member_table.html`（新規）: 3行（confirmed一致1件・name_only該当1件・完全未登録1件）の合成メンバー一覧テーブル
-  - **実WIKI dry-run**: 実施した。ユーザー提供の候補URL（1ページのみ、robots.txt確認済み、`DetarikiKB-CharacterProfileImportBot/0.1`のUser-Agentで取得）に対して1回だけ実行。robots.txtでの取得許可は得られ、HTML取得自体は成功したが、**取得したページはWikiのトップページ/目次相当であり、メンバー一覧テーブルを検出できなかった**（exit code 2）。個別ページ巡回・追加URL探索は方針上行っていない。候補件数・matched/unmatched件数は0件（テーブル検出前に終了したため）。実データ由来の出力・raw HTMLはcommitしていない（デバッグ用に一時保存したファイルもすぐ削除した）
-  - **合成fixtureでの代替確認**: `synthetic_wiki_member_table.html`で全機能（heightCm整数化、birthday分解、profileHighlight分解、confirmed一致のみmatch、name_only/未登録はunmatched、selfIntroduction常にnull）を確認済み
-  - テスト: `tests/parser/test_character_profile_wiki_import.py`に29件・`tests/scripts/test_import_character_profiles_from_wiki.py`に10件追加。全て合成データ・ネットワークアクセス無し。既存693件+新規39件=732件、全件通過
-  - `uv run pytest`: 732 passed。`check_invisible_unicode.py`/`check_dry_run_inputs.py`: 問題なし。`uv run ruff check scripts agents tests`: クリーン（`main`のC901をヘルパー分割で解消）。`uv run ruff format scripts agents tests --check`: クリーン
-  - **今回あえて実装しなかったこと**: `character_profiles.yaml`への実プロフィール投入、実データ由来candidate YAML/CSVのcommit、raw HTMLのcommit、個別キャラページ巡回、自己紹介文の自動取得、`characters.yaml`のconfirmed化、characterId自動生成、AI推測によるprofile match、Wiki rendererへのプロフィール表示実装
-  - 未着手（次のPRへ持ち越し）: 正しいメンバー一覧テーブルのURL/ページパスを人間が特定し、改めて実WIKI dry-runを実施する。人間確認済みcandidateのcharacter profile import batch 001への反映。自己紹介文の個別ページ取得（future task）
-- character profile wiki url discovery: **実施完了（正しいメンバー一覧テーブルURLを特定し、実WIKI dry-runでcandidate生成を確認。character_profiles.yamlへの実プロフィール投入は行わず）**。`feature/character-profile-wiki-url-discovery`ブランチで作業
-  - 目的: PR #51で検出に失敗した実WIKIのメンバー一覧テーブルURLを特定し、1ページdry-runでprofile candidateを取得できることを確認する
-  - **URL特定**: Wikiのトップページを1回だけ取得し、「メンバー」ページへのリンクを発見。個別キャラページは辿っていない。合計2回のHTTP GET（トップページ1回・メンバーページ1回）のみで特定した
-  - **実WIKI dry-run結果**（件数概要のみ、実キャラ名・実プロフィール値は記録しない）: 検出行数206件、matched 6件（characters.yamlのconfirmed済みcharacterIdとdisplayName完全一致）、unmatched 200件。matchedエントリのselfIntroductionは全件null（想定通り）、heightCm/birthday/profileHighlight/cvは正しい型・構造で変換されることを確認
-  - **script軽微改善**（`agents/parser/character_profile_wiki_import.py`）: (1) 実WIKIの見出しセルに`<br>`タグが含まれ改行を挟む構造（「身長」+改行+「(cm)」）だったため`normalize_header`が見出し内の空白文字を除去してから照合するよう修正、これによりheightCmが正しく変換されるようになった。(2) 長いテーブルの途中で見出し行がそのまま繰り返される実データ構造が見つかったため、`rows_to_dicts`で見出し行と完全一致する行をデータ行として取り込まないよう修正。**個別ページ巡回・自己紹介文取得・characterId自動生成・AI推測match・name_onlyへの自動matchはいずれも変更していない**
-  - **runbook更新**: `docs/runbooks/Character_Profile_Wiki_Import.md`に§2.1（確認済みURLの種別・取得列）・§17（URL特定・dry-run結果・script修正内容）を追加。実プロフィール値・実キャラ一覧・自己紹介文・raw HTMLは記載していない
-  - テスト: `tests/parser/test_character_profile_wiki_import.py`に2件追加（`<br>`による見出し内改行の正規化、テーブル途中の見出し行重複スキップ）。いずれも合成データのみ。既存732件+新規2件=734件、全件通過
-  - `uv run pytest`: 734 passed。`check_invisible_unicode.py`/`check_dry_run_inputs.py`: 問題なし。`uv run ruff check scripts agents tests`: クリーン。`uv run ruff format scripts agents tests --check`: クリーン
-  - **今回あえて実装しなかったこと**: `character_profiles.yaml`への実プロフィール投入、実WIKI由来candidate YAML/CSVのcommit、raw HTMLのcommit、個別キャラページ巡回、自己紹介文の自動取得、characterId自動生成、AI推測match、`characters.yaml`のconfirmed化、Wiki rendererへのプロフィール表示実装
-  - 未着手（次のPRへ持ち越し）: 人間がcandidate file（今回はローカルでのみ生成・確認済み、commitはしていない）を確認し、matchedエントリの内容を精査した上で`character profile import batch 001`で`character_profiles.yaml`へ反映する。unmatched 200件についてはcharacters.yaml側のconfirmed化状況次第で再照合する
-- character profile import batch 001: **実施完了（matched 6件のみを`knowledge/dictionaries/character_profiles.yaml`へ投入。unmatched 200件は投入せず）**。`feature/character-profile-import-batch-001`ブランチで作業
-  - 目的: `docs/runbooks/Character_Profile_Wiki_Import.md`の手順で特定したWIKIメンバー一覧URLからcandidateを再生成し、`matchStatus: matched`（characters.yamlのconfirmed済みcharacterIdとdisplayName完全一致）だった候補のみを人間確認済みプロフィールとして投入する
-  - **candidate再生成**: `scripts/import_character_profiles_from_wiki.py`を`feature/character-profile-wiki-url-discovery`で特定したURLに対して再実行し、前回と同じ検出行数206件・matched 6件・unmatched 200件を確認（再現性確認）
-  - **投入したcharacterId（6件）**: CHAR_024_EMMITT、CHAR_029_RAVEL、CHAR_070_LIGULASS、CHAR_RAIN、CHAR_216_JASMINE、CHAR_217_EVE_NEMOPHILA。いずれもcharacters.yamlでstatus: confirmedのエントリとdisplayName完全一致したもののみ。unmatched 200件・name_only/unknownのcharacterへの紐づけは一切行っていない
-  - **`knowledge/dictionaries/character_profiles.yaml`更新**: `profiles: []`から6件のprofileを追加。各エントリは`displayName`/`reading.kana`（`romaji`は常にnull）/`affiliation`（配列）/`heightCm`（整数）/`birthday`（month/day/display）/`bloodType`/`cv`/`profileHighlight`（label/value）を機械的な変換ルールに従って投入し、`selfIntroduction`は全件null（一覧テーブルに存在しないため）とした。`source.sourceType: "wiki_member_table"`・`source.label: "デタリキZ攻略Wiki メンバー一覧"`・`status: "confirmed"`・`notes: "character-profile-import-batch-001で人間確認済み。"`を全件で統一。**AI推測による表記修正は一切行っていない**（読み仮名に含まれる特殊な文字表記（う+半角濁点によるヴ表記）も、元WIKIデータのエンコーディング特性としてそのまま採用し、AIが「正しい」表記へ書き換える判断はしていない）
-  - **schema軽微拡張**: `schemas/character_profiles.schema.json`の`ProfileSource.sourceType`enumに`"wiki_member_table"`を追加（既存の`official_profile`/`manual`/`unknown`に加える形。攻略Wiki等のメンバー一覧テーブルから人間確認済みで取り込んだ出典を表すため）
-  - **validator実行結果**: `scripts/validate_character_profiles.py`でVALIDATION OK（schema検証・6件重複なし・CHAR_ prefix形式適合・characters.yaml上のconfirmed済みcharacterIdとの整合性確認・heightCm整数・birthday範囲内・profileHighlight非空・selfIntroduction null許容）
-  - テスト: `tests/scripts/test_validate_character_profiles.py`に2件追加（`source.sourceType: wiki_member_table`のschema通過確認、複数confirmed profileの一括validate確認）。いずれも合成データのみ。既存734件+新規2件=736件、全件通過
-  - `uv run pytest`: 736 passed。`check_invisible_unicode.py`/`check_dry_run_inputs.py`: 問題なし。`uv run ruff check scripts agents tests`: クリーン。`uv run ruff format scripts agents tests --check`: クリーン
-  - **今回あえて実装しなかったこと**: unmatched 200件の投入、name_only/unknown characterへのprofile紐づけ、characterId自動生成、AI推測match、displayName表記ゆれ自動match、206件一括投入、個別キャラページ巡回、自己紹介文の自動取得、実自己紹介文のcommit、raw HTMLのcommit、実WIKI由来candidate YAML/CSVのcommit、`characters.yaml`のconfirmed化、Wiki rendererへのプロフィール表示実装
-  - 未着手（次のPRへ持ち越し）: character-profile-renderer-section（Wiki Character pageへの基本プロフィールsection実装）、character-profile-import-batch-002（unmatched 200件のうち、人間が実データを確認しdisplayNameの表記統一やcharacters.yaml側のconfirmed化を進めた分の追加投入）、character-dictionary-confirmed-batch-004（残る未確認10件のconfirmed化）
-- character profile renderer section: **実施完了（Character pageに「基本プロフィール」sectionを実装。新規プロフィールデータの追加・修正は行わず）**。`feature/character-profile-renderer-section`ブランチで作業
-  - 目的: PR #53で投入済みの`knowledge/dictionaries/character_profiles.yaml`を読み取り、Wiki Character pageの「基本プロフィール」sectionとして表示するrenderer実装を行う（`docs/architecture/07_Wiki/Wiki_Output_Design.md` §9.4・`docs/architecture/06_AI/Character_Profile_Dictionary_Design.md` §7の設計に従う）
-  - **CLI拡張**（`scripts/render_wiki.py`）: 任意引数`--character-profiles`を追加。指定した場合のみ`character_profiles.yaml`相当のYAMLを読み込む（`--validate`同時指定時はschema検証+`validate_character_profiles`による基本整合性検証も行う）。未指定でも既存の生成結果は変わらない（全Character pageが「プロフィール未登録」表示のまま）
-  - **renderer変更**（`agents/wiki_generator/renderer.py`）: `render_character_page(entity, character_profiles=None)`・`build_pages(collection, character_profiles=None)`に`characterId -> CharacterProfile`索引（任意）を渡せるようにした。entityの`canonicalId`（= characters.yamlのconfirmed済みcharacterId）とprofileの`characterId`が一致した場合のみ表示し、一致しない場合もCharacter page生成自体は継続する（section自体は省略せず「プロフィール未登録」と表示）
-  - **表示項目**: `## 基本プロフィール`見出しの下に、名前/ふりがな/ローマ字/所属（複数件は読点区切り）/身長（"150cm"形式）/誕生日（`birthday.display`優先、無ければmonth/dayから組立）/血液型/CV/Status/出典（`source.label`）の表、続けて`### キャラ別特記事項`（`label: value`形式、無ければ「特記事項は登録されていません。」）・`### 自己紹介`（複数行はそのままMarkdown本文表示、無ければ「自己紹介は登録されていません。」）。値が無い項目は「未登録」と表示する
-  - **synthetic fixture追加**: `tests/fixtures/character_profiles/synthetic_character_profiles.yaml`（合成`CHAR_TEST_RAIN`: confirmed・全項目埋まった例、`CHAR_TEST_MINIMAL`: draft・selfIntroduction/profileHighlight等null）。既存の`tests/fixtures/wiki/synthetic_merged_collection.json`の`CHAR_TEST_CONFLICT`はあえてこのfixtureに含めず、「プロフィールなしcharacter」（プロフィール未登録表示）の確認に使う。実WIKI由来データ・実プロフィール値は一切含まない
-  - テスト: `tests/wiki/test_wiki_renderer.py`に11件（プロフィールあり/なし/selfIntroduction null/複数行selfIntroduction/profileHighlightあり・なし/heightCm整形/birthday.display/canonicalId欠落時の防御/build_pagesへの伝播/後方互換性）、`tests/scripts/test_render_wiki.py`に4件（--character-profiles未指定時の後方互換性、指定時の表示反映、ファイル未存在時exit 1、schema不正時exit 2）を追加。既存736件+新規15件=751件、全件通過
-  - `uv run pytest`: 751 passed。`check_invisible_unicode.py`/`check_dry_run_inputs.py`: 問題なし。`uv run ruff check scripts agents tests`: クリーン（`main`の複雑度超過は`resolve_character_profiles`ヘルパーへ分割して解消）。`uv run ruff format scripts agents tests --check`: クリーン
-  - **検証コマンド結果**: `scripts/validate_character_profiles.py --profiles knowledge/dictionaries/character_profiles.yaml --characters knowledge/dictionaries/characters.yaml`はVALIDATION OK（confirmed=6）。`scripts/render_wiki.py --input tests/fixtures/wiki/synthetic_merged_collection.json --output workspace/wiki_preview/synthetic_profile_test --character-profiles tests/fixtures/character_profiles/synthetic_character_profiles.yaml --validate --clean`は7件のMarkdownを生成し正常終了（生成物はcommitせずローカルから削除済み）
-  - **今回あえて実装しなかったこと**: `character_profiles.yaml`への新規プロフィール投入・既存値の表記修正、unmatched candidate投入、WIKI再取得、raw HTML利用、個別キャラページ巡回、自己紹介文の自動取得、実自己紹介文のcommit、characterId自動生成、AI推測match、`characters.yaml`のconfirmed化、Location/Organization/Item/Lore/Event page・Relationship section・Timeline page本格実装、MkDocs本格導入、GitHub/Cloudflare Pages設定、Knowledge Graph生成、LLM/provider/prompt実装、Parser大規模再設計、Jinja2依存追加の確定
-  - 未着手（次のPRへ持ち越し）: character-profile-import-batch-002（unmatched 200件のうち再照合可能になった分の追加投入）、character-dictionary-confirmed-batch-004（残る未確認10件のconfirmed化）、MkDocs Material minimal site
-- MkDocs Material minimal site: **実施完了（ローカルpreview用の最小構成のみ。公開設定は未実装）**。`feature/mkdocs-material-minimal-site`ブランチで作業
-  - 目的: `agents/wiki_generator/`のWiki rendererが生成したMarkdownを、MkDocs Materialでローカル閲覧できる最小構成にする（GitHub Pages/Cloudflare Pages公開は別タスク）
-  - **MkDocs構成方針**: `docs/site_preview/`に合成説明ページのみを置き、実データ由来render_wiki.py出力先は引き続き`workspace/wiki_preview/<RUN_ID>/`のまま（`.gitignore`対象、既存ルール継続）。`site_src/`は`Wiki_Output_Design.md` §11で既にignore対象済みのため今回は使わない
-  - **`mkdocs.yml`**（リポジトリ直下、初期commit時点の空placeholderへ内容を追加）: `docs_dir: docs/site_preview`・`theme.name: material`・`nav: [Home: index.md]`の最小構成
-  - **dependency**: `mkdocs-material`は`pyproject.toml`の`dev` dependency groupに既に存在していたため、新規追加は不要だった（A案相当だが実質追加コストゼロ）
-  - **`docs/site_preview/index.md`**（新規）: このsite previewの目的・方針（Source of Truthはmerged knowledge collection、実データ由来generated pagesはcommitしない、公開設定は未実装）を説明する合成説明ページのみ。実キャラ名・実プロフィール値・実ストーリー本文は含まない
-  - **runbook追加**: `docs/runbooks/MkDocs_Local_Preview.md`（目的/前提/合成fixtureでのrender手順/実データrender手順への言及/MkDocsでのpreview手順/commit禁止対象/よくある失敗/次にやること）。`mkdocs serve`/`mkdocs build`には`docs_dir`をCLIから直接上書きする機能が無いため、`workspace/wiki_preview/`配下に一時的なローカル専用MkDocs設定ファイル（`mkdocs.local.yml`、commitしない）を作って`-f`で指定する方法を明記した
-  - **renderer小修正**（`agents/wiki_generator/renderer.py`、合成fixtureのみで確認）: (1) Episode pageの`## Related Characters`セクションで、resolvedなcharacterに`characters/{canonicalId}.md`への相対リンクを追加（MkDocsプレビューでクリックできるようにするため）。(2) `render_story_index_page`が生成する`stories/index.md`内のepisodeリンクが、`stories/`配下の自分自身から見て`stories/{episodeId}.md`という二重prefixの壊れたリンクになっていた既存バグを発見・修正（ファイル名のみを相対リンク先にするよう変更）。実際に合成fixtureをrenderし`mkdocs build --strict`を実行して、修正前は`stories/index.md`のリンク切れで警告2件が出ること・修正後は警告0件になることを確認した
-  - テスト: `tests/wiki/test_wiki_renderer.py`に2件追加（Related Charactersの相対リンク確認、story index linkのprefix修正確認・既存2件のアサーションを新しいリンク形式へ更新）、`tests/docs/test_mkdocs_site_preview.py`を新規追加（10件、`mkdocs.yml`の内容確認、`docs/site_preview/index.md`の存在・実データ非混入・commit方針明記の確認、runbookの存在・commit方針明記・実データ非混入確認、`.gitignore`の`site/`カバー確認）。既存751件+新規11件=762件、全件通過
-  - **CI追加**: `.github/workflows/ci.yml`に`mkdocs build --strict --site-dir /tmp/mkdocs_ci_build`ステップを追加（`docs/site_preview/`のみが対象、実データ・生成物のビルドではない）
-  - `uv run pytest`: 762 passed。`check_invisible_unicode.py`/`check_dry_run_inputs.py`: 問題なし。`uv run ruff check scripts agents tests`: クリーン。`uv run ruff format scripts agents tests --check`: クリーン
-  - **検証コマンド結果**: `scripts/render_wiki.py --input tests/fixtures/wiki/synthetic_merged_collection.json --output workspace/wiki_preview/synthetic_mkdocs --character-profiles tests/fixtures/character_profiles/synthetic_character_profiles.yaml --validate --clean`で7件のMarkdown生成成功。`uv run mkdocs build --strict --site-dir <tmp>`（committed `mkdocs.yml`）で警告0件のビルド成功。同出力に対する一時ローカル設定（`workspace/wiki_preview/mkdocs.local.yml`）経由の`mkdocs build --strict`でも警告0件を確認（いずれも生成物・一時設定ファイルはcommitせずローカルから削除済み）
-  - **今回あえて実装しなかったこと**: 実データ由来Wiki Markdownのcommit、`workspace/wiki_preview/*`のcommit、`site_src/`への実データ由来ページcommit、GitHub Pages設定、Cloudflare Pages設定、公開用deploy workflow、実WIKI由来candidate YAML/CSVのcommit、raw HTMLのcommit、`character_profiles.yaml`への新規プロフィール投入、`characters.yaml`のconfirmed化、個別キャラページ巡回、自己紹介文の自動取得、Knowledge Graph生成、LLM/provider/prompt実装、Parser大規模再設計、Jinja2依存追加の確定（MkDocs依存自体は既存のため今回の追加判断は発生せず）
-  - 未着手（次のPRへ持ち越し）: mkdocs local preview dry-run（実データ由来merged knowledge collectionでの実地確認）、public publishing workflow（GitHub Pages/Cloudflare Pages公開設計）、character-profile-import-batch-002、character-dictionary-confirmed-batch-004
-- story manifest design: **実施完了（設計・schema・runbook相当の説明・合成template・候補生成scriptのみ。実DEC・実manifestは投入せず）**。`feature/story-manifest-design`ブランチで作業
-  - 目的: 本格運用時のraw DECファイル配置（`EVENT\csl_script_event_250626_dancer_export\CAB-csl_script_event_250626_dancer-episode1.dec`のような、ゲームエクスポート由来の配置）と、DKB正規ID体系（storyId/episodeId）を分離管理する`story_manifest.yaml`を設計する
-  - **raw DEC layout supported pattern**: ユーザー提示の`EVENT\csl_script_event_250626_dancer_export\...`配置を正式にsupported patternとして`docs/architecture/05_Parser/Story_Manifest_Design.md` §4に記録した。この配置から自動推定してよいもの（category/sourceKey/storyId/episodeNumber/episodeId/sourceFileName/rawPath）と、自動推定しないもの（公式イベントタイトル/サブタイトル/表示用タイトル/章タイトル/AI要約タイトル）を明文化した
-  - **path正規化方針**: Windowsのバックスラッシュ区切りは内部では常にスラッシュ区切りへ正規化する（§5）。`rawDirectory`/`rawPath`はraw rootからの相対パスのみ保持し、ローカル絶対パスは保持しない
-  - **storyId/episodeId生成方針**: `EVT_{sourceKeyを大文字化}`（例: `EVT_250626_DANCER`）・`{storyId}_E{episodeNumber:02d}`とした。**`Identifier_Specification.md` §4.3の`EVT_{eventNumber}`（数値管理番号）とは異なる形式であることを明記**し、この相違をどう解消するかは`metadataStatus: pending`のまま人間レビュー時に判断する未確定事項として残した（§8.1、§18 OD-001）
-  - **title/subtitle方針**: DEC本文・raw配置いずれからも自動推測しない。`title`/`displayTitle`（ストーリー単位）・`subtitle`/`displayTitle`（エピソード単位）はすべてnullを許容し、人間入力または外部一覧importでのみ設定する方針とした（§11）
-  - **metadataStatus**: `pending`/`confirmed`/`title_unknown`/`deprecated`の4値とした（§12）
-  - **schema追加**: `schemas/story_manifest.schema.json`（新規）。`storyId`/`category`/`sourceKey`/`title`/`displayTitle`/`metadataStatus`/`rawDirectory`/`episodes`（storyレベル）、`episodeId`/`episodeNumber`/`subtitle`/`displayTitle`/`rawPath`/`sourceFileName`/`metadataStatus`（episodeレベル）を定義。`category`はenum `main`/`event`/`raid`/`other`/`character`（`agents/parser/exporter.py`の`_category_to_subdir`と同じ語彙）
-  - **template追加**: `docs/templates/story_manifest_template.yaml`（合成データのみ、`EVT_990101_SAMPLE_EVENT`等の架空sourceKey/storyId、実イベント名は使わず）
-  - **候補生成script追加**: `scripts/build_story_manifest_candidates.py`（CLIラッパー）＋`agents/parser/story_manifest_candidates.py`（コアロジック、`character_profile_wiki_import.py`と同じ「agents/parser/にロジック、scripts/にCLIラッパー」の分離パターンを踏襲）。`--raw-root`配下の`EVENT`ディレクトリのみを走査し、`csl_script_event_{sourceKey}_export`ディレクトリ内の`CAB-csl_script_event_{sourceKey}-episode{N}.dec`を検出、episodeNumberを整数として数値ソート（episode1/2/10が正しい順序になることを確認済み）、title/subtitle/displayTitleは常にnull・metadataStatusは常にpendingで出力する。**DEC本文は一切読まない**（ファイル名・ディレクトリ名の文字列処理のみであることをテストで確認済み）。MAIN/RAID/OTHER/CHARACTERカテゴリは、実際のraw配置規約が未確認のため今回は対応せず（§6、§18 OD-002/OD-003）
-  - **parser/normalizer連携方針（設計のみ、未実装）**: 将来`scripts/normalize_story.py`に`--manifest`引数相当を追加し、`--story-id`/`--episode-id`/`--category`/`--story-title`/`--episode-title`の手動指定をmanifest参照で代替できるようにする方針を記録した（§14）。**本PRでは`agents/parser/`・`scripts/normalize_story.py`のコード変更は一切行っていない**
-  - **Wiki連携方針**: `docs/architecture/07_Wiki/Wiki_Output_Design.md` §9.3に、Episode pageのtitle/subtitleが将来`story_manifest.yaml`由来になること、`subtitle`が無い場合は`episodeId`または「第N話」表記でfallback表示する方針を軽微追記した（設計のみ、renderer実装は行わず）
-  - テスト: `tests/parser/test_story_manifest_candidates.py`（新規21件、候補生成コアロジック）・`tests/scripts/test_build_story_manifest_candidates.py`（新規5件、CLIスモーク）・`tests/parser/test_story_manifest_schema.py`（新規17件、schema・template検証）・`tests/docs/test_story_manifest_design_docs.py`（新規9件、設計doc整合性）を追加。すべて合成データ（tmp_path内の空`.dec`ファイル、または直接組み立てたdict）のみ、実DEC・実イベント名は一切使わず。既存762件+新規52件=814件、全件通過
-  - `.gitignore`に`workspace/story_manifest/`・`story_manifest_candidates_*.yaml`・`story_manifest_candidates_*.json`・`*.dec`（保険的な包括パターン）を追加
-  - `uv run pytest`: 814 passed。`check_invisible_unicode.py`/`check_dry_run_inputs.py`: 問題なし。`uv run ruff check scripts agents tests`: クリーン。`uv run ruff format scripts agents tests --check`: クリーン
-  - **今回あえて実装しなかったこと**: 実DECファイルのcommit、実データ由来`story_manifest.yaml`のcommit、rawPath実一覧のcommit、実タイトル・実サブタイトルのcommit、DEC本文からsubtitleを推測する処理、AIによるタイトル生成、`agents/parser/`・`scripts/normalize_story.py`の大改修（`--manifest`引数の実装含む）、`agents/wiki_generator/renderer.py`の大改修、実データのnormalize/merge/render実行、GitHub Pages/Cloudflare Pages公開、Knowledge Graph生成、LLM/provider/prompt実装、MAIN/RAID/OTHER/CHARACTERカテゴリのraw配置規約確定
-  - 未着手（次のPRへ持ち越し）: story manifest candidate builder（実際のraw配置での動作確認、複数カテゴリ対応拡張）、normalize_story manifest integration（`--manifest`引数実装）、story title/subtitle import（人間確認済みタイトル情報の投入）、mkdocs local preview dry-run
-- normalize_story manifest integration: **実施完了（`--manifest`引数を追加。実DEC・実manifest・実データ由来生成物は投入せず）**。`feature/normalize-story-manifest-integration`ブランチで作業
-  - 目的: `story_manifest.yaml`の episode entry を `scripts/normalize_story.py` から参照し、Normalized Story JSON に storyId/episodeId/title/subtitle/source metadata を付与できるようにする
-  - **loader/helper追加**: `agents/parser/story_manifest.py`（新規）。`load_story_manifest(path)`（ファイル不在時は空の`StoryManifest`、`character_profiles.py`と同じ方針）・`find_episode_by_raw_path(manifest, input_path, raw_root=None)`（優先順位1: raw_root相対の完全一致、優先順位2: 正規化input path末尾のsuffix match）・`find_episode_by_source_filename(manifest, filename)`（複数一致を検出できるよう全件返す）・`resolve_manifest_episode(manifest, input_path, raw_root=None)`（上記を優先順位通りに統合、status: matched/unmatched/ambiguous）・`normalize_manifest_path`（`\`→`/`・`./`除去・連続スラッシュ整理）・`resolve_story_category`（manifestのcategory小文字→`--category`大文字prefix、characterは意図的に対応外）を実装
-  - **CLI拡張**（`scripts/normalize_story.py`）: `--manifest`/`--raw-root`/`--manifest-strict`を追加。`--story-id`/`--category`は`required=True`→`required=False`に変更したが、**`--manifest`未指定時、または一致なしの場合は実質必須のまま**（解決できなければexit code 1、既存の必須引数相当の挙動を維持）。CLI明示指定（`--story-id`/`--category`/`--episode-id`/`--story-title`）は常にmanifest由来の値より優先される
-  - **一致ロジック**: rawPath一致（raw_root相対 → suffix match）→sourceFileName一致の優先順位。sourceFileNameが複数エントリと一致した場合はambiguous
-  - **unmatched/ambiguous時の挙動**: `--manifest-strict`未指定なら`[警告]`表示の上で処理継続（`--story-id`/`--category`の明示指定が前提）。`--manifest-strict`指定時はexit code 1
-  - **Normalized Story JSONへの反映**: `agents/parser/normalizer.py`の`Normalizer`に任意引数`manifest_source`を追加し、`source.manifest`（manifestPath/manifestMatched/matchedBy/sourceFileName/rawPath）として記録（`SourceInfo`は`additionalProperties: true`のためschema変更不要）。`metadata.storyTitle`/`displayTitle`/`metadataStatus`（story）・`episodeSubtitle`/`displayTitle`/`metadataStatus`（episode、いずれも既存の`additionalProperties: true`）へ、一致時のみ追加。**`subtitle`がnullの場合もそのままnullとして反映**（DEC本文から推測して埋めることはしない、実際に合成manifestで確認済み）
-  - **既存挙動維持**: `--manifest`未指定時は、出力JSONに`source.manifest`キー・`metadata.metadataStatus`キーが一切追加されないことをテストで確認（既存の`test_normalize_story_cli_survives_cp932_console`等の既存テストも無変更で全件通過）
-  - テスト: `tests/parser/test_story_manifest.py`（新規21件、loader/helperのユニットテスト）・`tests/scripts/test_normalize_story_manifest_integration.py`（新規11件、CLIスモーク：matched/subtitle null保持/DEC本文非推測/sourceFileNameフォールバック/unmatched時のfallback・必須引数不足・strict失敗/ambiguous時のstrict失敗/manifestファイル不在/既存挙動維持）。既存814件+新規32件=846件、全件通過
-  - `.gitignore`変更なし（既存の`workspace/story_manifest/`・`story_manifest_candidates_*`・`*.dec`パターンで十分カバーされるため）
-  - `uv run pytest`: 846 passed。`check_invisible_unicode.py`/`check_dry_run_inputs.py`: 問題なし。`uv run ruff check scripts agents tests`: クリーン（`main`の複雑度超過は`_resolve_identifiers`ヘルパーへ分割して解消）。`uv run ruff format scripts agents tests --check`: クリーン
-  - docs更新: `docs/architecture/05_Parser/Story_Manifest_Design.md` §14を「未実装」から「実装完了」へ更新、`docs/runbooks/Real_Data_Dry_Run.md`に`--manifest`/`--raw-root`の任意利用例を追記
-  - **今回あえて実装しなかったこと**: 実DECのcommit、実manifestのcommit、実rawPath一覧のcommit、実タイトル/実サブタイトルのcommit、DEC本文からsubtitle推測、AIタイトル生成、story title/subtitle import、MAIN/RAID/OTHER/CHARACTERカテゴリ規約確定、`agents/wiki_generator/renderer.py`大改修・Wiki Episode page本格改修、extraction/mergeロジック変更、MkDocs preview dry-run、GitHub/Cloudflare Pages公開、Knowledge Graph生成、LLM/provider/prompt実装、Parser大規模再設計
-  - 未着手（次のPRへ持ち越し）: story manifest candidate builder（実際のraw配置での動作確認）、story title/subtitle import、mkdocs local preview dry-run、public publishing workflow
-- story title/subtitle import design: **実施完了（設計・schema拡張・runbook・合成candidate template・candidate builder scriptのみ。実タイトル・実サブタイトル・実WIKI HTML・実candidateは投入せず）**。`feature/story-title-subtitle-import-design`ブランチで作業
-  - 目的: `story_manifest.yaml`の`title`/`subtitle`/`displayTitle`をどの情報源からどのように取り込むかを設計する
-  - **title/subtitle/displayTitleの整理**: `docs/architecture/05_Parser/Story_Manifest_Design.md` §11を拡張（§11.4-11.9新設）。story title（ストーリー全体1つ）とepisode subtitle（episodeごと）の違い、DEC本文からは引き続き自動推測しない方針の再確認、official titleとAI-generated titleの分離（AI生成タイトルは`story_manifest.yaml`に一切保持せず将来のAI analysis page側で別管理）、import candidate→人間レビュー→confirmed manifest updateの流れ、複数sourceが矛盾した場合の優先順位の目安（自動適用はしない）、表記ゆれ・全角半角・改行差分は自動正規化しない方針を明記した
-  - **source種別設計**: `manual`/`official_game_ui`/`official_announcement`/`wiki_story_list`/`wiki_event_page`/`imported_candidate`/`unknown`の7種を定義（§11.5）
-  - **schema拡張**: `schemas/story_manifest.schema.json`に任意フィールド`titleSource`（story）・`subtitleSource`（episode）を追加。新規`ManifestSource`定義（`character_profiles.yaml`の`ProfileSource`と同じ設計パターン）で`sourceType`/`label`/`referenceId`/`notes`を保持する。**既存の`docs/templates/story_manifest_template.yaml`（これらのフィールドを含まない）は変更なしでschema検証を通過することを確認済み**（後方互換）
-  - **candidate template追加**: `docs/templates/story_title_subtitle_candidates_template.yaml`（合成データのみ、`documentType: "story_title_subtitle_candidates"`、`EVT_250626_SYNTHETIC_DANCER`等の架空ID、`reviewStatus: "pending"`固定）
-  - **runbook追加**: `docs/runbooks/Story_Title_Subtitle_Import.md`（新規）。入力候補source、candidate生成方針、人間レビュー手順、`story_manifest.yaml`への反映手順（candidateのフィールド→manifestフィールドの対応表）、metadataStatus更新方針、矛盾時の扱い、表記ゆれの扱い、commit禁止対象、実データ運用時の注意をまとめた
-  - **candidate builder script追加**: `scripts/build_story_title_subtitle_candidates.py`（CLIラッパー）＋`agents/parser/story_title_subtitle_candidates.py`（コアロジック）。CSV（列: storyId/episodeId/episodeNumber/proposedTitle/proposedDisplayTitle/proposedSubtitle/confidence/notes）から`story_title_subtitle_candidates`ドキュメントを組み立てる。`--manifest`指定時、各storyId/episodeIdがmanifestに実在するかを`foundInManifest`として記録するが、**一致有無に関わらず候補は必ず出力する**（unmatchedを黙って除外しない）。すべての候補は`reviewStatus: "pending"`固定で、**このscript自体は`story_manifest.yaml`を一切更新しない**（confirmed化は人間が手動で行う）
-  - **Wiki連携方針**: `docs/architecture/07_Wiki/Wiki_Output_Design.md` §9.3に、title/subtitleの値がimport candidate→人間レビュー→`story_manifest.yaml`反映という流れを経てから`confirmed`になる想定であり、Wiki側は反映済みの値をそのまま表示するのみで候補の採否判定には関与しないことを軽微追記した（renderer実装は引き続き未着手）
-  - テスト: `tests/parser/test_story_title_subtitle_candidates.py`（新規11件、candidate builderコアロジック）・`tests/scripts/test_build_story_title_subtitle_candidates.py`（新規8件、CLIスモーク）・`tests/parser/test_story_manifest_schema.py`（新規8件、titleSource/subtitleSourceのschema検証・既存template後方互換確認）・`tests/docs/test_story_title_subtitle_import_docs.py`（新規17件、設計doc/runbook/candidate templateの整合性、テンプレートファイルが`.gitignore`の`story_title_subtitle_candidates_*.yaml`パターン自身に誤って一致していないことの確認含む）。既存846件+新規44件=890件、全件通過
-  - `.gitignore`に`story_title_subtitle_candidates_*.yaml`・`story_title_subtitle_candidates_*.csv`・`title_subtitle_rows*.csv`を追加。**追加直後、テンプレートファイル名`story_title_subtitle_candidates_template.yaml`が自分自身の追加した`story_title_subtitle_candidates_*.yaml`パターンに誤って一致する不具合（`character_confirmed_batch_input_template.yaml`で過去に起きたのと同種）に気づき、`!docs/templates/story_title_subtitle_candidates_template.yaml`のnegationパターンを追加して解消した**
-  - `uv run pytest`: 890 passed。`check_invisible_unicode.py`/`check_dry_run_inputs.py`: 問題なし。`uv run ruff check scripts agents tests`: クリーン。`uv run ruff format scripts agents tests --check`: クリーン
-  - **今回あえて実装しなかったこと**: 実タイトル・実サブタイトルの大量投入、実WIKI HTMLのcommit、実source URL一覧のcommit、実candidate YAML/CSVのcommit、実`story_manifest.yaml`のcommit、実DECのcommit、DEC本文からsubtitle推測、AI公式タイトル生成、`story manifest confirmed metadata batch`の実施、`scripts/normalize_story.py`の大改修、`agents/wiki_generator/renderer.py`の大改修、MkDocs preview dry-run、GitHub/Cloudflare Pages公開、Knowledge Graph生成、LLM/provider/prompt実装
-  - 未着手（次のPRへ持ち越し）: story title/subtitle candidate builder（実際のWiki/CSV入力での動作確認）、story manifest confirmed metadata batch 001（人間確認済みcandidateの実際の反映）、wiki episode title display integration（Wiki Episode pageでのtitle/subtitle表示renderer実装）、mkdocs local preview dry-run
-- mkdocs local preview dry-run: **実施完了（運用手順・目視確認チェックリスト・結果テンプレートを整備。軽微なrenderer修正1件のみ、実データ生成物は投入せず）**。`feature/mkdocs-local-preview-dry-run`ブランチで作業
-  - 目的: `render_wiki.py` → MkDocs Materialでの表示までをローカルで通し、目視確認の手順・結果テンプレート・改善点を記録する運用を確立する
-  - **runbook追加**: `docs/runbooks/MkDocs_Local_Preview_Dry_Run.md`（新規）。`mkdocs build --strict`成功と実際の見た目確認は別問題であることを明記し、推奨ローカルサンプル方針（EVENT系1〜2件・各1〜3episode・confirmed profileありキャラ含む・unresolvedキャラも少し含む・title/subtitle未設定でも可）、合成fixtureでの確認手順、実データ小規模サンプルでの確認手順（`build_story_manifest_candidates.py`→`build_story_title_subtitle_candidates.py`（任意）→`normalize_story.py --manifest`→`extract_story.py`→`merge_extractions.py`→`render_wiki.py --character-profiles`→MkDocs previewの一連の流れ）、目視確認ポイント（Top page/Story index/Episode page/Character page/Basic Profile section/Related Characters links/Unresolved report/Navigation/モバイル幅/日本語表示/表の可読性/長文の扱い/title・subtitle未設定時のfallback表示）、source text exposure check、commit禁止対象、よくある失敗、結果の記録方法をまとめた
-  - **checklist/result template追加**: `docs/templates/mkdocs_local_preview_result_template.md`（合成の空欄テンプレート、Run Info/Build Checks/Visual Checks/Source Safety Checks/Findingsの5セクション）。実施結果自体はcommitせず、ローカル・社内共有ドライブ等commit対象外の場所へ記録する方針を明記
-  - **既存runbook更新**: `docs/runbooks/MkDocs_Local_Preview.md`に、目視確認は別途必要であることと、dry-run手順書・結果テンプレートへの参照を追記（§9新設、§10・§11へ既存内容をリナンバリング）
-  - **renderer小修正（1件のみ）**: 合成fixtureでの目視確認中、Episode pageの`Source Path`行が実データローカルdry-run時に環境依存のローカル絶対パス（`C:\Users\...`等）をそのまま表示しうることに気づき、`agents/wiki_generator/renderer.py`に`_sanitize_source_path()`を追加した。Windows/POSIX絶対パスの場合はファイル名のみへ縮約表示し、相対パスは従来通りそのまま表示する。テンプレートエンジン導入・Wiki page構造の全面改修等の大規模変更は行っていない
-  - **合成fixture確認結果**: `render_wiki.py --character-profiles ... --validate --clean`で7件のMarkdown生成成功。一時ローカルMkDocs設定経由の`mkdocs build --strict`・committed `mkdocs.yml`両方とも警告0件で成功。目視確認（Top page/Story index/Episode page/Character page/Basic Profile section/Related Characters links/Unresolved report）も実施し、Source Path縮約表示の修正効果を確認した
-  - **実データローカル確認**: 本PRでは**未実施**。`docs/runbooks/MkDocs_Local_Preview_Dry_Run.md` §13に「次回実施」と明記した
-  - テスト: `tests/wiki/test_wiki_renderer.py`に4件追加（相対パスは従来通り表示、Windows/POSIX絶対パスの縮約表示、pathキー欠落時の空表示）・`tests/docs/test_mkdocs_local_preview_dry_run_docs.py`（新規17件、runbook/checklistの整合性、`.gitignore`自己一致の再発防止確認含む）。既存890件+新規21件=911件、全件通過
-  - `.gitignore`変更なし（新規テンプレートが既存パターンに誤って一致しないことを確認済み）
-  - `uv run pytest`: 911 passed。`check_invisible_unicode.py`/`check_dry_run_inputs.py`: 問題なし。`uv run ruff check scripts agents tests`: クリーン。`uv run ruff format scripts agents tests --check`: クリーン。`uv run mkdocs build --strict`: 警告0件（committed `mkdocs.yml`・合成fixture出力の一時設定いずれも）
-  - **今回あえて実装しなかったこと**: 実データgenerated Markdownのcommit、実DEC/実manifest/実Normalized Story JSON/実extraction・merged collectionのcommit、実title/subtitle投入、raw HTMLのcommit、`story_manifest confirmed metadata batch`の実施、`story title/subtitle`実import、Wiki renderer大改修、Jinja2導入、GitHub/Cloudflare Pages公開、deploy workflow、Knowledge Graph生成、LLM/provider/prompt実装、Parser大規模再設計
-  - 未着手（次のPRへ持ち越し）: mkdocs local preview real sample trial（実際のローカル実データサンプルでの目視確認実施）、wiki episode title display integration、story title/subtitle candidate builder、character-profile-import-batch-002、public publishing design
-- mkdocs local preview real sample trial: **実施完了（実データ小規模サンプルでmanifest候補生成→normalize→extract→merge→render→MkDocs build/serveまで一気通貫を確認。renderer修正・schema/仕様変更は無し、実データ生成物は投入せず）**。`feature/mkdocs-local-preview-real-sample-trial`ブランチで作業
-  - 目的: `docs/runbooks/MkDocs_Local_Preview_Dry_Run.md`の実データ手順を、実際のローカルraw DEC配置で最後まで通し、`mkdocs build --strict`成功・目視確認・source text exposure checkの結果を記録する
-  - **サンプル**: EVENTカテゴリ1件（匿名化: "EVENT sample A"）・episode 2件。confirmed dictionary + character_profiles両方に登録済みのキャラクター1名、confirmed dictionaryのみ（profile未登録）のキャラクター1名、unresolvedキャラクター複数名（数値ID・name_onlyの両方含む）が混在するサンプルを選定した。title/subtitleは`story_manifest.yaml`側で未設定のまま実行した
-  - **CLI引数の実態確認**: `docs/runbooks/MkDocs_Local_Preview_Dry_Run.md`記載のコマンド例のうち、`normalize_story.py --output`は「ファイルパス」ではなく「出力先ディレクトリ」を期待する仕様（`{episodeId}.json`を自動生成）であることを実行時に確認した（ファイルパスを渡すと同名ディレクトリが作られてしまう）。`merge_extractions.py`に`--report`引数は存在せず、mergeレポートは出力collection JSON内の`report`キーに埋め込まれる仕様だった。いずれも既存スクリプトの仕様通りであり、スクリプト自体の修正は行っていない
-  - **実行結果**（詳細・匿名化サマリーは`docs/runbooks/results/MkDocs_Local_Preview_Real_Sample_Trial_001.md`参照、実データ非含有）: manifest候補生成→normalize（2 episodeともJSON Schema検証成功、manifest一致）→extract（2 episodeともexit code 0）→merge（characters 8件merged・6件unresolved、locations 2件merged・2件unresolved、conflict/warning 0件）→render（Markdown 7件生成）→`mkdocs build --strict`（警告0件）まで完走した
-  - **目視確認の制約**: 本セッションにはブラウザ/スクリーンショットツールが無いため、実際のブラウザでの目視確認は実施できなかった。代わりに生成Markdown本文と`mkdocs build`が生成した静的HTMLを直接読み、Basic Profile section（登録あり/なし両方）・Related Charactersの相対リンク解決・Unresolved report・title/subtitle未設定時のepisodeId fallback表示・Markdown表のHTML `<table>`変換をファイルベースで確認した。モバイル幅での実際の見た目・日本語フォント描画は未確認のまま次回に持ち越す
-  - **source text exposure check**: 生成Markdown・ビルド後HTMLいずれに対しても、ローカル絶対パス（`C:\Users\...`/`D:\Dev\...`）・DECコマンド文字列（`@ChTalk`等）・`$numX`変数・`.dec`拡張子・raw root/ディレクトリ名のgrepで一致なしを確認した。Episode pageの`Source Path`はworkspace配下の相対パス（extraction JSONのパス）のみを表示しており、想定通りの挙動だった
-  - **renderer修正**: 今回のトライアルでは明らかな軽微問題が見つからなかったため、`agents/wiki_generator/renderer.py`の修正は行っていない（新規回帰テストの追加も無し）
-  - **今回あえて実装しなかったこと**: 実データgenerated Markdownのcommit、実DEC/実manifest/実Normalized Story JSON/実extraction・merged collectionのcommit、raw HTMLのcommit、実際のブラウザでの目視確認（ツール制約）、Wiki renderer大改修、Jinja2導入、story title/subtitle本格表示統合、relationship/timeline page実装、Knowledge Graph生成、GitHub/Cloudflare Pages公開
-  - 未着手（次のPRへ持ち越し）: 実際のブラウザでの目視確認、wiki episode title display integration、story title/subtitle candidate builder、character-profile-import-batch-002、public publishing design、renderer readability improvements（モバイル幅・長文自己紹介文でのレイアウト確認を含む）
+- `feature/project-context-compaction`: 肥大化した`AI_CONTEXT.md`/`TASKS.md`を圧縮し、完了済みPR履歴を`docs/project_history/`へ分離する（実装変更なし、docs-onlyのPR）
+
+## Next
+
+直近5件程度。着手前にユーザーへ確認する。
+
+1. **wiki episode title display integration**: Wiki Episode pageで`story_manifest.yaml`由来のtitle/subtitleを表示するrenderer実装（`Wiki_Output_Design.md` §9.3の設計に従う）
+2. **story title/subtitle candidate builder**: `scripts/build_story_title_subtitle_candidates.py`を実際のWiki/CSV入力に対して実行し、生成候補（`workspace/story_manifest/`配下、commitしない）を人間が確認する
+3. **character profile import batch 002**: unmatched 200件のうち、displayName表記ゆれ解消やconfirmed化が進んだ分の人間確認済みcandidateを再照合し追加投入する
+4. **character dictionary confirmed batch 004**: 残る未確認10件（234/225/230/222/232/83/258/86/85/257）について、人間確認済みmappingが提供され次第confirmed化する
+5. **renderer readability improvements**: 実ブラウザでの目視確認（モバイル幅・長文自己紹介文レイアウト・日本語フォント描画）を実施する
 
 ---
 
-## 2. Next Actions
+## Backlog
 
-1. real data dry-run trialで見つかった既知の課題への対応（着手前にユーザーへ確認する。詳細は`docs/runbooks/Real_Data_Dry_Run_Result_Template.md` §3-4）
-   1. ~~`config/script_commands.yaml`（および`agents/parser/parser.py`の`STAGE_DIRECTION_COMMANDS`）を実データで見つかった演出コマンド群に合わせて拡充する~~ → `feature/script-command-coverage`で対応完了（unknownブロック率68.8%/60.7% → 0.1%/0%）
-   2. ~~キャラクター辞書（`reference/parser/characters_reference.json`または`knowledge/dictionaries/*.yaml`）を実データが参照する番号帯まで拡充する~~ → `feature/character-dictionary-coverage`でloader/validation/coverage report/Parser配線を実装完了。~~confirmed化のレビュー運用整備~~ → `feature/character-dictionary-confirmed-review`で対応完了（`docs/runbooks/Character_Dictionary_Review.md`・レビュー用テンプレート・coverage script改善・aliases重複validation、詳細は§1参照）。~~reference JSON（`characters_reference.json`）のbatch取り込み確認~~ → `feature/character-dictionary-confirmed-batch-001`で対応完了（差分ゼロ、既に完全移行済みと確認。`scripts/compare_character_dictionaries.py`を今後のbatch用に整備）。`feature/character-dictionary-confirmed-batch-002`では人間確認済みmappingが未提供だったため辞書変更なし（詳細は§1参照）。~~character dictionary review packet~~ → `feature/character-dictionary-review-packet`で対応完了（`scripts/build_character_review_packet.py`・`docs/templates/character_dictionary_review_packet_template.yaml`等、人間がsourceCharacterId→characterId mappingを確認・記入しやすいpacket生成の仕組みを整備、詳細は§1参照）。~~character dictionary confirmed batch 003~~ → `feature/character-dictionary-confirmed-batch-003`で対応完了（人間確認済み12件をconfirmed化、`canonicalIdSummary.totalAssigned` 0→12、Character page 12件生成を実データdry-runで確認、詳細は§1参照）。残る未確認10件（234/225/230/222/232/83/258/86/85/257、`scripts/check_character_dictionary_coverage.py`または`scripts/build_character_review_packet.py`で確認可能）の人間によるローマ字確認・`knowledge/dictionaries/characters.yaml`へのconfirmed化そのものは、整備した運用に沿って引き続き人間が行う残作業
-   3. ~~`check_script_compatibility.py`単体実行と`normalize_story.py --check-compat`経由の判定差異の解消~~ → `feature/compatibility-check-consistency`で対応完了（`agents/parser/compatibility.py`に判定ロジックを共有化、`unknownCommands`/`newSpeechCommands`/`parserCompatibility`が両経路で一致することを実データ・合成データ双方で確認）。残作業: `branch_issues`/`case_variants`のStoryParser側追跡実装、check_script_compatibility.pyの裸バレット単語検出強化（両者ともスコープ外として据え置き、TASKS.md該当セクション参照）
-   4. `--check-compat`のレポート出力先をオプション化するか、既定動作として明示的にドキュメント化する
-   5. ~~選択肢（`branch`/`#if`）を含む実データでの追加dry-run実施~~ → `feature/branch-choice-dry-run`で対応完了。branch/choiceの重大なブロック配置バグ3件（`#endif`後にcurrent_choiceが戻らない、ネストしたbranchがシーン直下に置かれる、ネスト後にoption位置が復元されない）と、句読点・省略記号のみの本文行が欠落する不具合1件を発見・修正。~~実データで見つかった未登録コマンド（`costume`/`fa`/`@TalkPosR`等）のscript command coverage追加~~ → `feature/script-command-coverage-followup`で対応完了
-2. `Merged_Knowledge_Design.md` §13 の順で Stage B 実装に進む（着手前にユーザーへ確認する）
-   1. ~~ruff known issues cleanup（`TASKS.md` §4 Known Issuesに記載済みの既存ruffエラー解消）~~ → `feature/ruff-known-issues-cleanup`で対応完了（C901複雑度6件中5件・E501/F841/E402をすべて解消。`agents/parser/parser.py::_parse_tokens`のC901のみ意図的に据え置き、詳細は§1・§4参照）。~~GitHub Actions CIへの`ruff check`/`ruff format --check`組み込み~~ → `feature/github-actions-ci`で対応完了（`_parse_tokens`には`# noqa: C901`を付与しCIでは`ruff check`がクリーンに通る、詳細は§1参照）。残作業: `_parse_tokens`のC901解消本体（parse state dataclassリファクタ、大規模リファクタが必要なため別PR）
-   2. timeline contradiction detection（順序整合性の本格検証）
-   3. ~~Wiki出力設計~~ → `feature/wiki-output-design`で対応完了（`docs/architecture/07_Wiki/Wiki_Output_Design.md`、ページ種別Phase 1〜3・責務・front matter・出力ディレクトリ・URL方針・merged collection対応表、詳細は§1参照）。~~wiki renderer skeleton~~ → `feature/wiki-renderer-skeleton`で対応完了（`agents/wiki_generator/`にPhase 1のTop/Story index/Episode（簡易）/Character/Unresolved reportページのrenderer実装、詳細は§1参照）。~~character page renderer expansion~~ → `feature/character-page-renderer-expansion`で対応完了（Aliases/Source Candidates summary/Conflicts field表示等を追加、詳細は§1参照）。~~episode page renderer expansion~~ → `feature/episode-page-renderer-expansion`で対応完了（Candidate Counts表/Related Characters summary/Validationセクション追加、詳細は§1参照）。~~unresolved report renderer refinement~~ → `feature/unresolved-report-renderer-refinement`で対応完了（Overview/Conflict Summary/Warning Summary/Canonical ID Summary/Relationship Type Summaryセクション追加、entity種別別表にCanonical ID・Source Candidates列を追加、詳細は§1参照）。~~real data wiki render dry-run~~ → `feature/real-data-wiki-render-dry-run`で対応完了（runbook・result template・`.gitignore`追加、実データmerged collectionがローカルに無かったため実データdry-runは未実行、synthetic縮退collectionでの代替検証で長いwarning未truncateの軽微なバグを発見・修正、詳細は§1参照）。~~real data merged collection dry-run~~ → `feature/real-data-merged-collection-dry-run`で対応完了（実データ8話でExtractor→Merger→Wiki render handoffまで完走を確認、エラー・クラッシュなし、詳細は§1参照）。残作業: relationship section renderer・Location/Organization/Item/Lore/Event page等Phase 2以降の実装、キャラクター辞書の数値ID帯拡充（§1「未着手」参照）
-   4. relationshipType taxonomyの本確定（`docs/architecture/04_Knowledge_Graph/Relationships.md`。今回はまだ暫定taxonomy・正規化レイヤーのみ）
-   5. canonical ID辞書（`knowledge/dictionaries/*.yaml`、`Merged_Knowledge_Design.md` §2.4）の実装（今回はpolicy/helper/validationのみ）
-   6. EventCandidateのparticipant/location解決（Relationship mergeで作ったcandidate対応表ロジックを再利用）
-   7. `entities`配下の`schemas/merged_knowledge.schema.json`への`$ref`接続（cross-file $ref方針の決定待ち）
-   8. merge report自体の生成物出力（`data/extracted/reports/merge_report.json`への書き出し。§11.2）
-3. その他、優先順位未確定の候補（着手前にユーザーへ確認する）
-   - choice内話者・choice内location/organization/item/lore/event情報も含めた抽出への拡張
-   - semantic validationの拡充（FieldValue単位のevidenceIds検証、Relationshipの両端がcandidate配列中に実在するかの検証、Timelineの順序整合性チェックなど）
-   - story/episode metadataのrelatedOrganizations相当への対応（Story/Episode単位のevidence設計を詰めてから）
-   - Scene定義への拡張フィールド許容（`additionalProperties`）の要否検討（scene metadataからのItem/Event/Timeline抽出に必要）
-   - `relationshipType`のtaxonomy本格整理（`docs/architecture/04_Knowledge_Graph/Relationships.md`確定）
-   - invalid direction（RelationshipCandidate）のwarning化
-   - extractor各moduleの重複ヘルパー集約検討（Stage A統合レビューで確認: item.py/event.py/timeline.py/location.pyに「EVIDENCE_BLOCK_TYPES外のBlock（stage_direction等）のEvidenceRefを`source.confidence`フォールバック付きでextra_evidenceへsetdefault」する類似ロジックが分散。base.pyへ小ヘルパーとして集約できるが、4ファイル横断のため今回のレビューでは挙動維持を優先し据え置き。将来まとめる場合は既存テストで挙動不変を担保すること）
+### Parser / Story Manifest
 
----
-
-## 3. Backlog
-
-- `relationshipType` の語彙を確定させる（`docs/architecture/04_Knowledge_Graph/Relationships.md`、現在空プレースホルダー）
-- Candidate ID暫定形式（`Extraction_Result_Schema.md` §4.2）の実運用検証
-- キャラクターIDの完全辞書化・主要キャラクターのcanonical ID確定（`knowledge/dictionaries/characters.yaml`のloader/validation/coverage reportは`feature/character-dictionary-coverage`で実装済み、confirmed化のレビュー運用は`feature/character-dictionary-confirmed-review`で整備済み。実データ頻出の未確認ID(234/225/230/222等)を人間がローマ字確認して`docs/runbooks/Character_Dictionary_Review.md`の手順でconfirmed化する作業自体が残っている）
 - イベント番号の正式な採番ルール
-- `displayOrder` の正式計算式、`canonicalOrder` の扱い
-- Neo4j Graph Model
+- `displayOrder`の正式計算式、`canonicalOrder`の扱い
+- **story manifest candidate builder**: `scripts/build_story_manifest_candidates.py`を実際のローカルraw DEC配置に対して実行し、生成候補を人間が確認する
+- **story manifest confirmed metadata batch 001**: 人間確認済みの公式タイトル・サブタイトル情報を`story_manifest.yaml`へ投入する（`metadataStatus: pending` → `confirmed`）
+- `--check-compat`のレポート出力先をオプション化するか、既定動作として明示的にドキュメント化する
+- `agents/parser/parser.py::_parse_tokens`のparse state dataclassリファクタ本体（Known Issues参照）
+
+### Extraction / Merge
+
+- timeline contradiction detection（順序整合性の本格検証）
+- `relationshipType`のtaxonomy本確定（`docs/architecture/04_Knowledge_Graph/Relationships.md`、現在プレースホルダー）
+- canonical ID辞書（`knowledge/dictionaries/*.yaml`）本体の実装（現状はpolicy/helper/validationのみ）
+- EventCandidateのparticipant/location解決
+- `entities`配下の`schemas/merged_knowledge.schema.json`への`$ref`接続（cross-file $ref方針の決定待ち）
+- merge report自体の生成物出力（`data/extracted/reports/merge_report.json`への書き出し）
+- choice内話者・choice内location/organization/item/lore/event情報も含めた抽出への拡張
+- semantic validationの拡充（FieldValue単位のevidenceIds検証、Relationship両端の実在確認、Timeline順序整合性チェック）
+- Scene定義への拡張フィールド許容（scene metadataからのItem/Event/Timeline抽出に必要）
+- Candidate ID暫定形式（`Extraction_Result_Schema.md` §4.2）の実運用検証
+- extractor各moduleの重複ヘルパー集約（item.py/event.py/timeline.py/location.py、挙動維持を優先し据え置き中）
+
+### Wiki / MkDocs
+
 - Wiki Page Template
+- relationship section renderer、Location/Organization/Item/Lore/Event page等のPhase 2実装
+- renderer readability improvements（モバイル幅・長文レイアウト・実ブラウザ確認、Next参照）
+
+### Character Dictionary / Profiles
+
+- character profile import batch 002（Next参照）
+- character dictionary confirmed batch 004（Next参照）
+- キャラクターIDの完全辞書化・主要キャラクターのcanonical ID確定（loader/validation/coverage report/レビュー運用は実装済み。実データ頻出の未確認IDを人間がローマ字確認しconfirmed化する作業自体が残っている）
+
+### Publishing
+
+- **public publishing workflow**: GitHub Pages / Cloudflare Pages等への公開ワークフローを設計・実装する（`Wiki_Output_Design.md` §16 Non-goals）
+
+### Quality / Refactor
+
+- Neo4j Graph Model
 - Stage Directionをどこまで詳細に意味解析するか
 - 外部LLM Provider連携（opt-in、ローカルLLMがデフォルト）
-- ~~**Character profile dictionary design**~~ → `feature/character-profile-schema-design`で対応完了（`knowledge/dictionaries/characters.yaml`はID解決用のまま、公式プロフィールは`knowledge/dictionaries/character_profiles.yaml`へ分離。confirmed済みcharacterIdにのみ紐づける方針、詳細は§1参照）
-- ~~**character_profiles.yaml schema design**~~ → `feature/character-profile-schema-design`で対応完了（`schemas/character_profiles.schema.json`・`agents/parser/character_profiles.py`・`scripts/validate_character_profiles.py`を実装。characterId/displayName/reading/affiliation/heightCm/birthday/bloodType/cv/profileHighlight/selfIntroduction/source/status/notesの構造で確定、詳細は§1参照）
-- ~~**Wiki character profile section design**~~ → `feature/character-profile-schema-design`で対応完了（`docs/architecture/07_Wiki/Wiki_Output_Design.md` §9.4に「基本プロフィールsection」の表示方針を追記、Wiki renderer実装は未着手のまま、詳細は§1参照）
-- ~~**character profile wiki import pipeline**~~ → `feature/character-profile-wiki-import-pipeline`で対応完了（`agents/parser/character_profile_wiki_import.py`・`scripts/import_character_profiles_from_wiki.py`・`docs/runbooks/Character_Profile_Wiki_Import.md`を実装。実WIKI dry-runは1回実施したがメンバー一覧テーブルの検出には至らず、正しいページURLの特定が残作業。詳細は§1参照）
-- ~~**character profile wiki url discovery**~~ → `feature/character-profile-wiki-url-discovery`で対応完了（正しいメンバー一覧テーブルURLを特定し、実WIKI dry-runでmatched 6件/unmatched 200件のcandidate生成を確認。見出し内`<br>`改行・テーブル途中の見出し行重複の2点をscript修正、詳細は§1参照）
-- ~~**character profile import batch 001**~~ → `feature/character-profile-import-batch-001`で対応完了（matched 6件（CHAR_024_EMMITT/CHAR_029_RAVEL/CHAR_070_LIGULASS/CHAR_RAIN/CHAR_216_JASMINE/CHAR_217_EVE_NEMOPHILA）のみを`character_profiles.yaml`へ投入。unmatched 200件は投入せず、詳細は§1参照）
-- ~~**character profile renderer section**~~ → `feature/character-profile-renderer-section`で対応完了（`agents/wiki_generator/renderer.py`のCharacter pageに`character_profiles.yaml`を参照する「基本プロフィール」sectionを実装。`scripts/render_wiki.py`に任意の`--character-profiles`引数を追加、新規プロフィールデータの追加・修正は行わず、詳細は§1参照）
-- **character profile import batch 002**: unmatched 200件のうち、displayName表記ゆれの解消やcharacters.yaml側の追加confirmed化が進んだ分について、人間確認済みcandidateを再照合し追加投入する
-- **character dictionary confirmed batch 004**: `feature/character-dictionary-confirmed-batch-003`で残った未確認10件（234/225/230/222/232/83/258/86/85/257）について、人間確認済みmappingが提供され次第confirmed化する
-- ~~**MkDocs Material minimal site**~~ → `feature/mkdocs-material-minimal-site`で対応完了（`mkdocs.yml`・`docs/site_preview/`・`docs/runbooks/MkDocs_Local_Preview.md`を追加、CIに`mkdocs build --strict`を追加。ローカルpreview専用で公開設定は未実装、詳細は§1参照）
-- ~~**mkdocs local preview dry-run**~~ → `feature/mkdocs-local-preview-dry-run`で対応完了（`docs/runbooks/MkDocs_Local_Preview_Dry_Run.md`・`docs/templates/mkdocs_local_preview_result_template.md`を追加、目視確認チェックリスト・source text exposure checkを整備。`agents/wiki_generator/renderer.py`にローカル絶対パス縮約表示の軽微修正1件。実データローカル確認は次回実施、詳細は§1参照）
-- ~~**mkdocs local preview real sample trial**~~ → `feature/mkdocs-local-preview-real-sample-trial`で対応完了（manifest候補生成→normalize→extract→merge→render→`mkdocs build --strict`まで実データ小規模サンプルで完走、source text exposure check問題なし。実際のブラウザでの目視確認はツール制約により未実施のため次回へ持ち越し、詳細は§1参照）
-- **renderer readability improvements**: `mkdocs local preview real sample trial`で未確認のまま残った、モバイル幅での実際の見た目・長文自己紹介文でのレイアウト・実ブラウザでの日本語フォント描画確認を行う
-- **public publishing workflow**: GitHub Pages / Cloudflare Pages等への公開ワークフローを設計・実装する（`Wiki_Output_Design.md` §16 Non-goals、§15実装PR案項目7）
-- ~~**story manifest design**~~ → `feature/story-manifest-design`で対応完了（`docs/architecture/05_Parser/Story_Manifest_Design.md`・`schemas/story_manifest.schema.json`・`docs/templates/story_manifest_template.yaml`・`scripts/build_story_manifest_candidates.py`を追加。raw DEC layout supported pattern（`EVENT\csl_script_event_{sourceKey}_export\...`）を記録、title/subtitleはDECから自動推測せずnull許容、実DEC・実manifestは投入せず、詳細は§1参照）
-- **story manifest candidate builder**: `scripts/build_story_manifest_candidates.py`を実際のローカルraw DEC配置に対して実行し、生成された候補（`workspace/story_manifest/`配下、commitしない）を人間が確認する
-- ~~**normalize_story manifest integration**~~ → `feature/normalize-story-manifest-integration`で対応完了（`agents/parser/story_manifest.py`（loader/検索helper）を新規追加、`scripts/normalize_story.py`に`--manifest`/`--raw-root`/`--manifest-strict`を追加、`agents/parser/normalizer.py`に`manifest_source`引数を追加してNormalized Story JSONの`source.manifest`・`metadata.storyTitle`/`displayTitle`/`metadataStatus`等へ反映。`--manifest`未指定時の既存挙動は完全維持、詳細は§1参照）
-- ~~**story title/subtitle import design**~~ → `feature/story-title-subtitle-import-design`で対応完了（`Story_Manifest_Design.md` §11拡張・`schemas/story_manifest.schema.json`に`titleSource`/`subtitleSource`追加・`docs/runbooks/Story_Title_Subtitle_Import.md`・合成candidate template・`scripts/build_story_title_subtitle_candidates.py`を追加。実タイトル・実サブタイトル・実candidateは投入せず、詳細は§1参照）
-- **story title/subtitle candidate builder**: `scripts/build_story_title_subtitle_candidates.py`を実際のWiki/CSV入力に対して実行し、生成された候補（`workspace/story_manifest/`配下、commitしない）を人間が確認する
-- **story manifest confirmed metadata batch 001**: 人間が確認した公式タイトル・サブタイトル情報を、`story_manifest.yaml`の`title`/`subtitle`/`displayTitle`/`titleSource`/`subtitleSource`へ投入する（`metadataStatus: pending` → `confirmed`への遷移）
-- **wiki episode title display integration**: Wiki Episode pageで`story_manifest.yaml`由来のtitle/subtitleを表示するrenderer実装（`Wiki_Output_Design.md` §9.3の設計に従う）
+- invalid direction（RelationshipCandidate）のwarning化
 
 ---
 
-## 4. Known Issues
+## Known Issues
 
-- ~~`uv run ruff check .` に既存エラーが多数ある~~ → `feature/ruff-known-issues-cleanup`でほぼ解消（`scripts/check_script_compatibility.py::main`/`build_markdown_report`/`check_file`、`scripts/normalize_story.py::main`のC901、`agents/parser/tokenizer.py::_tokenize_line`のC901、各種E501/F841/E402をすべて解消。詳細は§1参照）。残る1件だった`agents/parser/parser.py::_parse_tokens`のC901（43 > 10）は、`feature/github-actions-ci`で`# noqa: C901`（「parse state dataclass refactorまでの暫定抑制」とコメント明記）を付与し、**CIでは`ruff check`が通る状態にした**。ただし複雑度そのものは未解消のまま（12個以上の`nonlocal`状態変数が`flush_text()`クロージャと全トークン種別ハンドラ間で密結合しており、安全に分割するには状態を`dataclass`へ切り出す規模のリファクタが必要。実データ生成の中核ロジックであり挙動不変を保証する自信が持てないため、意図的に据え置いた）。後続で`parse state dataclass refactor`を検討すること（対応するなら専用のParserリファクタPRとして、既存テストでの挙動不変確認を徹底した上で行うこと）。`uv run ruff format scripts agents tests --check`は全ファイルクリーン。GitHub Actions CI（`.github/workflows/ci.yml`）への`pytest`/`check_invisible_unicode.py`/`check_dry_run_inputs.py`/`ruff format --check`/`ruff check`組み込みは`feature/github-actions-ci`で完了。
-- semantic validationは`agents/extractor/validator.py`で実装済み（evidenceIds実在確認・duplicate candidate id・empty evidenceIndex・extractionRun整合性・relationship基本チェック・timeline基本チェック）。FieldValue単位のevidenceIds検証、Relationshipの両端がcandidate配列中に実在するかの検証、Timelineの順序整合性チェックは未実装（Next Actions参照）。
-- real data dry-run trialで判明: `config/script_commands.yaml`の演出コマンドカバレッジが実データに対して不足しており、実データのブロックの58〜69%が`unknown`に分類される（dialogue/monologue自体は欠落無し）。→ `feature/script-command-coverage`で対応済み（unknown率0〜0.1%に低下）。`reference/parser/characters_reference.json`（66件登録）も実データの数値ID帯をカバーしておらず、merge後の全entityが`status: unresolved`のままになる問題 → `feature/character-dictionary-coverage`でloader/validation/coverage report/Parser配線を実装済み（`knowledge/dictionaries/characters.yaml`、confirmed 2件: CHAR_RAIN/CHAR_AKAGI_HINA）。ただし実データで頻出する未確認ID（234/225/230/222等、`scripts/check_character_dictionary_coverage.py`で確認可能、6話全体でcoverage 52.2%）を人間がローマ字確認してconfirmed化する作業は残っている。詳細は`docs/runbooks/Real_Data_Dry_Run_Result_Template.md` §3参照。
-- ~~`check_script_compatibility.py`単体実行と`normalize_story.py --check-compat`経由でNormalized JSONに埋め込まれる`compatibilityReport`の判定が食い違う~~ → `feature/compatibility-check-consistency`で対応済み（`agents/parser/compatibility.py`に判定ロジック共有、`unknownCommands`/`newSpeechCommands`/`parserCompatibility`が一致することを確認）。残る既知の非対称性: StoryParserが`branch_issues`/`case_variants`を追跡しないため`determine_compatibility_status`へは常に`False`で渡している、check_script_compatibility.pyの`is_command_line`判定は`@`/`$`無しの未登録裸単語をコマンド行として認識しないため実Parserより検出範囲が狭い（実データでは稀）。
-- ~~branch / choice included dry-runで判明: 実データに未登録のbare-wordコマンド（`costume`/`fa`）と`@`付きコマンド（`@TalkPosR`/`@TalkPosL`/`@ChEyeOff`/`@VisibleS`/`@FadeOutBlack`）が見つかった~~ → `feature/script-command-coverage-followup`で対応済み（`costume`/`fa`/`@ChEyeOff`/`@VisibleS`→`character_display`、`@TalkPosR`/`@TalkPosL`→`ui`、`@FadeOutBlack`→`screen`。すべて既存カテゴリで表現でき新カテゴリ追加は不要だった）。実データでの効果測定は未実施（このリポジトリのworktree環境に実`.dec`データが存在しないため）。
+- **`agents/parser/parser.py::_parse_tokens`のC901複雑度（43 > 10）が未解消**: CIでは`# noqa: C901`で暫定抑制のみ。12個以上の`nonlocal`状態変数が`flush_text()`クロージャと全トークン種別ハンドラ間で密結合しており、安全に分割するにはdataclassベースの状態オブジェクトへの大規模リファクタが必要（実データ生成の中核ロジックのため既存テストでの挙動不変確認を徹底した専用PRで対応すること）。
+- **cp932コンソールでのconsole encodingテストがflakyになることがある**: `tests/scripts/test_console_output_encoding.py::test_normalize_story_cli_survives_cp932_console`がPython 3.14のsubprocess reader threadの非決定的挙動で稀に失敗することを確認済み（単体・複数回再実行では再現せず、環境要因と判断）。
+- **semantic validationの範囲が限定的**: evidenceIds実在確認・duplicate candidate id・empty evidenceIndex等の基本チェックのみ実装済み。FieldValue単位のevidenceIds検証、Relationship両端のcandidate配列中の実在確認、Timeline順序整合性チェックは未実装。
+- **character dictionaryの数値ID帯カバレッジ不足**: 演出コマンドカバレッジは実データで解消済み（unknown率68%台→0〜0.1%）だが、頻出未確認ID（234/225/230/222等）の人間によるローマ字確認・confirmed化が残作業（`docs/runbooks/Character_Dictionary_Review.md`）。
+- **compatibility checkの既知の非対称性**: standalone実行と`normalize_story.py --check-compat`埋め込みの主要判定（`unknownCommands`/`newSpeechCommands`/`parserCompatibility`）は一致するが、`branch_issues`/`case_variants`をStoryParserが追跡しないため常にFalse扱い。裸単語コマンドの検出範囲も両経路で非対称（実データでは稀）。
+- **Identifier_Specification.md §4.3のEVT形式との差分**: `story_manifest.yaml`のstoryId生成方針`EVT_{sourceKeyを大文字化}`（例: `EVT_250626_DANCER`）が、既存仕様書の`EVT_{eventNumber}`（数値管理番号）と異なる形式のまま未解消（`metadataStatus: pending`、人間レビュー時の判断待ち）。
+- **実ブラウザでの目視確認が未実施**: mkdocs local preview系のPRはいずれもツール制約（本セッションにブラウザ/スクリーンショットツールが無い）により、生成Markdown本文とビルド後HTMLの直接確認で代替してきた。モバイル幅・日本語フォント描画等の実ブラウザ確認は持ち越し。
+- **title/subtitleは実質未投入**: `story_manifest.yaml`のtitle/subtitle/displayTitleは設計・candidate builder整備までで、人間確認済み実データの投入（confirmed化）はまだ行われていない。
 
 ---
 
-## 5. Rules
+## Recently Completed
 
-- 実スクリプト全文（`.dec` 由来の生データ）をcommitしない
-- `data/extracted/` 配下の生成物をcommitしない
-- APIキーをcommitしない（`.env` は `.gitignore` 管理）
+直近のみ短く記録。詳細は`docs/project_history/Completed_PRs_2026-07.md`参照。
+
+- **mkdocs local preview real sample trial**（PR #60）: 実データ小規模サンプルでmanifest候補生成→normalize→extract→merge→render→`mkdocs build --strict`まで警告0件で完走。source text exposure check問題なし。実ブラウザでの目視確認は未実施のまま持ち越し。
+- **mkdocs local preview dry-run**（PR #59）: render→MkDocs preview運用手順・目視確認チェックリスト・結果テンプレートを整備。Episode pageのローカル絶対パス露出バグを修正。
+- **story title/subtitle import design**（PR #58）: `story_manifest.yaml`のtitle/subtitle取り込み方針を設計。source種別7種定義、schema拡張。
+- **normalize_story manifest integration**（PR #57）: `normalize_story.py`に`--manifest`/`--raw-root`/`--manifest-strict`を追加。既存挙動は完全維持。
+- **story manifest design**（PR #56）: raw DEC配置とDKB正規ID体系を分離する`story_manifest.yaml`/schemaを設計。
+- **MkDocs Material minimal site**（PR #55）: ローカルpreview専用の最小`mkdocs.yml`/`docs/site_preview/`を整備。story indexのリンク切れバグを修正。
+- **character profile renderer section**: Character pageに「基本プロフィール」sectionを実装（`--character-profiles`任意引数、後方互換維持）。
+- **character profile import batch 001**（PR #53）: matched 6件のみを`character_profiles.yaml`へ投入。
+
+---
+
+## Archive
+
+完了済みPR #1〜#60の詳細な作業履歴（各PRの実装内容・確認結果・あえて実装しなかったこと等）は `docs/project_history/Completed_PRs_2026-07.md` を参照。
+
+---
+
+## Rules
+
+- 実スクリプト全文（`.dec`由来の生データ）をcommitしない
+- `data/extracted/`配下の生成物をcommitしない
+- APIキーをcommitしない（`.env`は`.gitignore`管理）
 - 外部LLM Providerはopt-in、デフォルトはローカルLLM
 - Raw Scriptを直接LLMに渡さない（必ずNormalized Story JSON経由）
-- `agents/extractor/` のLLM呼び出し本体・provider連携の実装着手はユーザーの明示的な指示を待つ（最小skeletonの実装は完了。CLAUDE.mdの方針）
+- `agents/extractor/`のLLM呼び出し本体・provider連携の実装着手はユーザーの明示的な指示を待つ（最小skeletonの実装は完了。CLAUDE.mdの方針）
 - Stage B（Merged Knowledge）では、Stage A candidateのevidence・provenance（sourceType/confidence/evidenceIds/candidate ID/extractionRun）をマージ後も失わない（`Merged_Knowledge_Design.md` §4.1 / §10）
-- unknown commandは破棄せず、Parser（`compatibilityReport.unknownCommands`・`type: "unknown"`ブロック）またはcompatibility check（`report.unknownCommands`）に必ず残す。実データ投入後は一覧を確認し、頻出かつ安全に分類できるもの（会話/話者/分岐に影響するものを優先、演出のみのものは`stage_direction`）から`config/script_commands.yaml`・`agents/parser/parser.py`・`agents/parser/tokenizer.py`へ追加する。追加時のテストは実データ由来fixtureではなく合成fixtureで行う（継続的な運用手順は`docs/runbooks/Real_Data_Dry_Run.md` §18参照）
+- unknown commandは破棄せず、Parser（`compatibilityReport.unknownCommands`・`type: "unknown"`ブロック）またはcompatibility check（`report.unknownCommands`）に必ず残す。実データ投入後は一覧を確認し、頻出かつ安全に分類できるものから`config/script_commands.yaml`・`agents/parser/parser.py`・`agents/parser/tokenizer.py`へ追加する。追加時のテストは実データ由来fixtureではなく合成fixtureで行う（継続的な運用手順は`docs/runbooks/Real_Data_Dry_Run.md` §18参照）
