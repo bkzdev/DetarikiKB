@@ -11,11 +11,164 @@
 # を参照。characterIdはcharacters.yamlでstatus: confirmedになっている
 # ものだけを参照してよい (未確認のIDに対するプロフィール登録は不可)。
 #
-# このファイルは現時点で空 (実キャラクターのプロフィールデータはまだ
-# 投入していない)。投入は次のfollow-upタスク（TASKS.md「character profile
-# import batch 001」）で、人間が確認した公式プロフィール情報のみを対象に
-# 行う。
+# character-profile-import-batch-001 (feature/character-profile-import-batch-001)
+# にて、docs/runbooks/Character_Profile_Wiki_Import.md の手順で取得した
+# candidateのうち、characters.yamlのconfirmed済みcharacterIdとdisplayName
+# が完全一致した6件 (matchStatus: matched) のみを人間確認済みとして投入
+# した。unmatchedだった残り200件は投入していない (name_only/unknownの
+# characterへ紐づけない方針)。selfIntroductionはWIKIのメンバー一覧
+# テーブルには存在しないため、全件nullとしている。
 
 schemaVersion: "0.1.0"
 documentType: "character_profiles"
-profiles: []
+profiles:
+  - characterId: "CHAR_024_EMMITT"
+    displayName: "エミット"
+    reading:
+      kana: "えみっと"
+      romaji: null
+    affiliation:
+      - "シリ・ガル"
+    heightCm: 139
+    birthday:
+      month: 6
+      day: 6
+      display: "06/06"
+    bloodType: "B"
+    cv: "御苑生 メイ"
+    profileHighlight:
+      label: "最近よく食べるもの"
+      value: "ラーメン・餃子"
+    selfIntroduction: null
+    source:
+      sourceType: "wiki_member_table"
+      label: "デタリキZ攻略Wiki メンバー一覧"
+      referenceId: null
+      notes: "Imported from matched wiki member table candidate batch 001."
+    status: "confirmed"
+    notes: "character-profile-import-batch-001で人間確認済み。"
+  - characterId: "CHAR_029_RAVEL"
+    displayName: "レイヴェル"
+    reading:
+      kana: "れいうﾞぇる"
+      romaji: null
+    affiliation:
+      - "シリ・ガル"
+    heightCm: 161
+    birthday:
+      month: 2
+      day: 17
+      display: "02/17"
+    bloodType: "O"
+    cv: "綾音 まこ"
+    profileHighlight:
+      label: "誰にも言えない秘密"
+      value: "実は大食い"
+    selfIntroduction: null
+    source:
+      sourceType: "wiki_member_table"
+      label: "デタリキZ攻略Wiki メンバー一覧"
+      referenceId: null
+      notes: "Imported from matched wiki member table candidate batch 001."
+    status: "confirmed"
+    notes: "character-profile-import-batch-001で人間確認済み。"
+  - characterId: "CHAR_070_LIGULASS"
+    displayName: "リグラス"
+    reading:
+      kana: "りぐらす"
+      romaji: null
+    affiliation:
+      - "シリ・ガル"
+    heightCm: 148
+    birthday:
+      month: 9
+      day: 27
+      display: "09/27"
+    bloodType: "A"
+    cv: "綾瀬 あかり"
+    profileHighlight:
+      label: "好物"
+      value: "トマトジュース"
+    selfIntroduction: null
+    source:
+      sourceType: "wiki_member_table"
+      label: "デタリキZ攻略Wiki メンバー一覧"
+      referenceId: null
+      notes: "Imported from matched wiki member table candidate batch 001."
+    status: "confirmed"
+    notes: "character-profile-import-batch-001で人間確認済み。"
+  - characterId: "CHAR_RAIN"
+    displayName: "レイン"
+    reading:
+      kana: "れいん"
+      romaji: null
+    affiliation:
+      - "チームβ \nリバイバルレイン"
+    heightCm: 134
+    birthday:
+      month: 9
+      day: 14
+      display: "09/14"
+    bloodType: "A"
+    cv: "あかしゆき"
+    profileHighlight:
+      label: "周りからの評価"
+      value: "トラブルメーカー"
+    selfIntroduction: null
+    source:
+      sourceType: "wiki_member_table"
+      label: "デタリキZ攻略Wiki メンバー一覧"
+      referenceId: null
+      notes: "Imported from matched wiki member table candidate batch 001."
+    status: "confirmed"
+    notes: "character-profile-import-batch-001で人間確認済み。"
+  - characterId: "CHAR_216_JASMINE"
+    displayName: "ジャスミン"
+    reading:
+      kana: "じゃすみん"
+      romaji: null
+    affiliation:
+      - "宇宙盗賊ユビキタス"
+    heightCm: 143
+    birthday:
+      month: 4
+      day: 17
+      display: "04/17"
+    bloodType: "B"
+    cv: "花安 未羽"
+    profileHighlight:
+      label: "目標"
+      value: "没落した自身の家の再興"
+    selfIntroduction: null
+    source:
+      sourceType: "wiki_member_table"
+      label: "デタリキZ攻略Wiki メンバー一覧"
+      referenceId: null
+      notes: "Imported from matched wiki member table candidate batch 001."
+    status: "confirmed"
+    notes: "character-profile-import-batch-001で人間確認済み。"
+  - characterId: "CHAR_217_EVE_NEMOPHILA"
+    displayName: "イヴ・ネモフィラ"
+    reading:
+      kana: "いうﾞ・ねもふぃら"
+      romaji: null
+    affiliation:
+      - "宇宙盗賊ユビキタス"
+    heightCm: 157
+    birthday:
+      month: 8
+      day: 10
+      display: "08/10"
+    bloodType: "AB"
+    cv: "相模 恋"
+    profileHighlight:
+      label: "特記事項"
+      value: "ユビキタス所属前の経歴不明"
+    selfIntroduction: null
+    source:
+      sourceType: "wiki_member_table"
+      label: "デタリキZ攻略Wiki メンバー一覧"
+      referenceId: null
+      notes: "Imported from matched wiki member table candidate batch 001."
+    status: "confirmed"
+    notes: "character-profile-import-batch-001で人間確認済み。"
