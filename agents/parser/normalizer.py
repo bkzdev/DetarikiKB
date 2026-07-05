@@ -100,6 +100,7 @@ class Normalizer:
         source_path: str | None = None,
         preserve_stage_directions: bool = True,
         commands_config_path: str | Path | None = None,
+        manifest_source: dict | None = None,
     ) -> None:
         """
         Args:
@@ -120,6 +121,12 @@ class Normalizer:
                 (feature/compatibility-check-consistency)。Noneの場合は
                 従来通りnewSpeechCommandsは空配列になる
                 (既存呼び出し元・既存テストとの後方互換のため)。
+            manifest_source: story_manifest.yaml照合結果 (manifestPath/
+                manifestMatched/matchedBy/sourceFileName/rawPath等) を
+                source.manifestへ格納する。Noneの場合は既存通り
+                sourceにmanifestキー自体を追加しない
+                (feature/normalize-story-manifest-integration、既存呼び出し
+                元・既存テストとの後方互換のため)。
         """
         self.story_id = story_id
         self.story_category = story_category
@@ -130,6 +137,7 @@ class Normalizer:
         self.source_path = source_path
         self.preserve_stage_directions = preserve_stage_directions
         self.commands_config_path = commands_config_path
+        self.manifest_source = manifest_source
 
     def normalize(
         self, parse_result: ParseResult, line_count: int | None = None
@@ -181,13 +189,16 @@ class Normalizer:
         }
 
     def _build_source_info(self, line_count: int | None) -> dict[str, Any]:
-        return {
+        info: dict[str, Any] = {
             "sourceFile": self.source_file,
             "sourcePath": self.source_path,
             "sourceFormat": "game_script",
             "encoding": "utf-8",
             "lineCount": line_count,
         }
+        if self.manifest_source is not None:
+            info["manifest"] = self.manifest_source
+        return info
 
     def _build_compatibility_report(self, parse_result: ParseResult) -> dict[str, Any]:
         # unresolved character IDs
