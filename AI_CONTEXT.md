@@ -54,7 +54,7 @@ Raw Script (.dec)
 raw DEC配置とDKB正規ID体系（storyId/episodeId）は`story_manifest.yaml`で分離管理する。title/subtitleは**DEC本文からは自動推測しない**（null許容）。AI生成タイトルは公式title/subtitleと分離し、`story_manifest.yaml`には保持しない。import candidate→人間レビュー→manifest反映という流れを経て`confirmed`になる。storyTitle/episodeSubtitle/displayTitle/metadataStatusは、Normalized Story JSON→Extractor→Merger→Wiki rendererまで伝播し、Episode page/Story indexに表示される（未設定時はepisodeIdへfallback、実タイトルの投入自体は別タスク）。詳細: `docs/architecture/05_Parser/Story_Manifest_Design.md`, `docs/runbooks/Story_Title_Subtitle_Import.md`。
 
 ### 3.9 MkDocs preview方針（要約）
-`agents/wiki_generator/`のrendererが生成したMarkdownは、一時ローカルMkDocs設定（commitしない）を使ってローカルでのみpreviewする。実データ由来の生成物（Normalized Story JSON・extraction/merge結果・Wiki Markdown・raw HTML・candidate YAML/CSV・workspace出力）は一切commitしない。実データでの確認結果は匿名化して記録する。詳細: `docs/runbooks/MkDocs_Local_Preview_Dry_Run.md`。
+`agents/wiki_generator/`のrendererが生成したMarkdownは、一時ローカルMkDocs設定（commitしない）を使ってローカルでのみpreviewする。実データ由来の生成物（Normalized Story JSON・extraction/merge結果・Wiki Markdown・raw HTML・candidate YAML/CSV・workspace出力）は一切commitしない。実データでの確認結果は匿名化して記録する。目視確認は`mkdocs serve`を使う（`file://`直開きはdirectory-style URLがディレクトリ一覧表示になるため補助的確認に留める）。MkDocs Materialは当面のpreview用途では利用してよいが、長期公開基盤としては未確定（`TASKS.md` Known Issues参照）。詳細: `docs/runbooks/MkDocs_Local_Preview_Dry_Run.md`。
 
 ### 3.10 実データ・生成物をcommitしない（横断ルール）
 以下はどのPRでも一貫してcommit対象外: 実`.dec`、実データ由来`story_manifest.yaml`、実Normalized Story JSON、実extraction/merged collection、実Wiki Markdown、raw HTML、実candidate YAML/CSV、`workspace/`配下の生成物、`.env`、APIキー。`.gitignore`で網羅済み。
