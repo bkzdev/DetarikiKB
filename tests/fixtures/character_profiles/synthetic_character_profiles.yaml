@@ -1,0 +1,51 @@
+# Synthetic character_profiles.yaml fixture for renderer tests.
+#
+# 完全な合成データのみ (実キャラ名・実プロフィール値は一切含まない)。
+# tests/wiki/test_wiki_renderer.py・scripts/render_wiki.pyのCLIスモーク
+# テストで使う。characterIdは tests/fixtures/wiki/synthetic_merged_collection.json
+# のcanonicalIdと一致させてある (CHAR_TEST_RAIN)。CHAR_TEST_CONFLICTは
+# 意図的にプロフィールを登録しない (「プロフィール未登録」表示の確認用)。
+
+schemaVersion: "0.1.0"
+documentType: "character_profiles"
+profiles:
+  - characterId: "CHAR_TEST_RAIN"
+    displayName: "Test Character Rain"
+    status: "confirmed"
+    reading:
+      kana: "てすとれいん"
+      romaji: "Tesuto Rein"
+    affiliation:
+      - "Test Team Alpha"
+    heightCm: 150
+    birthday:
+      month: 4
+      day: 23
+      display: "4/23"
+    bloodType: "A"
+    cv: "Test Voice Actor"
+    profileHighlight:
+      label: "好きなこと"
+      value: "テストデータの整理"
+    selfIntroduction: |-
+      こんにちは、これはテスト用の合成自己紹介文です。
+      複数行の表示を確認するためのダミーテキストです。
+    source:
+      sourceType: "manual"
+      label: "Synthetic test fixture"
+      referenceId: null
+      notes: "Synthetic data only, for renderer tests."
+    notes: "tests/wiki/test_wiki_renderer.py 用の合成fixtureエントリ。"
+  - characterId: "CHAR_TEST_MINIMAL"
+    displayName: "Test Character Minimal"
+    status: "draft"
+    reading: null
+    affiliation: []
+    heightCm: null
+    birthday: null
+    bloodType: null
+    cv: null
+    profileHighlight: null
+    selfIntroduction: null
+    source: null
+    notes: null
