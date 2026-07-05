@@ -206,6 +206,103 @@ def test_cli_missing_profiles_file_returns_exit_code_1(tmp_path):
     assert result.returncode == 1
 
 
+def test_cli_allows_wiki_member_table_source_type(tmp_path):
+    """character-profile-import-batch-001で使うsource.sourceType:
+    wiki_member_tableがschema validationを通ることを確認する。"""
+    profiles_path = tmp_path / "character_profiles.yaml"
+    characters_path = tmp_path / "characters.yaml"
+    _write_profiles(
+        profiles_path,
+        [
+            {
+                "characterId": "CHAR_TEST_A",
+                "displayName": "Test Character A",
+                "status": "confirmed",
+                "reading": {"kana": "てすとえー", "romaji": None},
+                "affiliation": ["Test Team"],
+                "heightCm": 150,
+                "birthday": {"month": 4, "day": 23, "display": "04/23"},
+                "bloodType": "A",
+                "cv": "Test Voice Actor",
+                "profileHighlight": {"label": "好きなこと", "value": "テスト"},
+                "selfIntroduction": None,
+                "source": {
+                    "sourceType": "wiki_member_table",
+                    "label": "Test synthetic wiki member table",
+                    "referenceId": None,
+                    "notes": "Synthetic test entry only.",
+                },
+                "notes": "Synthetic test entry.",
+            }
+        ],
+    )
+    _write_characters(
+        characters_path,
+        [
+            {
+                "sourceCharacterId": "9001",
+                "characterId": "CHAR_TEST_A",
+                "displayName": "Test Character A",
+                "aliases": [],
+                "status": "confirmed",
+                "notes": None,
+            }
+        ],
+    )
+
+    result = _run_cli(profiles_path, characters_path)
+    assert result.returncode == 0, result.stderr
+
+
+def test_cli_validates_multiple_confirmed_profiles(tmp_path):
+    """character_profiles.yamlに複数のconfirmed済みprofileがあっても
+    validateできることを確認する (batch 001で複数件投入するケースに対応)。"""
+    profiles_path = tmp_path / "character_profiles.yaml"
+    characters_path = tmp_path / "characters.yaml"
+    _write_profiles(
+        profiles_path,
+        [
+            {
+                "characterId": "CHAR_TEST_A",
+                "displayName": "Test Character A",
+                "status": "confirmed",
+                "selfIntroduction": None,
+            },
+            {
+                "characterId": "CHAR_TEST_C",
+                "displayName": "Test Character C",
+                "status": "confirmed",
+                "selfIntroduction": None,
+            },
+        ],
+    )
+    _write_characters(
+        characters_path,
+        [
+            {
+                "sourceCharacterId": "9001",
+                "characterId": "CHAR_TEST_A",
+                "displayName": "Test Character A",
+                "aliases": [],
+                "status": "confirmed",
+                "notes": None,
+            },
+            {
+                "sourceCharacterId": "9003",
+                "characterId": "CHAR_TEST_C",
+                "displayName": "Test Character C",
+                "aliases": [],
+                "status": "confirmed",
+                "notes": None,
+            },
+        ],
+    )
+
+    result = _run_cli(profiles_path, characters_path)
+    assert result.returncode == 0, result.stderr
+    assert "confirmed=2" in result.stdout
+
+
 def test_cli_does_not_contain_forbidden_content(tmp_path):
     """CLI標準出力・標準エラーに合成テスト以外の実データ本文が
     含まれないことを確認する (存在しないので混入しようがないが、

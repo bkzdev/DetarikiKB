@@ -180,8 +180,8 @@
       "properties": {
         "sourceType": {
           "type": "string",
-          "enum": ["official_profile", "manual", "unknown"],
-          "description": "出典種別"
+          "enum": ["official_profile", "manual", "wiki_member_table", "unknown"],
+          "description": "出典種別 (wiki_member_table: 攻略Wiki等のメンバー一覧テーブルから人間確認済みで取り込んだもの、docs/runbooks/Character_Profile_Wiki_Import.md参照)"
         },
         "label": {
           "oneOf": [{ "type": "string" }, { "type": "null" }]
