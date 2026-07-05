@@ -37,6 +37,11 @@ SEMANTIC_INVALID_FIXTURE = (
     EXTRACTION_FIXTURES_DIR / "invalid_semantic_missing_evidence_ref.json"
 )
 SECOND_VALID_FIXTURE = MERGER_FIXTURES_DIR / "second_valid_episode_extraction.json"
+MANIFEST_METADATA_FIXTURE = (
+    MERGER_FIXTURES_DIR
+    / "manifest_metadata"
+    / "episode_extraction_with_manifest_metadata.json"
+)
 
 
 @pytest.fixture
@@ -69,6 +74,28 @@ def test_merge_file_records_source_document(engine):
     assert source_doc["documentId"] == "TEST_S01_C01_E01"
     assert source_doc["path"] == str(MINIMAL_FIXTURE)
     assert "candidateCounts" in source_doc
+
+
+def test_source_document_manifest_metadata_defaults_to_none_when_absent(engine):
+    # MINIMAL_FIXTUREはstoryTitle等の新規フィールドを持たない
+    # (story_manifest.yaml未使用時の既存extraction出力を再現)。
+    collection = engine.merge_file(MINIMAL_FIXTURE)
+    source_doc = collection["sourceDocuments"][0]
+
+    assert source_doc["storyTitle"] is None
+    assert source_doc["episodeSubtitle"] is None
+    assert source_doc["displayTitle"] is None
+    assert source_doc["metadataStatus"] is None
+
+
+def test_source_document_includes_manifest_metadata_when_present(engine):
+    collection = engine.merge_file(MANIFEST_METADATA_FIXTURE)
+    source_doc = collection["sourceDocuments"][0]
+
+    assert source_doc["storyTitle"] == "Synthetic Story Title"
+    assert source_doc["episodeSubtitle"] == "Synthetic Episode Subtitle"
+    assert source_doc["displayTitle"] == "Synthetic Display Title"
+    assert source_doc["metadataStatus"] == "confirmed"
 
 
 # ----------------------------------------------------------------

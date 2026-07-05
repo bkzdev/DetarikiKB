@@ -139,6 +139,47 @@ def _format_or_placeholder(value: str | None) -> str:
     return value if value else "未登録"
 
 
+# story_manifest.yaml由来のmetadataStatus (Story_Manifest_Design.md §12) を
+# 表示用に補足する。未知の値が来ても破棄せずそのまま表示する。
+_METADATA_STATUS_LABELS: dict[str, str] = {
+    "pending": "pending（未確認）",
+    "confirmed": "confirmed（確認済み）",
+    "title_unknown": "title_unknown（タイトル不明と判明）",
+    "deprecated": "deprecated（廃止）",
+}
+
+
+def _missing_value_label() -> str:
+    """値が未登録・未設定であることを示す共通プレースホルダー。"""
+    return "未登録"
+
+
+def _format_metadata_status(status: str | None) -> str:
+    """story_manifest.yaml由来のmetadataStatusを表示用に整形する。
+
+    pending/confirmed/title_unknown/deprecatedには日本語の補足を付ける。
+    未知の値もそのまま表示し (破棄しない)、Noneの場合は未登録扱いとする。
+    """
+    if not status:
+        return _missing_value_label()
+    return _METADATA_STATUS_LABELS.get(status, status)
+
+
+def _get_episode_display_title(source_document: dict[str, Any]) -> str:
+    """このepisodeの一覧表示用タイトルを優先順位に従って解決する。
+
+    displayTitle > episodeSubtitle > storyTitle > episodeId
+    (Story_Manifest_Design.md §11.3のfallback方針をStory index等の一覧
+    表示に適用したもの)。いずれも未設定の場合は既存どおりepisodeIdを
+    返す。DEC本文からの推測やAI生成titleは行わない。
+    """
+    for key in ("displayTitle", "episodeSubtitle", "storyTitle"):
+        value = source_document.get(key)
+        if value:
+            return value
+    return source_document.get("episodeId") or source_document.get("documentId") or "?"
+
+
 def _format_affiliation(affiliation: list[str]) -> str:
     if not affiliation:
         return "未登録"
@@ -617,9 +658,10 @@ def render_story_index_page(collection: dict[str, Any]) -> str:
         return "\n".join(lines).rstrip() + "\n"
 
     lines.append(
-        "| storyId | episodeId | documentId | candidate合計 | status | category |"
+        "| storyId | episodeId | Display Title | documentId "
+        "| candidate合計 | status | category |"
     )
-    lines.append("|---|---|---|---:|---|---|")
+    lines.append("|---|---|---|---|---:|---|---|")
     for doc in source_documents:
         episode_path = episode_page_path(doc)
         # stories/index.md自身がstories/配下にあるため、episode_page_pathが
@@ -631,12 +673,14 @@ def render_story_index_page(collection: dict[str, Any]) -> str:
         episode_link = (
             f"[{episode_id}]({episode_filename})" if episode_filename else episode_id
         )
+        display_title = _get_episode_display_title(doc)
         candidate_total = sum((doc.get("candidateCounts") or {}).values())
         input_result = _find_input_result(collection, doc)
         status = input_result.get("status", "") if input_result else ""
         lines.append(
             f"| {doc.get('storyId', '?')} "
             f"| {episode_link} "
+            f"| {display_title} "
             f"| {doc.get('documentId', '')} "
             f"| {candidate_total} "
             f"| {status} "
@@ -818,6 +862,11 @@ def render_episode_page(
         }
     )
 
+    story_title = _format_or_placeholder(source_document.get("storyTitle"))
+    episode_subtitle = _format_or_placeholder(source_document.get("episodeSubtitle"))
+    display_title = _format_or_placeholder(source_document.get("displayTitle"))
+    metadata_status = _format_metadata_status(source_document.get("metadataStatus"))
+
     lines = [
         front_matter,
         f"# {episode_id}",
@@ -832,6 +881,10 @@ def render_episode_page(
         f"| Source Path | {_sanitize_source_path(source_document.get('path'))} |",
         f"| Extraction Version | {source_document.get('extractionVersion', '')} |",
         f"| Category | {source_document.get('storyCategory', '')} |",
+        f"| Story Title | {story_title} |",
+        f"| Episode Subtitle | {episode_subtitle} |",
+        f"| Display Title | {display_title} |",
+        f"| Metadata Status | {metadata_status} |",
         "",
     ]
 

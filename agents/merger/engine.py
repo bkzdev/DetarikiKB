@@ -378,6 +378,10 @@ class MergeEngine:
                     "episodeId": document.get("episodeId"),
                     "extractionVersion": extraction_run.get("extractionVersion"),
                     "candidateCounts": doc_candidate_counts,
+                    "storyTitle": document.get("storyTitle"),
+                    "episodeSubtitle": document.get("episodeSubtitle"),
+                    "displayTitle": document.get("displayTitle"),
+                    "metadataStatus": document.get("metadataStatus"),
                 }
             )
 

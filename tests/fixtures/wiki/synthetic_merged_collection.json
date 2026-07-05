@@ -19,7 +19,11 @@
         "events": 0,
         "relationships": 1,
         "timelineCandidates": 1
-      }
+      },
+      "storyTitle": "Synthetic Story Title",
+      "episodeSubtitle": "Synthetic Episode Subtitle",
+      "displayTitle": "Synthetic Display Title",
+      "metadataStatus": "confirmed"
     },
     {
       "path": "tests/fixtures/wiki/synthetic_episode_extraction_002.json",
@@ -37,7 +41,11 @@
         "events": 0,
         "relationships": 0,
         "timelineCandidates": 0
-      }
+      },
+      "storyTitle": null,
+      "episodeSubtitle": null,
+      "displayTitle": null,
+      "metadataStatus": "pending"
     }
   ],
   "entities": {

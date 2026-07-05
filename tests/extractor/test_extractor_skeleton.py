@@ -194,6 +194,56 @@ def test_choice_option_blocks_are_included_in_evidence_index(choice_story_json):
         assert block_id in extraction["evidenceIndex"]
 
 
+def test_extract_episode_manifest_metadata_defaults_to_none_when_absent(
+    simple_story_json,
+):
+    # simple_story_jsonはstory_metadata/episode_metadataを指定せずに
+    # 生成しているため、Normalizerの既定値 (すべてNone) がそのまま
+    # episode_extractionへ転記されることを確認する
+    # (story_manifest.yaml未使用時の既存挙動)。
+    extraction = Extractor().extract_story(simple_story_json)[0]
+
+    assert extraction["storyTitle"] is None
+    assert extraction["episodeSubtitle"] is None
+    assert extraction["displayTitle"] is None
+    assert extraction["metadataStatus"] is None
+
+
+def test_extract_episode_includes_manifest_metadata_when_present():
+    # story_manifest.yaml一致時、Normalizerのstory_metadata/episode_metadata
+    # 経由で設定された合成のtitle/subtitle情報が、episode_extractionへ
+    # そのまま転記されることを確認する (DEC本文からの推測は行わない)。
+    script = """$num0 = 26
+@ScenarioCos 1 26
+@ChTalk 0
+これはテスト用の会話です。
+"""
+    parser = StoryParser()
+    parse_result = parser.parse_text(script, source_file="test_extractor_script")
+    normalizer = Normalizer(
+        story_id="TEST_EXTRACT_MANIFEST",
+        story_category="EVT",
+        source_file="test_extractor_script",
+        story_metadata={
+            "storyTitle": "Synthetic Story Title",
+            "metadataStatus": "confirmed",
+        },
+        episode_metadata={
+            "episodeSubtitle": "Synthetic Episode Subtitle",
+            "displayTitle": "Synthetic Display Title",
+            "metadataStatus": "confirmed",
+        },
+    )
+    story_json = normalizer.normalize(parse_result)
+
+    extraction = Extractor().extract_story(story_json)[0]
+
+    assert extraction["storyTitle"] == "Synthetic Story Title"
+    assert extraction["episodeSubtitle"] == "Synthetic Episode Subtitle"
+    assert extraction["displayTitle"] == "Synthetic Display Title"
+    assert extraction["metadataStatus"] == "confirmed"
+
+
 def test_extraction_output_matches_schema(extraction_validator, simple_story_json):
     extraction = Extractor().extract_story(simple_story_json)[0]
     errors = list(extraction_validator.iter_errors(extraction))
@@ -204,6 +254,32 @@ def test_choice_extraction_output_matches_schema(
     extraction_validator, choice_story_json
 ):
     extraction = Extractor().extract_story(choice_story_json)[0]
+    errors = list(extraction_validator.iter_errors(extraction))
+    assert not errors, f"Unexpected validation errors: {[e.message for e in errors]}"
+
+
+def test_extraction_with_manifest_metadata_matches_schema(extraction_validator):
+    script = """$num0 = 26
+@ScenarioCos 1 26
+@ChTalk 0
+これはテスト用の会話です。
+"""
+    parser = StoryParser()
+    parse_result = parser.parse_text(script, source_file="test_extractor_script")
+    normalizer = Normalizer(
+        story_id="TEST_EXTRACT_MANIFEST_SCHEMA",
+        story_category="EVT",
+        source_file="test_extractor_script",
+        story_metadata={"storyTitle": "Synthetic Story Title"},
+        episode_metadata={
+            "episodeSubtitle": "Synthetic Episode Subtitle",
+            "displayTitle": "Synthetic Display Title",
+            "metadataStatus": "pending",
+        },
+    )
+    story_json = normalizer.normalize(parse_result)
+    extraction = Extractor().extract_story(story_json)[0]
+
     errors = list(extraction_validator.iter_errors(extraction))
     assert not errors, f"Unexpected validation errors: {[e.message for e in errors]}"
 

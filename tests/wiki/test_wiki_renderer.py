@@ -563,6 +563,27 @@ def test_render_story_index_page_lists_all_episodes(synthetic_collection):
     assert "valid" in page
 
 
+def test_render_story_index_page_shows_display_title(synthetic_collection):
+    """EP_TEST_001はdisplayTitleが設定されているため、Story indexの
+    Display Title列にそのまま表示されることを確認する。"""
+    page = render_story_index_page(synthetic_collection)
+    assert "Display Title" in page
+    assert "Synthetic Display Title" in page
+
+
+def test_render_story_index_page_falls_back_to_episode_id_when_no_title(
+    synthetic_collection,
+):
+    """EP_TEST_002はtitle/subtitle/displayTitleすべてnullのため、
+    Display Title列は既存どおりepisodeIdにfallbackすることを確認する。"""
+    page = render_story_index_page(synthetic_collection)
+    lines = [line for line in page.splitlines() if "EP_TEST_002" in line]
+    assert lines, "EP_TEST_002の行が見つかりません"
+    # `| EP_TEST_002 | 未登録 |`のような取りこぼしにならず、
+    # Display Title欄がepisodeId (EP_TEST_002) になっていることを確認する
+    assert any(line.count("EP_TEST_002") >= 2 for line in lines)
+
+
 def test_render_episode_page_has_front_matter_and_basic_info(synthetic_collection):
     source_document = synthetic_collection["sourceDocuments"][0]
     page = render_episode_page(source_document, synthetic_collection)
@@ -618,6 +639,82 @@ def test_render_episode_page_missing_source_path_renders_empty(synthetic_collect
     source_document.pop("path", None)
     page = render_episode_page(source_document, synthetic_collection)
     assert "| Source Path |  |" in page
+
+
+def test_render_episode_page_shows_story_title(synthetic_collection):
+    # EP_TEST_001はstoryTitle="Synthetic Story Title"を持つ合成fixture
+    # (実イベント名・実タイトルは使用しない)。
+    source_document = synthetic_collection["sourceDocuments"][0]
+    page = render_episode_page(source_document, synthetic_collection)
+    assert "| Story Title | Synthetic Story Title |" in page
+
+
+def test_render_episode_page_shows_episode_subtitle(synthetic_collection):
+    source_document = synthetic_collection["sourceDocuments"][0]
+    page = render_episode_page(source_document, synthetic_collection)
+    assert "| Episode Subtitle | Synthetic Episode Subtitle |" in page
+
+
+def test_render_episode_page_shows_display_title(synthetic_collection):
+    source_document = synthetic_collection["sourceDocuments"][0]
+    page = render_episode_page(source_document, synthetic_collection)
+    assert "| Display Title | Synthetic Display Title |" in page
+
+
+def test_render_episode_page_shows_metadata_status_confirmed(synthetic_collection):
+    source_document = synthetic_collection["sourceDocuments"][0]
+    page = render_episode_page(source_document, synthetic_collection)
+    assert "| Metadata Status | confirmed（確認済み） |" in page
+
+
+def test_render_episode_page_shows_metadata_status_pending(synthetic_collection):
+    # EP_TEST_002はmetadataStatus="pending"・title/subtitle/displayTitleは
+    # すべてnullの合成fixture。
+    source_document = synthetic_collection["sourceDocuments"][1]
+    page = render_episode_page(source_document, synthetic_collection)
+    assert "| Metadata Status | pending（未確認） |" in page
+
+
+def test_render_episode_page_null_title_fields_show_placeholder(synthetic_collection):
+    """title/subtitle/displayTitleがnullの場合、それぞれ「未登録」と
+    表示され、既存のepisodeId表示 (見出し・Episode ID行) は変わらない
+    ことを確認する (fallback方針)。"""
+    source_document = synthetic_collection["sourceDocuments"][1]
+    page = render_episode_page(source_document, synthetic_collection)
+    assert "| Story Title | 未登録 |" in page
+    assert "| Episode Subtitle | 未登録 |" in page
+    assert "| Display Title | 未登録 |" in page
+    assert "# EP_TEST_002" in page
+    assert "| Episode ID | EP_TEST_002 |" in page
+
+
+def test_render_episode_page_missing_manifest_metadata_keys_does_not_crash(
+    synthetic_collection,
+):
+    """story_manifest.yaml統合以前の古いsourceDocument (storyTitle等の
+    キー自体が無い) を渡してもクラッシュせず、未登録表示になることを
+    確認する (既存fixture互換性)。"""
+    source_document = dict(synthetic_collection["sourceDocuments"][0])
+    for key in ("storyTitle", "episodeSubtitle", "displayTitle", "metadataStatus"):
+        source_document.pop(key, None)
+
+    page = render_episode_page(source_document, synthetic_collection)
+
+    assert "| Story Title | 未登録 |" in page
+    assert "| Episode Subtitle | 未登録 |" in page
+    assert "| Display Title | 未登録 |" in page
+    assert "| Metadata Status | 未登録 |" in page
+
+
+def test_render_episode_page_does_not_mention_ai_generated_title(synthetic_collection):
+    """公式title/subtitle表示に「AI-generated」等のAI考察ラベルが
+    混ざらないことを確認する (Wiki_Output_Design.md §3の分離方針、
+    AI titleは生成しない)。"""
+    source_document = synthetic_collection["sourceDocuments"][0]
+    page = render_episode_page(source_document, synthetic_collection)
+    assert "AI-generated" not in page
+    assert "AI生成" not in page
+    assert "AI推定" not in page
 
 
 def test_render_episode_page_candidate_counts_table(synthetic_collection):

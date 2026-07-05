@@ -104,6 +104,22 @@
       "type": "array",
       "description": "ExtractionError の配列 (Extraction_Result_Schema.md §14)",
       "items": { "$ref": "#/definitions/ExtractionError" }
+    },
+    "storyTitle": {
+      "type": ["string", "null"],
+      "description": "story_manifest.yaml由来のストーリータイトル (任意、Normalized Story JSONのmetadata.storyTitleをそのまま転記。DEC本文からは推測しない)"
+    },
+    "episodeSubtitle": {
+      "type": ["string", "null"],
+      "description": "story_manifest.yaml由来のエピソードサブタイトル (任意、episodes[].metadata.episodeSubtitleをそのまま転記)"
+    },
+    "displayTitle": {
+      "type": ["string", "null"],
+      "description": "story_manifest.yaml由来のエピソード表示用タイトル (任意、episodes[].metadata.displayTitleをそのまま転記)"
+    },
+    "metadataStatus": {
+      "type": ["string", "null"],
+      "description": "story_manifest.yaml由来のエピソードmetadataStatus (任意、pending/confirmed/title_unknown/deprecated。episodes[].metadata.metadataStatusをそのまま転記)"
     }
   },
 
