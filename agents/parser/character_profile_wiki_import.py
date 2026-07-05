@@ -105,8 +105,14 @@ def extract_tables(html: str) -> list[list[list[str]]]:
 def normalize_header(raw_header: str) -> str | None:
     """WIKI側の列見出しを character_profiles.yaml側のキーへ変換する。
     対応が無い見出し (実装日等) はNoneを返す (その列は無視される)。
+
+    見出しセル内に`<br>`が含まれる場合 (例:「身長<br>(cm)」)、
+    `_TableHTMLParser`は改行文字として保持するため、比較前に見出し内の
+    空白文字 (改行含む) をすべて除去してから照合する
+    (`_HEADER_ALIASES`のキー自体には空白を含めない前提)。
     """
-    return _HEADER_ALIASES.get(raw_header.strip())
+    cleaned = re.sub(r"\s+", "", raw_header)
+    return _HEADER_ALIASES.get(cleaned)
 
 
 def find_member_table(tables: list[list[list[str]]]) -> list[list[str]] | None:
@@ -132,11 +138,19 @@ def find_member_table(tables: list[list[list[str]]]) -> list[list[str]] | None:
 
 
 def rows_to_dicts(table: list[list[str]]) -> list[dict[str, str]]:
-    """テーブル (先頭行=見出し) を、正規化済みキーの行dict一覧へ変換する。"""
+    """テーブル (先頭行=見出し) を、正規化済みキーの行dict一覧へ変換する。
+
+    長いWikiテーブルでは可読性のため見出し行が途中で繰り返されることが
+    あるため、見出し行と完全一致する行はデータ行として扱わずskipする
+    (`match_candidates`側でも空displayNameはskipされるが、見出し文字列
+    そのものが偽のcandidateとして扱われることを防ぐための対策)。
+    """
     header_row = table[0]
     keys = [normalize_header(h) for h in header_row]
     rows: list[dict[str, str]] = []
     for raw_row in table[1:]:
+        if raw_row == header_row:
+            continue
         row_dict: dict[str, str] = {}
         for key, value in zip(keys, raw_row, strict=False):
             if key is not None:

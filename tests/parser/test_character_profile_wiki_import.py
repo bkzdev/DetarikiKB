@@ -81,6 +81,33 @@ def test_normalize_header_returns_none_for_unknown_header():
     assert normalize_header("キャラ名") == "displayName"
 
 
+def test_normalize_header_handles_embedded_newline_from_br_tag():
+    """実WIKI調査で判明した実際の構造: 見出しセル内の<br>により
+    "身長(cm)"が"身長\\n(cm)"のように改行を含む形で保持される。
+    空白文字 (改行含む) を除去してから照合できることを確認する。"""
+    assert normalize_header("身長\n(cm)") == "heightCm"
+    assert normalize_header("身長 (cm)") == "heightCm"
+
+
+def test_rows_to_dicts_skips_duplicate_header_row():
+    """実WIKI調査で判明した実際の構造: 長いテーブルの途中で見出し行が
+    そのまま繰り返されることがある。この行をデータ行として取り込まない
+    ことを確認する。"""
+    html = """
+    <table>
+    <tr><th>キャラ名</th><th>よみがな</th><th>所属</th></tr>
+    <tr><td>Test Character A</td><td>てすとえー</td><td>Test Team</td></tr>
+    <tr><th>キャラ名</th><th>よみがな</th><th>所属</th></tr>
+    <tr><td>Test Character B</td><td>てすとびー</td><td>Test Team</td></tr>
+    </table>
+    """
+    tables = extract_tables(html)
+    table = find_member_table(tables)
+    rows = rows_to_dicts(table)
+    assert len(rows) == 2
+    assert [r["displayName"] for r in rows] == ["Test Character A", "Test Character B"]
+
+
 # ----------------------------------------------------------------
 # フィールドパーサー
 # ----------------------------------------------------------------

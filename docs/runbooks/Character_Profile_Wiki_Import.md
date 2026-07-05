@@ -21,6 +21,15 @@ Path: `docs/runbooks/Character_Profile_Wiki_Import.md`
 
 **このPRでは一覧テーブル1ページの取得に限定し、個別キャラページの巡回は行わない**（§9参照）。
 
+## 2.1 確認済みのメンバー一覧テーブルURL（`feature/character-profile-wiki-url-discovery`で特定）
+
+- ページ種別: PukiWiki系Wiki（wikiru.jp）の「メンバー」ページ（トップページから1回だけリンクを辿って特定。個別キャラページ巡回は行っていない）
+- URL形式: `https://detarikiz.wikiru.jp/?<URLエンコードされたページ名>`（ページ名自体はURLエンコードされた日本語文字列。具体的なエンコード済み文字列は`scripts/import_character_profiles_from_wiki.py --source-url`実行時に指定する。Wiki側の構造変更に備え、本ドキュメントには固定文字列としては記載しない）
+- ページ内の`<table>`要素のうち、認識済み見出し（キャラ名/よみがな/所属/身長(cm)/誕生日/血液型/特記事項/CV）を最も多く含むテーブルがメンバー一覧テーブルとして自動検出される
+- 取得できた列: 画像（対応項目なし、無視）/キャラ名/よみがな/所属/身長(cm)/誕生日/血液型/特記事項/CV/実装日（対応項目なし、無視）/追加（編集リンク列、対応項目なし、無視）
+- **見出しセル内に`<br>`が含まれ（例:「身長」の後に改行を挟んで「(cm)」）、素朴な文字列一致では認識できないケースがあることが判明した**（§10・§17参照、本PRで修正済み）
+- **長いテーブルの途中で見出し行がそのまま繰り返されることがある**ことも判明した（本PRで修正済み、§17参照）
+
 ---
 
 # 3. 取得できる項目とcharacter_profiles.yamlとの対応表
@@ -171,7 +180,37 @@ uv run python scripts/import_character_profiles_from_wiki.py \
 
 ---
 
-# 16. 関連ドキュメント
+# 17. URL特定・dry-run結果（`feature/character-profile-wiki-url-discovery`実施記録）
+
+## 17.1 実施内容
+
+1. Wikiのトップページを1回だけ取得し、「メンバー」ページへのリンクを発見した（個別キャラページへのリンクは辿っていない）
+2. 発見したメンバー一覧ページを1回だけ取得し、`scripts/import_character_profiles_from_wiki.py`のロジックでテーブル検出・変換・照合を実施した
+3. 発見したURLで`--dry-run`によるCLI実行を確認した
+
+合計2回のHTTP GET（トップページ1回・メンバーページ1回）のみ。個別キャラページの巡回・追加のURL探索は行っていない。
+
+## 17.2 dry-run結果（件数概要のみ）
+
+- 検出したテーブルの行数（見出し・重複見出し除く）: 206行
+- `matched`（characters.yamlのconfirmed済みcharacterIdとdisplayName完全一致）: 6件
+- `unmatched`: 200件
+- `selfIntroduction`: 全candidateで`null`（一覧テーブルには自己紹介文が存在しないため、想定通り）
+- `profileHighlight`/`birthday`/`heightCm`/`cv`: matchedエントリで正しく変換されることを確認（型・構造のみ確認、値そのものはここに記載しない）
+- raw HTML/candidate出力: 確認後すぐにローカルから削除し、commitしていない
+
+## 17.3 見つかった問題と修正（script軽微改善）
+
+実WIKIのテーブル構造を確認する中で、以下2点の実データ起因の問題が判明し、`agents/parser/character_profile_wiki_import.py`を修正した。
+
+1. **見出しセル内の`<br>`による改行**: 「身長」列の見出しが`<br>`タグで改行を挟んで`(cm)`が続く構造だったため、`_HEADER_ALIASES`との単純な文字列一致に失敗し、`heightCm`が一切変換されない状態だった。`normalize_header`で見出し文字列内の空白文字（改行含む）をすべて除去してから照合するよう修正した
+2. **テーブル途中での見出し行の繰り返し**: 長いテーブルでは可読性のため見出し行がそのまま繰り返されることがあり、これが偽のcandidate（displayNameが見出し文字列そのもの）として扱われていた。`rows_to_dicts`で、見出し行と完全一致する行をデータ行として取り込まないよう修正した
+
+いずれも合成fixtureによる回帰テストを追加済み（`tests/parser/test_character_profile_wiki_import.py`の`test_normalize_header_handles_embedded_newline_from_br_tag`・`test_rows_to_dicts_skips_duplicate_header_row`）。**個別ページ巡回・自己紹介文取得・characterId自動生成・AI推測match・name_onlyへの自動matchはいずれも変更していない。**
+
+---
+
+# 18. 関連ドキュメント
 
 - `docs/architecture/06_AI/Character_Profile_Dictionary_Design.md`（`character_profiles.yaml`全体の設計）
 - `schemas/character_profiles.schema.json`（`character_profiles.yaml`のJSON Schema）
