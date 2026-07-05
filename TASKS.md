@@ -8,17 +8,17 @@
 
 ## Current Focus
 
-- `feature/wiki-episode-title-display-integration`: storyTitle/episodeSubtitle/displayTitle/metadataStatusをExtractor→Merger→Wiki rendererまで伝播し、Episode page/Story indexへ表示する（合成fixtureのみ、実タイトル投入は無し）
+- `feature/mkdocs-manual-visual-review-001`: 実データ小規模サンプルからWiki Markdown/MkDocs HTMLを生成し、`workspace/wiki_preview/manual_review_001/`・`manual_review_001_site/`にユーザー目視確認用として保持（**commitしない**、ユーザーのブラウザ確認待ち）。実装変更なし。source text exposure check問題なし
 
 ## Next
 
 直近5件程度。着手前にユーザーへ確認する。
 
-1. **story-title-subtitle-candidate-builder-real-trial**: `scripts/build_story_title_subtitle_candidates.py`を実際のWiki/CSV入力に対して実行し、生成候補（`workspace/story_manifest/`配下、commitしない）を人間が確認する
-2. **story-manifest-confirmed-metadata-batch-001**: 人間確認済みの公式タイトル・サブタイトル情報を`story_manifest.yaml`へ投入する（`metadataStatus: pending` → `confirmed`。今回実装したWiki表示で実際に見えるようになる）
-3. **character profile import batch 002**: unmatched 200件のうち、displayName表記ゆれ解消やconfirmed化が進んだ分の人間確認済みcandidateを再照合し追加投入する
-4. **character dictionary confirmed batch 004**: 残る未確認10件（234/225/230/222/232/83/258/86/85/257）について、人間確認済みmappingが提供され次第confirmed化する
-5. **public publishing design**: GitHub Pages / Cloudflare Pages等への公開ワークフローの設計に着手するか判断する
+1. ユーザーによる`workspace/wiki_preview/manual_review_001_site/index.html`のブラウザ目視確認（Top page/Story index/Episode page/Character page/Basic Profile section/Related Characters/Unresolved report/モバイル幅/日本語表示/table可読性/title・subtitle・metadataStatus表示）
+2. **renderer readability improvements**: 上記目視確認で見つかった改善点があれば反映する
+3. **story-title-subtitle-candidate-builder-real-trial**: `scripts/build_story_title_subtitle_candidates.py`を実際のWiki/CSV入力に対して実行し、生成候補（`workspace/story_manifest/`配下、commitしない）を人間が確認する
+4. **story-manifest-confirmed-metadata-batch-001**: 人間確認済みの公式タイトル・サブタイトル情報を`story_manifest.yaml`へ投入する（`metadataStatus: pending` → `confirmed`）
+5. **character profile import batch 002**: unmatched 200件のうち、displayName表記ゆれ解消やconfirmed化が進んだ分の人間確認済みcandidateを再照合し追加投入する
 
 ---
 
@@ -89,6 +89,7 @@
 
 直近のみ短く記録。詳細は`docs/project_history/Completed_PRs_2026-07.md`参照。
 
+- **mkdocs manual visual review 001**: 実データ小規模サンプル（EVENTカテゴリ1件・episode2件、うち1件にPR #62表示確認用のtitle/subtitle/metadataStatus=confirmedを設定、もう1件はpending/未設定のまま）からWiki Markdown・MkDocs HTMLを生成し`workspace/wiki_preview/manual_review_001/`・`manual_review_001_site/`へ保持（**commit対象外**）。Story Title/Episode Subtitle/Display Title/Metadata Status表示・Story indexのDisplay Title列・Basic Profile section（登録あり/なし）・Related Charactersリンクをいずれも実データで確認。source text exposure check問題なし。ユーザーのブラウザ目視確認待ち。実装変更なし。
 - **wiki episode title display integration**: storyTitle/episodeSubtitle/displayTitle/metadataStatusをExtractor→Merger→Wiki rendererまで伝播し、Episode page（Summary table 4行追加）・Story index（Display Title列追加）へ表示。未設定時はepisodeIdへfallback、AI-generated titleとは分離。合成fixtureのみ、実タイトルは未投入。
 - **project context compaction**（PR #61）: 肥大化した`AI_CONTEXT.md`/`TASKS.md`を圧縮し、完了済みPR履歴を`docs/project_history/`へ分離。
 - **mkdocs local preview real sample trial**（PR #60）: 実データ小規模サンプルでmanifest候補生成→normalize→extract→merge→render→`mkdocs build --strict`まで警告0件で完走。source text exposure check問題なし。実ブラウザでの目視確認は未実施のまま持ち越し。
