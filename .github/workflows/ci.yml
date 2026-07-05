@@ -43,3 +43,6 @@ jobs:
 
       - name: Ruff check
         run: uv run ruff check scripts agents tests
+
+      - name: MkDocs build (strict, site_preview only)
+        run: uv run mkdocs build --strict --site-dir /tmp/mkdocs_ci_build

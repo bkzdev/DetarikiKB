@@ -621,8 +621,15 @@ def render_story_index_page(collection: dict[str, Any]) -> str:
     lines.append("|---|---|---|---:|---|---|")
     for doc in source_documents:
         episode_path = episode_page_path(doc)
+        # stories/index.md自身がstories/配下にあるため、episode_page_pathが
+        # 返す"stories/{episodeId}.md"をそのままリンク先にすると
+        # "stories/stories/{episodeId}.md"という壊れた相対リンクになる。
+        # ファイル名部分だけをリンク先にする (MkDocsでの相対リンク切れ対策)。
+        episode_filename = episode_path.rsplit("/", 1)[-1] if episode_path else None
         episode_id = doc.get("episodeId") or doc.get("documentId") or "?"
-        episode_link = f"[{episode_id}]({episode_path})" if episode_path else episode_id
+        episode_link = (
+            f"[{episode_id}]({episode_filename})" if episode_filename else episode_id
+        )
         candidate_total = sum((doc.get("candidateCounts") or {}).values())
         input_result = _find_input_result(collection, doc)
         status = input_result.get("status", "") if input_result else ""
@@ -690,12 +697,16 @@ def _format_related_character(entity: dict[str, Any]) -> str:
     """関連キャラクター1件をsummary形式で整形する。
 
     canonicalIdが確定しページが生成されるentityはcanonicalIdを、
-    unresolvedのentityは内部id（`unresolved`と明記）を表示する。
-    通常Character pageが無いunresolvedへのリンクは張らない。
+    Character pageへの相対リンク（`stories/{episodeId}.md`からの相対パス、
+    MkDocsでのプレビュー時にクリックできるようにするため）とともに表示する。
+    unresolvedのentityは内部id（`unresolved`と明記）を表示し、
+    通常Character pageが無いためリンクは張らない。
     """
     display_name = entity.get("displayName") or entity.get("id", "")
     if is_page_eligible(entity):
-        return f"{display_name}（`{entity.get('canonicalId')}`）"
+        canonical_id = entity.get("canonicalId")
+        relative_path = f"../{character_page_path(entity)}"
+        return f"{display_name}（[`{canonical_id}`]({relative_path})）"
     return f"{display_name}（`{entity.get('id')}`, unresolved）"
 
 
