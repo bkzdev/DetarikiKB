@@ -133,6 +133,22 @@
         "candidateCounts": {
           "$ref": "#/definitions/CandidateCounts",
           "description": "このドキュメント単体のcandidate件数内訳"
+        },
+        "storyTitle": {
+          "type": ["string", "null"],
+          "description": "story_manifest.yaml由来のストーリータイトル (任意、Normalized Story JSONのmetadata.storyTitle経由。DEC本文からは推測しない)"
+        },
+        "episodeSubtitle": {
+          "type": ["string", "null"],
+          "description": "story_manifest.yaml由来のエピソードサブタイトル (任意、episodes[].metadata.episodeSubtitle経由)"
+        },
+        "displayTitle": {
+          "type": ["string", "null"],
+          "description": "story_manifest.yaml由来のエピソード表示用タイトル (任意、episodes[].metadata.displayTitle経由)"
+        },
+        "metadataStatus": {
+          "type": ["string", "null"],
+          "description": "story_manifest.yaml由来のエピソードmetadataStatus (任意、pending/confirmed/title_unknown/deprecated。episodes[].metadata.metadataStatus経由)"
         }
       }
     },

@@ -8,17 +8,17 @@
 
 ## Current Focus
 
-- `feature/project-context-compaction`: 肥大化した`AI_CONTEXT.md`/`TASKS.md`を圧縮し、完了済みPR履歴を`docs/project_history/`へ分離する（実装変更なし、docs-onlyのPR）
+- `feature/wiki-episode-title-display-integration`: storyTitle/episodeSubtitle/displayTitle/metadataStatusをExtractor→Merger→Wiki rendererまで伝播し、Episode page/Story indexへ表示する（合成fixtureのみ、実タイトル投入は無し）
 
 ## Next
 
 直近5件程度。着手前にユーザーへ確認する。
 
-1. **wiki episode title display integration**: Wiki Episode pageで`story_manifest.yaml`由来のtitle/subtitleを表示するrenderer実装（`Wiki_Output_Design.md` §9.3の設計に従う）
-2. **story title/subtitle candidate builder**: `scripts/build_story_title_subtitle_candidates.py`を実際のWiki/CSV入力に対して実行し、生成候補（`workspace/story_manifest/`配下、commitしない）を人間が確認する
+1. **story-title-subtitle-candidate-builder-real-trial**: `scripts/build_story_title_subtitle_candidates.py`を実際のWiki/CSV入力に対して実行し、生成候補（`workspace/story_manifest/`配下、commitしない）を人間が確認する
+2. **story-manifest-confirmed-metadata-batch-001**: 人間確認済みの公式タイトル・サブタイトル情報を`story_manifest.yaml`へ投入する（`metadataStatus: pending` → `confirmed`。今回実装したWiki表示で実際に見えるようになる）
 3. **character profile import batch 002**: unmatched 200件のうち、displayName表記ゆれ解消やconfirmed化が進んだ分の人間確認済みcandidateを再照合し追加投入する
 4. **character dictionary confirmed batch 004**: 残る未確認10件（234/225/230/222/232/83/258/86/85/257）について、人間確認済みmappingが提供され次第confirmed化する
-5. **renderer readability improvements**: 実ブラウザでの目視確認（モバイル幅・長文自己紹介文レイアウト・日本語フォント描画）を実施する
+5. **public publishing design**: GitHub Pages / Cloudflare Pages等への公開ワークフローの設計に着手するか判断する
 
 ---
 
@@ -29,7 +29,7 @@
 - イベント番号の正式な採番ルール
 - `displayOrder`の正式計算式、`canonicalOrder`の扱い
 - **story manifest candidate builder**: `scripts/build_story_manifest_candidates.py`を実際のローカルraw DEC配置に対して実行し、生成候補を人間が確認する
-- **story manifest confirmed metadata batch 001**: 人間確認済みの公式タイトル・サブタイトル情報を`story_manifest.yaml`へ投入する（`metadataStatus: pending` → `confirmed`）
+- story-manifest-confirmed-metadata-batch-001（Next参照）
 - `--check-compat`のレポート出力先をオプション化するか、既定動作として明示的にドキュメント化する
 - `agents/parser/parser.py::_parse_tokens`のparse state dataclassリファクタ本体（Known Issues参照）
 
@@ -81,7 +81,7 @@
 - **compatibility checkの既知の非対称性**: standalone実行と`normalize_story.py --check-compat`埋め込みの主要判定（`unknownCommands`/`newSpeechCommands`/`parserCompatibility`）は一致するが、`branch_issues`/`case_variants`をStoryParserが追跡しないため常にFalse扱い。裸単語コマンドの検出範囲も両経路で非対称（実データでは稀）。
 - **Identifier_Specification.md §4.3のEVT形式との差分**: `story_manifest.yaml`のstoryId生成方針`EVT_{sourceKeyを大文字化}`（例: `EVT_250626_DANCER`）が、既存仕様書の`EVT_{eventNumber}`（数値管理番号）と異なる形式のまま未解消（`metadataStatus: pending`、人間レビュー時の判断待ち）。
 - **実ブラウザでの目視確認が未実施**: mkdocs local preview系のPRはいずれもツール制約（本セッションにブラウザ/スクリーンショットツールが無い）により、生成Markdown本文とビルド後HTMLの直接確認で代替してきた。モバイル幅・日本語フォント描画等の実ブラウザ確認は持ち越し。
-- **title/subtitleは実質未投入**: `story_manifest.yaml`のtitle/subtitle/displayTitleは設計・candidate builder整備までで、人間確認済み実データの投入（confirmed化）はまだ行われていない。
+- **title/subtitleは実質未投入**: Wiki側の表示（Episode page/Story index）は`feature/wiki-episode-title-display-integration`で実装済みだが、`story_manifest.yaml`への人間確認済み実データの投入（confirmed化、`story-manifest-confirmed-metadata-batch-001`）はまだ行われていない。
 
 ---
 
@@ -89,14 +89,14 @@
 
 直近のみ短く記録。詳細は`docs/project_history/Completed_PRs_2026-07.md`参照。
 
+- **wiki episode title display integration**: storyTitle/episodeSubtitle/displayTitle/metadataStatusをExtractor→Merger→Wiki rendererまで伝播し、Episode page（Summary table 4行追加）・Story index（Display Title列追加）へ表示。未設定時はepisodeIdへfallback、AI-generated titleとは分離。合成fixtureのみ、実タイトルは未投入。
+- **project context compaction**（PR #61）: 肥大化した`AI_CONTEXT.md`/`TASKS.md`を圧縮し、完了済みPR履歴を`docs/project_history/`へ分離。
 - **mkdocs local preview real sample trial**（PR #60）: 実データ小規模サンプルでmanifest候補生成→normalize→extract→merge→render→`mkdocs build --strict`まで警告0件で完走。source text exposure check問題なし。実ブラウザでの目視確認は未実施のまま持ち越し。
 - **mkdocs local preview dry-run**（PR #59）: render→MkDocs preview運用手順・目視確認チェックリスト・結果テンプレートを整備。Episode pageのローカル絶対パス露出バグを修正。
 - **story title/subtitle import design**（PR #58）: `story_manifest.yaml`のtitle/subtitle取り込み方針を設計。source種別7種定義、schema拡張。
 - **normalize_story manifest integration**（PR #57）: `normalize_story.py`に`--manifest`/`--raw-root`/`--manifest-strict`を追加。既存挙動は完全維持。
 - **story manifest design**（PR #56）: raw DEC配置とDKB正規ID体系を分離する`story_manifest.yaml`/schemaを設計。
 - **MkDocs Material minimal site**（PR #55）: ローカルpreview専用の最小`mkdocs.yml`/`docs/site_preview/`を整備。story indexのリンク切れバグを修正。
-- **character profile renderer section**: Character pageに「基本プロフィール」sectionを実装（`--character-profiles`任意引数、後方互換維持）。
-- **character profile import batch 001**（PR #53）: matched 6件のみを`character_profiles.yaml`へ投入。
 
 ---
 

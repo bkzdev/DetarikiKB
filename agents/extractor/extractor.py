@@ -45,6 +45,7 @@ class Extractor:
         parser_compatibility = story_json.get("compatibilityReport", {}).get(
             "parserCompatibility", "compatible"
         )
+        story_title = story_json.get("metadata", {}).get("storyTitle")
 
         return [
             self.extract_episode(
@@ -52,6 +53,7 @@ class Extractor:
                 story_id=story_id,
                 story_category=story_category,
                 parser_compatibility=parser_compatibility,
+                story_title=story_title,
             )
             for episode in story_json.get("episodes", [])
         ]
@@ -62,9 +64,17 @@ class Extractor:
         story_id: str,
         story_category: str,
         parser_compatibility: str = "compatible",
+        story_title: str | None = None,
     ) -> dict[str, Any]:
-        """1エピソード分のepisode_extraction (Extraction_Result_Schema.md §3.2)"""
+        """1エピソード分のepisode_extraction (Extraction_Result_Schema.md §3.2)
+
+        story_titleおよびepisode["metadata"]のepisodeSubtitle/displayTitle/
+        metadataStatusは、story_manifest.yaml経由でNormalized Story JSONへ
+        既に反映済みの値をそのまま転記するのみで、DEC本文からの推測は
+        行わない (Story_Manifest_Design.md §11.1、§14)。
+        """
         episode_id = episode["episodeId"]
+        episode_metadata = episode.get("metadata") or {}
 
         evidence_refs = build_evidence_refs(episode, story_id, episode_id)
         extraction_run = ExtractionRunInfo(
@@ -122,4 +132,8 @@ class Extractor:
             "relationships": relationships,
             "timelineCandidates": timeline_candidates,
             "extractionErrors": [],
+            "storyTitle": story_title,
+            "episodeSubtitle": episode_metadata.get("episodeSubtitle"),
+            "displayTitle": episode_metadata.get("displayTitle"),
+            "metadataStatus": episode_metadata.get("metadataStatus"),
         }

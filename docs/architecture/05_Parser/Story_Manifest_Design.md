@@ -333,15 +333,16 @@ titleSource:
 
 # 15. Wiki出力との連携方針
 
-`docs/architecture/07_Wiki/Wiki_Output_Design.md`に以下を軽微追記する（本PRでの追記内容）。
+**`feature/wiki-episode-title-display-integration`で実装完了。**
 
-- Episode pageのtitle/subtitleは、将来的に`story_manifest.yaml`由来の値（Normalized Story JSONの`metadata.episodeTitle`/`episodeSubtitle`経由、`Story_Metadata.md`参照）を使う
-- `subtitle`が設定されている場合は表示する
-- `subtitle`が無い場合（`null`）は、`episodeId`または「第{episodeNumber}話」のような機械的表記でfallback表示する
-- AI-generated titleは、公式`title`/`subtitle`とは明確に別扱いとする（`Wiki_Output_Design.md` §3の情報分離方針、既存のAI analysis page区分をそのまま踏襲）
-- `metadataStatus: pending`のエントリ由来のページでは、必要に応じて「タイトル未確認」等の注意表示を検討してよい（このPRでは表示ロジック自体は実装しない）
-
-**本PRでは`agents/wiki_generator/renderer.py`の大改修は行わない。**
+- `storyTitle`/`episodeSubtitle`/`displayTitle`/`metadataStatus`は、Normalized Story JSON（`metadata`/`episodes[].metadata`）→`agents/extractor/extractor.py`（`episode_extraction`の任意フィールド）→`agents/merger/engine.py`（`sourceDocuments[]`の任意フィールド）→`agents/wiki_generator/renderer.py`まで、値をそのまま転記する形で伝播する（DEC本文からの推測・AI生成は一切行わない）
+- Episode pageのSummary tableに、Story Title/Episode Subtitle/Display Title/Metadata Statusの4行を追加する。既存の見出し（`# {episodeId}`）や`Episode ID`行は変更しない
+- 値がnull、またはキー自体が無い場合（story_manifest.yaml未使用の既存fixture含む）は「未登録」と表示し、クラッシュしない
+- Story indexには「Display Title」列を追加し、`displayTitle > episodeSubtitle > storyTitle > episodeId`の優先順位でfallbackした値を表示する
+- `metadataStatus`（`pending`/`confirmed`/`title_unknown`/`deprecated`）は日本語の補足付きでそのまま表示する（自動的な非表示・警告化はしない）
+- AI-generated titleは、公式`title`/`subtitle`とは明確に別扱いとする（`Wiki_Output_Design.md` §3の情報分離方針、既存のAI analysis page区分をそのまま踏襲）。Wiki renderer側でタイトルを生成・推測することは一切ない
+- `schemas/extraction.schema.json`・`schemas/merged_knowledge_collection.schema.json`に上記4フィールドを任意プロパティとして追加した（`required`には含めない、既存fixture・既存挙動は完全に維持）
+- **本PRでは実タイトル・実サブタイトルの投入は行っていない**（合成fixtureのみで検証）
 
 ---
 
