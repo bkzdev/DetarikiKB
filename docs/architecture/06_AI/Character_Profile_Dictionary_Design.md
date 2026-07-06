@@ -115,10 +115,15 @@ Wiki Character pageでは、これら3種類の情報源を明確に区別して
 
 - Character page（`Wiki_Output_Design.md` §9.4）に「基本プロフィール」sectionを新設し、`character_profiles.yaml`から該当`characterId`のエントリを参照して表示する（`render_character_page`、`agents/wiki_generator/renderer.py`）
 - プロフィールが未登録のcharacterは「プロフィール未登録」と表示する（既存の「別名は登録されていません。」等と同じ、空状態を明示するパターンを踏襲）
-- 表示フィールド: 読み仮名（reading）/所属（affiliation）/身長（heightCm、"150cm"のように整形）/誕生日（birthday.display優先、無ければmonth/dayから組み立て）/血液型（bloodType）/CV（cv）/Status/出典（source.label）/キャラ別特記事項（profileHighlight.label: profileHighlight.value）/自己紹介文（selfIntroduction）
+- 表示フィールド: 読み仮名（reading）/所属（affiliation）/身長（heightCm、"150cm"のように整形）/誕生日（birthday.display優先、無ければmonth/dayから組み立て）/血液型（bloodType）/CV（cv）/特記事項（profileHighlight、次項参照）/Status
 - 「基本プロフィール」sectionは、既存の`## Summary`（AI抽出由来のEntity ID/Canonical ID/Status/Confidence等）とは明確に区別された見出しにする
 - 自己紹介文は複数行のままMarkdown本文として表示する（AI要約・AI考察とは別sectionに分離）
 - `scripts/render_wiki.py`に任意の`--character-profiles`引数を追加した。未指定でも既存の出力は変わらない（全Character pageが「プロフィール未登録」表示のまま）
+
+**profileHighlight表示・出典非表示への変更（`feature/wiki-character-profile-display-refinement`）**: 当初は`profileHighlight`を独立した`### キャラ別特記事項`section、`source.label`を「基本プロフィール」表の「出典」行として表示していたが、manual visual reviewでのユーザー要望を受けて以下へ変更した。
+
+- `profileHighlight`は独立sectionを廃止し、「基本プロフィール」表の「特記事項」行として統合した。表示形式はWiki記載と同じ雰囲気の`【label】value`（例: `【好きなこと】食べ歩き`）。labelのみ・valueのみ・両方欠落（`profileHighlight`自体がnull含む）の場合もクラッシュせず、既存の「未登録」表記にfallbackする
+- `source`（出典）はCharacter page上に**表示しない**方針へ変更した。`character_profiles.yaml`側の`source`フィールド自体は変更・削除しておらず、内部検証・将来の監査用データとして保持し続ける（renderer側で表示しないだけ）
 
 ---
 

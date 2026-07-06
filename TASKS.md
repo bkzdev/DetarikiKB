@@ -8,16 +8,16 @@
 
 ## Current Focus
 
-- `feature/wiki-character-index-page`: `characters/index.md`を追加しTop page→Characters index→Character pageの導線を作った（実装完了、実データ投入・生成物commitは無し、合成fixtureのみ）
+- `feature/wiki-character-profile-display-refinement`: Character pageの基本プロフィール表示を整理した（実装完了、実プロフィールデータ変更・生成物commitは無し、合成fixtureのみ）
 
 ## Next
 
 直近5件程度。着手前にユーザーへ確認する。
 
-1. **wiki-character-profile-display-refinement**: Character pageの基本プロフィール表に「特記事項」行を追加し、`profileHighlight.label/value`を`【label】value`形式（例: `【好きなこと】食べ歩き`）で表示する。既存の独立したprofileHighlight表示は基本プロフィール内へ統合し、profile source表示はCharacter page上で非表示にする（`character_profiles.yaml`側のsource情報自体は削除しない）
-2. **wiki-renderer-readability-improvements**: Story index/Episode summary/Character details/Unresolved report等でMarkdown tableの横スクロールを解消する（列数削減、definition list風表示への移行、長いID/source候補の折りたたみ相当表示、モバイル/狭幅表示考慮）
-3. **wiki-story-index-link-text-improvement**: Story indexのリンクテキストを`episodeId`から`displayTitle > episodeSubtitle > storyTitle+第N話 > episodeId`優先で表示する（title/subtitleデータが少ない現段階では急がない）
-4. **story-id-policy-real-sample-review**: EVENT storyId/episodeIdがsourceKey由来の長い意味語を含みうる点を、追加の実データサンプル投入後に再検討する
+1. **wiki-renderer-readability-improvements**: Story index/Episode summary/Character details/Unresolved report等でMarkdown tableの横スクロールを解消する（列数削減、definition list風表示への移行、長いID/source候補の折りたたみ相当表示、モバイル/狭幅表示考慮）
+2. **wiki-story-index-link-text-improvement**: Story indexのリンクテキストを`episodeId`から`displayTitle > episodeSubtitle > storyTitle+第N話 > episodeId`優先で表示する（title/subtitleデータが少ない現段階では急がない）
+3. **story-id-policy-real-sample-review**: EVENT storyId/episodeIdがsourceKey由来の長い意味語を含みうる点を、追加の実データサンプル投入後に再検討する
+4. **character profile import batch 002**: unmatched 200件のうち、displayName表記ゆれ解消やconfirmed化が進んだ分の人間確認済みcandidateを再照合し追加投入する
 
 ---
 
@@ -50,7 +50,6 @@
 
 ### Wiki / MkDocs
 
-- wiki-character-profile-display-refinement（Next参照）
 - wiki-renderer-readability-improvements（Next参照）
 - wiki-story-index-link-text-improvement（Next参照）
 - Wiki Page Template
@@ -58,7 +57,7 @@
 
 ### Character Dictionary / Profiles
 
-- character profile import batch 002: unmatched 200件のうち、displayName表記ゆれ解消やconfirmed化が進んだ分の人間確認済みcandidateを再照合し追加投入する
+- character profile import batch 002（Next参照）
 - character dictionary confirmed batch 004: 残る未確認10件（234/225/230/222/232/83/258/86/85/257）について、人間確認済みmappingが提供され次第confirmed化する
 - キャラクターIDの完全辞書化・主要キャラクターのcanonical ID確定（loader/validation/coverage report/レビュー運用は実装済み。実データ頻出の未確認IDを人間がローマ字確認しconfirmed化する作業自体が残っている）
 
@@ -96,13 +95,13 @@
 
 直近のみ短く記録。詳細は`docs/project_history/Completed_PRs_2026-07.md`参照。
 
+- **wiki character profile display refinement**: Character pageの基本プロフィール表を整理した。`profileHighlight`は独立sectionを廃止し表内「特記事項」行として`【label】value`形式（例:`【好きなこと】食べ歩き`）で表示、label/valueいずれか欠落時も安全にfallbackする。profile source（出典）はCharacter page上から非表示にした（`character_profiles.yaml`側のsource情報自体は削除せず保持）。実プロフィールデータは変更していない、合成fixtureのみで検証。
 - **wiki character index page**: `characters/index.md`を新設し、Top page→Characters index→Character pageの導線を追加した。`is_page_eligible`なcharacterのみ一覧表示（unresolved/canonicalIdなし/status不一致は載せない）、Overview（Character pages/プロフィール登録あり・なし件数）とCharacter名・Profile Status・IDの3列のみの表（横長table問題を踏まえ列数を最小限に抑制）。profile表示の細部修正・Story indexリンクテキスト改善は別PRへ持ち越し。合成fixtureのみで検証、実データ未投入。
 - **mkdocs manual visual review 001**: 実データ小規模サンプル（EVENTカテゴリ1件・episode2件、うち1件にPR #62表示確認用のtitle/subtitle/metadataStatus=confirmedを設定、もう1件はpending/未設定のまま）からWiki Markdown・MkDocs HTMLを生成し`workspace/wiki_preview/manual_review_001/`・`manual_review_001_site/`へ保持（**commit対象外**）。Story Title/Episode Subtitle/Display Title/Metadata Status表示・Story indexのDisplay Title列・Basic Profile section（登録あり/なし）・Related Charactersリンクをいずれも`mkdocs serve`経由で確認。source text exposure check問題なし。実装変更なし。**Manual visual reviewは`mkdocs serve`（`http://127.0.0.1:8124/`）を使うこと。`file://`で`index.html`を直接開くと、directory-style URL（`use_directory_urls: true`、既定）のリンクがディレクトリ一覧表示になる（実際にユーザー環境で発生・確認済み）。file直接閲覧が必要な場合は、専用設定で`use_directory_urls: false`を検討すること。** ユーザーによる実ブラウザ目視確認の結果、5件の改善候補（character index page欠如・Story indexのepisodeId露出・storyId/episodeId形式・table可読性・character profile表示統合）とMkDocs Material長期利用方針の検討事項が見つかった（実装はまだ行っていない、詳細はNext/Backlog/Known Issues参照）。
 - **wiki episode title display integration**: storyTitle/episodeSubtitle/displayTitle/metadataStatusをExtractor→Merger→Wiki rendererまで伝播し、Episode page（Summary table 4行追加）・Story index（Display Title列追加）へ表示。未設定時はepisodeIdへfallback、AI-generated titleとは分離。合成fixtureのみ、実タイトルは未投入。
 - **project context compaction**（PR #61）: 肥大化した`AI_CONTEXT.md`/`TASKS.md`を圧縮し、完了済みPR履歴を`docs/project_history/`へ分離。
 - **mkdocs local preview real sample trial**（PR #60）: 実データ小規模サンプルでmanifest候補生成→normalize→extract→merge→render→`mkdocs build --strict`まで警告0件で完走。source text exposure check問題なし。実ブラウザでの目視確認は未実施のまま持ち越し。
 - **mkdocs local preview dry-run**（PR #59）: render→MkDocs preview運用手順・目視確認チェックリスト・結果テンプレートを整備。Episode pageのローカル絶対パス露出バグを修正。
-- **story title/subtitle import design**（PR #58）: `story_manifest.yaml`のtitle/subtitle取り込み方針を設計。source種別7種定義、schema拡張。
 - **normalize_story manifest integration**（PR #57）: `normalize_story.py`に`--manifest`/`--raw-root`/`--manifest-strict`を追加。既存挙動は完全維持。
 - **story manifest design**（PR #56）: raw DEC配置とDKB正規ID体系を分離する`story_manifest.yaml`/schemaを設計。
 
