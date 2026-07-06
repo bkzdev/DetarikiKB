@@ -832,21 +832,28 @@ def test_render_index_page_has_summary(synthetic_collection):
 def test_render_story_index_page_links_to_episode(synthetic_collection):
     """stories/index.md自身がstories/配下にあるため、リンク先は
     ファイル名のみ (stories/プレフィックス無し) であることを確認する
-    (feature/mkdocs-material-minimal-siteでの相対リンク切れ修正)。"""
+    (feature/mkdocs-material-minimal-siteでの相対リンク切れ修正)。
+    リンクtext自体はdisplayTitle優先の人間向け表示になる
+    (feature/wiki-story-index-link-text-improvement)。"""
     page = render_story_index_page(synthetic_collection)
-    assert "TEST_S01_C01" in page
-    assert "[EP_TEST_001](EP_TEST_001.md)" in page
+    assert "`TEST_S01_C01`" in page
+    assert "[Synthetic Display Title](EP_TEST_001.md)" in page
     assert "(stories/EP_TEST_001.md)" not in page
 
 
 def test_render_story_index_page_lists_all_episodes(synthetic_collection):
-    """合成fixtureは2件のsourceDocuments (EP_TEST_001/EP_TEST_002) を持つ。
-    両方がstatusつきで一覧に出ることを確認する。"""
+    """合成fixtureのsourceDocuments全件が一覧に出ることを確認する。"""
     page = render_story_index_page(synthetic_collection)
+    assert "[Synthetic Display Title](EP_TEST_001.md)" in page
     assert "[EP_TEST_002](EP_TEST_002.md)" in page
-    assert "EP_TEST_001" in page and "EP_TEST_002" in page
-    # inputResultsのstatusが表示される
-    assert "valid" in page
+
+
+def test_render_story_index_page_shows_metadata_status(synthetic_collection):
+    """metadataStatus表示方針 (PR #62) をStory indexのStatus列でも
+    維持することを確認する。"""
+    page = render_story_index_page(synthetic_collection)
+    assert "confirmed（確認済み）" in page
+    assert "pending（未確認）" in page
 
 
 def test_render_story_index_page_omits_document_id_and_candidate_total(
@@ -860,25 +867,107 @@ def test_render_story_index_page_omits_document_id_and_candidate_total(
     assert "candidate合計" not in page
 
 
-def test_render_story_index_page_shows_display_title(synthetic_collection):
-    """EP_TEST_001はdisplayTitleが設定されているため、Story indexの
-    Display Title列にそのまま表示されることを確認する。"""
+def test_render_story_index_page_does_not_have_redundant_display_title_column(
+    synthetic_collection,
+):
+    """Episode列自体が人間向けタイトルのリンクになったため、独立した
+    「Display Title」列は廃止したことを確認する
+    (feature/wiki-story-index-link-text-improvement)。合成データの
+    displayTitle値自体に"Display Title"という文字列を含むため、ここでは
+    ヘッダー行に独立列として現れないことのみを確認する。"""
     page = render_story_index_page(synthetic_collection)
-    assert "Display Title" in page
-    assert "Synthetic Display Title" in page
+    header_line = next(
+        line for line in page.splitlines() if line.startswith("| Story ID")
+    )
+    assert "Display Title" not in header_line
+
+
+def test_render_story_index_page_column_count_is_four(synthetic_collection):
+    """Story indexの列数が増えすぎていないことを確認する
+    (Story ID/Episode/Status/Categoryの4列)。"""
+    page = render_story_index_page(synthetic_collection)
+    header_line = next(
+        line for line in page.splitlines() if line.startswith("| Story ID")
+    )
+    assert header_line == "| Story ID | Episode | Status | Category |"
+
+
+def test_render_story_index_page_uses_display_title_when_present(
+    synthetic_collection,
+):
+    """displayTitleがある場合はそれがEpisode link textに使われる
+    (優先順位1位)。"""
+    page = render_story_index_page(synthetic_collection)
+    assert "[Synthetic Display Title](EP_TEST_001.md)" in page
+
+
+def test_render_story_index_page_falls_back_to_episode_subtitle(
+    synthetic_collection,
+):
+    """displayTitleが無い場合、episodeSubtitleがEpisode link textに
+    使われる (優先順位2位)。"""
+    page = render_story_index_page(synthetic_collection)
+    assert "[Synthetic Episode Subtitle Only](EP_TEST_003.md)" in page
+
+
+def test_render_story_index_page_falls_back_to_story_title(synthetic_collection):
+    """displayTitle/episodeSubtitleが無い場合、storyTitleがEpisode link
+    textに使われる (優先順位3位)。"""
+    page = render_story_index_page(synthetic_collection)
+    assert "[Synthetic Story Title Fallback Only](EP_TEST_004.md)" in page
 
 
 def test_render_story_index_page_falls_back_to_episode_id_when_no_title(
     synthetic_collection,
 ):
     """EP_TEST_002はtitle/subtitle/displayTitleすべてnullのため、
-    Display Title列は既存どおりepisodeIdにfallbackすることを確認する。"""
+    Episode link textは既存どおりepisodeIdにfallbackすることを確認する。"""
     page = render_story_index_page(synthetic_collection)
-    lines = [line for line in page.splitlines() if "EP_TEST_002" in line]
-    assert lines, "EP_TEST_002の行が見つかりません"
-    # `| EP_TEST_002 | 未登録 |`のような取りこぼしにならず、
-    # Display Title欄がepisodeId (EP_TEST_002) になっていることを確認する
-    assert any(line.count("EP_TEST_002") >= 2 for line in lines)
+    assert "[EP_TEST_002](EP_TEST_002.md)" in page
+
+
+def test_render_story_index_page_treats_blank_and_whitespace_as_unset(
+    synthetic_collection,
+):
+    """空文字列・whitespaceのみのtitle/subtitleは未登録扱いとなり、
+    episodeIdへfallbackすることを確認する (EP_TEST_005: displayTitle="",
+    episodeSubtitle="   ", storyTitle=null)。"""
+    page = render_story_index_page(synthetic_collection)
+    assert "[EP_TEST_005](EP_TEST_005.md)" in page
+
+
+def test_render_story_index_page_episode_id_and_link_target_unchanged(
+    synthetic_collection,
+):
+    """link text方針が変わっても、episodeId自体・リンク先ファイル名は
+    episodeIdベースのまま変更されていないことを確認する。"""
+    page = render_story_index_page(synthetic_collection)
+    assert "(EP_TEST_001.md)" in page
+    assert "(EP_TEST_002.md)" in page
+    assert "(EP_TEST_003.md)" in page
+    assert "(EP_TEST_004.md)" in page
+    assert "(EP_TEST_005.md)" in page
+
+
+def test_render_story_index_page_escapes_bracket_and_pipe_in_link_text():
+    """titleに`[`/`]`/`|`が含まれる場合でも、tableとlink構造が壊れない
+    よう最小限のMarkdown escapeを行うことを確認する。"""
+    collection = {
+        "sourceDocuments": [
+            {
+                "path": "synthetic.json",
+                "documentId": "EP_TEST_ESCAPE",
+                "storyId": "TEST_ESCAPE",
+                "episodeId": "EP_TEST_ESCAPE",
+                "storyCategory": "MAIN",
+                "displayTitle": "Chapter [1] | Special",
+                "metadataStatus": "confirmed",
+            }
+        ],
+        "report": {},
+    }
+    page = render_story_index_page(collection)
+    assert "[Chapter \\[1\\] \\| Special](EP_TEST_ESCAPE.md)" in page
 
 
 def test_render_episode_page_summary_is_bullet_list_not_table(synthetic_collection):
