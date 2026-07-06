@@ -8,17 +8,16 @@
 
 ## Current Focus
 
-- `feature/story-id-policy-real-sample-review`: 実データ小規模サンプル（EVENT 5件相当、匿名化）をもとに、Story ID/Episode ID/URL path方針をレビューし`docs/architecture/05_Parser/Story_ID_Policy_Review.md`にまとめた。4案（現行維持/date+sequence/manifest-assigned/category-specific）を比較し、「今すぐ全面移行しない、raw traceability用IDと公開URL用IDの分離を次PRで設計する」を推奨。**ID生成ロジック・URL/file pathは実装変更していない**（設計レビューのみ）
+- `feature/story-id-policy-design-decision`: `Story_ID_Policy_Review.md`（PR #70）の比較結果を踏まえ、DKBが採用するID方針を`docs/architecture/05_Parser/Story_ID_Policy_Decision.md`で正式決定した。既存`storyId`/`episodeId`は当面維持し、将来の公開Wiki URL用に`publicStoryId`/`publicEpisodeId`を`story_manifest.yaml`側へ分離する方針を採用、category別方針・採用しない案・migration方針（additive first）を確定した。**ID生成ロジック・schema・URL/file pathは実装変更していない**（設計決定のみ）
 
 ## Next
 
 直近5件程度。着手前にユーザーへ確認する。
 
-1. **story-id-policy-design-decision**: `Story_ID_Policy_Review.md`の比較結果を踏まえ、実際にどの案を採用するか決定する（実装はまだしない）
-2. **story-manifest-public-id-fields-design**: `story_manifest.yaml`に`publicStoryId`/`publicEpisodeId`（案名未確定）を任意フィールドとして追加する設計（raw trace IDと公開URL用IDの分離）
-3. **story-title-subtitle-candidate-builder-real-trial**: `scripts/build_story_title_subtitle_candidates.py`を実際のWiki/CSV入力に対して実行し、生成候補を人間が確認する
-4. **character profile import batch 002**: unmatched 200件のうち、displayName表記ゆれ解消やconfirmed化が進んだ分の人間確認済みcandidateを再照合し追加投入する
-5. **public-publishing-platform-evaluation**: public publishing workflow着手前に、MkDocs Material継続/MkDocs標準テーマ・別テーマ/Docusaurus/VitePress・Astro/独自HTML rendererを再評価する
+1. **story-manifest-public-id-fields-design**: `story_manifest.yaml`に`publicStoryId`/`publicEpisodeId`を任意フィールドとして追加する設計（`Story_ID_Policy_Decision.md`で採用済みの命名を最終確定し、schema/validation/fallback方針を設計する）
+2. **story-title-subtitle-candidate-builder-real-trial**: `scripts/build_story_title_subtitle_candidates.py`を実際のWiki/CSV入力に対して実行し、生成候補を人間が確認する
+3. **character profile import batch 002**: unmatched 200件のうち、displayName表記ゆれ解消やconfirmed化が進んだ分の人間確認済みcandidateを再照合し追加投入する
+4. **public-publishing-platform-evaluation**: public publishing workflow着手前に、MkDocs Material継続/MkDocs標準テーマ・別テーマ/Docusaurus/VitePress・Astro/独自HTML rendererを再評価する
 
 ---
 
@@ -29,7 +28,6 @@
 - イベント番号の正式な採番ルール
 - `displayOrder`の正式計算式、`canonicalOrder`の扱い
 - **story manifest candidate builder**: `scripts/build_story_manifest_candidates.py`を実際のローカルraw DEC配置に対して実行し、生成候補を人間が確認する
-- **story-id-policy-design-decision**（Next参照）
 - **story-manifest-public-id-fields-design**（Next参照）
 - story-title-subtitle-candidate-builder-real-trial（Next参照）
 - **story-manifest-confirmed-metadata-batch-001**: 人間確認済みの公式タイトル・サブタイトル情報を`story_manifest.yaml`へ投入する（`metadataStatus: pending` → `confirmed`。story-title-subtitle-candidate-builder-real-trialの後続作業）
@@ -87,7 +85,7 @@
 - **compatibility checkの既知の非対称性**: standalone実行と`normalize_story.py --check-compat`埋め込みの主要判定（`unknownCommands`/`newSpeechCommands`/`parserCompatibility`）は一致するが、`branch_issues`/`case_variants`をStoryParserが追跡しないため常にFalse扱い。裸単語コマンドの検出範囲も両経路で非対称（実データでは稀）。
 - **Identifier_Specification.md §4.3のEVT形式との差分**: `story_manifest.yaml`のstoryId生成方針`EVT_{sourceKeyを大文字化}`（例: `EVT_250626_DANCER`）が、既存仕様書の`EVT_{eventNumber}`（数値管理番号）と異なる形式のまま未解消（`metadataStatus: pending`、人間レビュー時の判断待ち）。
 - **title/subtitleは実質未投入**: Wiki側の表示（Episode page/Story index）は`feature/wiki-episode-title-display-integration`で実装済みだが、`story_manifest.yaml`への人間確認済み実データの投入（confirmed化、`story-manifest-confirmed-metadata-batch-001`）はまだ行われていない。
-- **EVENT storyId/episodeId形式の再検討余地**: sourceKey由来の長い意味語（イベント固有名詞等）がpublic URL/IDに含まれうる。実データサンプルレビューは完了済み（`docs/architecture/05_Parser/Story_ID_Policy_Review.md`）。実際の方針決定・実装は`story-id-policy-design-decision`/`story-manifest-public-id-fields-design`で行う。
+- **EVENT storyId/episodeId形式の再検討余地**: sourceKey由来の長い意味語（イベント固有名詞等）がpublic URL/IDに含まれうる。実データサンプルレビュー（`docs/architecture/05_Parser/Story_ID_Policy_Review.md`）・採用方針決定（`docs/architecture/05_Parser/Story_ID_Policy_Decision.md`）は完了済み。実際のfield設計・実装は`story-manifest-public-id-fields-design`で行う。
 - **Wiki tableがMkDocs preview上で横長すぎる**: Story index/Episode summary/Character details/Unresolved report等で横スクロールが発生しており、可読性・モバイル対応の改善が必要（`wiki-renderer-readability-improvements`）。
 - **MkDocs Materialは長期公開基盤として未確定**: local preview / early static publishing candidateとしては当面利用してよいが、長期的な新機能追加の不透明さから公開基盤として確定はしない。生成Markdownは特定theme/plugin機能に深く依存しないportableな状態を維持する。public publishing workflow着手前にMkDocs Material継続/別テーマ/Docusaurus/VitePress・Astro/独自rendererを再評価する（`public-publishing-platform-evaluation`）。目視確認は引き続き`mkdocs serve`前提とし、`file://`直開きは正式確認手順にしない。
 
@@ -97,6 +95,7 @@
 
 直近のみ短く記録。詳細は`docs/project_history/Completed_PRs_2026-07.md`参照。
 
+- **story id policy design decision**: `Story_ID_Policy_Review.md`（PR #70）の比較結果を踏まえ、DKBが採用するID方針を`docs/architecture/05_Parser/Story_ID_Policy_Decision.md`で正式決定した。既存`storyId`/`episodeId`は当面維持、将来の公開Wiki URL用IDを`publicStoryId`/`publicEpisodeId`として`story_manifest.yaml`側に分離する方針を採用（次PRで設計）。category別方針・採用しない案（title/subtitle由来URL含む）・migration方針（additive first）を確定した。**ID生成ロジック・schema・URL/file pathの実装変更はしていない**（設計決定のみ）。
 - **story id policy real sample review**: 実データ小規模サンプル（EVENT 5件相当、匿名化）をもとに、Story ID/Episode ID/URL path方針をレビューし`docs/architecture/05_Parser/Story_ID_Policy_Review.md`を新設した。現行`EVT_{sourceKey}`方式・date+sequence案・manifest-assigned stable ID案・category-specific policy案の4案を評価軸付きで比較し、「今すぐ全面移行しない、raw traceability用IDと公開URL用IDを次PRで分離設計する」ことを推奨した。**ID生成ロジック・URL/file pathの実装変更はしていない**（設計レビューのみ）。
 - **wiki story index link text improvement**: Story indexのEpisode列を、`episodeId`中心のリンクテキストから`displayTitle > episodeSubtitle > storyTitle > episodeId`優先の人間向けタイトルへのリンクへ変更した（`_episode_link_text`/`_get_episode_display_title`/`_first_non_blank`）。空文字列・whitespaceのみの値は未登録扱いとしてfallbackする。Episode link textと重複していた独立の「Display Title」列を廃止し、input validation status（valid/invalid）列はmetadataStatus表示へ置き換えた（Episode page側のValidation sectionで引き続き確認可能）。titleに`|`/`[`/`]`が含まれる場合の最小限のMarkdown escapeも追加した。episodeId/URL/ファイル名（`stories/{episodeId}.md`）は変更していない。合成fixtureのみで検証、実データ未投入。
 - **speaker label normalization**: `name`コマンド/`@ChTalkName`由来のspeaker labelを`agents/parser/speaker_labels.py`で構造化（speaker_group/speaker_with_modifier/generic_speaker/ambiguous_speaker等）し、通常のCharacterCandidate/Character merged entityとは別枠（`specialSpeakerLabelCandidates`/`entities.specialSpeakerLabels`）で扱うようにした。confirmed character dictionaryとの参考照合（`inferredSpeakers`）はあるが自動でconfirmed昇格はしない（resolutionStatusは`inferred`/`needs_review`のみ自動付与）。Unresolved reportに「Special Speaker Labels」sectionを追加し、通常のUnresolved Charactersとは重複しない。`characters.yaml`は変更なし。合成fixtureのみで検証、実データ未投入。
