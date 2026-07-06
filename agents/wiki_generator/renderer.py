@@ -4,10 +4,10 @@ merged knowledge collection (schemas/merged_knowledge_collection.schema.json)
 から、最小限のWiki Markdownを生成する。
 
 docs/architecture/07_Wiki/Wiki_Output_Design.md のPhase 1のうち、
-Top page / Story index / Episode page (簡易) / Character page /
-Unresolved report page のみを実装する (Location/Organization/Item/Lore/
-Event page、Relationship section、Timeline page、AI analysis pageは
-Non-goals。将来のPRで拡張する)。
+Top page / Story index / Characters index / Episode page (簡易) /
+Character page / Unresolved report page のみを実装する
+(Location/Organization/Item/Lore/Event page、Relationship section、
+Timeline page、AI analysis pageはNon-goals。将来のPRで拡張する)。
 
 **重要な制約**:
 - 元セリフ全文は一切出力しない。evidenceRefsはevidenceId/episodeId/
@@ -636,6 +636,7 @@ def render_index_page(collection: dict[str, Any]) -> str:
     lines.append("## リンク")
     lines.append("")
     lines.append("- [Story index](stories/index.md)")
+    lines.append("- [Characters](characters/index.md)")
     lines.append("- [Unresolved report](reports/unresolved.md)")
     lines.append("")
 
@@ -686,6 +687,89 @@ def render_story_index_page(collection: dict[str, Any]) -> str:
             f"| {status} "
             f"| {doc.get('storyCategory', '')} |"
         )
+    lines.append("")
+
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def _has_registered_profile(
+    entity: dict[str, Any], character_profiles: CharacterProfileIndex | None
+) -> bool:
+    """entityのcanonicalIdに一致するprofileがcharacter_profilesに
+    登録されているかを判定する (`_render_basic_profile_section`と同じ
+    照合ロジック)。"""
+    canonical_id = entity.get("canonicalId")
+    if not character_profiles or not canonical_id:
+        return False
+    return character_profiles.get(canonical_id) is not None
+
+
+def render_character_index_page(
+    characters: list[dict[str, Any]],
+    character_profiles: CharacterProfileIndex | None = None,
+) -> str:
+    """Characters index page (characters/index.md) を生成する
+    (Wiki_Output_Design.md §9.4、Top pageからCharacter pageへの導線)。
+
+    `is_page_eligible`がTrueのcharacterのみを一覧表示する。unresolved・
+    canonicalId未確定・status不一致のcharacterはここには載せず、
+    `reports/unresolved.md`側でのみ確認できるようにする (§5)。表は列数を
+    抑え、横スクロールが発生しにくい構成にする
+    （詳細な可読性改善は`feature/wiki-renderer-readability-improvements`）。
+    """
+    eligible = sorted(
+        (c for c in characters if is_page_eligible(c)),
+        key=lambda c: c.get("canonicalId") or "",
+    )
+    with_profile_count = sum(
+        1 for c in eligible if _has_registered_profile(c, character_profiles)
+    )
+    without_profile_count = len(eligible) - with_profile_count
+
+    front_matter = build_front_matter(
+        {"title": "Characters", "generated_from": GENERATED_FROM}
+    )
+    lines = [front_matter, "# キャラクター一覧", ""]
+
+    lines.append("## Overview")
+    lines.append("")
+    lines.append("| 項目 | 値 |")
+    lines.append("|---|---:|")
+    lines.append(f"| Character pages | {len(eligible)} |")
+    lines.append(f"| プロフィール登録あり | {with_profile_count} |")
+    lines.append(f"| プロフィール未登録 | {without_profile_count} |")
+    lines.append("")
+    lines.append(
+        "未解決キャラクターは[Unresolved report](../reports/unresolved.md)"
+        "を参照してください。"
+    )
+    lines.append("")
+
+    lines.append("## Character List")
+    lines.append("")
+    if not eligible:
+        lines.append("登録されているCharacter pageはありません。")
+        lines.append("")
+        return "\n".join(lines).rstrip() + "\n"
+
+    lines.append("| Character | Profile | ID |")
+    lines.append("|---|---|---|")
+    for entity in eligible:
+        canonical_id = entity.get("canonicalId")
+        display_name = entity.get("displayName") or canonical_id
+        page_path = character_page_path(entity)
+        # characters/index.md自身がcharacters/配下にあるため、
+        # character_page_pathが返す"characters/{canonicalId}.md"を
+        # そのままリンク先にすると"characters/characters/..."という
+        # 壊れた相対リンクになる (stories/index.mdと同じ既知の対策)。
+        filename = page_path.rsplit("/", 1)[-1] if page_path else None
+        name_link = f"[{display_name}]({filename})" if filename else display_name
+        profile_label = (
+            "登録あり"
+            if _has_registered_profile(entity, character_profiles)
+            else "未登録"
+        )
+        lines.append(f"| {name_link} | {profile_label} | `{canonical_id}` |")
     lines.append("")
 
     return "\n".join(lines).rstrip() + "\n"
@@ -914,9 +998,13 @@ def build_pages(
     (省略時は全Character pageの「基本プロフィール」sectionが
     「プロフィール未登録」表示になる)。
     """
+    characters = collection.get("entities", {}).get("characters", []) or []
     pages: dict[str, str] = {
         "index.md": render_index_page(collection),
         "stories/index.md": render_story_index_page(collection),
+        "characters/index.md": render_character_index_page(
+            characters, character_profiles
+        ),
         "reports/unresolved.md": render_unresolved_report(collection),
     }
 
@@ -925,7 +1013,7 @@ def build_pages(
         if path is not None:
             pages[path] = render_episode_page(source_document, collection)
 
-    for entity in collection.get("entities", {}).get("characters", []) or []:
+    for entity in characters:
         path = character_page_path(entity)
         if path is not None:
             pages[path] = render_character_page(entity, character_profiles)

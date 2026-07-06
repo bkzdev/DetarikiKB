@@ -24,6 +24,7 @@ from agents.wiki_generator import (
     character_page_path,
     episode_page_path,
     is_page_eligible,
+    render_character_index_page,
     render_character_page,
     render_episode_page,
     render_index_page,
@@ -375,6 +376,134 @@ def test_build_pages_without_character_profiles_keeps_existing_output(
     pages = build_pages(synthetic_collection)
     assert "characters/CHAR_TEST_RAIN.md" in pages
     assert "プロフィール未登録" in pages["characters/CHAR_TEST_RAIN.md"]
+
+
+# ----------------------------------------------------------------
+# render_character_index_page
+# ----------------------------------------------------------------
+
+
+def test_render_character_index_page_has_front_matter(
+    synthetic_collection, character_profiles_index
+):
+    characters = synthetic_collection["entities"]["characters"]
+    page = render_character_index_page(characters, character_profiles_index)
+    assert page.startswith("---\n")
+    assert 'title: "Characters"' in page
+    assert "# キャラクター一覧" in page
+
+
+def test_render_character_index_page_shows_profile_registered_character(
+    synthetic_collection, character_profiles_index
+):
+    characters = synthetic_collection["entities"]["characters"]
+    page = render_character_index_page(characters, character_profiles_index)
+    assert "[Test Character Rain](CHAR_TEST_RAIN.md)" in page
+    assert (
+        "| [Test Character Rain](CHAR_TEST_RAIN.md) | 登録あり | `CHAR_TEST_RAIN` |"
+        in page
+    )
+
+
+def test_render_character_index_page_shows_profile_unregistered_character(
+    synthetic_collection, character_profiles_index
+):
+    characters = synthetic_collection["entities"]["characters"]
+    page = render_character_index_page(characters, character_profiles_index)
+    assert (
+        "| [Test Character Conflict](CHAR_TEST_CONFLICT.md) | 未登録 "
+        "| `CHAR_TEST_CONFLICT` |" in page
+    )
+
+
+def test_render_character_index_page_overview_counts(
+    synthetic_collection, character_profiles_index
+):
+    characters = synthetic_collection["entities"]["characters"]
+    page = render_character_index_page(characters, character_profiles_index)
+    assert "| Character pages | 2 |" in page
+    assert "| プロフィール登録あり | 1 |" in page
+    assert "| プロフィール未登録 | 1 |" in page
+
+
+def test_render_character_index_page_excludes_unresolved_character(
+    synthetic_collection, character_profiles_index
+):
+    characters = synthetic_collection["entities"]["characters"]
+    page = render_character_index_page(characters, character_profiles_index)
+    assert "UNRESOLVED_CHAR_TEST_0001" not in page
+    assert "Test Character Unknown" not in page
+
+
+def test_render_character_index_page_excludes_no_canonical_id_character(
+    synthetic_collection, character_profiles_index
+):
+    """canonicalIdが無いcharacterはCharacters indexに載らない
+    (UNRESOLVED_CHAR_TEST_0001はcanonicalId: nullのケース)。"""
+    characters = synthetic_collection["entities"]["characters"]
+    page = render_character_index_page(characters, character_profiles_index)
+    for entity in characters:
+        if entity.get("canonicalId") is None:
+            assert (entity.get("displayName") or "") not in page
+
+
+def test_render_character_index_page_excludes_deprecated_character(
+    synthetic_collection, character_profiles_index
+):
+    """canonicalIdはあるがstatus: mergedでないcharacter
+    (CHAR_TEST_DEPRECATED) はCharacters indexに載らない。"""
+    characters = synthetic_collection["entities"]["characters"]
+    page = render_character_index_page(characters, character_profiles_index)
+    assert "CHAR_TEST_DEPRECATED" not in page
+    assert "Test Character Deprecated" not in page
+
+
+def test_render_character_index_page_links_to_unresolved_report(
+    synthetic_collection, character_profiles_index
+):
+    characters = synthetic_collection["entities"]["characters"]
+    page = render_character_index_page(characters, character_profiles_index)
+    assert "[Unresolved report](../reports/unresolved.md)" in page
+
+
+def test_render_character_index_page_without_character_profiles_does_not_crash(
+    synthetic_collection,
+):
+    """character_profiles省略時も落ちず、全員「未登録」表示になることを
+    確認する。"""
+    characters = synthetic_collection["entities"]["characters"]
+    page = render_character_index_page(characters)
+    assert "| Character pages | 2 |" in page
+    assert "| プロフィール登録あり | 0 |" in page
+    assert "| プロフィール未登録 | 2 |" in page
+
+
+def test_render_character_index_page_empty_list_shows_message():
+    page = render_character_index_page([])
+    assert "登録されているCharacter pageはありません。" in page
+
+
+def test_render_index_page_links_to_characters_index(synthetic_collection):
+    page = render_index_page(synthetic_collection)
+    assert "[Characters](characters/index.md)" in page
+
+
+def test_build_pages_includes_characters_index(synthetic_collection):
+    pages = build_pages(synthetic_collection)
+    assert "characters/index.md" in pages
+
+
+def test_build_pages_characters_index_page_count_matches_generated_pages(
+    synthetic_collection,
+):
+    """Characters indexの一覧件数と、実際に生成されたCharacter page数が
+    一致することを確認する。"""
+    pages = build_pages(synthetic_collection)
+    generated_character_pages = [
+        p for p in pages if p.startswith("characters/") and p != "characters/index.md"
+    ]
+    assert "| Character pages | 2 |" in pages["characters/index.md"]
+    assert len(generated_character_pages) == 2
 
 
 # ----------------------------------------------------------------
@@ -791,6 +920,7 @@ def test_build_pages_generates_expected_paths(synthetic_collection):
     assert "stories/index.md" in pages
     assert "stories/EP_TEST_001.md" in pages
     assert "stories/EP_TEST_002.md" in pages
+    assert "characters/index.md" in pages
     assert "characters/CHAR_TEST_RAIN.md" in pages
     assert "characters/CHAR_TEST_CONFLICT.md" in pages
     assert "reports/unresolved.md" in pages
@@ -855,11 +985,22 @@ def test_build_pages_does_not_crash_on_empty_source_documents(minimal_collection
     pages = build_pages(minimal_collection)
     assert "index.md" in pages
     assert "stories/index.md" in pages
+    assert "characters/index.md" in pages
     assert "reports/unresolved.md" in pages
     # sourceDocumentsが空なのでepisode pageは1件も生成されない
     assert not any(
         path.startswith("stories/") and path != "stories/index.md" for path in pages
     )
+
+
+def test_render_character_index_page_falls_back_to_canonical_id_for_missing_name(
+    minimal_collection,
+):
+    """displayNameが欠落したentity (CHAR_MIN_RESOLVED) でも、
+    canonicalIdをfallback表示として使いクラッシュしないことを確認する。"""
+    characters = minimal_collection["entities"]["characters"]
+    page = render_character_index_page(characters)
+    assert "[CHAR_MIN_RESOLVED](CHAR_MIN_RESOLVED.md)" in page
 
 
 def test_render_character_page_does_not_crash_on_missing_optional_fields(

@@ -19,6 +19,7 @@ from .models import build_front_matter
 from .paths import character_page_path, episode_page_path, is_page_eligible
 from .renderer import (
     build_pages,
+    render_character_index_page,
     render_character_page,
     render_episode_page,
     render_index_page,
@@ -33,6 +34,7 @@ __all__ = [
     "episode_page_path",
     "is_page_eligible",
     "build_pages",
+    "render_character_index_page",
     "render_character_page",
     "render_episode_page",
     "render_index_page",
