@@ -100,7 +100,7 @@ Extraction / Merge:
 
 Wiki:
 - `docs/architecture/07_Wiki/Wiki_Output_Design.md`
-- `docs/architecture/07_Wiki/Story_Page_Design.md`（Story page中心構造への設計方針。Episode pageは残しつつストーリー単位の入口ページを追加する方向、未実装）
+- `docs/architecture/07_Wiki/Story_Page_Design.md`（Story page中心構造への設計方針。`render_story_page`/`story_page_path`で実装済み、Episode pageは維持。Story/Episode SummaryはAI要約生成パイプライン実装まで「未生成」placeholder）
 
 Runbooks:
 - `docs/runbooks/Real_Data_Dry_Run.md`

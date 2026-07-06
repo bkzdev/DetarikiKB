@@ -16,7 +16,12 @@ Usage:
 """
 
 from .models import build_front_matter
-from .paths import character_page_path, episode_page_path, is_page_eligible
+from .paths import (
+    character_page_path,
+    episode_page_path,
+    is_page_eligible,
+    story_page_path,
+)
 from .renderer import (
     build_pages,
     render_character_index_page,
@@ -24,6 +29,7 @@ from .renderer import (
     render_episode_page,
     render_index_page,
     render_story_index_page,
+    render_story_page,
     render_unresolved_report,
     write_pages,
 )
@@ -33,12 +39,14 @@ __all__ = [
     "character_page_path",
     "episode_page_path",
     "is_page_eligible",
+    "story_page_path",
     "build_pages",
     "render_character_index_page",
     "render_character_page",
     "render_episode_page",
     "render_index_page",
     "render_story_index_page",
+    "render_story_page",
     "render_unresolved_report",
     "write_pages",
 ]

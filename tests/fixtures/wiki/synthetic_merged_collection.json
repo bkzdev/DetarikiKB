@@ -140,7 +140,7 @@
     {
       "path": "tests/fixtures/wiki/synthetic_episode_extraction_public_002.json",
       "documentId": "EP_TEST_PUBLIC_002",
-      "storyId": "TEST_PUBLIC_ID_STORY_002",
+      "storyId": "TEST_PUBLIC_ID_STORY",
       "episodeId": "EP_TEST_PUBLIC_002",
       "storyCategory": "EVT",
       "extractionVersion": "0.1.0",
@@ -159,7 +159,31 @@
       "displayTitle": null,
       "metadataStatus": "pending",
       "publicStoryId": null,
-      "publicEpisodeId": "PUBLIC_TEST_STORY_002_E01"
+      "publicEpisodeId": null
+    },
+    {
+      "path": "tests/fixtures/wiki/synthetic_episode_extraction_solo_story.json",
+      "documentId": "EP_TEST_SOLO_STORY_E01",
+      "storyId": "TEST_SOLO_STORY",
+      "episodeId": "EP_TEST_SOLO_STORY_E01",
+      "storyCategory": "OTHER",
+      "extractionVersion": "0.1.0",
+      "candidateCounts": {
+        "characters": 0,
+        "locations": 0,
+        "organizations": 0,
+        "items": 0,
+        "lore": 0,
+        "events": 0,
+        "relationships": 0,
+        "timelineCandidates": 0
+      },
+      "storyTitle": null,
+      "episodeSubtitle": null,
+      "displayTitle": null,
+      "metadataStatus": "pending",
+      "publicStoryId": null,
+      "publicEpisodeId": null
     }
   ],
   "entities": {

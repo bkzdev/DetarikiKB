@@ -54,6 +54,30 @@ def resolve_episode_path_id(source_document: dict[str, Any]) -> str | None:
     return source_document.get("episodeId") or source_document.get("documentId")
 
 
+def resolve_story_path_id(story_id: str, public_story_id: str | None = None) -> str:
+    """Story pageのURL/filenameに使うIDを解決する。
+
+    `publicStoryId`が設定されていればそれを優先し (公開Wiki URL用の
+    安定ID、Story_ID_Policy_Decision.md §7)、無い場合・空文字列・
+    whitespaceのみの場合は既存の`storyId`へfallbackする
+    (`resolve_episode_path_id`と同じ方針、feature/wiki-story-page-renderer)。
+    """
+    if isinstance(public_story_id, str) and public_story_id.strip():
+        return public_story_id.strip()
+    return story_id
+
+
+def story_page_path(story_id: str, public_story_id: str | None = None) -> str:
+    """Story pageの出力先相対パスを返す。
+
+    短期方針はflat構造維持 (`Story_Page_Design.md` §10 候補A)。
+    `stories/{storyId}/index.md`のようなnested構成へはまだ移行しない。
+    Episode pageと同じ`stories/`ディレクトリに置くが、`episodeId`は常に
+    `storyId`+`_E{number}`形式のためファイル名は衝突しない。
+    """
+    return f"stories/{resolve_story_path_id(story_id, public_story_id)}.md"
+
+
 def episode_page_path(source_document: dict[str, Any]) -> str | None:
     """Episode pageの出力先相対パスを返す。`resolve_episode_path_id`が
     Noneを返す場合 (publicEpisodeId/episodeId/documentIdがいずれも無い)

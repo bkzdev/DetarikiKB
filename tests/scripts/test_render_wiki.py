@@ -44,12 +44,37 @@ def test_cli_generates_expected_markdown_files(tmp_path):
     assert result.returncode == 0, result.stderr
     assert (output_dir / "index.md").is_file()
     assert (output_dir / "stories" / "index.md").is_file()
+    assert (output_dir / "stories" / "TEST_S01_C01.md").is_file()
     assert (output_dir / "stories" / "EP_TEST_001.md").is_file()
     assert (output_dir / "stories" / "EP_TEST_002.md").is_file()
     assert (output_dir / "characters" / "CHAR_TEST_RAIN.md").is_file()
     assert (output_dir / "reports" / "unresolved.md").is_file()
     # canonicalIdが無いキャラクターの個別ページは生成されない
     assert not (output_dir / "characters" / "UNRESOLVED_CHAR_TEST_0001.md").exists()
+
+
+def test_cli_generates_story_page_with_public_story_id_filename(tmp_path):
+    """publicStoryIdが設定された合成story (TEST_PUBLIC_ID_STORY) について、
+    Story pageのファイル名がpublicStoryIdベースになることを確認する
+    (feature/wiki-story-page-renderer)。"""
+    output_dir = tmp_path / "wiki_out"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            "--input",
+            str(FIXTURE_PATH),
+            "--output",
+            str(output_dir),
+            "--validate",
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert (output_dir / "stories" / "PUBLIC_TEST_STORY_001.md").is_file()
+    assert not (output_dir / "stories" / "TEST_PUBLIC_ID_STORY.md").exists()
 
 
 def test_cli_generates_public_episode_id_based_filename(tmp_path):

@@ -35,7 +35,12 @@ from .models import (
     MERGED_ENTITY_KEYS,
     build_front_matter,
 )
-from .paths import character_page_path, episode_page_path, is_page_eligible
+from .paths import (
+    character_page_path,
+    episode_page_path,
+    is_page_eligible,
+    story_page_path,
+)
 
 CharacterProfileIndex = dict[str, CharacterProfile]
 
@@ -766,9 +771,96 @@ def render_index_page(collection: dict[str, Any]) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
+def _group_source_documents_by_story(
+    source_documents: list[dict[str, Any]],
+) -> list[tuple[str, list[dict[str, Any]]]]:
+    """sourceDocumentsをstoryId単位でグルーピングする
+    (`Story_Page_Design.md` §6、feature/wiki-story-page-renderer)。
+
+    出現順を保持する。`storyId`が無いdocumentはStory pageを生成できない
+    ため除外する。
+    """
+    groups: dict[str, list[dict[str, Any]]] = {}
+    order: list[str] = []
+    for doc in source_documents:
+        story_id = doc.get("storyId")
+        if not story_id:
+            continue
+        if story_id not in groups:
+            groups[story_id] = []
+            order.append(story_id)
+        groups[story_id].append(doc)
+    return [(story_id, groups[story_id]) for story_id in order]
+
+
+def _sorted_story_episodes(episodes: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """story内のepisodeを`episodeId`の文字列順でソートする。
+
+    `episodeId`は`_E{number:02d}`形式 (`Identifier_Specification.md` §5.1)
+    のため、文字列ソートで数値順と一致する。
+    """
+    return sorted(episodes, key=lambda doc: doc.get("episodeId") or "")
+
+
+def _resolve_group_public_story_id(episodes: list[dict[str, Any]]) -> str | None:
+    """story内のepisode群から`publicStoryId`を解決する。
+
+    `publicStoryId`はstory単位で共通の想定だが、一部episodeのみに設定
+    されている場合もあるため、最初に見つかった非空の値を採用する
+    (複雑なconflict検出・warningはこのPRでは行わない、
+    `Story_Page_Design.md` §13)。
+    """
+    for doc in episodes:
+        public_story_id = doc.get("publicStoryId")
+        if isinstance(public_story_id, str) and public_story_id.strip():
+            return public_story_id.strip()
+    return None
+
+
+def _resolve_group_story_title(episodes: list[dict[str, Any]]) -> str | None:
+    return _first_non_blank(*(doc.get("storyTitle") for doc in episodes))
+
+
+def _resolve_group_category(episodes: list[dict[str, Any]]) -> str:
+    for doc in episodes:
+        category = doc.get("storyCategory")
+        if category:
+            return category
+    return "未登録"
+
+
+def _resolve_group_metadata_status(episodes: list[dict[str, Any]]) -> str | None:
+    """story内のepisode群のmetadataStatusを代表値として解決する。
+
+    全episodeが同じ値なら、その値をそのまま返す。異なる値が混在する
+    場合は`"mixed"`を返す (`Story_Page_Design.md` §11「簡易表示」方針)。
+    """
+    statuses = {doc.get("metadataStatus") for doc in episodes}
+    if len(statuses) == 1:
+        return next(iter(statuses))
+    return "mixed"
+
+
+def _story_display_title(
+    story_id: str, story_title: str | None, public_story_id: str | None
+) -> str:
+    """Story pageの見出し・Story indexのリンクtextに使う表示名を解決する。
+
+    優先順位: storyTitle > publicStoryId > storyId
+    (displayTitleはepisode単位のため、Story titleとしては使わない、
+    `Story_Page_Design.md` §6・タスク方針を参照)。
+    """
+    return story_title or public_story_id or story_id
+
+
 def render_story_index_page(collection: dict[str, Any]) -> str:
     """Story index page (stories/index.md) を生成する
     (Wiki_Output_Design.md §9.2)。
+
+    **`feature/wiki-story-page-renderer`でStory page中心構造へ変更した。**
+    従来のEpisode単位の行から、`storyId`単位でグルーピングしたStory
+    単位の行へ変更し、リンク先もEpisode pageではなくStory pageになる
+    (`Story_Page_Design.md` §8)。Episode一覧はStory page側で確認する。
     """
     source_documents = collection.get("sourceDocuments", []) or []
     front_matter = build_front_matter(
@@ -782,37 +874,31 @@ def render_story_index_page(collection: dict[str, Any]) -> str:
         return "\n".join(lines).rstrip() + "\n"
 
     # 列数を最小限にする (manual visual review 001での「表が横長すぎる」
-    # 指摘)。documentId (通常episodeIdと同値) とcandidate合計 (Episode
-    # pageのCandidate Counts sectionで確認できる詳細情報) は表から外す。
-    # 情報自体は失わず、Episode page側で引き続き確認できる。
-    #
-    # Episode列自体を人間向けタイトルのリンクにする (feature/
-    # wiki-story-index-link-text-improvement)。従来の「Display Title」
-    # 独立列はEpisode link textと内容が重複するため廃止した。Episode ID
-    # 自体 (URL・ファイル名) は変更していない — episode_page_pathが返す
-    # "stories/{episodeId}.md" をそのままリンク先にする。input validation
-    # status (valid/invalid) 列は、metadataStatus (Story_Manifest_Design.md
-    # §12) 表示へ置き換えた。input validation statusはEpisode page側の
-    # Validation sectionで引き続き確認できる (情報自体は失われない)。
-    lines.append("| Story ID | Episode | Status | Category |")
-    lines.append("|---|---|---|---|")
-    for doc in source_documents:
-        episode_path = episode_page_path(doc)
-        # stories/index.md自身がstories/配下にあるため、episode_page_pathが
-        # 返す"stories/{episodeId}.md"をそのままリンク先にすると
-        # "stories/stories/{episodeId}.md"という壊れた相対リンクになる。
-        # ファイル名部分だけをリンク先にする (MkDocsでの相対リンク切れ対策)。
-        episode_filename = episode_path.rsplit("/", 1)[-1] if episode_path else None
-        link_text = _episode_link_text(doc)
-        episode_link = (
-            f"[{link_text}]({episode_filename})" if episode_filename else link_text
+    # 指摘を踏襲)。Story単位の行にし、Episode一覧・Episode単位の
+    # displayTitle等はStory page側で確認する。
+    lines.append("| Story | Episodes | Status | Category |")
+    lines.append("|---|---:|---|---|")
+    for story_id, episodes in _group_source_documents_by_story(source_documents):
+        sorted_episodes = _sorted_story_episodes(episodes)
+        public_story_id = _resolve_group_public_story_id(sorted_episodes)
+        story_title = _resolve_group_story_title(sorted_episodes)
+        display_title = _story_display_title(story_id, story_title, public_story_id)
+        link_text = _escape_markdown_table_text(display_title)
+        story_path = story_page_path(story_id, public_story_id)
+        # stories/index.md自身がstories/配下にあるため、story_page_pathが
+        # 返す"stories/{id}.md"をそのままリンク先にすると
+        # "stories/stories/{id}.md"という壊れた相対リンクになる。
+        # ファイル名部分だけをリンク先にする (episode_page_pathと同じ対策)。
+        story_filename = story_path.rsplit("/", 1)[-1]
+        status = _format_metadata_status(
+            _resolve_group_metadata_status(sorted_episodes)
         )
-        status = _format_metadata_status(doc.get("metadataStatus"))
+        category = _resolve_group_category(sorted_episodes)
         lines.append(
-            f"| {_format_code(doc.get('storyId'))} "
-            f"| {episode_link} "
+            f"| [{link_text}]({story_filename}) "
+            f"| {len(sorted_episodes)} "
             f"| {status} "
-            f"| {doc.get('storyCategory', '')} |"
+            f"| {category} |"
         )
     lines.append("")
 
@@ -1117,6 +1203,171 @@ def render_episode_page(
     return "\n".join(lines).rstrip() + "\n"
 
 
+def _resolve_episode_summary_heading(
+    source_document: dict[str, Any], index: int
+) -> str:
+    """Episode Summariesの見出し表示名を優先順位に従って解決する。
+
+    優先順位: episodeSubtitle > displayTitle > `Episode {index}` > episodeId
+    (`Story_Page_Design.md` §6のタスク方針。merged knowledge collection側の
+    sourceDocumentsには`episodeNumber`が無いため、story内の並び順
+    `index`（1始まり）を`Episode {episodeNumber}`相当の代替として使う)。
+    """
+    heading = _first_non_blank(
+        source_document.get("episodeSubtitle"), source_document.get("displayTitle")
+    )
+    if heading is not None:
+        return _escape_markdown_table_text(heading)
+    episode_id = source_document.get("episodeId")
+    if episode_id:
+        return f"Episode {index}"
+    return "?"
+
+
+def _render_story_summary_section() -> list[str]:
+    """Story Summary placeholderを組み立てる。
+
+    AI要約生成パイプラインは後続PRで実装するため、当面は「未生成」を
+    表示する (`Story_Page_Design.md` §8)。元セリフ全文・AI考察は
+    含めない。
+    """
+    return ["## Story Summary", "", "未生成", ""]
+
+
+def _render_episode_summaries_section(episodes: list[dict[str, Any]]) -> list[str]:
+    """Episode SummariesをEpisodeごとに区切って表示するplaceholderを
+    組み立てる (`Story_Page_Design.md` §8)。"""
+    lines = ["## Episode Summaries", ""]
+    for index, source_document in enumerate(episodes, start=1):
+        heading = _resolve_episode_summary_heading(source_document, index)
+        lines.append(f"### {heading}")
+        lines.append("")
+        lines.append("未生成")
+        lines.append("")
+    return lines
+
+
+def _render_story_episode_list_section(episodes: list[dict[str, Any]]) -> list[str]:
+    """Story page内のEpisode一覧sectionを組み立てる。
+
+    リンク先は`episode_page_path`の解決結果 (publicEpisodeIdがあれば
+    優先、無ければepisodeIdへfallback、PR #73の方針を維持) をそのまま
+    使う。stories/配下の同階層へのリンクのためファイル名のみにする
+    (Story indexと同じ二重prefix対策)。
+    """
+    lines = [
+        "## Episodes",
+        "",
+        "| Episode | Status | Public Episode ID |",
+        "|---|---|---|",
+    ]
+    for source_document in episodes:
+        episode_path = episode_page_path(source_document)
+        episode_filename = episode_path.rsplit("/", 1)[-1] if episode_path else None
+        link_text = _episode_link_text(source_document)
+        episode_link = (
+            f"[{link_text}]({episode_filename})" if episode_filename else link_text
+        )
+        status = _format_metadata_status(source_document.get("metadataStatus"))
+        public_episode_id = _format_code(source_document.get("publicEpisodeId"))
+        lines.append(f"| {episode_link} | {status} | {public_episode_id} |")
+    lines.append("")
+    return lines
+
+
+def _render_story_related_characters_section(
+    collection: dict[str, Any], episode_ids: list[str]
+) -> list[str]:
+    """story内の全episodeに関連するcharacterを集約して表示する
+    (重複は排除する、`Story_Page_Design.md` §6・§10)。個別のformatは
+    `_format_related_character`をそのまま再利用する。
+    """
+    seen_ids: set[str] = set()
+    related: list[dict[str, Any]] = []
+    for episode_id in episode_ids:
+        for entity in _find_related_characters(collection, episode_id):
+            entity_id = entity.get("id")
+            if entity_id in seen_ids:
+                continue
+            seen_ids.add(entity_id)
+            related.append(entity)
+
+    lines = ["## Related Characters", ""]
+    if not related:
+        lines.append("関連するキャラクターは記録されていません。")
+        lines.append("")
+        return lines
+    for entity in related:
+        lines.append(f"- {_format_related_character(entity)}")
+    lines.append("")
+    return lines
+
+
+def _render_story_review_links_section() -> list[str]:
+    """Unresolved reportへの導線のみを置く (`Story_Page_Design.md` §11)。
+    Story別のunresolved集計・Special Speaker Labelsの個別表示は後続PRに
+    回す（Unresolved report側に既にsectionがあるため導線のみでよい）。
+    """
+    return [
+        "## Review Links",
+        "",
+        "- [Unresolved report](../reports/unresolved.md)",
+        "",
+    ]
+
+
+def render_story_page(
+    story_id: str, episodes: list[dict[str, Any]], collection: dict[str, Any]
+) -> str:
+    """Story pageを生成する (`Story_Page_Design.md`、
+    feature/wiki-story-page-renderer)。
+
+    閲覧者向けの入口ページとして、Overview・Story Summary（placeholder）・
+    Episode Summaries（placeholder、episodeごとに区切る）・Episode一覧・
+    Related Characters・Unresolved reportへの導線を表示する。本文セリフ・
+    raw DECコマンド・ローカル絶対パス・extraction JSONの生dumpは出さない。
+    """
+    sorted_episodes = _sorted_story_episodes(episodes)
+    public_story_id = _resolve_group_public_story_id(sorted_episodes)
+    story_title = _resolve_group_story_title(sorted_episodes)
+    display_title = _story_display_title(story_id, story_title, public_story_id)
+    category = _resolve_group_category(sorted_episodes)
+    metadata_status = _format_metadata_status(
+        _resolve_group_metadata_status(sorted_episodes)
+    )
+
+    front_matter = build_front_matter(
+        {
+            "title": display_title,
+            "page_type": "story",
+            "story_id": story_id,
+            "generated_from": GENERATED_FROM,
+        }
+    )
+
+    overview_items = [
+        ("Story ID", _format_code(story_id)),
+        ("Public Story ID", _format_code(public_story_id)),
+        ("Category", category),
+        ("Episodes", str(len(sorted_episodes))),
+        ("Metadata Status", metadata_status),
+    ]
+
+    lines = [front_matter, f"# {display_title}", "", "## Overview", ""]
+    lines.extend(_render_key_value_list(overview_items))
+    lines.extend(_render_story_summary_section())
+    lines.extend(_render_episode_summaries_section(sorted_episodes))
+    lines.extend(_render_story_episode_list_section(sorted_episodes))
+
+    episode_ids = [
+        doc.get("episodeId") for doc in sorted_episodes if doc.get("episodeId")
+    ]
+    lines.extend(_render_story_related_characters_section(collection, episode_ids))
+    lines.extend(_render_story_review_links_section())
+
+    return "\n".join(lines).rstrip() + "\n"
+
+
 def build_pages(
     collection: dict[str, Any],
     character_profiles: CharacterProfileIndex | None = None,
@@ -1140,7 +1391,15 @@ def build_pages(
         "reports/unresolved.md": render_unresolved_report(collection),
     }
 
-    for source_document in collection.get("sourceDocuments", []) or []:
+    source_documents = collection.get("sourceDocuments", []) or []
+
+    for story_id, episodes in _group_source_documents_by_story(source_documents):
+        sorted_episodes = _sorted_story_episodes(episodes)
+        public_story_id = _resolve_group_public_story_id(sorted_episodes)
+        path = story_page_path(story_id, public_story_id)
+        pages[path] = render_story_page(story_id, sorted_episodes, collection)
+
+    for source_document in source_documents:
         path = episode_page_path(source_document)
         if path is not None:
             pages[path] = render_episode_page(source_document, collection)
