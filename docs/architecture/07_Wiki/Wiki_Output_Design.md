@@ -303,6 +303,7 @@ Relationship page（独立ページ）は現時点では見送り、Character/Or
 - 表示: 「AI-generated analysis」の明示ラベル、confidence、evidenceRefs
 - 表示してはいけないもの: 公式情報・抽出情報との混在（§3）
 - Phase 3。LLM抽出自体が未実装のため、当面は空またはページ自体を生成しない
+- Story/Episode Summary（§9.2 Story index/`Story_Page_Design.md`のStory page Summary placeholder）とは別物である。要約（明示された事実の簡潔なあらすじ）とAI考察（推測・伏線考察・矛盾点考察）の分離方針・データ構造は`docs/architecture/06_AI/Story_Summary_Design.md` §2.3・§7を参照
 
 ---
 

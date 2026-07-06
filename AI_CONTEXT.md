@@ -97,6 +97,7 @@ Extraction / Merge:
 - `docs/architecture/06_AI/Merged_Knowledge_Design.md`
 - `docs/architecture/06_AI/Canonical_ID_Policy.md`
 - `docs/architecture/06_AI/Character_Profile_Dictionary_Design.md`
+- `docs/architecture/06_AI/Story_Summary_Design.md`（Story/Episode Summaryのデータ構造・保存場所（`knowledge/summaries/stories/{storyId}.yaml`）・status/review workflow設計。schema実装・renderer統合はまだ未着手）
 
 Wiki:
 - `docs/architecture/07_Wiki/Wiki_Output_Design.md`
