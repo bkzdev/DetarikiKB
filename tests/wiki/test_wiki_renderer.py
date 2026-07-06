@@ -31,7 +31,9 @@ from agents.wiki_generator import (
     render_episode_page,
     render_index_page,
     render_story_index_page,
+    render_story_page,
     render_unresolved_report,
+    story_page_path,
     write_pages,
 )
 
@@ -185,6 +187,37 @@ def test_episode_page_path_strips_whitespace_around_public_episode_id():
         "publicEpisodeId": "  PUBLIC_TEST_002_E01  ",
     }
     assert episode_page_path(source_document) == "stories/PUBLIC_TEST_002_E01.md"
+
+
+# ----------------------------------------------------------------
+# story_page_path (feature/wiki-story-page-renderer)
+# ----------------------------------------------------------------
+
+
+def test_story_page_path_uses_story_id_when_no_public_story_id():
+    assert story_page_path("TEST_S01_C01") == "stories/TEST_S01_C01.md"
+
+
+def test_story_page_path_prefers_public_story_id_when_present():
+    assert (
+        story_page_path("TEST_PUBLIC_ID_STORY", "PUBLIC_TEST_STORY_001")
+        == "stories/PUBLIC_TEST_STORY_001.md"
+    )
+
+
+def test_story_page_path_falls_back_when_public_story_id_is_none():
+    assert story_page_path("TEST_S01_C01", None) == "stories/TEST_S01_C01.md"
+
+
+def test_story_page_path_falls_back_when_public_story_id_is_blank():
+    assert story_page_path("TEST_S01_C01", "   ") == "stories/TEST_S01_C01.md"
+
+
+def test_story_page_path_strips_whitespace_around_public_story_id():
+    assert (
+        story_page_path("TEST_S01_C01", "  PUBLIC_TEST_001  ")
+        == "stories/PUBLIC_TEST_001.md"
+    )
 
 
 # ----------------------------------------------------------------
@@ -866,160 +899,100 @@ def test_render_index_page_has_summary(synthetic_collection):
     assert "[Unresolved report](reports/unresolved.md)" in page
 
 
-def test_render_story_index_page_links_to_episode(synthetic_collection):
+def test_render_story_index_page_links_to_story_page(synthetic_collection):
     """stories/index.md自身がstories/配下にあるため、リンク先は
-    ファイル名のみ (stories/プレフィックス無し) であることを確認する
-    (feature/mkdocs-material-minimal-siteでの相対リンク切れ修正)。
-    リンクtext自体はdisplayTitle優先の人間向け表示になる
-    (feature/wiki-story-index-link-text-improvement)。"""
+    ファイル名のみ (stories/プレフィックス無し) であることを確認する。
+    リンクtext自体はstoryTitle優先の人間向け表示になる
+    (feature/wiki-story-page-renderer、`Story_Page_Design.md` §8)。"""
     page = render_story_index_page(synthetic_collection)
-    assert "`TEST_S01_C01`" in page
-    assert "[Synthetic Display Title](EP_TEST_001.md)" in page
-    assert "(stories/EP_TEST_001.md)" not in page
+    assert "[Synthetic Story Title](TEST_S01_C01.md)" in page
+    assert "(stories/TEST_S01_C01.md)" not in page
 
 
-def test_render_story_index_page_lists_all_episodes(synthetic_collection):
-    """合成fixtureのsourceDocuments全件が一覧に出ることを確認する。"""
+def test_render_story_index_page_lists_all_stories(synthetic_collection):
+    """合成fixtureの3ストーリー (TEST_S01_C01/TEST_PUBLIC_ID_STORY/
+    TEST_SOLO_STORY) がすべて一覧に出ることを確認する。"""
     page = render_story_index_page(synthetic_collection)
-    assert "[Synthetic Display Title](EP_TEST_001.md)" in page
-    assert "[EP_TEST_002](EP_TEST_002.md)" in page
+    assert "[Synthetic Story Title](TEST_S01_C01.md)" in page
+    assert "[Synthetic Public ID Story Title](PUBLIC_TEST_STORY_001.md)" in page
+    assert "[TEST_SOLO_STORY](TEST_SOLO_STORY.md)" in page
 
 
-def test_render_story_index_page_shows_metadata_status(synthetic_collection):
-    """metadataStatus表示方針 (PR #62) をStory indexのStatus列でも
-    維持することを確認する。"""
+def test_render_story_index_page_shows_episode_counts(synthetic_collection):
+    """Episodes列に、そのstoryに属するepisode数が表示されることを
+    確認する (TEST_S01_C01=5件、TEST_PUBLIC_ID_STORY=2件、
+    TEST_SOLO_STORY=1件)。"""
     page = render_story_index_page(synthetic_collection)
-    assert "confirmed（確認済み）" in page
-    assert "pending（未確認）" in page
+    assert "| [Synthetic Story Title](TEST_S01_C01.md) | 5 |" in page
+    assert "| [Synthetic Public ID Story Title](PUBLIC_TEST_STORY_001.md) | 2 |" in page
+    assert "| [TEST_SOLO_STORY](TEST_SOLO_STORY.md) | 1 |" in page
 
 
-def test_render_story_index_page_omits_document_id_and_candidate_total(
+def test_render_story_index_page_shows_mixed_status_when_episodes_differ(
     synthetic_collection,
 ):
-    """documentId・candidate合計は横長table問題を踏まえてStory indexから
-    外した (Episode page側のCandidate Counts sectionで確認できるため、
-    情報自体は失われない)。"""
+    """story内のepisodeでmetadataStatusが異なる場合、「mixed」と表示
+    されることを確認する (TEST_S01_C01: confirmed/pending/pending/
+    title_unknown/deprecated混在、TEST_PUBLIC_ID_STORY: confirmed/pending
+    混在)。"""
     page = render_story_index_page(synthetic_collection)
-    assert "documentId" not in page
-    assert "candidate合計" not in page
-
-
-def test_render_story_index_page_does_not_have_redundant_display_title_column(
-    synthetic_collection,
-):
-    """Episode列自体が人間向けタイトルのリンクになったため、独立した
-    「Display Title」列は廃止したことを確認する
-    (feature/wiki-story-index-link-text-improvement)。合成データの
-    displayTitle値自体に"Display Title"という文字列を含むため、ここでは
-    ヘッダー行に独立列として現れないことのみを確認する。"""
-    page = render_story_index_page(synthetic_collection)
-    header_line = next(
-        line for line in page.splitlines() if line.startswith("| Story ID")
+    assert "| [Synthetic Story Title](TEST_S01_C01.md) | 5 | mixed |" in page
+    assert (
+        "| [Synthetic Public ID Story Title](PUBLIC_TEST_STORY_001.md) | 2 | mixed |"
+        in page
     )
-    assert "Display Title" not in header_line
 
 
-def test_render_story_index_page_column_count_is_four(synthetic_collection):
-    """Story indexの列数が増えすぎていないことを確認する
-    (Story ID/Episode/Status/Categoryの4列)。"""
-    page = render_story_index_page(synthetic_collection)
-    header_line = next(
-        line for line in page.splitlines() if line.startswith("| Story ID")
-    )
-    assert header_line == "| Story ID | Episode | Status | Category |"
-
-
-def test_render_story_index_page_uses_display_title_when_present(
+def test_render_story_index_page_shows_uniform_status_when_consistent(
     synthetic_collection,
 ):
-    """displayTitleがある場合はそれがEpisode link textに使われる
-    (優先順位1位)。"""
+    """story内の全episodeが同じmetadataStatusの場合 (TEST_SOLO_STORY、
+    episode1件のみでpending) は、そのまま日本語補足付きで表示される
+    ことを確認する。"""
     page = render_story_index_page(synthetic_collection)
-    assert "[Synthetic Display Title](EP_TEST_001.md)" in page
+    assert "| [TEST_SOLO_STORY](TEST_SOLO_STORY.md) | 1 | pending（未確認） |" in page
 
 
-def test_render_story_index_page_falls_back_to_episode_subtitle(
+def test_render_story_index_page_column_header(synthetic_collection):
+    """Story indexの列がStory/Episodes/Status/Categoryの4列に
+    なったことを確認する (feature/wiki-story-page-renderer)。"""
+    page = render_story_index_page(synthetic_collection)
+    header_line = next(line for line in page.splitlines() if line.startswith("| Story"))
+    assert header_line == "| Story | Episodes | Status | Category |"
+
+
+def test_render_story_index_page_no_double_prefix(synthetic_collection):
+    """stories/index.md自身がstories/配下にあるため、Story pageへの
+    リンクでも二重prefix (stories/stories/...) が起きないことを確認する。"""
+    page = render_story_index_page(synthetic_collection)
+    assert "stories/TEST_S01_C01.md" not in page
+    assert "stories/PUBLIC_TEST_STORY_001.md" not in page
+
+
+def test_render_story_index_page_links_to_public_story_id_when_present(
     synthetic_collection,
 ):
-    """displayTitleが無い場合、episodeSubtitleがEpisode link textに
-    使われる (優先順位2位)。"""
+    """publicStoryIdが設定されているstory (TEST_PUBLIC_ID_STORY) は、
+    Story indexのリンク先がpublicStoryIdベースのfilenameになることを
+    確認する。"""
     page = render_story_index_page(synthetic_collection)
-    assert "[Synthetic Episode Subtitle Only](EP_TEST_003.md)" in page
+    assert "(PUBLIC_TEST_STORY_001.md)" in page
+    assert "(TEST_PUBLIC_ID_STORY.md)" not in page
 
 
-def test_render_story_index_page_falls_back_to_story_title(synthetic_collection):
-    """displayTitle/episodeSubtitleが無い場合、storyTitleがEpisode link
-    textに使われる (優先順位3位)。"""
-    page = render_story_index_page(synthetic_collection)
-    assert "[Synthetic Story Title Fallback Only](EP_TEST_004.md)" in page
-
-
-def test_render_story_index_page_falls_back_to_episode_id_when_no_title(
+def test_render_story_index_page_falls_back_to_story_id_without_title_or_public_id(
     synthetic_collection,
 ):
-    """EP_TEST_002はtitle/subtitle/displayTitleすべてnullのため、
-    Episode link textは既存どおりepisodeIdにfallbackすることを確認する。"""
+    """storyTitle/publicStoryIdがいずれも無いstory (TEST_SOLO_STORY) は、
+    リンクtext・リンク先ともにstoryIdへfallbackすることを確認する。"""
     page = render_story_index_page(synthetic_collection)
-    assert "[EP_TEST_002](EP_TEST_002.md)" in page
-
-
-def test_render_story_index_page_treats_blank_and_whitespace_as_unset(
-    synthetic_collection,
-):
-    """空文字列・whitespaceのみのtitle/subtitleは未登録扱いとなり、
-    episodeIdへfallbackすることを確認する (EP_TEST_005: displayTitle="",
-    episodeSubtitle="   ", storyTitle=null)。"""
-    page = render_story_index_page(synthetic_collection)
-    assert "[EP_TEST_005](EP_TEST_005.md)" in page
-
-
-def test_render_story_index_page_episode_id_and_link_target_unchanged(
-    synthetic_collection,
-):
-    """link text方針が変わっても、episodeId自体・リンク先ファイル名は
-    episodeIdベースのまま変更されていないことを確認する。"""
-    page = render_story_index_page(synthetic_collection)
-    assert "(EP_TEST_001.md)" in page
-    assert "(EP_TEST_002.md)" in page
-    assert "(EP_TEST_003.md)" in page
-    assert "(EP_TEST_004.md)" in page
-    assert "(EP_TEST_005.md)" in page
-
-
-def test_render_story_index_page_links_to_public_episode_id_when_present(
-    synthetic_collection,
-):
-    """publicEpisodeIdが設定されているEpisode (EP_TEST_PUBLIC_001) は、
-    Story indexのリンク先がpublicEpisodeIdベースのfilenameになることを
-    確認する (リンクtext自体はdisplayTitle優先のまま変わらない)。"""
-    page = render_story_index_page(synthetic_collection)
-    assert "[Synthetic Public ID Display Title](PUBLIC_TEST_STORY_001_E01.md)" in page
-    assert "(EP_TEST_PUBLIC_001.md)" not in page
-
-
-def test_render_story_index_page_links_to_public_episode_id_without_double_prefix(
-    synthetic_collection,
-):
-    """stories/index.md自身がstories/配下にあるため、publicEpisodeIdベース
-    のリンクでも二重prefix (stories/stories/...) が起きないことを確認する。"""
-    page = render_story_index_page(synthetic_collection)
-    assert "stories/PUBLIC_TEST_STORY_001_E01.md" not in page
-
-
-def test_render_story_index_page_link_text_independent_of_public_episode_id(
-    synthetic_collection,
-):
-    """displayTitle/episodeSubtitle/storyTitleがすべて未設定のEpisode
-    (EP_TEST_PUBLIC_002) は、publicEpisodeIdがあってもリンクtextは内部
-    episodeIdへfallbackし、リンク先のみpublicEpisodeIdベースになることを
-    確認する (linkテキストとpathの解決が独立していることの確認)。"""
-    page = render_story_index_page(synthetic_collection)
-    assert "[EP_TEST_PUBLIC_002](PUBLIC_TEST_STORY_002_E01.md)" in page
+    assert "[TEST_SOLO_STORY](TEST_SOLO_STORY.md)" in page
 
 
 def test_render_story_index_page_escapes_bracket_and_pipe_in_link_text():
-    """titleに`[`/`]`/`|`が含まれる場合でも、tableとlink構造が壊れない
-    よう最小限のMarkdown escapeを行うことを確認する。"""
+    """storyTitleに`[`/`]`/`|`が含まれる場合でも、tableとlink構造が
+    壊れないよう最小限のMarkdown escapeを行うことを確認する
+    (Story link textはstoryTitle優先のため、storyTitle側で確認する)。"""
     collection = {
         "sourceDocuments": [
             {
@@ -1028,14 +1001,14 @@ def test_render_story_index_page_escapes_bracket_and_pipe_in_link_text():
                 "storyId": "TEST_ESCAPE",
                 "episodeId": "EP_TEST_ESCAPE",
                 "storyCategory": "MAIN",
-                "displayTitle": "Chapter [1] | Special",
+                "storyTitle": "Chapter [1] | Special",
                 "metadataStatus": "confirmed",
             }
         ],
         "report": {},
     }
     page = render_story_index_page(collection)
-    assert "[Chapter \\[1\\] \\| Special](EP_TEST_ESCAPE.md)" in page
+    assert "[Chapter \\[1\\] \\| Special](TEST_ESCAPE.md)" in page
 
 
 def test_render_episode_page_summary_is_bullet_list_not_table(synthetic_collection):
@@ -1187,16 +1160,19 @@ def test_render_episode_page_public_ids_show_unregistered_when_absent(
 def test_render_episode_page_public_episode_id_without_public_story_id(
     synthetic_collection,
 ):
-    """publicEpisodeIdのみ設定されているEpisode (EP_TEST_PUBLIC_002) では、
-    Public Episode IDは表示され、Public Story IDは「未登録」になることを
-    確認する。"""
+    """publicStoryId/publicEpisodeIdいずれもこのepisode自体には設定
+    されていないEpisode (EP_TEST_PUBLIC_002、feature/wiki-story-page-renderer
+    でstory-level publicStoryId解決のfallbackテスト用に再構成) では、
+    Episode pageのSummary上はいずれも「未登録」になることを確認する
+    (story page側ではEP_TEST_PUBLIC_001由来のpublicStoryIdへ解決される、
+    別途test_render_story_page_shows_overview_fields参照)。"""
     source_document = next(
         doc
         for doc in synthetic_collection["sourceDocuments"]
         if doc["episodeId"] == "EP_TEST_PUBLIC_002"
     )
     page = render_episode_page(source_document, synthetic_collection)
-    assert "- Public Episode ID: `PUBLIC_TEST_STORY_002_E01`" in page
+    assert "- Public Episode ID: 未登録" in page
     assert "- Public Story ID: 未登録" in page
 
 
@@ -1293,6 +1269,166 @@ def test_render_episode_page_does_not_include_full_dialogue_text(
 
 
 # ----------------------------------------------------------------
+# render_story_page (feature/wiki-story-page-renderer)
+# ----------------------------------------------------------------
+
+
+def _story_episodes(collection: dict, story_id: str) -> list[dict]:
+    return [
+        doc for doc in collection["sourceDocuments"] if doc.get("storyId") == story_id
+    ]
+
+
+def test_render_story_page_has_front_matter_and_title(synthetic_collection):
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection)
+    assert page.startswith("---\n")
+    assert 'page_type: "story"' in page
+    assert 'story_id: "TEST_S01_C01"' in page
+    assert "# Synthetic Story Title" in page
+
+
+def test_render_story_page_title_falls_back_to_public_story_id(synthetic_collection):
+    """storyTitleが解決できない場合はpublicStoryIdへfallbackすることを
+    確認する (合成のためstoryTitleを外したepisodesのみで検証)。"""
+    episodes = [
+        {**doc, "storyTitle": None}
+        for doc in _story_episodes(synthetic_collection, "TEST_PUBLIC_ID_STORY")
+    ]
+    page = render_story_page("TEST_PUBLIC_ID_STORY", episodes, synthetic_collection)
+    assert "# PUBLIC_TEST_STORY_001" in page
+
+
+def test_render_story_page_title_falls_back_to_story_id(synthetic_collection):
+    episodes = _story_episodes(synthetic_collection, "TEST_SOLO_STORY")
+    page = render_story_page("TEST_SOLO_STORY", episodes, synthetic_collection)
+    assert "# TEST_SOLO_STORY" in page
+
+
+def test_render_story_page_shows_overview_fields(synthetic_collection):
+    episodes = _story_episodes(synthetic_collection, "TEST_PUBLIC_ID_STORY")
+    page = render_story_page("TEST_PUBLIC_ID_STORY", episodes, synthetic_collection)
+    assert "- Story ID: `TEST_PUBLIC_ID_STORY`" in page
+    assert "- Public Story ID: `PUBLIC_TEST_STORY_001`" in page
+    assert "- Category: EVT" in page
+    assert "- Episodes: 2" in page
+
+
+def test_render_story_page_public_story_id_shows_unregistered_when_absent(
+    synthetic_collection,
+):
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection)
+    assert "- Public Story ID: 未登録" in page
+
+
+def test_render_story_page_shows_story_summary_placeholder(synthetic_collection):
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection)
+    summary_section = page.split("## Story Summary", 1)[1].split(
+        "## Episode Summaries", 1
+    )[0]
+    assert "未生成" in summary_section
+
+
+def test_render_story_page_shows_episode_summaries_per_episode(synthetic_collection):
+    """Episode SummariesがEpisodeごとに区切って表示され、5episode分の
+    見出しがすべて含まれることを確認する (TEST_S01_C01、5episode)。"""
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection)
+    summaries_section = page.split("## Episode Summaries", 1)[1].split(
+        "## Episodes", 1
+    )[0]
+    assert summaries_section.count("未生成") == 5
+
+
+def test_render_story_page_episode_summary_heading_uses_episode_subtitle(
+    synthetic_collection,
+):
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection)
+    assert "### Synthetic Episode Subtitle" in page
+    assert "### Synthetic Episode Subtitle Only" in page
+
+
+def test_render_story_page_episode_summary_heading_falls_back_to_positional_index(
+    synthetic_collection,
+):
+    """episodeSubtitle/displayTitleがいずれも無いepisode (EP_TEST_002/004/005)
+    は、story内の並び順に基づく`Episode {index}`見出しへfallbackする
+    ことを確認する。"""
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection)
+    assert "### Episode 2" in page
+    assert "### Episode 4" in page
+    assert "### Episode 5" in page
+
+
+def test_render_story_page_shows_episode_list_table(synthetic_collection):
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection)
+    assert "| Episode | Status | Public Episode ID |" in page
+    assert "[Synthetic Display Title](EP_TEST_001.md)" in page
+    assert "[EP_TEST_002](EP_TEST_002.md)" in page
+
+
+def test_render_story_page_episode_list_shows_public_episode_id_column(
+    synthetic_collection,
+):
+    episodes = _story_episodes(synthetic_collection, "TEST_PUBLIC_ID_STORY")
+    page = render_story_page("TEST_PUBLIC_ID_STORY", episodes, synthetic_collection)
+    assert "`PUBLIC_TEST_STORY_001_E01`" in page
+    episode_list_section = page.split("## Episodes", 1)[1].split(
+        "## Related Characters", 1
+    )[0]
+    assert "未登録" in episode_list_section
+
+
+def test_render_story_page_episode_list_uses_public_episode_id_link(
+    synthetic_collection,
+):
+    """Episode一覧のリンク先は、既存のepisode_page_path解決結果
+    (publicEpisodeId優先、無ければepisodeId fallback) をそのまま使う
+    ことを確認する (PR #73の方針を維持)。"""
+    episodes = _story_episodes(synthetic_collection, "TEST_PUBLIC_ID_STORY")
+    page = render_story_page("TEST_PUBLIC_ID_STORY", episodes, synthetic_collection)
+    assert "(PUBLIC_TEST_STORY_001_E01.md)" in page
+    assert "(EP_TEST_PUBLIC_002.md)" in page
+    assert "stories/" not in page
+
+
+def test_render_story_page_has_related_characters_section(synthetic_collection):
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection)
+    assert "## Related Characters" in page
+    assert "Test Character Rain" in page
+    assert "`CHAR_TEST_RAIN`" in page
+
+
+def test_render_story_page_related_characters_message_when_none(
+    synthetic_collection,
+):
+    episodes = _story_episodes(synthetic_collection, "TEST_SOLO_STORY")
+    page = render_story_page("TEST_SOLO_STORY", episodes, synthetic_collection)
+    assert "関連するキャラクターは記録されていません。" in page
+
+
+def test_render_story_page_has_unresolved_report_link(synthetic_collection):
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection)
+    assert "## Review Links" in page
+    assert "[Unresolved report](../reports/unresolved.md)" in page
+
+
+def test_render_story_page_does_not_include_full_dialogue_text(synthetic_collection):
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection)
+    assert "textExcerpt" not in page
+    assert "@ChTalk" not in page
+    assert "$num" not in page
+
+
+# ----------------------------------------------------------------
 # build_pages / write_pages (統合)
 # ----------------------------------------------------------------
 
@@ -1301,6 +1437,9 @@ def test_build_pages_generates_expected_paths(synthetic_collection):
     pages = build_pages(synthetic_collection)
     assert "index.md" in pages
     assert "stories/index.md" in pages
+    assert "stories/TEST_S01_C01.md" in pages
+    assert "stories/PUBLIC_TEST_STORY_001.md" in pages
+    assert "stories/TEST_SOLO_STORY.md" in pages
     assert "stories/EP_TEST_001.md" in pages
     assert "stories/EP_TEST_002.md" in pages
     assert "characters/index.md" in pages
