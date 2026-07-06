@@ -183,19 +183,56 @@ def _format_metadata_status(status: str | None) -> str:
     return _METADATA_STATUS_LABELS.get(status, status)
 
 
+def _first_non_blank(*values: object) -> str | None:
+    """複数の値から、空文字・whitespaceのみを除いた最初の非空文字列を返す。
+
+    None・非文字列値は無視する。全て空ならNoneを返す
+    (Story indexのEpisode link text優先順位解決で使う共通ヘルパー)。
+    """
+    for value in values:
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return None
+
+
 def _get_episode_display_title(source_document: dict[str, Any]) -> str:
     """このepisodeの一覧表示用タイトルを優先順位に従って解決する。
 
     displayTitle > episodeSubtitle > storyTitle > episodeId
     (Story_Manifest_Design.md §11.3のfallback方針をStory index等の一覧
-    表示に適用したもの)。いずれも未設定の場合は既存どおりepisodeIdを
-    返す。DEC本文からの推測やAI生成titleは行わない。
+    表示に適用したもの)。空文字列・whitespaceのみの値は未登録として扱い、
+    次の優先順位へfallbackする。いずれも未設定の場合は既存どおり
+    episodeIdを返す。DEC本文からの推測やAI生成titleは行わない。
     """
-    for key in ("displayTitle", "episodeSubtitle", "storyTitle"):
-        value = source_document.get(key)
-        if value:
-            return value
+    value = _first_non_blank(
+        source_document.get("displayTitle"),
+        source_document.get("episodeSubtitle"),
+        source_document.get("storyTitle"),
+    )
+    if value is not None:
+        return value
     return source_document.get("episodeId") or source_document.get("documentId") or "?"
+
+
+def _escape_markdown_table_text(text: str) -> str:
+    """Markdown table セル内・リンクtext内で表示崩れの原因になりうる
+    最小限の文字（`|`/`[`/`]`）をエスケープする。
+
+    大規模なMarkdown sanitizerは実装しない。タイトルに`|`が含まれると
+    table列がずれ、`[`/`]`が含まれるとlink text自体の対応が崩れるため、
+    その2種類のみを最低限対策する。
+    """
+    return text.replace("|", "\\|").replace("[", "\\[").replace("]", "\\]")
+
+
+def _episode_link_text(source_document: dict[str, Any]) -> str:
+    """Story indexのEpisode列に使う、人間向けリンクtextを組み立てる。
+
+    displayTitle > episodeSubtitle > storyTitle > episodeIdの優先順位で
+    解決した表示名 (`_get_episode_display_title`) を、table/link内で
+    安全な形にエスケープしたものを返す。
+    """
+    return _escape_markdown_table_text(_get_episode_display_title(source_document))
 
 
 def _format_affiliation(affiliation: list[str]) -> str:
@@ -748,8 +785,17 @@ def render_story_index_page(collection: dict[str, Any]) -> str:
     # 指摘)。documentId (通常episodeIdと同値) とcandidate合計 (Episode
     # pageのCandidate Counts sectionで確認できる詳細情報) は表から外す。
     # 情報自体は失わず、Episode page側で引き続き確認できる。
-    lines.append("| storyId | Episode | Display Title | status | category |")
-    lines.append("|---|---|---|---|---|")
+    #
+    # Episode列自体を人間向けタイトルのリンクにする (feature/
+    # wiki-story-index-link-text-improvement)。従来の「Display Title」
+    # 独立列はEpisode link textと内容が重複するため廃止した。Episode ID
+    # 自体 (URL・ファイル名) は変更していない — episode_page_pathが返す
+    # "stories/{episodeId}.md" をそのままリンク先にする。input validation
+    # status (valid/invalid) 列は、metadataStatus (Story_Manifest_Design.md
+    # §12) 表示へ置き換えた。input validation statusはEpisode page側の
+    # Validation sectionで引き続き確認できる (情報自体は失われない)。
+    lines.append("| Story ID | Episode | Status | Category |")
+    lines.append("|---|---|---|---|")
     for doc in source_documents:
         episode_path = episode_page_path(doc)
         # stories/index.md自身がstories/配下にあるため、episode_page_pathが
@@ -757,17 +803,14 @@ def render_story_index_page(collection: dict[str, Any]) -> str:
         # "stories/stories/{episodeId}.md"という壊れた相対リンクになる。
         # ファイル名部分だけをリンク先にする (MkDocsでの相対リンク切れ対策)。
         episode_filename = episode_path.rsplit("/", 1)[-1] if episode_path else None
-        episode_id = doc.get("episodeId") or doc.get("documentId") or "?"
+        link_text = _episode_link_text(doc)
         episode_link = (
-            f"[{episode_id}]({episode_filename})" if episode_filename else episode_id
+            f"[{link_text}]({episode_filename})" if episode_filename else link_text
         )
-        display_title = _get_episode_display_title(doc)
-        input_result = _find_input_result(collection, doc)
-        status = input_result.get("status", "") if input_result else ""
+        status = _format_metadata_status(doc.get("metadataStatus"))
         lines.append(
-            f"| {doc.get('storyId', '?')} "
+            f"| {_format_code(doc.get('storyId'))} "
             f"| {episode_link} "
-            f"| {display_title} "
             f"| {status} "
             f"| {doc.get('storyCategory', '')} |"
         )

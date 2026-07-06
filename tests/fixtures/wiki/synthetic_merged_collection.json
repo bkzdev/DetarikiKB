@@ -46,6 +46,72 @@
       "episodeSubtitle": null,
       "displayTitle": null,
       "metadataStatus": "pending"
+    },
+    {
+      "path": "tests/fixtures/wiki/synthetic_episode_extraction_003.json",
+      "documentId": "EP_TEST_003",
+      "storyId": "TEST_S01_C01",
+      "episodeId": "EP_TEST_003",
+      "storyCategory": "MAIN",
+      "extractionVersion": "0.1.0",
+      "candidateCounts": {
+        "characters": 0,
+        "locations": 0,
+        "organizations": 0,
+        "items": 0,
+        "lore": 0,
+        "events": 0,
+        "relationships": 0,
+        "timelineCandidates": 0
+      },
+      "storyTitle": "Synthetic Story Title Only",
+      "episodeSubtitle": "Synthetic Episode Subtitle Only",
+      "displayTitle": null,
+      "metadataStatus": "pending"
+    },
+    {
+      "path": "tests/fixtures/wiki/synthetic_episode_extraction_004.json",
+      "documentId": "EP_TEST_004",
+      "storyId": "TEST_S01_C01",
+      "episodeId": "EP_TEST_004",
+      "storyCategory": "MAIN",
+      "extractionVersion": "0.1.0",
+      "candidateCounts": {
+        "characters": 0,
+        "locations": 0,
+        "organizations": 0,
+        "items": 0,
+        "lore": 0,
+        "events": 0,
+        "relationships": 0,
+        "timelineCandidates": 0
+      },
+      "storyTitle": "Synthetic Story Title Fallback Only",
+      "episodeSubtitle": null,
+      "displayTitle": null,
+      "metadataStatus": "title_unknown"
+    },
+    {
+      "path": "tests/fixtures/wiki/synthetic_episode_extraction_005.json",
+      "documentId": "EP_TEST_005",
+      "storyId": "TEST_S01_C01",
+      "episodeId": "EP_TEST_005",
+      "storyCategory": "MAIN",
+      "extractionVersion": "0.1.0",
+      "candidateCounts": {
+        "characters": 0,
+        "locations": 0,
+        "organizations": 0,
+        "items": 0,
+        "lore": 0,
+        "events": 0,
+        "relationships": 0,
+        "timelineCandidates": 0
+      },
+      "storyTitle": null,
+      "episodeSubtitle": "   ",
+      "displayTitle": "",
+      "metadataStatus": "deprecated"
     }
   ],
   "entities": {

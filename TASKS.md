@@ -8,17 +8,17 @@
 
 ## Current Focus
 
-- `feature/speaker-label-normalization`: `name`コマンド/`@ChTalkName`由来のspeaker label（speaker group/modifier付き/generic表記等）を、通常のunresolved characterとは別枠（`specialSpeakerLabelCandidates`/`entities.specialSpeakerLabels`）で構造化し、Unresolved reportに専用sectionを追加した。自動でconfirmed character解決はしない。合成fixtureのみで検証、実データ未投入
+- `feature/wiki-story-index-link-text-improvement`: Story indexのEpisode列を`episodeId`中心から`displayTitle > episodeSubtitle > storyTitle > episodeId`優先の人間向けリンクテキストへ変更した。独立していた「Display Title」列は廃止（Episode link textと重複するため）、input validation status列はmetadataStatus表示へ置き換えた。episodeId/URL/ファイル名は変更なし。合成fixtureのみで検証、実データ未投入
 
 ## Next
 
 直近5件程度。着手前にユーザーへ確認する。
 
 1. ユーザーによる`uv run mkdocs serve -f workspace/wiki_preview/manual_review_002/mkdocs_manual_review.yml -a 127.0.0.1:8125`起動後、`http://127.0.0.1:8125/`でのブラウザ目視確認
-2. **wiki-story-index-link-text-improvement**: Story indexのリンクテキストを`episodeId`から`displayTitle > episodeSubtitle > storyTitle+第N話 > episodeId`優先で表示する（title/subtitleデータが少ない現段階では急がない）
-3. **story-id-policy-real-sample-review**: EVENT storyId/episodeIdがsourceKey由来の長い意味語を含みうる点を、追加の実データサンプル投入後に再検討する
-4. **story-title-subtitle-candidate-builder-real-trial**: `scripts/build_story_title_subtitle_candidates.py`を実際のWiki/CSV入力に対して実行し、生成候補を人間が確認する
-5. **speaker-label-normalization-real-sample-review**: 実データ小規模サンプルでspeaker group/generic speaker検出の網羅性・誤検出を確認する（本PRは合成fixtureのみのため後続作業）
+2. **story-id-policy-real-sample-review**: EVENT storyId/episodeIdがsourceKey由来の長い意味語を含みうる点を、追加の実データサンプル投入後に再検討する
+3. **story-title-subtitle-candidate-builder-real-trial**: `scripts/build_story_title_subtitle_candidates.py`を実際のWiki/CSV入力に対して実行し、生成候補を人間が確認する
+4. **speaker-label-normalization-real-sample-review**: 実データ小規模サンプルでspeaker group/generic speaker検出の網羅性・誤検出を確認する（合成fixtureのみのため後続作業）
+5. **wiki-story-index-link-text-real-sample-review**: 実データ小規模サンプルでEpisode link text優先順位・metadataStatus表示を確認する（本PRは合成fixtureのみのため後続作業）
 
 ---
 
@@ -52,7 +52,7 @@
 ### Wiki / MkDocs
 
 - mkdocs-manual-visual-review-002（Next参照）
-- wiki-story-index-link-text-improvement（Next参照）
+- **wiki-story-index-link-text-real-sample-review**（Next参照）
 - Wiki Page Template
 - relationship section renderer、Location/Organization/Item/Lore/Event page等のPhase 2実装
 
@@ -85,7 +85,6 @@
 - **compatibility checkの既知の非対称性**: standalone実行と`normalize_story.py --check-compat`埋め込みの主要判定（`unknownCommands`/`newSpeechCommands`/`parserCompatibility`）は一致するが、`branch_issues`/`case_variants`をStoryParserが追跡しないため常にFalse扱い。裸単語コマンドの検出範囲も両経路で非対称（実データでは稀）。
 - **Identifier_Specification.md §4.3のEVT形式との差分**: `story_manifest.yaml`のstoryId生成方針`EVT_{sourceKeyを大文字化}`（例: `EVT_250626_DANCER`）が、既存仕様書の`EVT_{eventNumber}`（数値管理番号）と異なる形式のまま未解消（`metadataStatus: pending`、人間レビュー時の判断待ち）。
 - **title/subtitleは実質未投入**: Wiki側の表示（Episode page/Story index）は`feature/wiki-episode-title-display-integration`で実装済みだが、`story_manifest.yaml`への人間確認済み実データの投入（confirmed化、`story-manifest-confirmed-metadata-batch-001`）はまだ行われていない。
-- **Story indexが依然としてepisodeIdをリンクテキストとして露出**: title/displayTitle/episodeSubtitle優先表示への変更は、title/subtitleデータが少ない現段階では見送り、追加データ投入後に判断する（`wiki-story-index-link-text-improvement`）。
 - **EVENT storyId/episodeId形式の再検討余地**: sourceKey由来の長い意味語（イベント固有名詞等）がpublic URL/IDに含まれうる。影響範囲が大きいため今は変更せず、追加の実データサンプル投入後に判断する（`story-id-policy-real-sample-review`）。
 - **Wiki tableがMkDocs preview上で横長すぎる**: Story index/Episode summary/Character details/Unresolved report等で横スクロールが発生しており、可読性・モバイル対応の改善が必要（`wiki-renderer-readability-improvements`）。
 - **MkDocs Materialは長期公開基盤として未確定**: local preview / early static publishing candidateとしては当面利用してよいが、長期的な新機能追加の不透明さから公開基盤として確定はしない。生成Markdownは特定theme/plugin機能に深く依存しないportableな状態を維持する。public publishing workflow着手前にMkDocs Material継続/別テーマ/Docusaurus/VitePress・Astro/独自rendererを再評価する（`public-publishing-platform-evaluation`）。目視確認は引き続き`mkdocs serve`前提とし、`file://`直開きは正式確認手順にしない。
@@ -96,6 +95,7 @@
 
 直近のみ短く記録。詳細は`docs/project_history/Completed_PRs_2026-07.md`参照。
 
+- **wiki story index link text improvement**: Story indexのEpisode列を、`episodeId`中心のリンクテキストから`displayTitle > episodeSubtitle > storyTitle > episodeId`優先の人間向けタイトルへのリンクへ変更した（`_episode_link_text`/`_get_episode_display_title`/`_first_non_blank`）。空文字列・whitespaceのみの値は未登録扱いとしてfallbackする。Episode link textと重複していた独立の「Display Title」列を廃止し、input validation status（valid/invalid）列はmetadataStatus表示へ置き換えた（Episode page側のValidation sectionで引き続き確認可能）。titleに`|`/`[`/`]`が含まれる場合の最小限のMarkdown escapeも追加した。episodeId/URL/ファイル名（`stories/{episodeId}.md`）は変更していない。合成fixtureのみで検証、実データ未投入。
 - **speaker label normalization**: `name`コマンド/`@ChTalkName`由来のspeaker labelを`agents/parser/speaker_labels.py`で構造化（speaker_group/speaker_with_modifier/generic_speaker/ambiguous_speaker等）し、通常のCharacterCandidate/Character merged entityとは別枠（`specialSpeakerLabelCandidates`/`entities.specialSpeakerLabels`）で扱うようにした。confirmed character dictionaryとの参考照合（`inferredSpeakers`）はあるが自動でconfirmed昇格はしない（resolutionStatusは`inferred`/`needs_review`のみ自動付与）。Unresolved reportに「Special Speaker Labels」sectionを追加し、通常のUnresolved Charactersとは重複しない。`characters.yaml`は変更なし。合成fixtureのみで検証、実データ未投入。
 - **mkdocs manual visual review 002**: 実データ小規模サンプル（EVENTカテゴリ1件・episode2件、うち1件にPR #62表示確認用のtitle/subtitle/metadataStatus=confirmedを設定）でPR #64〜#66の改善（Characters index導線・特記事項`【label】value`表示・profile source非表示・Story index/Unresolved reportの列数削減・Episode Summary箇条書き化）をすべて実データで確認した。`workspace/wiki_preview/manual_review_002/`・`manual_review_002_site/`へ保持（**commit対象外**）。source text exposure check問題なし。`mkdocs serve`（`http://127.0.0.1:8125/`）経由でcurl確認、実装変更なし。ユーザーの実ブラウザ目視確認待ち。
 - **wiki renderer readability improvements**: manual visual review 001の「表が横長すぎる」指摘を受け、Story index（7列→5列、documentId/candidate合計を削除）・Episode page（Summary tableを箇条書きへ変更、ID類はcode表示）・Unresolved report（entity種別別表を6列→5列、Evidence/Source CandidatesをRefs列へ統合）を改善した。既存情報は削除せず、Episode page側詳細セクション等で引き続き確認可能。Characters index・profileHighlight表示・profile source非表示（PR #64/#65）は変更していない。合成fixtureのみで検証。
@@ -104,7 +104,6 @@
 - **mkdocs manual visual review 001**: 実データ小規模サンプル（EVENTカテゴリ1件・episode2件、うち1件にPR #62表示確認用のtitle/subtitle/metadataStatus=confirmedを設定、もう1件はpending/未設定のまま）からWiki Markdown・MkDocs HTMLを生成し`workspace/wiki_preview/manual_review_001/`・`manual_review_001_site/`へ保持（**commit対象外**）。Story Title/Episode Subtitle/Display Title/Metadata Status表示・Story indexのDisplay Title列・Basic Profile section（登録あり/なし）・Related Charactersリンクをいずれも`mkdocs serve`経由で確認。source text exposure check問題なし。実装変更なし。**Manual visual reviewは`mkdocs serve`（`http://127.0.0.1:8124/`）を使うこと。`file://`で`index.html`を直接開くと、directory-style URL（`use_directory_urls: true`、既定）のリンクがディレクトリ一覧表示になる（実際にユーザー環境で発生・確認済み）。file直接閲覧が必要な場合は、専用設定で`use_directory_urls: false`を検討すること。** ユーザーによる実ブラウザ目視確認の結果、5件の改善候補（character index page欠如・Story indexのepisodeId露出・storyId/episodeId形式・table可読性・character profile表示統合）とMkDocs Material長期利用方針の検討事項が見つかった（実装はまだ行っていない、詳細はNext/Backlog/Known Issues参照）。
 - **wiki episode title display integration**: storyTitle/episodeSubtitle/displayTitle/metadataStatusをExtractor→Merger→Wiki rendererまで伝播し、Episode page（Summary table 4行追加）・Story index（Display Title列追加）へ表示。未設定時はepisodeIdへfallback、AI-generated titleとは分離。合成fixtureのみ、実タイトルは未投入。
 - **project context compaction**（PR #61）: 肥大化した`AI_CONTEXT.md`/`TASKS.md`を圧縮し、完了済みPR履歴を`docs/project_history/`へ分離。
-- **normalize_story manifest integration**（PR #57）: `normalize_story.py`に`--manifest`/`--raw-root`/`--manifest-strict`を追加。既存挙動は完全維持。
 
 ---
 
