@@ -117,6 +117,7 @@ Raw Script (.dec)
 |---|---|
 | Top page | Wikiサイトのトップ。ストーリー一覧・統計サマリーへの入口 |
 | Story index | ストーリー（`storyId`）一覧。カテゴリ（MAIN/EVENT/CHARACTER等）別に整理 |
+| Story page | ストーリー単位の閲覧者向け入口ページ（`docs/architecture/07_Wiki/Story_Page_Design.md`で設計、次PR`wiki-story-page-renderer`で実装予定。本PR時点では未実装） |
 | Episode page | エピソード単位のページ。登場人物・場所・あらすじ相当の抽出情報 |
 | Character page | キャラクター単位のページ（§9で詳細） |
 | Unresolved report page | `status: unresolved`のentity一覧。canonicalId未確定のため個別ページを持たない代わりに、ここに集約する |
@@ -164,6 +165,8 @@ Relationship page（独立ページ）は現時点では見送り、Character/Or
 - テンプレート名（案）: `templates/wiki/story_index.md.j2`
 
 **実装状況（`feature/episode-page-renderer-expansion`で拡張、`feature/wiki-episode-title-display-integration`でDisplay Title列を追加、`feature/wiki-renderer-readability-improvements`で列数削減）**: `render_story_index_page`は、storyId・episodeId（Episode pageへのリンク）・Display Title（`displayTitle > episodeSubtitle > storyTitle > episodeId`のfallback、§9.3参照）・`report.inputResults`から突き合わせたstatus（見つからない場合は空欄）・categoryの5列表を出力する。manual visual review 001で「表が横長すぎる」と指摘されたため、documentId（通常episodeIdと同値）とcandidate合計件数（Episode pageのCandidate Counts sectionで確認可能）は表から外した（情報自体は失われない）。
+
+**Story page中心構造への設計方針（`feature/wiki-story-page-design`で追加）**: manual review（PR #74）を踏まえ、現在のEpisode page中心構造から、ストーリー単位の閲覧者向け入口ページ（Story page）を追加する方向へ設計を進めることにした。Story index→Episode pageの直接リンクは本PRでは変更していないが、次PR（`wiki-story-page-renderer`）でStory index→Story page→Episode一覧という導線を追加する予定である。詳細な役割分担・Summary配置・Evidence管理方針・URL構造候補の比較は`docs/architecture/07_Wiki/Story_Page_Design.md`を参照。**本PRではStory page rendererの実装・URL変更・Episode page path変更は行っていない。**
 
 **Episode link text改善（`feature/wiki-story-index-link-text-improvement`で実装）**: manual visual review 001/002で「Episode pageへのリンクテキストがepisodeId中心で分かりにくい」と指摘されたため、Episode列自体を`displayTitle > episodeSubtitle > storyTitle > episodeId`優先の人間向けタイトルへのリンクへ変更した（`_episode_link_text`/`_get_episode_display_title`/`_first_non_blank`）。空文字列・whitespaceのみの値は未登録として次の優先順位へfallbackする。リンク先URL・ファイル名（`stories/{episodeId}.md`）・`episodeId`自体は一切変更していない。あわせて、Episode link textと内容が重複していた独立の「Display Title」列を廃止し、`report.inputResults`由来のinput validation status（valid/invalid、Episode page側のValidation sectionで引き続き確認可能）をmetadataStatus表示（`_format_metadata_status`、PR #62から継続）へ置き換えた。表構成は`| Story ID | Episode | Status | Category |`の4列（storyIdはcode表示）。titleに`|`/`[`/`]`が含まれる場合に備え、`_escape_markdown_table_text`で最小限のMarkdown escapeを行う。storyId/episodeId体系・URL・ファイル名は本PRの対象外（別PRで扱う）。
 
@@ -458,6 +461,7 @@ templates/wiki/unresolved_report.md.j2
 5. **MkDocs Material minimal site**: 生成したMarkdown群を実際にMkDocs Materialでビルドできることを確認する最小構成（本文書のNon-goals「MkDocs本格導入」とは異なり、ビルド可否の疎通確認のみ）
 6. **real data local render dry-run**: ローカルignored領域で、実データ由来のmerged knowledge collectionから実際にレンダリングしてみる（`docs/runbooks/Real_Data_Dry_Run.md`と同じ運用: 生成物はcommitしない）
 7. **public publishing workflow**: GitHub Pages / Cloudflare Pages等への公開ワークフロー（Non-goals、別PRで検討）
+8. **wiki-story-page-renderer**: `docs/architecture/07_Wiki/Story_Page_Design.md`で設計したStory pageの実装（Story page path helper・Story index→Story pageリンク・Episode一覧・Story/Episode Summary placeholder。詳細スコープは同文書§13参照）
 
 各PRは小さく、`uv run pytest`の全通過と、実データを使わない自作fixtureによる検証を維持する（`Merged_Knowledge_Design.md` §13と同じ進め方）。
 

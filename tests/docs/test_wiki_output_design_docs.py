@@ -127,6 +127,14 @@ def test_design_doc_states_renderer_paths_switch_is_future_work():
     assert "まだ行っていない" in section or "後続PR" in section or "将来PR" in section
 
 
+def test_design_doc_links_to_story_page_design():
+    """Story page中心構造への設計方針 (feature/wiki-story-page-design) が
+    Story_Page_Design.mdへリンクされていることを確認する。"""
+    content = _read_design_doc()
+    assert "Story_Page_Design.md" in content
+    assert "Story page" in content
+
+
 def test_design_doc_states_renderer_switch_implemented_for_public_episode_id():
     """feature/story-manifest-public-id-renderer-switchで、
     publicEpisodeIdがEpisode page URL/filenameに実際に反映されたことが
