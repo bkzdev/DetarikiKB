@@ -177,10 +177,16 @@ def test_manifest_public_ids_propagate_to_source_manifest(tmp_path):
     manifest_info = story_json["source"]["manifest"]
     assert manifest_info["publicStoryId"] == f"{STORY_ID}_PUBLIC"
     assert manifest_info["publicEpisodeId"] == f"{STORY_ID}_PUBLIC_E01"
-    # public IDはstoryId/episodeId自体やURLには反映されない (renderer/paths.py
-    # 切替は後続PR)。
+    # storyId/episodeId自体の生成ロジック・値は変更しない。public IDは
+    # metadata経由でextractor/merger/rendererへ伝播する
+    # (feature/story-manifest-public-id-renderer-switch)。
     assert story_json["storyId"] == STORY_ID
     assert story_json["episodes"][0]["episodeId"] == f"{STORY_ID}_E01"
+    assert story_json["metadata"]["publicStoryId"] == f"{STORY_ID}_PUBLIC"
+    assert (
+        story_json["episodes"][0]["metadata"]["publicEpisodeId"]
+        == f"{STORY_ID}_PUBLIC_E01"
+    )
 
 
 def test_manifest_null_subtitle_is_preserved_as_null(tmp_path):

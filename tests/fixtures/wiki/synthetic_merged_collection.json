@@ -112,6 +112,54 @@
       "episodeSubtitle": "   ",
       "displayTitle": "",
       "metadataStatus": "deprecated"
+    },
+    {
+      "path": "tests/fixtures/wiki/synthetic_episode_extraction_public_001.json",
+      "documentId": "EP_TEST_PUBLIC_001",
+      "storyId": "TEST_PUBLIC_ID_STORY",
+      "episodeId": "EP_TEST_PUBLIC_001",
+      "storyCategory": "EVT",
+      "extractionVersion": "0.1.0",
+      "candidateCounts": {
+        "characters": 0,
+        "locations": 0,
+        "organizations": 0,
+        "items": 0,
+        "lore": 0,
+        "events": 0,
+        "relationships": 0,
+        "timelineCandidates": 0
+      },
+      "storyTitle": "Synthetic Public ID Story Title",
+      "episodeSubtitle": "Synthetic Public ID Episode Subtitle",
+      "displayTitle": "Synthetic Public ID Display Title",
+      "metadataStatus": "confirmed",
+      "publicStoryId": "PUBLIC_TEST_STORY_001",
+      "publicEpisodeId": "PUBLIC_TEST_STORY_001_E01"
+    },
+    {
+      "path": "tests/fixtures/wiki/synthetic_episode_extraction_public_002.json",
+      "documentId": "EP_TEST_PUBLIC_002",
+      "storyId": "TEST_PUBLIC_ID_STORY_002",
+      "episodeId": "EP_TEST_PUBLIC_002",
+      "storyCategory": "EVT",
+      "extractionVersion": "0.1.0",
+      "candidateCounts": {
+        "characters": 0,
+        "locations": 0,
+        "organizations": 0,
+        "items": 0,
+        "lore": 0,
+        "events": 0,
+        "relationships": 0,
+        "timelineCandidates": 0
+      },
+      "storyTitle": null,
+      "episodeSubtitle": null,
+      "displayTitle": null,
+      "metadataStatus": "pending",
+      "publicStoryId": null,
+      "publicEpisodeId": "PUBLIC_TEST_STORY_002_E01"
     }
   ],
   "entities": {

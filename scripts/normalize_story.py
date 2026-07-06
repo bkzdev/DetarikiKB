@@ -510,8 +510,10 @@ def _build_manifest_metadata(
             "matchedBy": lookup_result.matched_by,
             "sourceFileName": episode.source_file_name,
             "rawPath": episode.raw_path,
-            # public ID自体はまだrenderer/paths.pyでは使わない
-            # (Story_ID_Policy_Decision.md §7、traceability目的のみ)。
+            # source.manifest側はraw manifest照合結果の記録として保持する
+            # (traceability目的)。renderer/paths.pyが実際に使うpublic IDは
+            # story_metadata/episode_metadata経由 (storyTitle等と同じ
+            # 伝播経路、feature/story-manifest-public-id-renderer-switch)。
             "publicStoryId": story.public_story_id,
             "publicEpisodeId": episode.public_episode_id,
         }
@@ -522,6 +524,8 @@ def _build_manifest_metadata(
         story_metadata["storyTitle"] = story.title
     if story.display_title is not None:
         story_metadata["displayTitle"] = story.display_title
+    if story.public_story_id is not None:
+        story_metadata["publicStoryId"] = story.public_story_id
 
     episode_metadata: dict[str, Any] = {
         "episodeSubtitle": episode.subtitle,
@@ -529,6 +533,8 @@ def _build_manifest_metadata(
     }
     if episode.display_title is not None:
         episode_metadata["displayTitle"] = episode.display_title
+    if episode.public_episode_id is not None:
+        episode_metadata["publicEpisodeId"] = episode.public_episode_id
 
     return story_metadata, episode_metadata, manifest_source
 

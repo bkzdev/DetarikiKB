@@ -445,6 +445,8 @@ templates/wiki/unresolved_report.md.j2
 
 **field設計実装（`feature/story-manifest-public-id-fields-design`で追加）**: `publicStoryId`/`publicEpisodeId`を`story_manifest.yaml`の任意フィールドとして実装した（`docs/architecture/05_Parser/Story_Manifest_Design.md` §13.2）。**renderer/paths.pyのURL切替はまだ行っていない。** 現行URL（`stories/{episodeId}.md`）は変更なし。この2フィールドをrenderer/paths.pyで実際に使うかどうかの判断・実装は引き続き将来PRの対象とする。
 
+**renderer/paths.py切替実装（`feature/story-manifest-public-id-renderer-switch`で追加）**: `agents/wiki_generator/paths.py`の`episode_page_path`（内部で`resolve_episode_path_id`を使用）が、`sourceDocument.publicEpisodeId`（空文字列・whitespaceのみは無視）を優先し、無ければ既存の`episodeId`（無ければ`documentId`）へfallbackするようにした。`publicEpisodeId`が無い既存データは`stories/{episodeId}.md`のまま変更されない。Story indexのEpisodeリンク先も同じ解決結果を使うため自動的に追従するが、リンクtext（`displayTitle > episodeSubtitle > storyTitle > episodeId`優先順位）は変更していない。Character page path・Characters index・Unresolved reportは変更していない。
+
 ---
 
 # 15. 将来の実装PR案

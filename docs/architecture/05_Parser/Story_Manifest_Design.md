@@ -341,7 +341,9 @@ episodes:
 
   MAINは`publicStoryId`/`publicEpisodeId`を既存IDと同一にする案を仮採用する（`Story_ID_Policy_Decision.md` §6.1、public ID分離の優先度が低いため）。CHARACTERの採番方式は`characterId`confirmed化のタイミングとの関係が未確定であり、上記は候補として記載する（§18参照）
 - **候補生成script（`scripts/build_story_manifest_candidates.py`）は`publicStoryId`/`publicEpisodeId`を生成しない**（生成ロジック変更はNon-goals）。両フィールドは人間が個別に確定・追記する運用を当面継続する
-- **parser/normalizerへの伝播**: `agents/parser/story_manifest.py`の`StoryManifestStory.public_story_id`/`StoryManifestEpisode.public_episode_id`として読み込み、`scripts/normalize_story.py`が`source.manifest.publicStoryId`/`source.manifest.publicEpisodeId`としてNormalized Story JSONへtraceability目的でそのまま転記する（§14参照）。**Wiki出力・URL生成には使わない**（renderer/paths.py切替は後続PR）
+- **parser/normalizerへの伝播**: `agents/parser/story_manifest.py`の`StoryManifestStory.public_story_id`/`StoryManifestEpisode.public_episode_id`として読み込み、`scripts/normalize_story.py`が`source.manifest.publicStoryId`/`source.manifest.publicEpisodeId`としてNormalized Story JSONへtraceability目的でそのまま転記する（§14参照）
+
+**renderer/paths.py連携（`feature/story-manifest-public-id-renderer-switch`で実装完了）**: `publicStoryId`/`publicEpisodeId`は`metadata.publicStoryId`/`episodes[].metadata.publicEpisodeId`経由でExtractor（`episode_extraction.publicStoryId`/`publicEpisodeId`）→Merger（`sourceDocuments[].publicStoryId`/`publicEpisodeId`）→Wiki rendererまで伝播する（storyTitle等と全く同じ伝播経路）。`agents/wiki_generator/paths.py`の`episode_page_path`は、`publicEpisodeId`が設定されていれば（空文字列・whitespaceのみは無視）Episode page filename/URLとして優先し、無ければ既存の`episodeId`（無ければ`documentId`）へfallbackする。Episode page SummaryにはEpisode ID/Story ID（内部ID）と並んでPublic Episode ID/Public Story ID（未設定時は「未登録」）を表示し、内部IDと公開IDの対応を目視確認できるようにした。Character page path・Story indexのリンクtext優先順位（`displayTitle > episodeSubtitle > storyTitle > episodeId`）は変更していない。
 
 ---
 
@@ -355,7 +357,7 @@ episodes:
 - **parserが担う責務**: DEC本文を読み、Block/Scene/Dialogue等の構造化（変更なし）
 - **優先順位**: `--story-id`/`--category`/`--episode-id`/`--story-title`が明示的に指定されていればそちらを優先し、manifest由来の値で上書きしない。`--manifest`一致時のみ、指定されなかった項目をmanifest由来の値で補う。`category`（manifest上は小文字`event`等）は`agents/parser/story_manifest.py`の`resolve_story_category()`で`--category`相当の大文字prefixへ変換する。`character`カテゴリはCHAR_MAIN/CHAR_EXTRA/CHAR_DATEのいずれか判定できないため自動解決しない（§6・§18 OD-003のまま、明示的な`--category`指定が必要）
 - **一致しない場合の挙動**: `--manifest-strict`未指定なら`[警告]`を表示した上で処理を継続する（`--story-id`/`--category`の明示指定が前提）。`--manifest-strict`指定時はunmatched/ambiguousいずれもexit code 1で失敗する
-- **Normalized Story JSONへの反映**: `agents/parser/normalizer.py`の`Normalizer`に任意の`manifest_source`引数を追加し、`source.manifest`（`manifestPath`/`manifestMatched`/`matchedBy`/`sourceFileName`/`rawPath`、`feature/story-manifest-public-id-fields-design`で`publicStoryId`/`publicEpisodeId`を追加）として出典情報を記録する（`SourceInfo`は`additionalProperties: true`のためschema変更不要）。`story_metadata`/`episode_metadata`（いずれも既存の`additionalProperties: true`）へ、一致時のみ`storyTitle`/`displayTitle`/`episodeSubtitle`/`metadataStatus`を追加する。**`subtitle`がnullの場合もそのままnullとして`episodeSubtitle`へ反映する**（DEC本文から推測して埋めることはしない）
+- **Normalized Story JSONへの反映**: `agents/parser/normalizer.py`の`Normalizer`に任意の`manifest_source`引数を追加し、`source.manifest`（`manifestPath`/`manifestMatched`/`matchedBy`/`sourceFileName`/`rawPath`、`feature/story-manifest-public-id-fields-design`で`publicStoryId`/`publicEpisodeId`を追加、raw manifest照合結果のtraceability記録用）として出典情報を記録する（`SourceInfo`は`additionalProperties: true`のためschema変更不要）。`story_metadata`/`episode_metadata`（いずれも既存の`additionalProperties: true`）へ、一致時のみ`storyTitle`/`displayTitle`/`episodeSubtitle`/`metadataStatus`を追加する。**`subtitle`がnullの場合もそのままnullとして`episodeSubtitle`へ反映する**（DEC本文から推測して埋めることはしない）。`feature/story-manifest-public-id-renderer-switch`で、`story_metadata.publicStoryId`/`episode_metadata.publicEpisodeId`も同じ経路（`storyTitle`/`episodeSubtitle`と同様、値が設定されている場合のみ追加）で伝播するようにした。これがExtractor/Merger/Wiki rendererまで届く実際の公開ID伝播経路であり、`source.manifest`側は生値のtraceability記録として引き続き独立に保持する
 - **`subtitle`はparserがDEC本文から推測しない**（§11.1の方針をparser側にも適用する。manifestが持つ`subtitle`値をそのまま`episodeSubtitle`へ転記するだけ）
 - **既存挙動の維持**: `--manifest`未指定時は、`--story-id`/`--category`明示指定＋既存の出力（`source`に`manifest`キーが追加されない、`metadata`に`metadataStatus`が追加されない）が完全に維持されることをテストで確認済み
 
@@ -424,6 +426,8 @@ episodes:
 **方針決定（`feature/story-id-policy-design-decision`で実施）**: 上記レビューを踏まえ、DKBが採用するID方針を`docs/architecture/05_Parser/Story_ID_Policy_Decision.md`で正式に決定した。既存`storyId`/`episodeId`（`EVT_{sourceKey}`含む）は当面維持し、将来の公開Wiki URL用に`publicStoryId`/`publicEpisodeId`を`story_manifest.yaml`側へ分離して持てる設計へ次PR（`story-manifest-public-id-fields-design`）で進める。**このPRでもID生成ロジック・schema・URL/file pathは変更していない。**
 
 **field設計実装（`feature/story-manifest-public-id-fields-design`で実施）**: `publicStoryId`/`publicEpisodeId`を`schemas/story_manifest.schema.json`・`agents/parser/story_manifest.py`へ任意フィールドとして追加した（§13.2）。**`storyId`/`episodeId`（`EVT_{sourceKey}`含む）自体の生成ロジック・URL/file pathは引き続き変更していない。** renderer/paths.pyでの実際の切替は行っていない（後続PR）。OD-001自体（`EVT_{sourceKey}`と`EVT_{eventNumber}`のどちらをcanonicalとするか）は未解消のまま。
+
+**renderer/paths.py切替実装（`feature/story-manifest-public-id-renderer-switch`で実施）**: `publicEpisodeId`が設定されているEpisodeについてのみ、Wiki Episode pageのfilename/URL/Story indexリンク先が`publicEpisodeId`ベースになるよう`agents/wiki_generator/paths.py`を更新した。`publicEpisodeId`が無い（または空文字列・whitespaceのみ）Episodeは引き続き`episodeId`ベースのURLを維持する。**`storyId`/`episodeId`自体・OD-001の未解消状態は変更していない。** Character page pathへの影響も無い。
 
 ## OD-002: MAIN/RAID/OTHERカテゴリのraw配置規約
 

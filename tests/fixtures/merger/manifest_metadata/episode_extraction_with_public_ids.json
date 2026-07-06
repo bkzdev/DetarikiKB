@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "0.1",
+  "documentType": "episode_extraction",
+  "episodeId": "TEST_S01_C03_E01",
+  "storyId": "TEST_S01_C03",
+  "storyCategory": "EVT",
+  "extractionRun": {
+    "extractionVersion": "0.1.0",
+    "extractionMethod": "llm",
+    "modelProvider": "ollama",
+    "modelName": "qwen3:8b",
+    "promptVersion": "episode_extraction_v0.1",
+    "extractedAt": null,
+    "parserCompatibilityAtExtraction": "compatible"
+  },
+  "evidenceIndex": {},
+  "characters": [],
+  "organizations": [],
+  "locations": [],
+  "items": [],
+  "lore": [],
+  "events": [],
+  "relationships": [],
+  "timelineCandidates": [],
+  "extractionErrors": [],
+  "storyTitle": "Synthetic Public ID Story Title",
+  "episodeSubtitle": "Synthetic Public ID Episode Subtitle",
+  "displayTitle": "Synthetic Public ID Display Title",
+  "metadataStatus": "confirmed",
+  "publicStoryId": "PUBLIC_TEST_STORY_MERGE",
+  "publicEpisodeId": "PUBLIC_TEST_STORY_MERGE_E01"
+}

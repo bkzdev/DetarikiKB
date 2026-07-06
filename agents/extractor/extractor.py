@@ -49,6 +49,7 @@ class Extractor:
             "parserCompatibility", "compatible"
         )
         story_title = story_json.get("metadata", {}).get("storyTitle")
+        public_story_id = story_json.get("metadata", {}).get("publicStoryId")
 
         return [
             self.extract_episode(
@@ -57,6 +58,7 @@ class Extractor:
                 story_category=story_category,
                 parser_compatibility=parser_compatibility,
                 story_title=story_title,
+                public_story_id=public_story_id,
             )
             for episode in story_json.get("episodes", [])
         ]
@@ -68,6 +70,7 @@ class Extractor:
         story_category: str,
         parser_compatibility: str = "compatible",
         story_title: str | None = None,
+        public_story_id: str | None = None,
     ) -> dict[str, Any]:
         """1エピソード分のepisode_extraction (Extraction_Result_Schema.md §3.2)
 
@@ -75,6 +78,10 @@ class Extractor:
         metadataStatusは、story_manifest.yaml経由でNormalized Story JSONへ
         既に反映済みの値をそのまま転記するのみで、DEC本文からの推測は
         行わない (Story_Manifest_Design.md §11.1、§14)。
+
+        public_story_id/episode["metadata"]のpublicEpisodeIdも同じ経路で
+        転記のみ行う (Story_ID_Policy_Decision.md §7、renderer側でのURL
+        利用はfeature/story-manifest-public-id-renderer-switchで追加)。
         """
         episode_id = episode["episodeId"]
         episode_metadata = episode.get("metadata") or {}
@@ -143,4 +150,6 @@ class Extractor:
             "episodeSubtitle": episode_metadata.get("episodeSubtitle"),
             "displayTitle": episode_metadata.get("displayTitle"),
             "metadataStatus": episode_metadata.get("metadataStatus"),
+            "publicStoryId": public_story_id,
+            "publicEpisodeId": episode_metadata.get("publicEpisodeId"),
         }

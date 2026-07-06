@@ -386,6 +386,8 @@ class MergeEngine:
                     "episodeSubtitle": document.get("episodeSubtitle"),
                     "displayTitle": document.get("displayTitle"),
                     "metadataStatus": document.get("metadataStatus"),
+                    "publicStoryId": document.get("publicStoryId"),
+                    "publicEpisodeId": document.get("publicEpisodeId"),
                 }
             )
 
