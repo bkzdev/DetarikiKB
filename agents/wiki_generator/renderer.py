@@ -213,16 +213,26 @@ def _format_reading(reading: Reading | None) -> tuple[str, str]:
     )
 
 
-def _render_profile_highlight_lines(
-    highlight: Any,
-) -> list[str]:
-    lines = ["### キャラ別特記事項", ""]
+def _format_profile_highlight(highlight: Any) -> str:
+    """profileHighlightを「【label】value」形式の1行へ整形する
+    (Wiki記載と同じ雰囲気の表示、Character_Profile_Dictionary_Design.md
+    §7)。基本プロフィール表の「特記事項」行として使う。
+
+    label/valueの両方があれば「【label】value」、labelのみなら
+    「【label】」、valueのみならvalueそのもの、どちらも無い・highlight
+    自体がNoneの場合は「未登録」(既存の他フィールドと同じfallback表記)。
+    """
     if highlight is None:
-        lines.append("特記事項は登録されていません。")
-    else:
-        lines.append(f"{highlight.label}: {highlight.value}")
-    lines.append("")
-    return lines
+        return "未登録"
+    label = highlight.label or None
+    value = highlight.value or None
+    if label and value:
+        return f"【{label}】{value}"
+    if label:
+        return f"【{label}】"
+    if value:
+        return value
+    return "未登録"
 
 
 def _render_self_introduction_lines(self_introduction: str | None) -> list[str]:
@@ -264,7 +274,6 @@ def _render_basic_profile_section(
         return lines
 
     kana, romaji = _format_reading(profile.reading)
-    source_label = profile.source.label if profile.source else None
 
     lines.append("| 項目 | 値 |")
     lines.append("|---|---|")
@@ -276,11 +285,15 @@ def _render_basic_profile_section(
     lines.append(f"| 誕生日 | {_format_birthday(profile.birthday)} |")
     lines.append(f"| 血液型 | {_format_or_placeholder(profile.blood_type)} |")
     lines.append(f"| CV | {_format_or_placeholder(profile.cv)} |")
+    lines.append(
+        f"| 特記事項 | {_format_profile_highlight(profile.profile_highlight)} |"
+    )
     lines.append(f"| Status | {profile.status} |")
-    lines.append(f"| 出典 | {_format_or_placeholder(source_label)} |")
     lines.append("")
+    # profile source (出典) はcharacter_profiles.yaml側にはデータとして
+    # 保持するが、Wiki表示上は出さない方針 (manual visual reviewでの
+    # ユーザー要望)。source情報自体の削除・schema変更は行っていない。
 
-    lines.extend(_render_profile_highlight_lines(profile.profile_highlight))
     lines.extend(_render_self_introduction_lines(profile.self_introduction))
 
     return lines

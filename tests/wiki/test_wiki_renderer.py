@@ -15,6 +15,8 @@ from pathlib import Path
 import pytest
 
 from agents.parser.character_profiles import (
+    CharacterProfile,
+    ProfileHighlight,
     build_character_profile_index,
     load_character_profiles,
 )
@@ -278,7 +280,6 @@ def test_render_character_page_shows_basic_profile_when_matched(
     assert "| 所属 | Test Team Alpha |" in page
     assert "| 血液型 | A |" in page
     assert "| CV | Test Voice Actor |" in page
-    assert "| 出典 | Synthetic test fixture |" in page
 
 
 def test_render_character_page_formats_height_cm(
@@ -298,9 +299,59 @@ def test_render_character_page_shows_birthday_display(
 def test_render_character_page_shows_profile_highlight(
     resolved_character, character_profiles_index
 ):
+    """profileHighlightはWiki記載と同じ雰囲気の「【label】value」形式で、
+    基本プロフィール表の「特記事項」行として表示される
+    (独立sectionとしては表示しない)。"""
     page = render_character_page(resolved_character, character_profiles_index)
-    assert "### キャラ別特記事項" in page
-    assert "好きなこと: テストデータの整理" in page
+    assert "| 特記事項 | 【好きなこと】テストデータの整理 |" in page
+    assert "### キャラ別特記事項" not in page
+
+
+def test_render_character_page_profile_highlight_label_only():
+    """label/valueがschema上は両方必須だが、防御的にlabelのみでも
+    「【label】」表示になりクラッシュしないことを確認する。"""
+    profile = CharacterProfile(
+        character_id="CHAR_TEST_LABEL_ONLY",
+        display_name="Test Character Label Only",
+        profile_highlight=ProfileHighlight(label="合成項目", value=""),
+    )
+    entity = {
+        "id": "CHAR_TEST_LABEL_ONLY_ENTITY",
+        "canonicalId": "CHAR_TEST_LABEL_ONLY",
+        "displayName": "Test Character Label Only",
+        "status": "merged",
+    }
+    page = render_character_page(entity, {"CHAR_TEST_LABEL_ONLY": profile})
+    assert "| 特記事項 | 【合成項目】 |" in page
+
+
+def test_render_character_page_profile_highlight_value_only():
+    """valueのみの場合はvalueそのものを表示する。"""
+    profile = CharacterProfile(
+        character_id="CHAR_TEST_VALUE_ONLY",
+        display_name="Test Character Value Only",
+        profile_highlight=ProfileHighlight(label="", value="合成値"),
+    )
+    entity = {
+        "id": "CHAR_TEST_VALUE_ONLY_ENTITY",
+        "canonicalId": "CHAR_TEST_VALUE_ONLY",
+        "displayName": "Test Character Value Only",
+        "status": "merged",
+    }
+    page = render_character_page(entity, {"CHAR_TEST_VALUE_ONLY": profile})
+    assert "| 特記事項 | 合成値 |" in page
+
+
+def test_render_character_page_hides_profile_source(
+    resolved_character, character_profiles_index
+):
+    """character_profiles.yaml側にsource情報 (source.label等) があっても、
+    Character page上には表示しない方針を確認する
+    (character_profiles.yaml自体のsource情報は削除しない、renderer側で
+    非表示にするだけ)。"""
+    page = render_character_page(resolved_character, character_profiles_index)
+    assert "出典" not in page
+    assert "Synthetic test fixture" not in page
 
 
 def test_render_character_page_shows_self_introduction_multiline(
@@ -343,7 +394,7 @@ def test_render_character_page_self_introduction_null_shows_unregistered_message
     page = render_character_page(entity, character_profiles_index)
     assert "## 基本プロフィール" in page
     assert "自己紹介は登録されていません。" in page
-    assert "特記事項は登録されていません。" in page
+    assert "| 特記事項 | 未登録 |" in page
     assert "| ふりがな | 未登録 |" in page
     assert "| 身長 | 未登録 |" in page
 
