@@ -743,6 +743,8 @@ site/docs/organizations/igyo-seibutsu-taisakuhan.md
 
 **関連（`feature/story-id-policy-real-sample-review`で追加）**: 現行実装（`Story_Manifest_Design.md` §8）はこのOD-002を未解消のまま、raw配置由来の`EVT_{sourceKey}`形式を暫定採用している。実データサンプルを踏まえた比較・推奨方針は`docs/architecture/05_Parser/Story_ID_Policy_Review.md`を参照（本PRではID生成ロジック自体は変更していない）。
 
+**方針決定（`feature/story-id-policy-design-decision`で追加）**: 上記レビューを踏まえた採用方針を`docs/architecture/05_Parser/Story_ID_Policy_Decision.md`で決定した。既存`EVT_{sourceKey}`形式は当面維持し、OD-002（イベント番号の基準）自体は引き続き未確定のまま、公開URL用の`publicStoryId`/`publicEpisodeId`を別フィールドとして分離する方針に進む（本PRでもID生成ロジックは変更していない）。
+
 ---
 
 ## OD-003: キャラクターストーリーの番号体系

@@ -441,6 +441,8 @@ templates/wiki/unresolved_report.md.j2
 
 **関連（`feature/story-id-policy-real-sample-review`で追加）**: Story/EpisodeのURL（`stories/{episodeId}.md`）は、EVENTカテゴリの場合raw配置由来の長い`episodeId`（`EVT_{sourceKey}_E{episode}`）をそのまま使うため、公開Wiki化前に見直す余地がある。実データサンプルを踏まえたレビューは`docs/architecture/05_Parser/Story_ID_Policy_Review.md`を参照（本PRではURL/file pathは変更していない）。
 
+**方針決定（`feature/story-id-policy-design-decision`で追加）**: 上記レビューを踏まえた採用方針を`docs/architecture/05_Parser/Story_ID_Policy_Decision.md`で決定した。現行URL（`stories/{episodeId}.md`）は当面維持し、将来公開URL用に`publicStoryId`/`publicEpisodeId`が導入された場合のみ、renderer/paths.pyの段階移行を検討する（本PRでもURL/file pathは変更していない）。
+
 ---
 
 # 15. 将来の実装PR案

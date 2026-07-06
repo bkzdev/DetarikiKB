@@ -127,7 +127,7 @@ Runbooks:
 
 ## 9. 未確定事項
 
-- イベント番号の正式な採番ルール、`displayOrder`/`canonicalOrder`の正式計算式（Story ID/URL方針の比較・推奨は`docs/architecture/05_Parser/Story_ID_Policy_Review.md`参照。ID生成ロジックはまだ変更していない）
+- イベント番号の正式な採番ルール、`displayOrder`/`canonicalOrder`の正式計算式（Story ID/URL方針の比較・採用方針決定は`docs/architecture/05_Parser/Story_ID_Policy_Review.md`/`Story_ID_Policy_Decision.md`参照。既存storyId/episodeIdは当面維持、公開URL用`publicStoryId`/`publicEpisodeId`分離は次PR`story-manifest-public-id-fields-design`で設計。ID生成ロジックはまだ変更していない）
 - `relationshipType`の語彙本確定（`docs/architecture/04_Knowledge_Graph/Relationships.md`、現在プレースホルダー）
 - Neo4j Graph Model、Wiki Page Template
 - Stage Directionをどこまで詳細に意味解析するか
