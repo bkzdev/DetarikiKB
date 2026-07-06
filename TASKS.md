@@ -8,7 +8,13 @@
 
 ## Current Focus
 
-- `feature/story-manifest-public-id-renderer-switch`: `publicEpisodeId`をExtractor（`episode_extraction.publicStoryId`/`publicEpisodeId`）→Merger（`sourceDocuments[].publicStoryId`/`publicEpisodeId`）→`agents/wiki_generator/paths.py`（`episode_page_path`、publicEpisodeId優先・空白/未設定は既存episodeIdへfallback）まで伝播し、Wiki Episode pageのfilename/URL/Story indexリンク先で実際に使えるようにした。Episode page SummaryにPublic Story ID/Public Episode IDを追加表示。**storyId/episodeId生成ロジック・Story manifest candidate builder・Character page pathは変更していない**
+- `feature/public-id-renderer-manual-review`: 実データ小規模サンプル（EVENTカテゴリ1件・episode2件、匿名化）のローカルmanifestに`publicStoryId`/`publicEpisodeId`を手動付与し、normalize→extract→merge→render→`mkdocs build --strict`まで実行してWiki previewを確認した。episode1（publicEpisodeIdあり）はEpisode page URL/filenameがpublic IDベースになり、Story indexリンクも追従、episode2（publicEpisodeIdなし）は既存episodeIdへfallbackすることを確認。Characters index/Character page/Unresolved report/Special Speaker Labelsは壊れていない。source text exposure（絶対パス・`@ChTalk`等raw command・`.dec`・`$num`・raw slug）は問題なし。**実装変更なし**（既存の軽微な確認のみ）。ユーザーによる実ブラウザ目視確認待ち:
+
+  ```powershell
+  uv run mkdocs serve -f workspace/wiki_preview/public_id_manual_review/mkdocs_manual_review.yml -a 127.0.0.1:8126
+  ```
+
+  `http://127.0.0.1:8126/` を開いて確認。生成物は`workspace/wiki_preview/public_id_manual_review/`・`public_id_manual_review_site/`に保持（**commit対象外**）。
 
 ## Next
 
@@ -17,6 +23,8 @@
 1. **story-title-subtitle-candidate-builder-real-trial**: `scripts/build_story_title_subtitle_candidates.py`を実際のWiki/CSV入力に対して実行し、生成候補を人間が確認する
 2. **character profile import batch 002**: unmatched 200件のうち、displayName表記ゆれ解消やconfirmed化が進んだ分の人間確認済みcandidateを再照合し追加投入する
 3. **public-publishing-platform-evaluation**: public publishing workflow着手前に、MkDocs Material継続/MkDocs標準テーマ・別テーマ/Docusaurus/VitePress・Astro/独自HTML rendererを再評価する
+4. **story-manifest-public-id-url-nesting-review**: `publicStoryId`を使ったネストURL（`stories/{storyId}/{episodeId}.md`）移行の要否を検討する
+5. **public-id-manifest-assignment-policy**: `publicStoryId`/`publicEpisodeId`の採番・割当運用（人間手動 vs 半自動）を正式に決める
 
 ---
 
@@ -94,6 +102,7 @@
 
 直近のみ短く記録。詳細は`docs/project_history/Completed_PRs_2026-07.md`参照。
 
+- **public id renderer manual review**: 実データ小規模サンプル（EVENTカテゴリ1件・episode2件、匿名化）でPR #72/#73の`publicStoryId`/`publicEpisodeId`実装をmanifest手動付与→normalize→extract→merge→render→`mkdocs build --strict`まで通し確認した。publicEpisodeIdありのepisodeはEpisode page URL/filenameがpublic IDベースになりStory indexリンクも追従、publicEpisodeIdなしのepisodeは既存episodeIdへfallbackすることを確認。Characters index/Character page/Unresolved report/Special Speaker Labelsは壊れていない。`workspace/wiki_preview/public_id_manual_review/`・`public_id_manual_review_site/`へ保持（**commit対象外**）。source text exposure check問題なし。`mkdocs serve`（`http://127.0.0.1:8126/`）経由でcurl確認、実装変更なし。ユーザーの実ブラウザ目視確認待ち。
 - **story manifest public id renderer switch**: `publicEpisodeId`/`publicStoryId`をExtractor（`episode_extraction`）→Merger（`sourceDocuments[]`）経由でWiki rendererまで伝播し、`agents/wiki_generator/paths.py`の`episode_page_path`が`publicEpisodeId`（空文字列・whitespaceのみは無視）を優先、無ければ既存`episodeId`へfallbackするようにした。Story indexのリンク先も自動的に追従（リンクtext優先順位は変更なし）。Episode page SummaryにPublic Episode ID/Public Story ID（未設定時「未登録」）を追加。schemas（story/extraction/merged_knowledge_collection）に`publicStoryId`/`publicEpisodeId`を追加。**storyId/episodeId生成ロジック・Story manifest candidate builder・Character page pathは変更していない**。合成fixtureのみで検証、実データ未投入。
 - **story manifest public id fields design**: `Story_ID_Policy_Decision.md`（PR #71）で採用した`publicStoryId`（story-level）/`publicEpisodeId`（episode-level）を`schemas/story_manifest.schema.json`（任意フィールド、既存ID同様`^[A-Z][A-Z0-9_]*$`パターン、null許容）・`agents/parser/story_manifest.py`（`StoryManifestStory.public_story_id`/`StoryManifestEpisode.public_episode_id`）へ実装した。`scripts/normalize_story.py`は`source.manifest.publicStoryId`/`publicEpisodeId`としてtraceability目的でのみNormalized Story JSONへ転記する。category別合成例（MAIN/EVENT/RAID/OTHER/CHARACTER）を`Story_Manifest_Design.md` §13.2に記載。**storyId/episodeId生成ロジック・URL/file path・renderer/paths.pyは変更していない**（renderer切替は後続PR`story-manifest-public-id-renderer-paths-switch`）。
 - **story id policy design decision**: `Story_ID_Policy_Review.md`（PR #70）の比較結果を踏まえ、DKBが採用するID方針を`docs/architecture/05_Parser/Story_ID_Policy_Decision.md`で正式決定した。既存`storyId`/`episodeId`は当面維持、将来の公開Wiki URL用IDを`publicStoryId`/`publicEpisodeId`として`story_manifest.yaml`側に分離する方針を採用（次PRで設計）。category別方針・採用しない案（title/subtitle由来URL含む）・migration方針（additive first）を確定した。**ID生成ロジック・schema・URL/file pathの実装変更はしていない**（設計決定のみ）。
