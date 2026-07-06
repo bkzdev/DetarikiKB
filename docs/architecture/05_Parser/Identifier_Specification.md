@@ -741,6 +741,8 @@ site/docs/organizations/igyo-seibutsu-taisakuhan.md
 
 初期段階では手動管理の安定したイベント順を使用する。
 
+**関連（`feature/story-id-policy-real-sample-review`で追加）**: 現行実装（`Story_Manifest_Design.md` §8）はこのOD-002を未解消のまま、raw配置由来の`EVT_{sourceKey}`形式を暫定採用している。実データサンプルを踏まえた比較・推奨方針は`docs/architecture/05_Parser/Story_ID_Policy_Review.md`を参照（本PRではID生成ロジック自体は変更していない）。
+
 ---
 
 ## OD-003: キャラクターストーリーの番号体系

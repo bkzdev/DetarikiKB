@@ -389,6 +389,8 @@ titleSource:
 
 推奨: 初期段階では前者（`EVT_{sourceKey}`をそのまま採用）を仮運用し、実際に複数イベントのmanifestが揃った時点で改めて判断する。
 
+**実装状況（`feature/story-id-policy-real-sample-review`で実施）**: 実データ小規模サンプル（EVENT 5件相当、匿名化済み）をもとに、`EVT_{sourceKey}`方針の問題点・比較案・推奨方針を`docs/architecture/05_Parser/Story_ID_Policy_Review.md`にまとめた。**このPRではID生成ロジック・URL/file pathは変更していない。** 推奨方針は「今すぐ全面移行しない、raw traceability用IDと公開URL用IDの分離を次PRで設計する」という段階的アプローチ。詳細は同文書を参照。
+
 ## OD-002: MAIN/RAID/OTHERカテゴリのraw配置規約
 
 `EVENT`と同じ`csl_script_{category}_{sourceKey}_export`規約に従うかどうかが未確認（§6）。実際のraw配置サンプルが得られ次第、本文書と候補生成scriptを拡張する。
@@ -433,3 +435,4 @@ titleSource:
 - `docs/templates/story_manifest_template.yaml`（合成データのみのテンプレート例）
 - `scripts/build_story_manifest_candidates.py`（本PRで追加した候補生成script）
 - `docs/runbooks/Real_Data_Dry_Run.md`（実DECファイルの既存commit禁止ルール）
+- `docs/architecture/05_Parser/Story_ID_Policy_Review.md`（OD-001を踏まえたStory ID/Episode ID/URL方針レビュー、`feature/story-id-policy-real-sample-review`で追加）

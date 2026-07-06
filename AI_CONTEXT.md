@@ -127,7 +127,7 @@ Runbooks:
 
 ## 9. 未確定事項
 
-- イベント番号の正式な採番ルール、`displayOrder`/`canonicalOrder`の正式計算式
+- イベント番号の正式な採番ルール、`displayOrder`/`canonicalOrder`の正式計算式（Story ID/URL方針の比較・推奨は`docs/architecture/05_Parser/Story_ID_Policy_Review.md`参照。ID生成ロジックはまだ変更していない）
 - `relationshipType`の語彙本確定（`docs/architecture/04_Knowledge_Graph/Relationships.md`、現在プレースホルダー）
 - Neo4j Graph Model、Wiki Page Template
 - Stage Directionをどこまで詳細に意味解析するか
