@@ -14,11 +14,11 @@
 
 直近5件程度。着手前にユーザーへ確認する。
 
-1. ユーザーによる`uv run mkdocs serve -f workspace/wiki_preview/manual_review_002/mkdocs_manual_review.yml -a 127.0.0.1:8125`起動後、`http://127.0.0.1:8125/`でのブラウザ目視確認
-2. **story-id-policy-design-decision**: `Story_ID_Policy_Review.md`の比較結果を踏まえ、実際にどの案を採用するか決定する（実装はまだしない）
-3. **story-manifest-public-id-fields-design**: `story_manifest.yaml`に`publicStoryId`/`publicEpisodeId`（案名未確定）を任意フィールドとして追加する設計（raw trace IDと公開URL用IDの分離）
-4. **story-title-subtitle-candidate-builder-real-trial**: `scripts/build_story_title_subtitle_candidates.py`を実際のWiki/CSV入力に対して実行し、生成候補を人間が確認する
-5. **speaker-label-normalization-real-sample-review**: 実データ小規模サンプルでspeaker group/generic speaker検出の網羅性・誤検出を確認する（合成fixtureのみのため後続作業）
+1. **story-id-policy-design-decision**: `Story_ID_Policy_Review.md`の比較結果を踏まえ、実際にどの案を採用するか決定する（実装はまだしない）
+2. **story-manifest-public-id-fields-design**: `story_manifest.yaml`に`publicStoryId`/`publicEpisodeId`（案名未確定）を任意フィールドとして追加する設計（raw trace IDと公開URL用IDの分離）
+3. **story-title-subtitle-candidate-builder-real-trial**: `scripts/build_story_title_subtitle_candidates.py`を実際のWiki/CSV入力に対して実行し、生成候補を人間が確認する
+4. **character profile import batch 002**: unmatched 200件のうち、displayName表記ゆれ解消やconfirmed化が進んだ分の人間確認済みcandidateを再照合し追加投入する
+5. **public-publishing-platform-evaluation**: public publishing workflow着手前に、MkDocs Material継続/MkDocs標準テーマ・別テーマ/Docusaurus/VitePress・Astro/独自HTML rendererを再評価する
 
 ---
 
@@ -52,21 +52,22 @@
 
 ### Wiki / MkDocs
 
-- mkdocs-manual-visual-review-002（Next参照）
+- **mkdocs-manual-visual-review-002**: ユーザーによる`uv run mkdocs serve -f workspace/wiki_preview/manual_review_002/mkdocs_manual_review.yml -a 127.0.0.1:8125`起動後、`http://127.0.0.1:8125/`でのブラウザ目視確認
 - **wiki-story-index-link-text-real-sample-review**: 実データ小規模サンプルでEpisode link text優先順位・metadataStatus表示を確認する
+- **speaker-label-normalization-real-sample-review**: 実データ小規模サンプルでspeaker group/generic speaker検出の網羅性・誤検出を確認する（合成fixtureのみのため後続作業）
 - Wiki Page Template
 - relationship section renderer、Location/Organization/Item/Lore/Event page等のPhase 2実装
 
 ### Character Dictionary / Profiles
 
-- **character profile import batch 002**: unmatched 200件のうち、displayName表記ゆれ解消やconfirmed化が進んだ分の人間確認済みcandidateを再照合し追加投入する
+- **character profile import batch 002**（Next参照）
 - character dictionary confirmed batch 004: 残る未確認10件（234/225/230/222/232/83/258/86/85/257）について、人間確認済みmappingが提供され次第confirmed化する
 - キャラクターIDの完全辞書化・主要キャラクターのcanonical ID確定（loader/validation/coverage report/レビュー運用は実装済み。実データ頻出の未確認IDを人間がローマ字確認しconfirmed化する作業自体が残っている）
 
 ### Publishing
 
 - **public publishing workflow**: GitHub Pages / Cloudflare Pages等への公開ワークフローを設計・実装する（`Wiki_Output_Design.md` §16 Non-goals）
-- **public-publishing-platform-evaluation**: public publishing workflow着手前に、MkDocs Material継続/MkDocs標準テーマ・別テーマ/Docusaurus/VitePress・Astro/独自HTML rendererを再評価する。現時点ではMkDocs Materialから移行しない（Known Issues参照）
+- **public-publishing-platform-evaluation**（Next参照。現時点ではMkDocs Materialから移行しない、Known Issues参照）
 
 ### Quality / Refactor
 
