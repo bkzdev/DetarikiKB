@@ -10,7 +10,10 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from .speaker_labels import SpeakerLabelAnalysis
 
 # ----------------------------------------------------------------
 # Speaker データクラス
@@ -36,14 +39,29 @@ class Speaker:
     is_resolved: bool
     """正規キャラクターへ解決できたか"""
 
+    label_source: str | None = None
+    """speakerNameの由来 (例: "name_command"/"ch_talk_name")。
+    キャラクターID経由で解決した場合はNoneのまま
+    (agents/parser/speaker_labels.py SOURCE_NAME_COMMAND等)。"""
+
+    label_analysis: "SpeakerLabelAnalysis | None" = None
+    """label_sourceがある場合の構造化結果 (speaker_labels.analyze_speaker_label)。
+    speaker_group/speaker_with_modifier/generic_speaker等の判定・
+    inferredSpeakersを保持する。"""
+
     def to_dict(self) -> dict[str, Any]:
-        return {
+        result: dict[str, Any] = {
             "speakerId": self.speaker_id,
             "speakerName": self.speaker_name,
             "sourceCharacterId": self.source_character_id,
             "slot": self.slot,
             "isResolved": self.is_resolved,
         }
+        if self.label_source is not None:
+            result["labelSource"] = self.label_source
+        if self.label_analysis is not None:
+            result["labelAnalysis"] = self.label_analysis.to_dict()
+        return result
 
     @classmethod
     def unknown(
@@ -95,6 +113,14 @@ class CharacterDictionary:
         self._name_map: dict[str, str] = {}
         # sourceCharacterId (str) → speakerId (str) — DKB正規ID
         self._id_map: dict[str, str] = {}
+        # displayName/alias (str) → characterId (str) — confirmedエントリのみ。
+        # speaker_labels.attach_inferred_speakersの参考情報生成にのみ使う
+        # (通常の自動話者解決には一切使わない、character_dictionary.py
+        # resolve_character_by_nameと同じ注意事項)。
+        self._confirmed_name_to_id: dict[str, str] = {}
+        # displayName/alias (str) の集合 — status不問 (confirmed/name_only)。
+        # confirmed一致が無い場合の低confidence候補判定にのみ使う。
+        self._known_names: set[str] = set()
 
     def load_from_json(self, path: str | Path) -> None:
         """characters_reference.json を読み込む"""
@@ -125,8 +151,15 @@ class CharacterDictionary:
         for entry in load_character_dictionary(path):
             if entry.display_name:
                 self._name_map[entry.source_character_id] = entry.display_name
+                self._known_names.add(entry.display_name)
             if entry.character_id:
                 self._id_map[entry.source_character_id] = entry.character_id
+                if entry.display_name:
+                    self._confirmed_name_to_id[entry.display_name] = entry.character_id
+                for alias in entry.aliases:
+                    self._confirmed_name_to_id.setdefault(alias, entry.character_id)
+            for alias in entry.aliases:
+                self._known_names.add(alias)
 
     def load(self, path: str | Path) -> None:
         """拡張子からフォーマットを判定して読み込む
@@ -148,6 +181,22 @@ class CharacterDictionary:
 
     def is_known(self, source_character_id: str) -> bool:
         return str(source_character_id) in self._name_map
+
+    def find_confirmed_id_by_name(self, name: str) -> str | None:
+        """displayName/aliasの完全一致から、confirmedエントリのcharacterId
+        を返す (name_onlyエントリはNone)。
+
+        **警告**: 名前一致のみによる解決であり、同名の別人が存在しうる
+        ため、この結果を自動的にresolved/confirmed話者として扱っては
+        ならない。speaker_labels.attach_inferred_speakersの参考情報
+        生成にのみ使うこと (character_dictionary.py
+        resolve_character_by_nameと同じ注意事項)。
+        """
+        return self._confirmed_name_to_id.get(name)
+
+    def has_known_name(self, name: str) -> bool:
+        """displayName/aliasとして辞書に登録済みか (status不問)。"""
+        return name in self._known_names
 
     def all_ids(self) -> list[str]:
         return list(self._name_map.keys())
@@ -354,7 +403,11 @@ class SpeakerResolver:
         return self._slot_map.get(str(slot), Speaker.unknown(slot=str(slot)))
 
     def resolve_from_command_name(
-        self, speaker_name: str, slot: str | None = None
+        self,
+        speaker_name: str,
+        slot: str | None = None,
+        label_source: str | None = None,
+        label_analysis: "SpeakerLabelAnalysis | None" = None,
     ) -> Speaker:
         """
         @ChTalkName コマンドから直接話者名を取得する場合。
@@ -366,6 +419,8 @@ class SpeakerResolver:
             source_character_id=None,
             slot=slot,
             is_resolved=False,
+            label_source=label_source,
+            label_analysis=label_analysis,
         )
 
     def has_forced_name(self) -> bool:

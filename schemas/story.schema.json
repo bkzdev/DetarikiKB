@@ -416,6 +416,61 @@
         "isResolved": {
           "type": "boolean",
           "description": "正規キャラクターへ解決できたか"
+        },
+        "labelSource": {
+          "type": ["string", "null"],
+          "description": "speakerNameの由来 (例: name_command/ch_talk_name)。キャラクターID経由で解決した場合は付与しない (Speaker Label Normalization設計)"
+        },
+        "labelAnalysis": {
+          "$ref": "#/definitions/SpeakerLabelAnalysis"
+        }
+      }
+    },
+
+    "SpeakerLabelAnalysis": {
+      "type": "object",
+      "description": "name command/@ChTalkName由来speaker labelの構造化結果 (agents/parser/speaker_labels.py)。自動でconfirmed character解決はしない",
+      "required": ["rawLabel", "source", "labelType", "resolutionStatus"],
+      "properties": {
+        "rawLabel": { "type": "string" },
+        "source": { "type": "string" },
+        "labelType": {
+          "type": "string",
+          "enum": [
+            "single_speaker",
+            "speaker_group",
+            "speaker_with_modifier",
+            "speaker_group_with_modifier",
+            "generic_speaker",
+            "ambiguous_speaker",
+            "unknown"
+          ]
+        },
+        "components": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "modifier": { "type": ["string", "null"] },
+        "baseLabel": { "type": ["string", "null"] },
+        "inferredSpeakers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["matchedName", "matchStatus"],
+            "properties": {
+              "matchedName": { "type": "string" },
+              "characterId": { "type": ["string", "null"] },
+              "matchStatus": {
+                "type": "string",
+                "enum": ["dictionary_confirmed", "dictionary_name_only"]
+              },
+              "confidence": { "type": "string" }
+            }
+          }
+        },
+        "resolutionStatus": {
+          "type": "string",
+          "enum": ["not_applicable", "needs_review", "inferred", "confirmed"]
         }
       }
     },

@@ -202,6 +202,33 @@ class CharacterCandidateAccumulator:
             self.evidence_ids.append(block_id)
 
 
+# SpecialSpeakerLabelCandidate抽出 (Speaker Label Normalization設計) 用の定数。
+# name command/@ChTalkName由来のspeaker labelのうち、
+# speaker_labels.is_special_label_typeがTrueを返すもののみを対象とする。
+# 通常のCharacterCandidateとは別枠で扱い、自動でconfirmed character解決は
+# しない (rawLabel自体は本文に明示されているためsourceTypeは"script")。
+SPECIAL_SPEAKER_LABEL_CANDIDATE_TYPE = "special_speaker_label_candidate"
+SPECIAL_SPEAKER_LABEL_SOURCE_TYPE = "script"
+SPECIAL_SPEAKER_LABEL_CONFIDENCE = 0.5
+
+
+@dataclass
+class SpecialSpeakerLabelAccumulator:
+    """episode走査中、1件のspeaker label (rawLabel単位) を集約する
+    作業用構造体。
+
+    label_analysisはSpeakerLabelAnalysis.to_dict()の結果 (最初に観測した
+    ものをそのまま使う。同一rawLabelなら構造化結果は決定的に同じになる)。
+    """
+
+    label_analysis: dict[str, Any]
+    evidence_ids: list[str] = field(default_factory=list)
+
+    def add_evidence(self, block_id: str) -> None:
+        if block_id not in self.evidence_ids:
+            self.evidence_ids.append(block_id)
+
+
 @dataclass
 class LocationCandidateAccumulator:
     """episode走査中、1場所分の情報を集約する作業用構造体。

@@ -479,6 +479,137 @@
         "createdAt": null,
         "updatedAt": null
       }
+    ],
+    "specialSpeakerLabels": [
+      {
+        "schemaVersion": "0.1",
+        "id": "UNRESOLVED_SSL_0001",
+        "type": "special_speaker_label",
+        "canonicalId": null,
+        "mergedId": "UNRESOLVED_SSL_0001",
+        "displayName": "Test Speaker A ＆ Test Speaker B",
+        "aliases": [],
+        "status": "unresolved",
+        "sourceTypes": ["script"],
+        "confidence": 0.5,
+        "evidenceRefs": [
+          {
+            "evidenceId": "EP_TEST_001_DLG0008",
+            "storyId": "TEST_S01_C01",
+            "episodeId": "EP_TEST_001",
+            "sceneId": "EP_TEST_001_SC001",
+            "blockId": "EP_TEST_001_DLG0008",
+            "sourceDocumentId": "EP_TEST_001",
+            "evidenceType": "dialogue",
+            "confidence": 0.5
+          }
+        ],
+        "sourceCandidates": [
+          {
+            "candidateId": "EP_TEST_001_CAND_SSL001",
+            "candidateType": "special_speaker_label_candidate",
+            "sourceDocumentId": "EP_TEST_001",
+            "episodeId": "EP_TEST_001",
+            "evidenceIds": ["EP_TEST_001_DLG0008"],
+            "extractionRunRef": "EP_TEST_001",
+            "sourceType": "script",
+            "confidence": 0.5
+          }
+        ],
+        "extractionRunRefs": {
+          "EP_TEST_001": {
+            "extractionVersion": "0.1.0",
+            "extractionMethod": "rule_based",
+            "modelProvider": null,
+            "modelName": null,
+            "promptVersion": null,
+            "extractedAt": null,
+            "parserCompatibilityAtExtraction": "compatible"
+          }
+        },
+        "fieldValues": {},
+        "conflicts": [],
+        "manualOverridesApplied": [],
+        "mergedFrom": ["EP_TEST_001"],
+        "createdAt": null,
+        "updatedAt": null,
+        "rawLabel": "Test Speaker A ＆ Test Speaker B",
+        "labelSource": "name_command",
+        "labelType": "speaker_group",
+        "components": ["Test Speaker A", "Test Speaker B"],
+        "modifier": null,
+        "baseLabel": null,
+        "inferredSpeakers": [
+          {
+            "matchedName": "Test Speaker A",
+            "characterId": "CHAR_TEST_RAIN",
+            "matchStatus": "dictionary_confirmed",
+            "confidence": "high"
+          }
+        ],
+        "resolutionStatus": "inferred"
+      },
+      {
+        "schemaVersion": "0.1",
+        "id": "UNRESOLVED_SSL_0002",
+        "type": "special_speaker_label",
+        "canonicalId": null,
+        "mergedId": "UNRESOLVED_SSL_0002",
+        "displayName": "？？？",
+        "aliases": [],
+        "status": "unresolved",
+        "sourceTypes": ["script"],
+        "confidence": 0.5,
+        "evidenceRefs": [
+          {
+            "evidenceId": "EP_TEST_001_DLG0009",
+            "storyId": "TEST_S01_C01",
+            "episodeId": "EP_TEST_001",
+            "sceneId": "EP_TEST_001_SC001",
+            "blockId": "EP_TEST_001_DLG0009",
+            "sourceDocumentId": "EP_TEST_001",
+            "evidenceType": "dialogue",
+            "confidence": 0.5
+          }
+        ],
+        "sourceCandidates": [
+          {
+            "candidateId": "EP_TEST_001_CAND_SSL002",
+            "candidateType": "special_speaker_label_candidate",
+            "sourceDocumentId": "EP_TEST_001",
+            "episodeId": "EP_TEST_001",
+            "evidenceIds": ["EP_TEST_001_DLG0009"],
+            "extractionRunRef": "EP_TEST_001",
+            "sourceType": "script",
+            "confidence": 0.5
+          }
+        ],
+        "extractionRunRefs": {
+          "EP_TEST_001": {
+            "extractionVersion": "0.1.0",
+            "extractionMethod": "rule_based",
+            "modelProvider": null,
+            "modelName": null,
+            "promptVersion": null,
+            "extractedAt": null,
+            "parserCompatibilityAtExtraction": "compatible"
+          }
+        },
+        "fieldValues": {},
+        "conflicts": [],
+        "manualOverridesApplied": [],
+        "mergedFrom": ["EP_TEST_001"],
+        "createdAt": null,
+        "updatedAt": null,
+        "rawLabel": "？？？",
+        "labelSource": "name_command",
+        "labelType": "generic_speaker",
+        "components": [],
+        "modifier": null,
+        "baseLabel": null,
+        "inferredSpeakers": [],
+        "resolutionStatus": "needs_review"
+      }
     ]
   },
   "report": {
@@ -643,6 +774,11 @@
       "duplicateCount": 0,
       "invalidCount": 1,
       "warnings": ["TEST_CANONICAL_ID_BAD: canonicalId 'bad_format_test' の形式が不正です"]
+    },
+    "specialSpeakerLabelSummary": {
+      "total": 2,
+      "byLabelType": { "speaker_group": 1, "generic_speaker": 1 },
+      "byResolutionStatus": { "inferred": 1, "needs_review": 1 }
     }
   }
 }

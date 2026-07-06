@@ -56,7 +56,10 @@ raw DEC配置とDKB正規ID体系（storyId/episodeId）は`story_manifest.yaml`
 ### 3.9 MkDocs preview方針（要約）
 `agents/wiki_generator/`のrendererが生成したMarkdownは、一時ローカルMkDocs設定（commitしない）を使ってローカルでのみpreviewする。実データ由来の生成物（Normalized Story JSON・extraction/merge結果・Wiki Markdown・raw HTML・candidate YAML/CSV・workspace出力）は一切commitしない。実データでの確認結果は匿名化して記録する。目視確認は`mkdocs serve`を使う（`file://`直開きはdirectory-style URLがディレクトリ一覧表示になるため補助的確認に留める）。MkDocs Materialは当面のpreview用途では利用してよいが、長期公開基盤としては未確定（`TASKS.md` Known Issues参照）。詳細: `docs/runbooks/MkDocs_Local_Preview_Dry_Run.md`。
 
-### 3.10 実データ・生成物をcommitしない（横断ルール）
+### 3.10 speaker label方針（要約）
+`name`コマンド/`@ChTalkName`由来のspeaker label（キャラクターID経由ではない表示名）は、通常のunresolved characterとは区別して構造化する（speaker_group/speaker_with_modifier/generic_speaker等、`agents/parser/speaker_labels.py`）。**自動でconfirmed character解決はしない**（resolutionStatusは`inferred`/`needs_review`のみ自動付与、`confirmed`は人間レビュー結果取り込み用に予約）。通常のCharacterCandidate/Character merged entityとは別枠（`specialSpeakerLabelCandidates`/`entities.specialSpeakerLabels`）で扱い、Unresolved reportでも別sectionに表示する。詳細: `docs/architecture/06_AI/Extraction_Result_Schema.md` §13.5, `Merged_Knowledge_Design.md` §7.5。
+
+### 3.11 実データ・生成物をcommitしない（横断ルール）
 以下はどのPRでも一貫してcommit対象外: 実`.dec`、実データ由来`story_manifest.yaml`、実Normalized Story JSON、実extraction/merged collection、実Wiki Markdown、raw HTML、実candidate YAML/CSV、`workspace/`配下の生成物、`.env`、APIキー。`.gitignore`で網羅済み。
 
 ## 4. やってはいけないこと

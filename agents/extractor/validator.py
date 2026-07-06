@@ -28,6 +28,7 @@ CANDIDATE_ARRAY_KEYS = (
     "events",
     "relationships",
     "timelineCandidates",
+    "specialSpeakerLabelCandidates",
 )
 
 

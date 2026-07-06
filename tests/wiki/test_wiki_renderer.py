@@ -709,6 +709,115 @@ def test_render_unresolved_report_source_candidates_shown_as_count_only(
 
 
 # ----------------------------------------------------------------
+# render_unresolved_report: Special Speaker Labels section
+# ----------------------------------------------------------------
+
+
+def test_render_unresolved_report_has_special_speaker_labels_section(
+    synthetic_collection,
+):
+    report = render_unresolved_report(synthetic_collection)
+    assert "## Special Speaker Labels" in report
+
+
+def test_render_unresolved_report_special_speaker_labels_table_columns(
+    synthetic_collection,
+):
+    report = render_unresolved_report(synthetic_collection)
+    assert "| Label | Type | Inferred | Refs |" in report
+
+
+def test_render_unresolved_report_special_speaker_labels_lists_speaker_group(
+    synthetic_collection,
+):
+    report = render_unresolved_report(synthetic_collection)
+    assert (
+        "| Test Speaker A ＆ Test Speaker B | speaker_group "
+        "| Test Speaker A | 1/1 |" in report
+    )
+
+
+def test_render_unresolved_report_special_speaker_labels_lists_generic_speaker(
+    synthetic_collection,
+):
+    report = render_unresolved_report(synthetic_collection)
+    assert "| ？？？ | generic_speaker | - | 1/1 |" in report
+
+
+def test_render_unresolved_report_special_speaker_labels_not_in_character_section(
+    synthetic_collection,
+):
+    """special speaker labelはentities.specialSpeakerLabels由来であり、
+    entities.charactersには含まれないため、通常のcharacterセクションの
+    表には重複表示されない (別セクションでのみ表示される)。"""
+    report = render_unresolved_report(synthetic_collection)
+    character_section_start = report.index("## character (")
+    special_section_start = report.index("## Special Speaker Labels")
+    character_section = report[character_section_start:special_section_start]
+    assert "Test Speaker A" not in character_section
+    assert "？？？" not in character_section
+
+
+def test_render_unresolved_report_special_speaker_labels_table_never_shows_confirmed(
+    synthetic_collection,
+):
+    """Special Speaker Labelsのtable行 (Label/Type/Inferred/Refs) には、
+    値としての"confirmed"が現れないことを確認する (自動でconfirmed
+    character解決はしない方針。説明文中の"confirmed characterへ解決..."
+    という地の文は対象外)。"""
+    report = render_unresolved_report(synthetic_collection)
+    special_section_start = report.index("## Special Speaker Labels")
+    conflict_section_start = report.index("## Conflict Summary")
+    special_section = report[special_section_start:conflict_section_start]
+    table_rows = [line for line in special_section.splitlines() if line.startswith("|")]
+    assert table_rows, "table rows should be present"
+    assert not any("confirmed" in row for row in table_rows)
+
+
+def test_render_unresolved_report_special_speaker_labels_empty_shows_placeholder():
+    collection = {
+        "sourceDocuments": [],
+        "entities": {
+            "characters": [],
+            "locations": [],
+            "organizations": [],
+            "items": [],
+            "lore": [],
+            "events": [],
+            "relationships": [],
+            "timeline": [],
+            "specialSpeakerLabels": [],
+        },
+        "report": {},
+    }
+    report = render_unresolved_report(collection)
+    assert "## Special Speaker Labels" in report
+    assert "該当するspeaker labelはありません。" in report
+
+
+def test_render_unresolved_report_special_speaker_labels_missing_key_does_not_crash():
+    """既存の合成fixture (specialSpeakerLabelsキー自体が無いもの) でも
+    クラッシュしないことを確認する (後方互換)。"""
+    collection = {
+        "sourceDocuments": [],
+        "entities": {
+            "characters": [],
+            "locations": [],
+            "organizations": [],
+            "items": [],
+            "lore": [],
+            "events": [],
+            "relationships": [],
+            "timeline": [],
+        },
+        "report": {},
+    }
+    report = render_unresolved_report(collection)
+    assert "## Special Speaker Labels" in report
+    assert "該当するspeaker labelはありません。" in report
+
+
+# ----------------------------------------------------------------
 # render_index_page / render_story_index_page / render_episode_page
 # ----------------------------------------------------------------
 
@@ -999,6 +1108,17 @@ def test_build_pages_generates_expected_paths(synthetic_collection):
     assert "characters/UNRESOLVED_CHAR_TEST_0001.md" not in pages
     # canonicalIdはあるがstatus: mergedでないキャラクターも生成されない
     assert "characters/CHAR_TEST_DEPRECATED.md" not in pages
+    # special speaker labelはCharacter pageとして生成されない
+    assert "characters/UNRESOLVED_SSL_0001.md" not in pages
+    assert "characters/UNRESOLVED_SSL_0002.md" not in pages
+
+
+def test_build_pages_characters_index_excludes_special_speaker_labels(
+    synthetic_collection,
+):
+    pages = build_pages(synthetic_collection)
+    assert "Test Speaker A" not in pages["characters/index.md"]
+    assert "？？？" not in pages["characters/index.md"]
 
 
 def test_write_pages_creates_files_under_tmp_path(synthetic_collection, tmp_path):

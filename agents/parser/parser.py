@@ -17,6 +17,13 @@ from .resolver import (
     SpeakerAssignmentRecord,
     SpeakerResolver,
 )
+from .speaker_labels import (
+    SOURCE_CH_TALK_NAME,
+    SOURCE_NAME_COMMAND,
+    SpeakerLabelAnalysis,
+    analyze_speaker_label,
+    attach_inferred_speakers,
+)
 from .tokenizer import ScriptToken, Tokenizer, TokenType
 
 # ----------------------------------------------------------------
@@ -288,6 +295,7 @@ class StoryParser:
         pending_has_voice: bool | None = None
         pending_speaker: Speaker | None = None
         forced_name_override: str | None = None  # name コマンド
+        forced_name_label_analysis: SpeakerLabelAnalysis | None = None
 
         # 選択肢状態
         current_choice: BlockData | None = None
@@ -308,7 +316,7 @@ class StoryParser:
         def flush_text() -> None:
             """蓄積した本文行を Block に変換してシーンへ追加する"""
             nonlocal pending_speech_command, pending_speech_type, pending_has_voice
-            nonlocal pending_speaker, forced_name_override
+            nonlocal pending_speaker, forced_name_override, forced_name_label_analysis
             nonlocal text_lines, text_line_start, text_line_end
 
             if not text_lines:
@@ -329,8 +337,11 @@ class StoryParser:
                         source_character_id=None,
                         slot=None,
                         is_resolved=False,
+                        label_source=SOURCE_NAME_COMMAND,
+                        label_analysis=forced_name_label_analysis,
                     )
                     forced_name_override = None
+                    forced_name_label_analysis = None
                 elif pending_speaker is not None:
                     speaker = pending_speaker
                 else:
@@ -444,8 +455,15 @@ class StoryParser:
                         # @ChTalkName slot speakerName path
                         speaker_name = token.args[1] if len(token.args) > 1 else None
                         if speaker_name:
+                            label_analysis = analyze_speaker_label(
+                                speaker_name, source=SOURCE_CH_TALK_NAME
+                            )
+                            attach_inferred_speakers(label_analysis, self._char_dict)
                             pending_speaker = resolver.resolve_from_command_name(
-                                speaker_name, slot
+                                speaker_name,
+                                slot,
+                                label_source=SOURCE_CH_TALK_NAME,
+                                label_analysis=label_analysis,
                             )
                         else:
                             pending_speaker = resolver.resolve_slot(slot)
@@ -533,6 +551,15 @@ class StoryParser:
                     # forced_name_override を None 判定で有効化するため、
                     # 空文字列のまま代入すると解決済みスロット話者を空名で潰してしまう)
                     forced_name_override = forced_name if forced_name else None
+                    if forced_name_override is not None:
+                        forced_name_label_analysis = analyze_speaker_label(
+                            forced_name_override, source=SOURCE_NAME_COMMAND
+                        )
+                        attach_inferred_speakers(
+                            forced_name_label_analysis, self._char_dict
+                        )
+                    else:
+                        forced_name_label_analysis = None
                     resolver.set_forced_name(forced_name_override or "")
                     continue
 

@@ -556,6 +556,59 @@ def _render_canonical_id_summary_section(collection: dict[str, Any]) -> list[str
     return lines
 
 
+def _format_inferred_speakers(inferred_speakers: list[dict[str, Any]]) -> str:
+    """special speaker labelのinferredSpeakersを1セル分の文字列へ整形する。
+
+    matchedNameのみを列挙する (characterId/matchStatus/confidenceは
+    自動confirmed化の根拠ではない参考情報のため、tableでは出さない)。
+    """
+    matched = [s.get("matchedName") for s in inferred_speakers if s.get("matchedName")]
+    if not matched:
+        return "-"
+    return ", ".join(matched)
+
+
+def _render_special_speaker_labels_section(collection: dict[str, Any]) -> list[str]:
+    """Special Speaker Labelsセクションを組み立てる。
+
+    name command/@ChTalkName由来のspeaker labelのうち、speaker group・
+    modifier付き・generic/ambiguousな表記など、通常のキャラクター名とは
+    性質が異なるものを一覧化する (Speaker Label Normalization設計)。
+    entities.specialSpeakerLabelsはCharacter merged entityとは別枠であり、
+    通常のUnresolved Characters (entity種別別セクション) には重複表示
+    されない。自動でconfirmed characterへ解決することはなく、常に
+    inferred/needs_reviewのいずれかとして表示する。
+    """
+    labels = collection.get("entities", {}).get("specialSpeakerLabels", []) or []
+    lines = ["## Special Speaker Labels", ""]
+    lines.append(
+        "name commandや@ChTalkName由来のspeaker labelのうち、speaker group・"
+        "modifier付き・genericな表記など、通常のキャラクター名とは性質が"
+        "異なるものを一覧化しています。自動でconfirmed characterへ解決する"
+        "ことはありません。"
+    )
+    lines.append("")
+    if not labels:
+        lines.append("該当するspeaker labelはありません。")
+        lines.append("")
+        return lines
+
+    lines.append("| Label | Type | Inferred | Refs |")
+    lines.append("|---|---|---|---:|")
+    for label_entity in labels:
+        evidence_count = len(label_entity.get("evidenceRefs") or [])
+        candidate_count = len(label_entity.get("sourceCandidates") or [])
+        inferred = _format_inferred_speakers(label_entity.get("inferredSpeakers") or [])
+        lines.append(
+            f"| {label_entity.get('rawLabel') or '(不明)'} "
+            f"| {label_entity.get('labelType', '')} "
+            f"| {inferred} "
+            f"| {evidence_count}/{candidate_count} |"
+        )
+    lines.append("")
+    return lines
+
+
 def _render_relationship_type_summary_section(
     collection: dict[str, Any],
 ) -> list[str]:
@@ -629,6 +682,7 @@ def render_unresolved_report(collection: dict[str, Any]) -> str:
         lines.append("未解決のentityはありません。")
         lines.append("")
 
+    lines.extend(_render_special_speaker_labels_section(collection))
     lines.extend(_render_conflict_summary_section(collection))
     lines.extend(_render_warning_summary_section(collection))
     lines.extend(_render_canonical_id_summary_section(collection))
