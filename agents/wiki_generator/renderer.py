@@ -139,6 +139,24 @@ def _format_or_placeholder(value: str | None) -> str:
     return value if value else "未登録"
 
 
+def _format_code(value: str | None) -> str:
+    """値をcode表示 (`value`) にする。値が無ければ「未登録」
+    (IDやpath等、横長tableの代わりに箇条書きで使う際の共通ヘルパー)。"""
+    if not value:
+        return "未登録"
+    return f"`{value}`"
+
+
+def _render_key_value_list(items: list[tuple[str, str]]) -> list[str]:
+    """(ラベル, 値) のリストを箇条書き (definition list風) へ変換する
+    共通ヘルパー。長い値 (ID・path・タイトル等) が横長tableの1セルに
+    収まらず横スクロールを招く問題を避けるため、tableの代わりに使う
+    (manual visual review 001での指摘、Wiki_Output_Design.md §9.3)。"""
+    lines = [f"- {label}: {value}" for label, value in items]
+    lines.append("")
+    return lines
+
+
 # story_manifest.yaml由来のmetadataStatus (Story_Manifest_Design.md §12) を
 # 表示用に補足する。未知の値が来ても破棄せずそのまま表示する。
 _METADATA_STATUS_LABELS: dict[str, str] = {
@@ -398,9 +416,12 @@ def _render_overview_section(collection: dict[str, Any]) -> list[str]:
 def _render_entity_type_sections(collection: dict[str, Any]) -> tuple[list[str], int]:
     """entity種別ごとのunresolved一覧セクション群を組み立てる。
 
-    Canonical ID列・Source Candidates件数列を追加した表を、種別 (Character/
-    Location/...) ごとに出力する。戻り値は (行リスト, 総unresolved件数)。
-    件数が0の種別はセクションごと省略する。
+    Canonical ID列を持つ表を、種別 (Character/Location/...) ごとに出力
+    する。戻り値は (行リスト, 総unresolved件数)。件数が0の種別はセクション
+    ごと省略する。EvidenceとSource Candidatesはそれぞれ独立した列だと
+    横長になる (manual visual review 001での指摘) ため、「Refs」列へ
+    「evidence件数/source candidate件数」の形式で統合する
+    (件数情報自体は失わない)。
     """
     entities = collection.get("entities", {}) or {}
     lines: list[str] = []
@@ -415,19 +436,17 @@ def _render_entity_type_sections(collection: dict[str, Any]) -> tuple[list[str],
         entity_type = ENTITY_KEY_TO_TYPE[entity_key]
         lines.append(f"## {entity_type} ({len(unresolved)} 件)")
         lines.append("")
-        lines.append(
-            "| Entity ID | Display Name | Status | Canonical ID "
-            "| Evidence | Source Candidates |"
-        )
-        lines.append("|---|---|---|---|---:|---:|")
+        lines.append("| Display Name | Entity ID | Status | Canonical ID | Refs |")
+        lines.append("|---|---|---|---|---:|")
         for e in unresolved:
+            evidence_count = len(e.get("evidenceRefs") or [])
+            candidate_count = len(e.get("sourceCandidates") or [])
             lines.append(
-                f"| {e.get('id', '?')} "
                 f"| {e.get('displayName') or '(不明)'} "
+                f"| {_format_code(e.get('id'))} "
                 f"| {e.get('status', '')} "
-                f"| {e.get('canonicalId') or '-'} "
-                f"| {len(e.get('evidenceRefs') or [])} "
-                f"| {len(e.get('sourceCandidates') or [])} |"
+                f"| {_format_code(e.get('canonicalId'))} "
+                f"| {evidence_count}/{candidate_count} |"
             )
         lines.append("")
     return lines, total_unresolved
@@ -671,11 +690,12 @@ def render_story_index_page(collection: dict[str, Any]) -> str:
         lines.append("")
         return "\n".join(lines).rstrip() + "\n"
 
-    lines.append(
-        "| storyId | episodeId | Display Title | documentId "
-        "| candidate合計 | status | category |"
-    )
-    lines.append("|---|---|---|---|---:|---|---|")
+    # 列数を最小限にする (manual visual review 001での「表が横長すぎる」
+    # 指摘)。documentId (通常episodeIdと同値) とcandidate合計 (Episode
+    # pageのCandidate Counts sectionで確認できる詳細情報) は表から外す。
+    # 情報自体は失わず、Episode page側で引き続き確認できる。
+    lines.append("| storyId | Episode | Display Title | status | category |")
+    lines.append("|---|---|---|---|---|")
     for doc in source_documents:
         episode_path = episode_page_path(doc)
         # stories/index.md自身がstories/配下にあるため、episode_page_pathが
@@ -688,15 +708,12 @@ def render_story_index_page(collection: dict[str, Any]) -> str:
             f"[{episode_id}]({episode_filename})" if episode_filename else episode_id
         )
         display_title = _get_episode_display_title(doc)
-        candidate_total = sum((doc.get("candidateCounts") or {}).values())
         input_result = _find_input_result(collection, doc)
         status = input_result.get("status", "") if input_result else ""
         lines.append(
             f"| {doc.get('storyId', '?')} "
             f"| {episode_link} "
             f"| {display_title} "
-            f"| {doc.get('documentId', '')} "
-            f"| {candidate_total} "
             f"| {status} "
             f"| {doc.get('storyCategory', '')} |"
         )
@@ -964,26 +981,29 @@ def render_episode_page(
     display_title = _format_or_placeholder(source_document.get("displayTitle"))
     metadata_status = _format_metadata_status(source_document.get("metadataStatus"))
 
-    lines = [
-        front_matter,
-        f"# {episode_id}",
-        "",
-        "## Summary",
-        "",
-        "| 項目 | 値 |",
-        "|---|---|",
-        f"| Episode ID | {episode_id or ''} |",
-        f"| Story ID | {story_id or ''} |",
-        f"| Document ID | {document_id or ''} |",
-        f"| Source Path | {_sanitize_source_path(source_document.get('path'))} |",
-        f"| Extraction Version | {source_document.get('extractionVersion', '')} |",
-        f"| Category | {source_document.get('storyCategory', '')} |",
-        f"| Story Title | {story_title} |",
-        f"| Episode Subtitle | {episode_subtitle} |",
-        f"| Display Title | {display_title} |",
-        f"| Metadata Status | {metadata_status} |",
-        "",
+    # Summary は横長tableではなく箇条書き (definition list風) にする
+    # (manual visual review 001での指摘、長いID・path・タイトルが1つの
+    # table セルに収まらず横スクロールを招いていたため)。人間が見て
+    # 重要な項目 (ID/タイトル系) を先に、内部provenance情報
+    # (Document ID/Source Path/Extraction Version/Category) を後に置く。
+    summary_items = [
+        ("Episode ID", _format_code(episode_id)),
+        ("Story ID", _format_code(story_id)),
+        ("Display Title", display_title),
+        ("Story Title", story_title),
+        ("Episode Subtitle", episode_subtitle),
+        ("Metadata Status", metadata_status),
+        ("Document ID", _format_code(document_id)),
+        (
+            "Source Path",
+            _format_code(_sanitize_source_path(source_document.get("path"))),
+        ),
+        ("Extraction Version", source_document.get("extractionVersion") or "未登録"),
+        ("Category", source_document.get("storyCategory") or "未登録"),
     ]
+
+    lines = [front_matter, f"# {episode_id}", "", "## Summary", ""]
+    lines.extend(_render_key_value_list(summary_items))
 
     lines.extend(_render_candidate_counts_section(source_document))
     if episode_id:
