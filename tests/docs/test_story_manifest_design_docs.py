@@ -96,3 +96,51 @@ def test_design_doc_does_not_reference_real_character_names():
     content = _read_design_doc()
     for name in _REAL_CHARACTER_NAMES:
         assert name not in content
+
+
+# ----------------------------------------------------------------
+# publicStoryId / publicEpisodeId (feature/story-manifest-public-id-fields-design)
+# ----------------------------------------------------------------
+
+
+def test_design_doc_has_public_id_fields_section():
+    content = _read_design_doc()
+    assert "## 13.2 public ID fields" in content
+
+
+def test_design_doc_mentions_public_story_and_episode_id():
+    content = _read_design_doc()
+    assert "publicStoryId" in content
+    assert "publicEpisodeId" in content
+
+
+def test_design_doc_states_public_ids_are_optional():
+    content = _read_design_doc()
+    section = content.split("## 13.2 public ID fields", 1)[1]
+    assert "必須ではない" in section
+
+
+def test_design_doc_states_fallback_to_existing_ids():
+    content = _read_design_doc()
+    section = content.split("## 13.2 public ID fields", 1)[1]
+    assert "fallback" in section
+    assert "storyId" in section and "episodeId" in section
+
+
+def test_design_doc_states_renderer_paths_switch_not_done_in_this_pr():
+    content = _read_design_doc()
+    section = content.split("## 13.2 public ID fields", 1)[1]
+    assert "renderer/paths.py" in section
+
+
+def test_design_doc_has_category_specific_public_id_examples():
+    content = _read_design_doc()
+    section = content.split("## 13.2 public ID fields", 1)[1]
+    for category_id in (
+        "MAIN_S01_C02",
+        "EVT_250626_DANCER",
+        "RAID_250626_SAMPLE",
+        "OTHER_SAMPLE_SOURCE",
+        "CHARSTORY_SOURCE_001",
+    ):
+        assert category_id in section

@@ -108,6 +108,24 @@ def test_examples_directory_exists_and_is_synthetic_only():
     assert "合成データ" in readme_content
     assert "commit" in readme_content
 
+
+# ----------------------------------------------------------------
+# publicStoryId / publicEpisodeId (feature/story-manifest-public-id-fields-design)
+# ----------------------------------------------------------------
+
+
+def test_design_doc_mentions_public_id_fields():
+    content = _read_design_doc()
+    assert "publicStoryId" in content
+    assert "publicEpisodeId" in content
+
+
+def test_design_doc_states_renderer_paths_switch_is_future_work():
+    content = _read_design_doc()
+    section = content.split("# 14. URL / slug 方針", 1)[1]
+    assert "publicStoryId" in section
+    assert "まだ行っていない" in section or "後続PR" in section or "将来PR" in section
+
     for example_path in EXAMPLES_DIR.glob("*_example.md"):
         content = example_path.read_text(encoding="utf-8")
         # 実データ由来のキャラクター名が紛れ込んでいないことを確認

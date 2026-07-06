@@ -31,13 +31,19 @@ EPISODE_RAW_PATH = f"{RAW_DIR}/{EPISODE_FILENAME}"
 SYNTHETIC_DEC_CONTENT = "@ChTalk 0\nこんにちは、これはテスト用のダミー本文です。\n"
 
 
-def _write_manifest(path: Path, subtitle: str | None = None) -> None:
+def _write_manifest(
+    path: Path,
+    subtitle: str | None = None,
+    public_story_id: str | None = None,
+    public_episode_id: str | None = None,
+) -> None:
     document = {
         "schemaVersion": "0.1.0",
         "documentType": "story_manifest",
         "stories": [
             {
                 "storyId": STORY_ID,
+                "publicStoryId": public_story_id,
                 "category": "event",
                 "sourceKey": SOURCE_KEY,
                 "title": "Synthetic Sample Event",
@@ -48,6 +54,7 @@ def _write_manifest(path: Path, subtitle: str | None = None) -> None:
                 "episodes": [
                     {
                         "episodeId": f"{STORY_ID}_E01",
+                        "publicEpisodeId": public_episode_id,
                         "episodeNumber": 1,
                         "subtitle": subtitle,
                         "displayTitle": "Episode 1",
@@ -131,6 +138,49 @@ def test_manifest_match_populates_story_and_episode_metadata(tmp_path):
     assert manifest_info["matchedBy"] == "raw_path"
     assert manifest_info["sourceFileName"] == EPISODE_FILENAME
     assert manifest_info["rawPath"] == EPISODE_RAW_PATH
+    assert manifest_info["publicStoryId"] is None
+    assert manifest_info["publicEpisodeId"] is None
+
+
+def test_manifest_public_ids_propagate_to_source_manifest(tmp_path):
+    """publicStoryId/publicEpisodeIdが設定されたmanifestを使った場合、
+    traceability目的でsource.manifestへそのまま転記されることを確認する
+    (Wiki出力・URL生成にはまだ使わない、Story_ID_Policy_Decision.md §7)。"""
+    raw_root = tmp_path / "raw_root"
+    dec_path = _write_synthetic_dec(raw_root)
+    manifest_path = tmp_path / "story_manifest.yaml"
+    _write_manifest(
+        manifest_path,
+        public_story_id=f"{STORY_ID}_PUBLIC",
+        public_episode_id=f"{STORY_ID}_PUBLIC_E01",
+    )
+    output_dir = tmp_path / "out"
+
+    result = _run_cli(
+        [
+            "--input",
+            str(dec_path),
+            "--output",
+            str(output_dir),
+            "--manifest",
+            str(manifest_path),
+            "--raw-root",
+            str(raw_root),
+            "--quiet",
+        ]
+    )
+
+    assert result.returncode == 0, result.stderr
+    with open(output_dir / f"{STORY_ID}_E01.json", encoding="utf-8") as f:
+        story_json = json.load(f)
+
+    manifest_info = story_json["source"]["manifest"]
+    assert manifest_info["publicStoryId"] == f"{STORY_ID}_PUBLIC"
+    assert manifest_info["publicEpisodeId"] == f"{STORY_ID}_PUBLIC_E01"
+    # public IDはstoryId/episodeId自体やURLには反映されない (renderer/paths.py
+    # 切替は後続PR)。
+    assert story_json["storyId"] == STORY_ID
+    assert story_json["episodes"][0]["episodeId"] == f"{STORY_ID}_E01"
 
 
 def test_manifest_null_subtitle_is_preserved_as_null(tmp_path):

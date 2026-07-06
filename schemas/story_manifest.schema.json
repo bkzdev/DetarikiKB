@@ -45,6 +45,13 @@
           "pattern": "^[A-Z][A-Z0-9_]*$",
           "description": "Identifier_Specification.md準拠のStory ID (例: EVT_250626_DANCER, MAIN_S01_C02)"
         },
+        "publicStoryId": {
+          "oneOf": [
+            { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+            { "type": "null" }
+          ],
+          "description": "Public-facing stable story ID intended for future Wiki URLs. Optional; when absent, storyId remains the fallback. (Story_ID_Policy_Decision.md #7)"
+        },
         "category": {
           "type": "string",
           "enum": ["main", "event", "raid", "other", "character"],
@@ -104,6 +111,13 @@
           "type": "string",
           "pattern": "^[A-Z][A-Z0-9_]*$",
           "description": "Identifier_Specification.md準拠のEpisode ID (例: EVT_250626_DANCER_E01)"
+        },
+        "publicEpisodeId": {
+          "oneOf": [
+            { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+            { "type": "null" }
+          ],
+          "description": "Public-facing stable episode ID intended for future Wiki URLs. Optional; when absent, episodeId remains the fallback. (Story_ID_Policy_Decision.md #7)"
         },
         "episodeNumber": {
           "type": "integer",

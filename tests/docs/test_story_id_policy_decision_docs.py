@@ -148,3 +148,22 @@ def test_identifier_specification_links_to_decision_doc():
 def test_wiki_output_design_links_to_decision_doc():
     content = WIKI_OUTPUT_DESIGN_PATH.read_text(encoding="utf-8")
     assert "Story_ID_Policy_Decision.md" in content
+
+
+# ----------------------------------------------------------------
+# publicStoryId / publicEpisodeId 実装状況
+# (feature/story-manifest-public-id-fields-design)
+# ----------------------------------------------------------------
+
+
+def test_decision_doc_records_public_id_fields_implementation_status():
+    content = _read_decision_doc()
+    assert "## 10.3 実装状況" in content
+    assert "feature/story-manifest-public-id-fields-design" in content
+
+
+def test_decision_doc_implementation_status_confirms_no_renderer_paths_change():
+    content = _read_decision_doc()
+    section = content.split("## 10.3 実装状況", 1)[1]
+    assert "renderer.py" in section or "paths.py" in section
+    assert "変更していない" in section

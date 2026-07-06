@@ -443,6 +443,8 @@ templates/wiki/unresolved_report.md.j2
 
 **方針決定（`feature/story-id-policy-design-decision`で追加）**: 上記レビューを踏まえた採用方針を`docs/architecture/05_Parser/Story_ID_Policy_Decision.md`で決定した。現行URL（`stories/{episodeId}.md`）は当面維持し、将来公開URL用に`publicStoryId`/`publicEpisodeId`が導入された場合のみ、renderer/paths.pyの段階移行を検討する（本PRでもURL/file pathは変更していない）。
 
+**field設計実装（`feature/story-manifest-public-id-fields-design`で追加）**: `publicStoryId`/`publicEpisodeId`を`story_manifest.yaml`の任意フィールドとして実装した（`docs/architecture/05_Parser/Story_Manifest_Design.md` §13.2）。**renderer/paths.pyのURL切替はまだ行っていない。** 現行URL（`stories/{episodeId}.md`）は変更なし。この2フィールドをrenderer/paths.pyで実際に使うかどうかの判断・実装は引き続き将来PRの対象とする。
+
 ---
 
 # 15. 将来の実装PR案

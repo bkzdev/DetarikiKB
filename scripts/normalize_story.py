@@ -479,6 +479,11 @@ def _build_manifest_metadata(
     一致した場合のみstoryTitle/episodeSubtitle/displayTitle/metadataStatusを
     追加する。**subtitleがnullの場合もそのままnullとして追加する**
     (DEC本文から推測して埋めることはしない)。
+
+    `source.manifest`には`publicStoryId`/`publicEpisodeId`も
+    traceability目的でそのまま転記する (未設定ならNone)。この値を
+    Wiki出力・URL生成に使うかどうかはrenderer/paths.py側の判断であり、
+    このscript自体はfallback判定を行わない (Story_ID_Policy_Decision.md §7)。
     """
     if not args.manifest:
         return {}, {}, None
@@ -489,6 +494,8 @@ def _build_manifest_metadata(
         "matchedBy": None,
         "sourceFileName": None,
         "rawPath": None,
+        "publicStoryId": None,
+        "publicEpisodeId": None,
     }
 
     if lookup_result is None or lookup_result.status != "matched":
@@ -503,6 +510,10 @@ def _build_manifest_metadata(
             "matchedBy": lookup_result.matched_by,
             "sourceFileName": episode.source_file_name,
             "rawPath": episode.raw_path,
+            # public ID自体はまだrenderer/paths.pyでは使わない
+            # (Story_ID_Policy_Decision.md §7、traceability目的のみ)。
+            "publicStoryId": story.public_story_id,
+            "publicEpisodeId": episode.public_episode_id,
         }
     )
 
