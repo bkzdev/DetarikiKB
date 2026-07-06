@@ -52,6 +52,31 @@ def test_cli_generates_expected_markdown_files(tmp_path):
     assert not (output_dir / "characters" / "UNRESOLVED_CHAR_TEST_0001.md").exists()
 
 
+def test_cli_generates_public_episode_id_based_filename(tmp_path):
+    """publicEpisodeIdが設定された合成sourceDocument (EP_TEST_PUBLIC_001)
+    について、Episode pageのファイル名がpublicEpisodeIdベースになり、
+    従来のepisodeIdベースのファイルは生成されないことを確認する
+    (feature/story-manifest-public-id-renderer-switch)。"""
+    output_dir = tmp_path / "wiki_out"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            "--input",
+            str(FIXTURE_PATH),
+            "--output",
+            str(output_dir),
+            "--validate",
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert (output_dir / "stories" / "PUBLIC_TEST_STORY_001_E01.md").is_file()
+    assert not (output_dir / "stories" / "EP_TEST_PUBLIC_001.md").exists()
+
+
 def test_cli_generated_episode_page_has_expected_content(tmp_path):
     """Episode pageにcandidateCounts表・related characters・front matter
     が含まれることをCLI経由で確認する。"""

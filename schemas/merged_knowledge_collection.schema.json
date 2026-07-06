@@ -149,6 +149,14 @@
         "metadataStatus": {
           "type": ["string", "null"],
           "description": "story_manifest.yaml由来のエピソードmetadataStatus (任意、pending/confirmed/title_unknown/deprecated。episodes[].metadata.metadataStatus経由)"
+        },
+        "publicStoryId": {
+          "type": ["string", "null"],
+          "description": "story_manifest.yaml由来の公開Wiki URL用Story ID (任意、episode_extraction.publicStoryId経由。未設定時はstoryIdへfallback、Story_ID_Policy_Decision.md #7)"
+        },
+        "publicEpisodeId": {
+          "type": ["string", "null"],
+          "description": "story_manifest.yaml由来の公開Wiki URL用Episode ID (任意、episode_extraction.publicEpisodeId経由。未設定時はepisodeIdへfallback、Story_ID_Policy_Decision.md #7)"
         }
       }
     },

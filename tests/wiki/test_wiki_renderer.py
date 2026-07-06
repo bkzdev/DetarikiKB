@@ -151,6 +151,43 @@ def test_episode_page_path_uses_episode_id():
 
 
 # ----------------------------------------------------------------
+# episode_page_path / publicEpisodeId
+# (feature/story-manifest-public-id-renderer-switch)
+# ----------------------------------------------------------------
+
+
+def test_episode_page_path_prefers_public_episode_id_when_present():
+    source_document = {
+        "episodeId": "EP_TEST_PUBLIC_001",
+        "publicEpisodeId": "PUBLIC_TEST_STORY_001_E01",
+    }
+    assert episode_page_path(source_document) == "stories/PUBLIC_TEST_STORY_001_E01.md"
+
+
+def test_episode_page_path_falls_back_when_public_episode_id_absent():
+    source_document = {"episodeId": "EP_TEST_002", "documentId": "EP_TEST_002"}
+    assert episode_page_path(source_document) == "stories/EP_TEST_002.md"
+
+
+def test_episode_page_path_falls_back_when_public_episode_id_is_none():
+    source_document = {"episodeId": "EP_TEST_002", "publicEpisodeId": None}
+    assert episode_page_path(source_document) == "stories/EP_TEST_002.md"
+
+
+def test_episode_page_path_falls_back_when_public_episode_id_is_blank():
+    source_document = {"episodeId": "EP_TEST_002", "publicEpisodeId": "   "}
+    assert episode_page_path(source_document) == "stories/EP_TEST_002.md"
+
+
+def test_episode_page_path_strips_whitespace_around_public_episode_id():
+    source_document = {
+        "episodeId": "EP_TEST_002",
+        "publicEpisodeId": "  PUBLIC_TEST_002_E01  ",
+    }
+    assert episode_page_path(source_document) == "stories/PUBLIC_TEST_002_E01.md"
+
+
+# ----------------------------------------------------------------
 # render_character_page
 # ----------------------------------------------------------------
 
@@ -949,6 +986,37 @@ def test_render_story_index_page_episode_id_and_link_target_unchanged(
     assert "(EP_TEST_005.md)" in page
 
 
+def test_render_story_index_page_links_to_public_episode_id_when_present(
+    synthetic_collection,
+):
+    """publicEpisodeIdが設定されているEpisode (EP_TEST_PUBLIC_001) は、
+    Story indexのリンク先がpublicEpisodeIdベースのfilenameになることを
+    確認する (リンクtext自体はdisplayTitle優先のまま変わらない)。"""
+    page = render_story_index_page(synthetic_collection)
+    assert "[Synthetic Public ID Display Title](PUBLIC_TEST_STORY_001_E01.md)" in page
+    assert "(EP_TEST_PUBLIC_001.md)" not in page
+
+
+def test_render_story_index_page_links_to_public_episode_id_without_double_prefix(
+    synthetic_collection,
+):
+    """stories/index.md自身がstories/配下にあるため、publicEpisodeIdベース
+    のリンクでも二重prefix (stories/stories/...) が起きないことを確認する。"""
+    page = render_story_index_page(synthetic_collection)
+    assert "stories/PUBLIC_TEST_STORY_001_E01.md" not in page
+
+
+def test_render_story_index_page_link_text_independent_of_public_episode_id(
+    synthetic_collection,
+):
+    """displayTitle/episodeSubtitle/storyTitleがすべて未設定のEpisode
+    (EP_TEST_PUBLIC_002) は、publicEpisodeIdがあってもリンクtextは内部
+    episodeIdへfallbackし、リンク先のみpublicEpisodeIdベースになることを
+    確認する (linkテキストとpathの解決が独立していることの確認)。"""
+    page = render_story_index_page(synthetic_collection)
+    assert "[EP_TEST_PUBLIC_002](PUBLIC_TEST_STORY_002_E01.md)" in page
+
+
 def test_render_story_index_page_escapes_bracket_and_pipe_in_link_text():
     """titleに`[`/`]`/`|`が含まれる場合でも、tableとlink構造が壊れない
     よう最小限のMarkdown escapeを行うことを確認する。"""
@@ -1084,6 +1152,52 @@ def test_render_episode_page_null_title_fields_show_placeholder(synthetic_collec
     assert "- Display Title: 未登録" in page
     assert "# EP_TEST_002" in page
     assert "- Episode ID: `EP_TEST_002`" in page
+
+
+def test_render_episode_page_shows_public_episode_id_and_public_story_id(
+    synthetic_collection,
+):
+    """publicStoryId/publicEpisodeIdが設定されているEpisode
+    (EP_TEST_PUBLIC_001) のSummaryに、内部Episode ID/Story IDと並んで
+    Public Episode ID/Public Story IDが表示されることを確認する。"""
+    source_document = next(
+        doc
+        for doc in synthetic_collection["sourceDocuments"]
+        if doc["episodeId"] == "EP_TEST_PUBLIC_001"
+    )
+    page = render_episode_page(source_document, synthetic_collection)
+    assert "- Episode ID: `EP_TEST_PUBLIC_001`" in page
+    assert "- Story ID: `TEST_PUBLIC_ID_STORY`" in page
+    assert "- Public Episode ID: `PUBLIC_TEST_STORY_001_E01`" in page
+    assert "- Public Story ID: `PUBLIC_TEST_STORY_001`" in page
+
+
+def test_render_episode_page_public_ids_show_unregistered_when_absent(
+    synthetic_collection,
+):
+    """publicStoryId/publicEpisodeIdが設定されていない既存Episode
+    (EP_TEST_001) では、Public Story ID/Public Episode IDともに
+    「未登録」と表示されることを確認する (既存fixture互換)。"""
+    source_document = synthetic_collection["sourceDocuments"][0]
+    page = render_episode_page(source_document, synthetic_collection)
+    assert "- Public Episode ID: 未登録" in page
+    assert "- Public Story ID: 未登録" in page
+
+
+def test_render_episode_page_public_episode_id_without_public_story_id(
+    synthetic_collection,
+):
+    """publicEpisodeIdのみ設定されているEpisode (EP_TEST_PUBLIC_002) では、
+    Public Episode IDは表示され、Public Story IDは「未登録」になることを
+    確認する。"""
+    source_document = next(
+        doc
+        for doc in synthetic_collection["sourceDocuments"]
+        if doc["episodeId"] == "EP_TEST_PUBLIC_002"
+    )
+    page = render_episode_page(source_document, synthetic_collection)
+    assert "- Public Episode ID: `PUBLIC_TEST_STORY_002_E01`" in page
+    assert "- Public Story ID: 未登録" in page
 
 
 def test_render_episode_page_missing_manifest_metadata_keys_does_not_crash(

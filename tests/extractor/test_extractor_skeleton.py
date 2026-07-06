@@ -207,6 +207,34 @@ def test_extract_episode_manifest_metadata_defaults_to_none_when_absent(
     assert extraction["episodeSubtitle"] is None
     assert extraction["displayTitle"] is None
     assert extraction["metadataStatus"] is None
+    assert extraction["publicStoryId"] is None
+    assert extraction["publicEpisodeId"] is None
+
+
+def test_extract_episode_includes_public_ids_when_present():
+    """story_metadata.publicStoryId/episode_metadata.publicEpisodeIdが
+    設定されている場合、episode_extractionへそのまま転記されることを
+    確認する (feature/story-manifest-public-id-renderer-switch)。"""
+    script = """$num0 = 26
+@ScenarioCos 1 26
+@ChTalk 0
+これはテスト用の会話です。
+"""
+    parser = StoryParser()
+    parse_result = parser.parse_text(script, source_file="test_extractor_script")
+    normalizer = Normalizer(
+        story_id="TEST_EXTRACT_PUBLIC_ID",
+        story_category="EVT",
+        source_file="test_extractor_script",
+        story_metadata={"publicStoryId": "PUBLIC_TEST_STORY_001"},
+        episode_metadata={"publicEpisodeId": "PUBLIC_TEST_STORY_001_E01"},
+    )
+    story_json = normalizer.normalize(parse_result)
+
+    extraction = Extractor().extract_story(story_json)[0]
+
+    assert extraction["publicStoryId"] == "PUBLIC_TEST_STORY_001"
+    assert extraction["publicEpisodeId"] == "PUBLIC_TEST_STORY_001_E01"
 
 
 def test_extract_episode_includes_manifest_metadata_when_present():
@@ -276,6 +304,30 @@ def test_extraction_with_manifest_metadata_matches_schema(extraction_validator):
             "displayTitle": "Synthetic Display Title",
             "metadataStatus": "pending",
         },
+    )
+    story_json = normalizer.normalize(parse_result)
+    extraction = Extractor().extract_story(story_json)[0]
+
+    errors = list(extraction_validator.iter_errors(extraction))
+    assert not errors, f"Unexpected validation errors: {[e.message for e in errors]}"
+
+
+def test_extraction_with_public_ids_matches_schema(extraction_validator):
+    """publicStoryId/publicEpisodeIdを設定したepisode_extractionが
+    extraction.schema.jsonに違反しないことを確認する。"""
+    script = """$num0 = 26
+@ScenarioCos 1 26
+@ChTalk 0
+これはテスト用の会話です。
+"""
+    parser = StoryParser()
+    parse_result = parser.parse_text(script, source_file="test_extractor_script")
+    normalizer = Normalizer(
+        story_id="TEST_EXTRACT_PUBLIC_ID_SCHEMA",
+        story_category="EVT",
+        source_file="test_extractor_script",
+        story_metadata={"publicStoryId": "PUBLIC_TEST_STORY_SCHEMA"},
+        episode_metadata={"publicEpisodeId": "PUBLIC_TEST_STORY_SCHEMA_E01"},
     )
     story_json = normalizer.normalize(parse_result)
     extraction = Extractor().extract_story(story_json)[0]

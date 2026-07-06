@@ -58,6 +58,10 @@
       "properties": {
         "storyTitle": { "type": ["string", "null"] },
         "displayTitle": { "type": ["string", "null"] },
+        "publicStoryId": {
+          "type": ["string", "null"],
+          "description": "story_manifest.yaml由来の公開Wiki URL用ID (任意、Story_ID_Policy_Decision.md #7)。未設定時はstoryIdへfallbackする"
+        },
         "season": { "type": ["integer", "null"] },
         "chapter": { "type": ["integer", "null"] },
         "displayOrder": { "type": ["integer", "null"] },
@@ -262,6 +266,10 @@
         "episodeTitle": { "type": ["string", "null"] },
         "episodeSubtitle": { "type": ["string", "null"] },
         "displayTitle": { "type": ["string", "null"] },
+        "publicEpisodeId": {
+          "type": ["string", "null"],
+          "description": "story_manifest.yaml由来の公開Wiki URL用ID (任意、Story_ID_Policy_Decision.md #7)。未設定時はepisodeIdへfallbackする"
+        },
         "sortKey": { "type": ["string", "null"] }
       }
     },

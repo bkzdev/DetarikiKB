@@ -126,6 +126,17 @@ def test_design_doc_states_renderer_paths_switch_is_future_work():
     assert "publicStoryId" in section
     assert "まだ行っていない" in section or "後続PR" in section or "将来PR" in section
 
+
+def test_design_doc_states_renderer_switch_implemented_for_public_episode_id():
+    """feature/story-manifest-public-id-renderer-switchで、
+    publicEpisodeIdがEpisode page URL/filenameに実際に反映されたことが
+    記録されていることを確認する。"""
+    content = _read_design_doc()
+    section = content.split("# 14. URL / slug 方針", 1)[1]
+    assert "feature/story-manifest-public-id-renderer-switch" in section
+    assert "episode_page_path" in section
+    assert "fallback" in section
+
     for example_path in EXAMPLES_DIR.glob("*_example.md"):
         content = example_path.read_text(encoding="utf-8")
         # 実データ由来のキャラクター名が紛れ込んでいないことを確認

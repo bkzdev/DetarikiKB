@@ -1086,6 +1086,8 @@ def render_episode_page(
     summary_items = [
         ("Episode ID", _format_code(episode_id)),
         ("Story ID", _format_code(story_id)),
+        ("Public Episode ID", _format_code(source_document.get("publicEpisodeId"))),
+        ("Public Story ID", _format_code(source_document.get("publicStoryId"))),
         ("Display Title", display_title),
         ("Story Title", story_title),
         ("Episode Subtitle", episode_subtitle),

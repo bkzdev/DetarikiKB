@@ -8,7 +8,7 @@
 
 ## Current Focus
 
-- `feature/story-manifest-public-id-fields-design`: `Story_ID_Policy_Decision.md`（PR #71）で採用した`publicStoryId`/`publicEpisodeId`を、`schemas/story_manifest.schema.json`（story/episode-level任意フィールド、既存ID同様のpattern・null許容）・`agents/parser/story_manifest.py`（loader対応）へ実装した。`scripts/normalize_story.py`は`source.manifest`へtraceability目的でのみ転記する。**storyId/episodeId生成ロジック・URL/file path・renderer/paths.pyは変更していない**（renderer切替は後続PR）
+- `feature/story-manifest-public-id-renderer-switch`: `publicEpisodeId`をExtractor（`episode_extraction.publicStoryId`/`publicEpisodeId`）→Merger（`sourceDocuments[].publicStoryId`/`publicEpisodeId`）→`agents/wiki_generator/paths.py`（`episode_page_path`、publicEpisodeId優先・空白/未設定は既存episodeIdへfallback）まで伝播し、Wiki Episode pageのfilename/URL/Story indexリンク先で実際に使えるようにした。Episode page SummaryにPublic Story ID/Public Episode IDを追加表示。**storyId/episodeId生成ロジック・Story manifest candidate builder・Character page pathは変更していない**
 
 ## Next
 
@@ -17,7 +17,6 @@
 1. **story-title-subtitle-candidate-builder-real-trial**: `scripts/build_story_title_subtitle_candidates.py`を実際のWiki/CSV入力に対して実行し、生成候補を人間が確認する
 2. **character profile import batch 002**: unmatched 200件のうち、displayName表記ゆれ解消やconfirmed化が進んだ分の人間確認済みcandidateを再照合し追加投入する
 3. **public-publishing-platform-evaluation**: public publishing workflow着手前に、MkDocs Material継続/MkDocs標準テーマ・別テーマ/Docusaurus/VitePress・Astro/独自HTML rendererを再評価する
-4. **story-manifest-public-id-renderer-paths-switch**: `publicStoryId`/`publicEpisodeId`をWiki URL/filenameへ実際に反映するrenderer/paths.py切替（fallback実装含む）。実施時期は公開Wiki化の優先度次第
 
 ---
 
@@ -28,7 +27,7 @@
 - イベント番号の正式な採番ルール
 - `displayOrder`の正式計算式、`canonicalOrder`の扱い
 - **story manifest candidate builder**: `scripts/build_story_manifest_candidates.py`を実際のローカルraw DEC配置に対して実行し、生成候補を人間が確認する
-- **story-manifest-public-id-renderer-paths-switch**（Next参照）
+- **story-manifest-public-id-nested-path**: Story/EpisodeのURLを現行フラット構成`stories/{episodeId}.md`からネスト構成`stories/{storyId}/{episodeId}.md`へ移行するかの検討（`publicStoryId`のWiki出力への活用含む、Wiki_Output_Design.md §14）
 - story-title-subtitle-candidate-builder-real-trial（Next参照）
 - **story-manifest-confirmed-metadata-batch-001**: 人間確認済みの公式タイトル・サブタイトル情報を`story_manifest.yaml`へ投入する（`metadataStatus: pending` → `confirmed`。story-title-subtitle-candidate-builder-real-trialの後続作業）
 - `--check-compat`のレポート出力先をオプション化するか、既定動作として明示的にドキュメント化する
@@ -85,7 +84,7 @@
 - **compatibility checkの既知の非対称性**: standalone実行と`normalize_story.py --check-compat`埋め込みの主要判定（`unknownCommands`/`newSpeechCommands`/`parserCompatibility`）は一致するが、`branch_issues`/`case_variants`をStoryParserが追跡しないため常にFalse扱い。裸単語コマンドの検出範囲も両経路で非対称（実データでは稀）。
 - **Identifier_Specification.md §4.3のEVT形式との差分**: `story_manifest.yaml`のstoryId生成方針`EVT_{sourceKeyを大文字化}`（例: `EVT_250626_DANCER`）が、既存仕様書の`EVT_{eventNumber}`（数値管理番号）と異なる形式のまま未解消（`metadataStatus: pending`、人間レビュー時の判断待ち）。
 - **title/subtitleは実質未投入**: Wiki側の表示（Episode page/Story index）は`feature/wiki-episode-title-display-integration`で実装済みだが、`story_manifest.yaml`への人間確認済み実データの投入（confirmed化、`story-manifest-confirmed-metadata-batch-001`）はまだ行われていない。
-- **EVENT storyId/episodeId形式の再検討余地**: sourceKey由来の長い意味語（イベント固有名詞等）がpublic URL/IDに含まれうる。実データサンプルレビュー・採用方針決定・`publicStoryId`/`publicEpisodeId`のfield設計実装（`docs/architecture/05_Parser/Story_ID_Policy_Review.md` / `Story_ID_Policy_Decision.md` / `Story_Manifest_Design.md` §13.2）は完了済み。renderer/paths.pyでの実際のURL切替は`story-manifest-public-id-renderer-paths-switch`で行う（未着手）。
+- **EVENT storyId/episodeId形式の再検討余地**: sourceKey由来の長い意味語（イベント固有名詞等）がpublic URL/IDに含まれうる。実データサンプルレビュー・採用方針決定・`publicStoryId`/`publicEpisodeId`のfield設計実装・renderer/paths.py切替（`docs/architecture/05_Parser/Story_ID_Policy_Review.md` / `Story_ID_Policy_Decision.md` / `Story_Manifest_Design.md` §13.2）は完了済み。ネスト構成（`stories/{storyId}/{episodeId}.md`）への移行・`publicStoryId`のWiki出力への活用は`story-manifest-public-id-nested-path`で検討する（未着手）。
 - **Wiki tableがMkDocs preview上で横長すぎる**: Story index/Episode summary/Character details/Unresolved report等で横スクロールが発生しており、可読性・モバイル対応の改善が必要（`wiki-renderer-readability-improvements`）。
 - **MkDocs Materialは長期公開基盤として未確定**: local preview / early static publishing candidateとしては当面利用してよいが、長期的な新機能追加の不透明さから公開基盤として確定はしない。生成Markdownは特定theme/plugin機能に深く依存しないportableな状態を維持する。public publishing workflow着手前にMkDocs Material継続/別テーマ/Docusaurus/VitePress・Astro/独自rendererを再評価する（`public-publishing-platform-evaluation`）。目視確認は引き続き`mkdocs serve`前提とし、`file://`直開きは正式確認手順にしない。
 
@@ -95,6 +94,7 @@
 
 直近のみ短く記録。詳細は`docs/project_history/Completed_PRs_2026-07.md`参照。
 
+- **story manifest public id renderer switch**: `publicEpisodeId`/`publicStoryId`をExtractor（`episode_extraction`）→Merger（`sourceDocuments[]`）経由でWiki rendererまで伝播し、`agents/wiki_generator/paths.py`の`episode_page_path`が`publicEpisodeId`（空文字列・whitespaceのみは無視）を優先、無ければ既存`episodeId`へfallbackするようにした。Story indexのリンク先も自動的に追従（リンクtext優先順位は変更なし）。Episode page SummaryにPublic Episode ID/Public Story ID（未設定時「未登録」）を追加。schemas（story/extraction/merged_knowledge_collection）に`publicStoryId`/`publicEpisodeId`を追加。**storyId/episodeId生成ロジック・Story manifest candidate builder・Character page pathは変更していない**。合成fixtureのみで検証、実データ未投入。
 - **story manifest public id fields design**: `Story_ID_Policy_Decision.md`（PR #71）で採用した`publicStoryId`（story-level）/`publicEpisodeId`（episode-level）を`schemas/story_manifest.schema.json`（任意フィールド、既存ID同様`^[A-Z][A-Z0-9_]*$`パターン、null許容）・`agents/parser/story_manifest.py`（`StoryManifestStory.public_story_id`/`StoryManifestEpisode.public_episode_id`）へ実装した。`scripts/normalize_story.py`は`source.manifest.publicStoryId`/`publicEpisodeId`としてtraceability目的でのみNormalized Story JSONへ転記する。category別合成例（MAIN/EVENT/RAID/OTHER/CHARACTER）を`Story_Manifest_Design.md` §13.2に記載。**storyId/episodeId生成ロジック・URL/file path・renderer/paths.pyは変更していない**（renderer切替は後続PR`story-manifest-public-id-renderer-paths-switch`）。
 - **story id policy design decision**: `Story_ID_Policy_Review.md`（PR #70）の比較結果を踏まえ、DKBが採用するID方針を`docs/architecture/05_Parser/Story_ID_Policy_Decision.md`で正式決定した。既存`storyId`/`episodeId`は当面維持、将来の公開Wiki URL用IDを`publicStoryId`/`publicEpisodeId`として`story_manifest.yaml`側に分離する方針を採用（次PRで設計）。category別方針・採用しない案（title/subtitle由来URL含む）・migration方針（additive first）を確定した。**ID生成ロジック・schema・URL/file pathの実装変更はしていない**（設計決定のみ）。
 - **story id policy real sample review**: 実データ小規模サンプル（EVENT 5件相当、匿名化）をもとに、Story ID/Episode ID/URL path方針をレビューし`docs/architecture/05_Parser/Story_ID_Policy_Review.md`を新設した。現行`EVT_{sourceKey}`方式・date+sequence案・manifest-assigned stable ID案・category-specific policy案の4案を評価軸付きで比較し、「今すぐ全面移行しない、raw traceability用IDと公開URL用IDを次PRで分離設計する」ことを推奨した。**ID生成ロジック・URL/file pathの実装変更はしていない**（設計レビューのみ）。

@@ -133,6 +133,14 @@ def test_design_doc_states_renderer_paths_switch_not_done_in_this_pr():
     assert "renderer/paths.py" in section
 
 
+def test_design_doc_states_renderer_switch_implemented():
+    """feature/story-manifest-public-id-renderer-switchでの実装状況が
+    記録されていることを確認する (renderer/paths.pyの実際の切替)。"""
+    content = _read_design_doc()
+    assert "feature/story-manifest-public-id-renderer-switch" in content
+    assert "episode_page_path" in content
+
+
 def test_design_doc_has_category_specific_public_id_examples():
     content = _read_design_doc()
     section = content.split("## 13.2 public ID fields", 1)[1]

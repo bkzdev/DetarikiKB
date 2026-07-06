@@ -42,6 +42,11 @@ MANIFEST_METADATA_FIXTURE = (
     / "manifest_metadata"
     / "episode_extraction_with_manifest_metadata.json"
 )
+PUBLIC_ID_METADATA_FIXTURE = (
+    MERGER_FIXTURES_DIR
+    / "manifest_metadata"
+    / "episode_extraction_with_public_ids.json"
+)
 
 
 @pytest.fixture
@@ -86,6 +91,8 @@ def test_source_document_manifest_metadata_defaults_to_none_when_absent(engine):
     assert source_doc["episodeSubtitle"] is None
     assert source_doc["displayTitle"] is None
     assert source_doc["metadataStatus"] is None
+    assert source_doc["publicStoryId"] is None
+    assert source_doc["publicEpisodeId"] is None
 
 
 def test_source_document_includes_manifest_metadata_when_present(engine):
@@ -96,6 +103,17 @@ def test_source_document_includes_manifest_metadata_when_present(engine):
     assert source_doc["episodeSubtitle"] == "Synthetic Episode Subtitle"
     assert source_doc["displayTitle"] == "Synthetic Display Title"
     assert source_doc["metadataStatus"] == "confirmed"
+
+
+def test_source_document_includes_public_ids_when_present(engine):
+    """episode_extraction.publicStoryId/publicEpisodeIdが設定されている
+    場合、sourceDocumentsへそのまま転記されることを確認する
+    (feature/story-manifest-public-id-renderer-switch)。"""
+    collection = engine.merge_file(PUBLIC_ID_METADATA_FIXTURE)
+    source_doc = collection["sourceDocuments"][0]
+
+    assert source_doc["publicStoryId"] == "PUBLIC_TEST_STORY_MERGE"
+    assert source_doc["publicEpisodeId"] == "PUBLIC_TEST_STORY_MERGE_E01"
 
 
 # ----------------------------------------------------------------

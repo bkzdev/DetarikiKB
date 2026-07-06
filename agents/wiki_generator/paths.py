@@ -39,16 +39,35 @@ def character_page_path(entity: dict[str, Any]) -> str | None:
     return f"characters/{entity['canonicalId']}.md"
 
 
+def resolve_episode_path_id(source_document: dict[str, Any]) -> str | None:
+    """Episode pageのURL/filenameに使うIDを解決する。
+
+    `publicEpisodeId`が設定されていればそれを優先し (公開Wiki URL用の
+    安定ID、Story_ID_Policy_Decision.md §7)、無い場合・空文字列・
+    whitespaceのみの場合は既存の`episodeId`（無ければ`documentId`）へ
+    fallbackする。既存manifest（public IDフィールドを含まない）を使う
+    場合の出力は従来と完全に同じになる。
+    """
+    public_episode_id = source_document.get("publicEpisodeId")
+    if isinstance(public_episode_id, str) and public_episode_id.strip():
+        return public_episode_id.strip()
+    return source_document.get("episodeId") or source_document.get("documentId")
+
+
 def episode_page_path(source_document: dict[str, Any]) -> str | None:
-    """Episode pageの出力先相対パスを返す。episodeId/documentIdが
-    どちらも無ければNoneを返す。
+    """Episode pageの出力先相対パスを返す。`resolve_episode_path_id`が
+    Noneを返す場合 (publicEpisodeId/episodeId/documentIdがいずれも無い)
+    はNoneを返す。
 
     Wiki_Output_Design.md §14はstories/{storyId}/{episodeId}.mdという
     ネスト構成を示しているが、このPR (wiki renderer skeleton) では
     scriptで指示された簡易フラット構成 stories/{episodeId}.md を採用する
     (将来のepisode page renderer拡張PRでネスト構成へ移行してよい)。
+
+    `publicEpisodeId`が設定されている場合は`stories/{publicEpisodeId}.md`
+    を返す (feature/story-manifest-public-id-renderer-switch)。
     """
-    episode_id = source_document.get("episodeId") or source_document.get("documentId")
-    if not episode_id:
+    episode_path_id = resolve_episode_path_id(source_document)
+    if not episode_path_id:
         return None
-    return f"stories/{episode_id}.md"
+    return f"stories/{episode_path_id}.md"
