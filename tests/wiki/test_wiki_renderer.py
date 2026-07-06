@@ -623,8 +623,8 @@ def test_render_unresolved_report_includes_non_merged_status_character(
     report = render_unresolved_report(synthetic_collection)
     assert "CHAR_TEST_DEPRECATED" in report
     assert (
-        "| CHAR_TEST_DEPRECATED | Test Character Deprecated | deprecated "
-        "| CHAR_TEST_DEPRECATED |" in report
+        "| Test Character Deprecated | `CHAR_TEST_DEPRECATED` | deprecated "
+        "| `CHAR_TEST_DEPRECATED` | 1/1 |" in report
     )
 
 
@@ -645,15 +645,15 @@ def test_render_unresolved_report_overview_section(synthetic_collection):
 
 
 def test_render_unresolved_report_entity_table_columns(synthetic_collection):
+    """列数を最小限にするため (manual visual review 001での指摘)、
+    EvidenceとSource Candidatesは「Refs」列へ「evidence件数/
+    source candidate件数」の形式で統合する。"""
     report = render_unresolved_report(synthetic_collection)
+    assert "| Display Name | Entity ID | Status | Canonical ID | Refs |" in report
+    # canonicalId未確定の場合は「未登録」が表示される
     assert (
-        "| Entity ID | Display Name | Status | Canonical ID "
-        "| Evidence | Source Candidates |" in report
-    )
-    # canonicalId未確定の場合は "-" が表示される
-    assert (
-        "| UNRESOLVED_CHAR_TEST_0001 | Test Character Unknown "
-        "| unresolved | - | 1 | 1 |" in report
+        "| Test Character Unknown | `UNRESOLVED_CHAR_TEST_0001` "
+        "| unresolved | 未登録 | 1/1 |" in report
     )
 
 
@@ -732,15 +732,23 @@ def test_render_story_index_page_links_to_episode(synthetic_collection):
 
 def test_render_story_index_page_lists_all_episodes(synthetic_collection):
     """合成fixtureは2件のsourceDocuments (EP_TEST_001/EP_TEST_002) を持つ。
-    両方がdocumentId・candidate合計・statusつきで一覧に出ることを確認する。"""
+    両方がstatusつきで一覧に出ることを確認する。"""
     page = render_story_index_page(synthetic_collection)
     assert "[EP_TEST_002](EP_TEST_002.md)" in page
     assert "EP_TEST_001" in page and "EP_TEST_002" in page
-    # candidate合計 (EP_TEST_001: characters4+locations1+relationships1
-    # +timelineCandidates1=7) が表示される
-    assert "| 7 " in page
     # inputResultsのstatusが表示される
     assert "valid" in page
+
+
+def test_render_story_index_page_omits_document_id_and_candidate_total(
+    synthetic_collection,
+):
+    """documentId・candidate合計は横長table問題を踏まえてStory indexから
+    外した (Episode page側のCandidate Counts sectionで確認できるため、
+    情報自体は失われない)。"""
+    page = render_story_index_page(synthetic_collection)
+    assert "documentId" not in page
+    assert "candidate合計" not in page
 
 
 def test_render_story_index_page_shows_display_title(synthetic_collection):
@@ -762,6 +770,18 @@ def test_render_story_index_page_falls_back_to_episode_id_when_no_title(
     # `| EP_TEST_002 | 未登録 |`のような取りこぼしにならず、
     # Display Title欄がepisodeId (EP_TEST_002) になっていることを確認する
     assert any(line.count("EP_TEST_002") >= 2 for line in lines)
+
+
+def test_render_episode_page_summary_is_bullet_list_not_table(synthetic_collection):
+    """Summaryは横長tableではなく箇条書き (definition list風) で構成される
+    ことを確認する (manual visual review 001での「横長すぎる」指摘への
+    対応、feature/wiki-renderer-readability-improvements)。"""
+    source_document = synthetic_collection["sourceDocuments"][0]
+    page = render_episode_page(source_document, synthetic_collection)
+    summary_section = page.split("## Summary", 1)[1].split("## Candidate Counts", 1)[0]
+    assert "| 項目 | 値 |" not in summary_section
+    assert "|---|---|" not in summary_section
+    assert "- Episode ID: `EP_TEST_001`" in summary_section
 
 
 def test_render_episode_page_has_front_matter_and_basic_info(synthetic_collection):
@@ -818,7 +838,7 @@ def test_render_episode_page_missing_source_path_renders_empty(synthetic_collect
     source_document = dict(synthetic_collection["sourceDocuments"][0])
     source_document.pop("path", None)
     page = render_episode_page(source_document, synthetic_collection)
-    assert "| Source Path |  |" in page
+    assert "- Source Path: 未登録" in page
 
 
 def test_render_episode_page_shows_story_title(synthetic_collection):
@@ -826,25 +846,25 @@ def test_render_episode_page_shows_story_title(synthetic_collection):
     # (実イベント名・実タイトルは使用しない)。
     source_document = synthetic_collection["sourceDocuments"][0]
     page = render_episode_page(source_document, synthetic_collection)
-    assert "| Story Title | Synthetic Story Title |" in page
+    assert "- Story Title: Synthetic Story Title" in page
 
 
 def test_render_episode_page_shows_episode_subtitle(synthetic_collection):
     source_document = synthetic_collection["sourceDocuments"][0]
     page = render_episode_page(source_document, synthetic_collection)
-    assert "| Episode Subtitle | Synthetic Episode Subtitle |" in page
+    assert "- Episode Subtitle: Synthetic Episode Subtitle" in page
 
 
 def test_render_episode_page_shows_display_title(synthetic_collection):
     source_document = synthetic_collection["sourceDocuments"][0]
     page = render_episode_page(source_document, synthetic_collection)
-    assert "| Display Title | Synthetic Display Title |" in page
+    assert "- Display Title: Synthetic Display Title" in page
 
 
 def test_render_episode_page_shows_metadata_status_confirmed(synthetic_collection):
     source_document = synthetic_collection["sourceDocuments"][0]
     page = render_episode_page(source_document, synthetic_collection)
-    assert "| Metadata Status | confirmed（確認済み） |" in page
+    assert "- Metadata Status: confirmed（確認済み）" in page
 
 
 def test_render_episode_page_shows_metadata_status_pending(synthetic_collection):
@@ -852,7 +872,7 @@ def test_render_episode_page_shows_metadata_status_pending(synthetic_collection)
     # すべてnullの合成fixture。
     source_document = synthetic_collection["sourceDocuments"][1]
     page = render_episode_page(source_document, synthetic_collection)
-    assert "| Metadata Status | pending（未確認） |" in page
+    assert "- Metadata Status: pending（未確認）" in page
 
 
 def test_render_episode_page_null_title_fields_show_placeholder(synthetic_collection):
@@ -861,11 +881,11 @@ def test_render_episode_page_null_title_fields_show_placeholder(synthetic_collec
     ことを確認する (fallback方針)。"""
     source_document = synthetic_collection["sourceDocuments"][1]
     page = render_episode_page(source_document, synthetic_collection)
-    assert "| Story Title | 未登録 |" in page
-    assert "| Episode Subtitle | 未登録 |" in page
-    assert "| Display Title | 未登録 |" in page
+    assert "- Story Title: 未登録" in page
+    assert "- Episode Subtitle: 未登録" in page
+    assert "- Display Title: 未登録" in page
     assert "# EP_TEST_002" in page
-    assert "| Episode ID | EP_TEST_002 |" in page
+    assert "- Episode ID: `EP_TEST_002`" in page
 
 
 def test_render_episode_page_missing_manifest_metadata_keys_does_not_crash(
@@ -880,10 +900,10 @@ def test_render_episode_page_missing_manifest_metadata_keys_does_not_crash(
 
     page = render_episode_page(source_document, synthetic_collection)
 
-    assert "| Story Title | 未登録 |" in page
-    assert "| Episode Subtitle | 未登録 |" in page
-    assert "| Display Title | 未登録 |" in page
-    assert "| Metadata Status | 未登録 |" in page
+    assert "- Story Title: 未登録" in page
+    assert "- Episode Subtitle: 未登録" in page
+    assert "- Display Title: 未登録" in page
+    assert "- Metadata Status: 未登録" in page
 
 
 def test_render_episode_page_does_not_mention_ai_generated_title(synthetic_collection):
