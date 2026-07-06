@@ -7,6 +7,11 @@ DKB Parser - Story Manifest Loader
 `agents/parser/character_dictionary.py`）とは別物であり、raw DECファイル
 配置 ⇔ storyId/episodeId/title/subtitle/rawPathの対応を保持する。
 
+`publicStoryId`/`publicEpisodeId`は将来の公開Wiki URL用の任意フィールド
+（`Story_ID_Policy_Decision.md` §7）。未設定時は`None`のまま保持し、
+既存`storyId`/`episodeId`へのfallbackは呼び出し側の責務とする
+（このモジュール自体はfallback判定を行わない）。
+
 **重要**: このモジュールはDEC本文を一切読まない。subtitle等の値は
 manifestに書かれた値をそのまま返すのみで、推測・生成は一切行わない。
 """
@@ -58,6 +63,7 @@ class StoryManifestEpisode:
     source_file_name: str
     metadata_status: str
     notes: str | None = None
+    public_episode_id: str | None = None
 
 
 @dataclass
@@ -73,6 +79,7 @@ class StoryManifestStory:
     raw_directory: str
     episodes: list[StoryManifestEpisode] = field(default_factory=list)
     notes: str | None = None
+    public_story_id: str | None = None
 
 
 @dataclass
@@ -109,6 +116,7 @@ def _parse_episode(raw: dict[str, Any]) -> StoryManifestEpisode:
         source_file_name=raw.get("sourceFileName", ""),
         metadata_status=raw.get("metadataStatus", "pending"),
         notes=raw.get("notes"),
+        public_episode_id=raw.get("publicEpisodeId"),
     )
 
 
@@ -124,6 +132,7 @@ def _parse_story(raw: dict[str, Any]) -> StoryManifestStory:
         raw_directory=raw.get("rawDirectory", ""),
         episodes=episodes,
         notes=raw.get("notes"),
+        public_story_id=raw.get("publicStoryId"),
     )
 
 

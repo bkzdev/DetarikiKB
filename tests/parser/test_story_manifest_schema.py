@@ -272,6 +272,97 @@ def test_rejects_title_source_with_additional_properties():
     assert _validate(_document(story)) != []
 
 
+# ----------------------------------------------------------------
+# publicStoryId / publicEpisodeId (feature/story-manifest-public-id-fields-design)
+# ----------------------------------------------------------------
+
+
+def test_public_story_id_field_exists_in_schema():
+    schema = _load_schema()
+    story_props = schema["definitions"]["StoryManifestEntry"]["properties"]
+    assert "publicStoryId" in story_props
+
+
+def test_public_episode_id_field_exists_in_schema():
+    schema = _load_schema()
+    episode_props = schema["definitions"]["StoryManifestEpisodeEntry"]["properties"]
+    assert "publicEpisodeId" in episode_props
+
+
+def test_public_story_id_is_not_in_required_list():
+    schema = _load_schema()
+    required = schema["definitions"]["StoryManifestEntry"]["required"]
+    assert "publicStoryId" not in required
+
+
+def test_public_episode_id_is_not_in_required_list():
+    schema = _load_schema()
+    required = schema["definitions"]["StoryManifestEpisodeEntry"]["required"]
+    assert "publicEpisodeId" not in required
+
+
+def test_manifest_without_public_ids_remains_valid():
+    """既存manifest (public IDフィールドを含まない) がそのまま
+    schema検証を通ることを確認する (後方互換、additiveな追加)。"""
+    assert _validate(_document(_synthetic_story())) == []
+
+
+def test_manifest_with_public_ids_is_valid():
+    story = _synthetic_story(publicStoryId="EVT_250626_001")
+    story["episodes"][0]["publicEpisodeId"] = "EVT_250626_001_E01"
+    assert _validate(_document(story)) == []
+
+
+def test_public_story_id_null_is_valid():
+    story = _synthetic_story(publicStoryId=None)
+    assert _validate(_document(story)) == []
+
+
+def test_public_episode_id_null_is_valid():
+    story = _synthetic_story()
+    story["episodes"][0]["publicEpisodeId"] = None
+    assert _validate(_document(story)) == []
+
+
+def test_rejects_public_story_id_with_spaces():
+    story = _synthetic_story(publicStoryId="EVT 250626 001")
+    assert _validate(_document(story)) != []
+
+
+def test_rejects_public_story_id_with_slash():
+    story = _synthetic_story(publicStoryId="EVT/250626/001")
+    assert _validate(_document(story)) != []
+
+
+def test_rejects_public_episode_id_with_spaces():
+    story = _synthetic_story()
+    story["episodes"][0]["publicEpisodeId"] = "EVT 250626 001 E01"
+    assert _validate(_document(story)) != []
+
+
+def test_rejects_public_episode_id_with_slash():
+    story = _synthetic_story()
+    story["episodes"][0]["publicEpisodeId"] = "EVT/250626/001/E01"
+    assert _validate(_document(story)) != []
+
+
+def test_rejects_public_story_id_lowercase():
+    story = _synthetic_story(publicStoryId="evt_250626_001")
+    assert _validate(_document(story)) != []
+
+
+def test_template_still_validates_without_public_id_values():
+    """templateはpublicStoryId/publicEpisodeIdをnullとして含むが、
+    schema検証を通ることを確認する。"""
+    with open(TEMPLATE_PATH, encoding="utf-8") as f:
+        document = yaml.safe_load(f)
+    assert _validate(document) == []
+    for story in document["stories"]:
+        assert story["publicStoryId"] is None
+        for episode in story["episodes"]:
+            assert episode["publicEpisodeId"] is None
+
+
 def test_all_manifest_source_type_choices_are_valid():
     """Story_Manifest_Design.md §11.5で定義した全sourceTypeがschema上
     有効であることを確認する。"""

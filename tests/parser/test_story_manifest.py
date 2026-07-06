@@ -149,6 +149,36 @@ def test_load_story_manifest_returns_empty_manifest_for_missing_file(tmp_path):
 
 
 # ----------------------------------------------------------------
+# publicStoryId / publicEpisodeId (feature/story-manifest-public-id-fields-design)
+# ----------------------------------------------------------------
+
+
+def test_load_story_manifest_reads_public_story_and_episode_id(tmp_path):
+    data = _synthetic_manifest_dict(publicEpisodeId=f"{STORY_ID}_PUBLIC_E01")
+    data["stories"][0]["publicStoryId"] = f"{STORY_ID}_PUBLIC"
+
+    manifest_path = tmp_path / "story_manifest.yaml"
+    _write_manifest(manifest_path, data)
+
+    manifest = load_story_manifest(manifest_path)
+
+    story = manifest.stories[0]
+    assert story.public_story_id == f"{STORY_ID}_PUBLIC"
+    assert story.episodes[0].public_episode_id == f"{STORY_ID}_PUBLIC_E01"
+
+
+def test_existing_manifest_without_public_ids_still_loads(tmp_path):
+    manifest_path = tmp_path / "story_manifest.yaml"
+    _write_manifest(manifest_path, _synthetic_manifest_dict())
+
+    manifest = load_story_manifest(manifest_path)
+
+    assert len(manifest.stories) == 1
+    assert manifest.stories[0].public_story_id is None
+    assert manifest.stories[0].episodes[0].public_episode_id is None
+
+
+# ----------------------------------------------------------------
 # find_episode_by_raw_path
 # ----------------------------------------------------------------
 
