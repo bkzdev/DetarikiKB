@@ -8,6 +8,7 @@
 
 ## Current Focus
 
+- `feature/story-summary-schema-design`: Story page（PR #76）のStory Summary/Episode Summary「未生成」placeholderを実データで置き換えるための設計を`docs/architecture/06_AI/Story_Summary_Design.md`にまとめた。Summaryは(A) Story Summary/(B) Episode Summary/(C) AI Analysis・Speculationを区別し、(C)はSummary schemaに混ぜない方針。保存場所は`knowledge/summaries/stories/{storyId}.yaml`（1 story 1 file）を採用、draftは`workspace/summary_drafts/`側でreviewしてから昇格する運用とした。生成ステータス（`missing`/`draft`/`generated`/`deprecated`）とレビューステータス（`unreviewed`/`reviewed`/`approved`/`rejected`/`needs_revision`）を分離し、`review.status`が`reviewed`/`approved`のもののみcommit・Wiki表示対象とする。`evidenceRefs`は任意保持可（Episode単位のevidenceId体系のまま、rawテキストは含めない）。**本PRではschema実装・renderer統合・AI要約生成は行っていない**（設計docsのみ）。
 - `feature/story-page-manual-review`: `feature/wiki-story-page-renderer`（PR #76）で実装したStory page中心の導線を、実データ小規模サンプル（EVENTカテゴリ1件・episode2件、匿名化）でStory index→Story page→Episode pageまで`mkdocs serve`（`http://127.0.0.1:8127/`）で目視確認できる状態にした。episode1に合成`publicStoryId`/`publicEpisodeId`・合成title/subtitleを付与、episode2は`publicEpisodeId`未設定のままfallback確認用に残した。Story page Overview/Story Summary placeholder/Episode Summaries placeholder/Episode list/Related Characters集約/Review Links、Characters index/Character page/Unresolved report/Special Speaker Labelsいずれも表示・リンクとも問題なし。`workspace/wiki_preview/story_page_manual_review/`・`_site/`へ保持（**commit対象外**）。source text exposure check問題なし（`episodeId`にsourceKey由来語が残る既知課題のみ、本PRのscope外）。実装変更なし。ユーザーの実ブラウザ目視確認待ち。
 - `feature/wiki-story-page-renderer`: `Story_Page_Design.md`の設計を踏まえ、Story pageを`agents/wiki_generator/renderer.py`に実装した（`render_story_page`、`story_page_path`/`resolve_story_path_id`）。`sourceDocuments`を`storyId`でグルーピングし、Story index（`| Story | Episodes | Status | Category |`、リンクtextは`storyTitle > publicStoryId > storyId`）→Story page（Overview・Story Summary placeholder「未生成」・EpisodeごとのEpisode Summary placeholder・Episode一覧・Related Characters集約・Unresolved report導線）→Episode pageという導線を実装した。`publicStoryId`があればStory page filenameに使い、無ければ`storyId`へfallback（短期URL構造は候補A、flat維持）。**Episode pageは変更していない**（`episode_page_path`・`publicEpisodeId`fallback方針はPR #73のまま）。AI要約生成・Story summary schemaはまだ実装していない。
 
@@ -15,11 +16,11 @@
 
 直近5件程度。着手前にユーザーへ確認する。
 
-1. **story-summary-schema-design**: Story Summary / Episode Summaryのデータ構造（schema）を設計する（AI要約生成パイプライン自体はさらに後続）
-2. **story-title-subtitle-candidate-builder-real-trial**: `scripts/build_story_title_subtitle_candidates.py`を実際のWiki/CSV入力に対して実行し、生成候補を人間が確認する
-3. **character profile import batch 002**: unmatched 200件のうち、displayName表記ゆれ解消やconfirmed化が進んだ分の人間確認済みcandidateを再照合し追加投入する
-4. **public-publishing-platform-evaluation**: public publishing workflow着手前に、MkDocs Material継続/MkDocs標準テーマ・別テーマ/Docusaurus/VitePress・Astro/独自HTML rendererを再評価する
-5. **story-page-related-characters-refinement**: Story page Related Charactersの表示（順序・重複・unresolvedの扱い等）をさらに改善する
+1. **story-summary-schema-implementation**: `docs/architecture/06_AI/Story_Summary_Design.md`を踏まえ、`schemas/story_summary.schema.json`とloader/validatorを実装する
+2. **story-summary-renderer-integration**: `render_wiki.py --story-summaries`を追加し、Story page Summary placeholderを実際のSummaryデータへ差し替える
+3. **story-title-subtitle-candidate-builder-real-trial**: `scripts/build_story_title_subtitle_candidates.py`を実際のWiki/CSV入力に対して実行し、生成候補を人間が確認する
+4. **character profile import batch 002**: unmatched 200件のうち、displayName表記ゆれ解消やconfirmed化が進んだ分の人間確認済みcandidateを再照合し追加投入する
+5. **public-publishing-platform-evaluation**: public publishing workflow着手前に、MkDocs Material継続/MkDocs標準テーマ・別テーマ/Docusaurus/VitePress・Astro/独自HTML rendererを再評価する
 
 ---
 
@@ -54,7 +55,8 @@
 
 ### Wiki / MkDocs
 
-- **story-page-related-characters-refinement**（Next参照）
+- **story-page-related-characters-refinement**: Story page Related Charactersの表示（順序・重複・unresolvedの扱い等）をさらに改善する
+- **story-summary-schema-implementation** / **story-summary-renderer-integration**（Next参照）
 - **mkdocs-manual-visual-review-002**: ユーザーによる`uv run mkdocs serve -f workspace/wiki_preview/manual_review_002/mkdocs_manual_review.yml -a 127.0.0.1:8125`起動後、`http://127.0.0.1:8125/`でのブラウザ目視確認
 - **wiki-story-index-link-text-real-sample-review**: 実データ小規模サンプルでEpisode link text優先順位・metadataStatus表示を確認する
 - **speaker-label-normalization-real-sample-review**: 実データ小規模サンプルでspeaker group/generic speaker検出の網羅性・誤検出を確認する（合成fixtureのみのため後続作業）
@@ -100,6 +102,7 @@
 
 直近のみ短く記録。詳細は`docs/project_history/Completed_PRs_2026-07.md`参照。
 
+- **story summary schema design**: Story Summary/Episode Summaryのデータ構造設計を`docs/architecture/06_AI/Story_Summary_Design.md`にまとめた。(A) Story Summary/(B) Episode Summary/(C) AI Analysis・Speculationを区別しSummary schemaには(C)を含めない方針、保存場所は`knowledge/summaries/stories/{storyId}.yaml`採用（draftは`workspace/summary_drafts/`側でレビュー後に昇格）、生成ステータスとレビューステータスを分離、`evidenceRefs`は任意保持可でrawテキストは含めない方針を決定した。schema実装・renderer統合・AI要約生成は次PR（`story-summary-schema-implementation`/`story-summary-renderer-integration`）に持ち越し、本PRでは実装変更なし。
 - **story page manual review**: 実データ小規模サンプル（EVENTカテゴリ1件・episode2件、匿名化。うちepisode1に合成`publicStoryId`/`publicEpisodeId`/合成title・subtitleを付与、episode2は`publicEpisodeId`未設定のままfallback確認用）で、PR #76のStory page中心導線（Story index→Story page→Episode page）を`normalize→extract→merge→render→mkdocs build --strict`まで通し確認した。Story page Overview・Story/Episode Summary placeholder・Episode list（publicEpisodeIdあり/fallbackとも正しくリンク）・Related Characters集約・Unresolved report導線、Characters index/Character page（profile登録あり2件）/Unresolved report/Special Speaker Labelsいずれも問題なし。`workspace/wiki_preview/story_page_manual_review/`・`_site/`へ保持（**commit対象外**）。source text exposure check問題なし（`episodeId`にsourceKey由来語が残る既知課題を除く、`Story_ID_Policy_Review.md`参照）。`mkdocs serve`（`http://127.0.0.1:8127/`）経由でcurl確認（全ページ200）、実装変更なし。ユーザーの実ブラウザ目視確認待ち。
 - **wiki story page renderer**: `Story_Page_Design.md`の設計を踏まえ、Story pageを実装した。`render_story_page`（`agents/wiki_generator/renderer.py`）・`story_page_path`/`resolve_story_path_id`（`agents/wiki_generator/paths.py`）を追加し、`sourceDocuments`を`storyId`でグルーピングしてStory index（Story/Episodes/Status/Category、`storyTitle > publicStoryId > storyId`優先のリンクtext）→Story page（Overview・Story Summary/Episode Summaries placeholder「未生成」・Episode一覧・Related Characters集約・Unresolved report導線）→Episode pageという導線を実装した。`publicStoryId`があればStory page filenameに使い、無ければ`storyId`へfallback（短期URL構造は候補A、flat維持）。**Episode page（`episode_page_path`・`publicEpisodeId`fallback方針）・Character page path・storyId/episodeId生成ロジックは変更していない**。合成fixtureに同一storyId複数episode・public ID有無のパターンを追加して検証、実データ未投入。
 - **wiki story page design**: Episode page中心のWiki構造を、今後Story page中心へ寄せるための設計を`docs/architecture/07_Wiki/Story_Page_Design.md`にまとめた。Story pageを新規追加する方針・Episode pageは残す方針・`evidenceId`/`episodeId`/`blockId`管理はEpisode単位維持・Story/Episode Summary placeholder（「未生成」表示、AI要約生成は後続PR）・URL構造候補（短期=候補A flat、長期=候補C nestedを再評価）を決定した。**Story page renderer実装・URL変更・renderer/paths.py変更はしていない**（設計のみ）。次PRは`wiki-story-page-renderer`。
