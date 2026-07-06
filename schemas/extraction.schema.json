@@ -65,6 +65,11 @@
       "description": "CharacterCandidate の配列",
       "items": { "$ref": "#/definitions/CharacterCandidate" }
     },
+    "specialSpeakerLabelCandidates": {
+      "type": "array",
+      "description": "name command/@ChTalkName由来のspeaker labelのうち、speaker group/modifier付き/generic表記等をcharactersとは別枠で保持する配列 (任意、Speaker Label Normalization設計)。自動でconfirmed character解決はしない",
+      "items": { "$ref": "#/definitions/SpecialSpeakerLabelCandidate" }
+    },
     "organizations": {
       "type": "array",
       "description": "OrganizationCandidate の配列",
@@ -259,7 +264,8 @@
             "lore_candidate",
             "event_candidate",
             "relationship_candidate",
-            "timeline_candidate"
+            "timeline_candidate",
+            "special_speaker_label_candidate"
           ]
         },
         "sourceType": { "$ref": "#/definitions/SourceType" },
@@ -297,6 +303,67 @@
               "minItems": 1
             },
             "fields": { "$ref": "#/definitions/FieldsMap" }
+          }
+        }
+      ]
+    },
+
+    "SpecialSpeakerLabelCandidate": {
+      "description": "name command/@ChTalkName由来のspeaker labelを構造化した候補 (Speaker Label Normalization設計)。通常のCharacterCandidateとは別枠であり、自動でconfirmed character解決はしない",
+      "allOf": [
+        { "$ref": "#/definitions/CandidateEnvelope" },
+        {
+          "type": "object",
+          "required": ["type", "rawLabel", "labelType", "resolutionStatus"],
+          "properties": {
+            "type": { "const": "special_speaker_label_candidate" },
+            "rawLabel": {
+              "type": "string",
+              "description": "DEC由来のspeaker labelそのまま (未加工)"
+            },
+            "labelSource": {
+              "type": ["string", "null"],
+              "description": "name_command/ch_talk_name等、由来コマンド"
+            },
+            "labelType": {
+              "type": "string",
+              "enum": [
+                "single_speaker",
+                "speaker_group",
+                "speaker_with_modifier",
+                "speaker_group_with_modifier",
+                "generic_speaker",
+                "ambiguous_speaker",
+                "unknown"
+              ]
+            },
+            "components": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "modifier": { "type": ["string", "null"] },
+            "baseLabel": { "type": ["string", "null"] },
+            "inferredSpeakers": {
+              "type": "array",
+              "description": "confirmed character dictionaryとの参考照合結果。自動でresolutionStatusをconfirmedにする根拠にはしない",
+              "items": {
+                "type": "object",
+                "required": ["matchedName", "matchStatus"],
+                "properties": {
+                  "matchedName": { "type": "string" },
+                  "characterId": { "type": ["string", "null"] },
+                  "matchStatus": {
+                    "type": "string",
+                    "enum": ["dictionary_confirmed", "dictionary_name_only"]
+                  },
+                  "confidence": { "type": "string" }
+                }
+              }
+            },
+            "resolutionStatus": {
+              "type": "string",
+              "enum": ["not_applicable", "needs_review", "inferred", "confirmed"]
+            }
           }
         }
       ]

@@ -57,6 +57,10 @@ from .models import (
 )
 from .organization import build_organization_entities
 from .relationship import UNRESOLVED_ENDPOINT_MARKER, build_relationship_entities
+from .speaker_labels import (
+    build_special_speaker_label_entities,
+    summarize_special_speaker_labels,
+)
 from .timeline import build_timeline_entities
 
 _PROJECT_ROOT = Path(__file__).parent.parent.parent
@@ -417,6 +421,18 @@ class MergeEngine:
         report.canonical_id_summary = validate_canonical_ids(
             {"entities": entities}
         ).to_dict()
+
+        # special speaker label (name command/@ChTalkName由来のspeaker group/
+        # modifier付き/generic表記等) は、通常のentities 8種の集計
+        # (_summarize_entities/canonical ID validation/relationship type
+        # summary) には一切混ぜず、別キー・別サマリーとして追加する
+        # (Character merged entityとして扱わない、Speaker Label
+        # Normalization設計)。
+        special_speaker_labels = build_special_speaker_label_entities(valid_entries)
+        report.special_speaker_label_summary = summarize_special_speaker_labels(
+            special_speaker_labels
+        )
+        entities["specialSpeakerLabels"] = special_speaker_labels
 
         return {
             "schemaVersion": COLLECTION_SCHEMA_VERSION,

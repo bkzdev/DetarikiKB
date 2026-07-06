@@ -8,7 +8,7 @@
 
 ## Current Focus
 
-- `feature/mkdocs-manual-visual-review-002`: PR #64〜#66の改善を実データ小規模サンプルで再確認し、`workspace/wiki_preview/manual_review_002/`・`manual_review_002_site/`にユーザー目視確認用として保持（**commitしない**、ユーザーのブラウザ確認待ち）。実装変更なし。source text exposure check問題なし。curl経由でCharacters index導線・特記事項表示・profile source非表示・table列数削減・Episode Summary箇条書き化・title/subtitle表示をいずれも実データで確認済み
+- `feature/speaker-label-normalization`: `name`コマンド/`@ChTalkName`由来のspeaker label（speaker group/modifier付き/generic表記等）を、通常のunresolved characterとは別枠（`specialSpeakerLabelCandidates`/`entities.specialSpeakerLabels`）で構造化し、Unresolved reportに専用sectionを追加した。自動でconfirmed character解決はしない。合成fixtureのみで検証、実データ未投入
 
 ## Next
 
@@ -18,7 +18,7 @@
 2. **wiki-story-index-link-text-improvement**: Story indexのリンクテキストを`episodeId`から`displayTitle > episodeSubtitle > storyTitle+第N話 > episodeId`優先で表示する（title/subtitleデータが少ない現段階では急がない）
 3. **story-id-policy-real-sample-review**: EVENT storyId/episodeIdがsourceKey由来の長い意味語を含みうる点を、追加の実データサンプル投入後に再検討する
 4. **story-title-subtitle-candidate-builder-real-trial**: `scripts/build_story_title_subtitle_candidates.py`を実際のWiki/CSV入力に対して実行し、生成候補を人間が確認する
-5. **character profile import batch 002**: unmatched 200件のうち、displayName表記ゆれ解消やconfirmed化が進んだ分の人間確認済みcandidateを再照合し追加投入する
+5. **speaker-label-normalization-real-sample-review**: 実データ小規模サンプルでspeaker group/generic speaker検出の網羅性・誤検出を確認する（本PRは合成fixtureのみのため後続作業）
 
 ---
 
@@ -58,7 +58,7 @@
 
 ### Character Dictionary / Profiles
 
-- character profile import batch 002（Next参照）
+- **character profile import batch 002**: unmatched 200件のうち、displayName表記ゆれ解消やconfirmed化が進んだ分の人間確認済みcandidateを再照合し追加投入する
 - character dictionary confirmed batch 004: 残る未確認10件（234/225/230/222/232/83/258/86/85/257）について、人間確認済みmappingが提供され次第confirmed化する
 - キャラクターIDの完全辞書化・主要キャラクターのcanonical ID確定（loader/validation/coverage report/レビュー運用は実装済み。実データ頻出の未確認IDを人間がローマ字確認しconfirmed化する作業自体が残っている）
 
@@ -96,6 +96,7 @@
 
 直近のみ短く記録。詳細は`docs/project_history/Completed_PRs_2026-07.md`参照。
 
+- **speaker label normalization**: `name`コマンド/`@ChTalkName`由来のspeaker labelを`agents/parser/speaker_labels.py`で構造化（speaker_group/speaker_with_modifier/generic_speaker/ambiguous_speaker等）し、通常のCharacterCandidate/Character merged entityとは別枠（`specialSpeakerLabelCandidates`/`entities.specialSpeakerLabels`）で扱うようにした。confirmed character dictionaryとの参考照合（`inferredSpeakers`）はあるが自動でconfirmed昇格はしない（resolutionStatusは`inferred`/`needs_review`のみ自動付与）。Unresolved reportに「Special Speaker Labels」sectionを追加し、通常のUnresolved Charactersとは重複しない。`characters.yaml`は変更なし。合成fixtureのみで検証、実データ未投入。
 - **mkdocs manual visual review 002**: 実データ小規模サンプル（EVENTカテゴリ1件・episode2件、うち1件にPR #62表示確認用のtitle/subtitle/metadataStatus=confirmedを設定）でPR #64〜#66の改善（Characters index導線・特記事項`【label】value`表示・profile source非表示・Story index/Unresolved reportの列数削減・Episode Summary箇条書き化）をすべて実データで確認した。`workspace/wiki_preview/manual_review_002/`・`manual_review_002_site/`へ保持（**commit対象外**）。source text exposure check問題なし。`mkdocs serve`（`http://127.0.0.1:8125/`）経由でcurl確認、実装変更なし。ユーザーの実ブラウザ目視確認待ち。
 - **wiki renderer readability improvements**: manual visual review 001の「表が横長すぎる」指摘を受け、Story index（7列→5列、documentId/candidate合計を削除）・Episode page（Summary tableを箇条書きへ変更、ID類はcode表示）・Unresolved report（entity種別別表を6列→5列、Evidence/Source CandidatesをRefs列へ統合）を改善した。既存情報は削除せず、Episode page側詳細セクション等で引き続き確認可能。Characters index・profileHighlight表示・profile source非表示（PR #64/#65）は変更していない。合成fixtureのみで検証。
 - **wiki character profile display refinement**: Character pageの基本プロフィール表を整理した。`profileHighlight`は独立sectionを廃止し表内「特記事項」行として`【label】value`形式（例:`【好きなこと】食べ歩き`）で表示、label/valueいずれか欠落時も安全にfallbackする。profile source（出典）はCharacter page上から非表示にした（`character_profiles.yaml`側のsource情報自体は削除せず保持）。実プロフィールデータは変更していない、合成fixtureのみで検証。
@@ -104,7 +105,6 @@
 - **wiki episode title display integration**: storyTitle/episodeSubtitle/displayTitle/metadataStatusをExtractor→Merger→Wiki rendererまで伝播し、Episode page（Summary table 4行追加）・Story index（Display Title列追加）へ表示。未設定時はepisodeIdへfallback、AI-generated titleとは分離。合成fixtureのみ、実タイトルは未投入。
 - **project context compaction**（PR #61）: 肥大化した`AI_CONTEXT.md`/`TASKS.md`を圧縮し、完了済みPR履歴を`docs/project_history/`へ分離。
 - **normalize_story manifest integration**（PR #57）: `normalize_story.py`に`--manifest`/`--raw-root`/`--manifest-strict`を追加。既存挙動は完全維持。
-- **story manifest design**（PR #56）: raw DEC配置とDKB正規ID体系を分離する`story_manifest.yaml`/schemaを設計。
 
 ---
 

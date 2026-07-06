@@ -21,7 +21,10 @@ from __future__ import annotations
 from typing import Any
 
 from .base import build_evidence_refs, merge_evidence_index
-from .character import build_character_candidates
+from .character import (
+    build_character_candidates,
+    build_special_speaker_label_candidates,
+)
 from .event import build_event_candidates
 from .item import build_item_candidates
 from .location import build_location_candidates
@@ -85,6 +88,9 @@ class Extractor:
         characters = build_character_candidates(
             episode, episode_id, extraction_run_dict
         )
+        special_speaker_labels = build_special_speaker_label_candidates(
+            episode, episode_id, extraction_run_dict
+        )
         locations, location_evidence_refs = build_location_candidates(
             episode, story_id, episode_id, extraction_run_dict
         )
@@ -131,6 +137,7 @@ class Extractor:
             "events": events,
             "relationships": relationships,
             "timelineCandidates": timeline_candidates,
+            "specialSpeakerLabelCandidates": special_speaker_labels,
             "extractionErrors": [],
             "storyTitle": story_title,
             "episodeSubtitle": episode_metadata.get("episodeSubtitle"),

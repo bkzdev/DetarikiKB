@@ -290,6 +290,10 @@
         "canonicalIdSummary": {
           "$ref": "#/definitions/CanonicalIdSummary",
           "description": "canonicalIdの形式・重複検証結果 (agents/merger/canonical_ids.py、docs/architecture/06_AI/Canonical_ID_Policy.md)。requiredには含めない任意プロパティ (既存の手書きfixtureを壊さないため。MergeEngineの実出力には常に含まれ、--overrides指定時はoverride適用後の値で上書きされる)"
+        },
+        "specialSpeakerLabelSummary": {
+          "$ref": "#/definitions/SpecialSpeakerLabelSummary",
+          "description": "name command/@ChTalkName由来のspeaker label (special speaker label) のlabelType別/resolutionStatus別集計 (agents/merger/speaker_labels.py)。requiredには含めない任意プロパティ (既存の手書きfixtureを壊さないため。MergeEngineの実出力には常に含まれる)"
         }
       }
     },
@@ -557,7 +561,29 @@
         "lore": { "$ref": "#/definitions/MergedEntityArray" },
         "events": { "$ref": "#/definitions/MergedEntityArray" },
         "relationships": { "$ref": "#/definitions/MergedEntityArray" },
-        "timeline": { "$ref": "#/definitions/MergedEntityArray" }
+        "timeline": { "$ref": "#/definitions/MergedEntityArray" },
+        "specialSpeakerLabels": {
+          "$ref": "#/definitions/MergedEntityArray",
+          "description": "name command/@ChTalkName由来のspeaker label (speaker group/modifier付き/generic表記等) の一覧 (任意、Speaker Label Normalization設計)。通常のCharacter merged entityとは別枠であり、canonicalIdは常にnull・statusは常にunresolvedのまま (自動でconfirmed character解決はしない)。requiredには含めない (既存の手書きfixtureを壊さないため)"
+        }
+      }
+    },
+
+    "SpecialSpeakerLabelSummary": {
+      "type": "object",
+      "description": "special speaker labelのlabelType別/resolutionStatus別集計 (agents/merger/speaker_labels.py summarize_special_speaker_labels)",
+      "required": ["total", "byLabelType", "byResolutionStatus"],
+      "additionalProperties": false,
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "byLabelType": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        },
+        "byResolutionStatus": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        }
       }
     }
   }

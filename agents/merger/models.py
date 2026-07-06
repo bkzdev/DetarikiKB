@@ -148,6 +148,13 @@ class MergeReport:
             "warnings": [],
         }
     )
+    special_speaker_label_summary: dict[str, Any] = field(
+        default_factory=lambda: {
+            "total": 0,
+            "byLabelType": {},
+            "byResolutionStatus": {},
+        }
+    )
     warnings: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
     input_results: list[InputResult] = field(default_factory=list)
@@ -188,6 +195,13 @@ class MergeReport:
                 "duplicateCount": self.canonical_id_summary["duplicateCount"],
                 "invalidCount": self.canonical_id_summary["invalidCount"],
                 "warnings": list(self.canonical_id_summary["warnings"]),
+            },
+            "specialSpeakerLabelSummary": {
+                "total": self.special_speaker_label_summary["total"],
+                "byLabelType": dict(self.special_speaker_label_summary["byLabelType"]),
+                "byResolutionStatus": dict(
+                    self.special_speaker_label_summary["byResolutionStatus"]
+                ),
             },
             "warnings": list(self.warnings),
             "errors": list(self.errors),
