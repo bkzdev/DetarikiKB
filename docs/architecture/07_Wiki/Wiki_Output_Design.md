@@ -439,6 +439,8 @@ templates/wiki/unresolved_report.md.j2
 
 `canonicalId`自体が`Identifier_Specification.md`の規則で安定運用される前提（`Canonical_ID_Policy.md` §2「一度確定したら原則変更しない」）に、Wiki URLの安定性を委ねる。
 
+**関連（`feature/story-id-policy-real-sample-review`で追加）**: Story/EpisodeのURL（`stories/{episodeId}.md`）は、EVENTカテゴリの場合raw配置由来の長い`episodeId`（`EVT_{sourceKey}_E{episode}`）をそのまま使うため、公開Wiki化前に見直す余地がある。実データサンプルを踏まえたレビューは`docs/architecture/05_Parser/Story_ID_Policy_Review.md`を参照（本PRではURL/file pathは変更していない）。
+
 ---
 
 # 15. 将来の実装PR案
