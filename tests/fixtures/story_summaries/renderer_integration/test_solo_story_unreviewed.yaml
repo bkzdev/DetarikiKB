@@ -1,0 +1,28 @@
+# Synthetic story summary fixture for scripts/render_wiki.py CLI
+# integration tests: negative case (review.status: unreviewed) matching
+# TEST_SOLO_STORY. This summary must NOT be displayed on the rendered
+# Story page even though a matching document exists. 完全な合成データのみ。
+
+schemaVersion: "0.1.0"
+documentType: "story_summary"
+storyId: "TEST_SOLO_STORY"
+publicStoryId: null
+language: "ja"
+generationStatus: "generated"
+storySummary:
+  text: "この本文はunreviewedのため表示されないはずです。"
+  confidence: null
+  evidenceRefs: []
+episodeSummaries: []
+source:
+  sourceType: "ai_generated"
+  model: null
+  promptVersion: null
+  generatedAt: null
+  inputRefs: []
+review:
+  status: "unreviewed"
+  reviewer: null
+  reviewedAt: null
+  notes: null
+notes: null

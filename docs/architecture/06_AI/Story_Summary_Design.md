@@ -318,6 +318,16 @@ notes: null
 
 **実装状況（`feature/story-summary-schema-implementation`で実施）**: 上記1〜4の土台となるloader（`load_story_summary`/`load_story_summaries`/`build_story_summary_index`/`build_public_story_summary_index`/`find_episode_summary`/`find_episode_summary_by_public_id`/`is_displayable_summary`）を`agents/wiki_generator/story_summaries.py`に実装した。**`render_wiki.py`/`renderer.py`への統合自体は行っていない**（次PR`story-summary-renderer-integration`のスコープ）。
 
+**実装状況（`feature/story-summary-renderer-integration`で実施）**: 上記1〜4をすべて実装した。
+
+- `scripts/render_wiki.py`に`--story-summaries <path>`（file/directory両対応）を追加した。未指定時は既存動作を維持する
+- `agents/wiki_generator/story_summaries.py`に`StorySummaryLookup`（`storyId`/`publicStoryId`両方の索引をまとめたコンテナ）・`build_story_summary_lookup`・`resolve_story_summary`・`resolve_episode_summary`・`get_displayable_story_summary`・`get_displayable_episode_summary`・`is_document_displayable`を追加した
+- `storyId`優先→`publicStoryId`で照合し、両方が異なるドキュメントを指す場合は矛盾として安全側に倒しNoneを返す（表示しない）。Episode側も`episodeId`優先→`publicEpisodeId`で同じ方針
+- `is_displayable_summary`を拡張し、`review.status`（`reviewed`/`approved`）に加え`generationStatus`（`generated`のみ表示、`draft`/`deprecated`/`missing`は非表示）も判定できるようにした。既存呼び出し（`generation_status`省略）は後方互換のまま
+- `agents/wiki_generator/renderer.py`の`_render_story_summary_section`/`_render_episode_summaries_section`/`render_story_page`/`build_pages`に`story_summary_lookup`（任意引数、デフォルトNone）を追加し、表示可能なSummaryが見つかった場合のみ本文を表示、それ以外は従来通り「未生成」を表示するようにした
+- **Episode pageへのSummary表示は行っていない**（§4 Non-goalsのまま、Character page/Characters index/Unresolved reportにも影響なし）
+- evidenceRefsの表示は行っていない（summary textのみ表示、§9末尾の通り次PR候補`story-summary-evidence-display`に持ち越し）
+
 ---
 
 # 11. Validation plan（次PR以降、本PRでは未実装）
@@ -337,9 +347,11 @@ notes: null
 | フェーズ | 内容 | 状態 |
 |---|---|---|
 | `story-summary-schema-design` | データモデル・保存場所・status/review方針・evidenceRefs方針・AI考察分離方針・renderer連携方針の設計のみ | 完了 |
-| `story-summary-schema-implementation` | `schemas/story_summary.schema.json`実装、`agents/wiki_generator/story_summaries.py`（loader/validator）実装、`scripts/validate_story_summaries.py`（CLI）実装、`docs/templates/story_summary_template.yaml`・合成fixture・テスト追加、`workspace/summary_drafts/`のgitignoreパターン追加 | **完了（本PR）** |
-| 次PR候補 `story-summary-renderer-integration` | `render_wiki.py --story-summaries`実装、`_render_story_summary_section`/`_render_episode_summaries_section`の実データ連携、合成fixtureでの確認、実データでの表示確認（manual review） | 未着手 |
-| 将来 | AI要約生成パイプライン（LLM provider/prompt実装）、Evidence indexとの連携、Episode pageへのSummary表示可否判断 | 未着手 |
+| `story-summary-schema-implementation` | `schemas/story_summary.schema.json`実装、`agents/wiki_generator/story_summaries.py`（loader/validator）実装、`scripts/validate_story_summaries.py`（CLI）実装、`docs/templates/story_summary_template.yaml`・合成fixture・テスト追加、`workspace/summary_drafts/`のgitignoreパターン追加 | 完了 |
+| `story-summary-renderer-integration` | `render_wiki.py --story-summaries`実装、`_render_story_summary_section`/`_render_episode_summaries_section`の実データ連携、合成fixtureでの確認 | **完了（本PR）** |
+| 将来 `story-summary-generation-planning` | AI要約生成パイプライン（LLM provider/prompt実装）の着手時期・方式検討 | 未着手 |
+| 将来 `story-summary-evidence-display` | evidenceRefsのStory page表示、Evidence indexとの連携 | 未着手 |
+| 将来 | Episode pageへのSummary表示可否判断、実データでの表示確認（manual review） | 未着手 |
 
 ---
 
@@ -359,7 +371,7 @@ notes: null
 - Evidence index実装
 - AI Analysis / Speculation schema実装
 
-上記は本文書の初版（`story-summary-schema-design`）時点でのNon-goalsの記録である。schema/loader/validator/template/fixtureの実装は`story-summary-schema-implementation`で完了済み、renderer統合・AI要約生成は引き続きNon-goalsのまま（§12 Implementation phasesの状態列を参照）。
+上記は本文書の初版（`story-summary-schema-design`）時点でのNon-goalsの記録である。schema/loader/validator/template/fixtureの実装は`story-summary-schema-implementation`で、Story page renderer統合は`story-summary-renderer-integration`で完了済み。AI要約生成・evidenceRefs表示・Episode pageへのSummary表示は引き続きNon-goalsのまま（§12 Implementation phasesの状態列を参照）。
 
 ---
 

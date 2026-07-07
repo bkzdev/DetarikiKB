@@ -24,6 +24,9 @@ CHARACTER_PROFILES_FIXTURE_PATH = (
     / "character_profiles"
     / "synthetic_character_profiles.yaml"
 )
+STORY_SUMMARIES_FIXTURE_DIR = (
+    PROJECT_ROOT / "tests" / "fixtures" / "story_summaries" / "renderer_integration"
+)
 
 
 def test_cli_generates_expected_markdown_files(tmp_path):
@@ -335,3 +338,243 @@ def test_cli_clean_flag_removes_stale_output(tmp_path):
     assert result.returncode == 0, result.stderr
     assert not stale_file.exists()
     assert (output_dir / "index.md").is_file()
+
+
+# ----------------------------------------------------------------
+# --story-summaries (feature/story-summary-renderer-integration)
+# ----------------------------------------------------------------
+
+
+def test_cli_without_story_summaries_keeps_existing_behavior(tmp_path):
+    """--story-summaries未指定でも既存の生成結果が変わらないことを
+    確認する (後方互換性)。"""
+    output_dir = tmp_path / "wiki_out"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            "--input",
+            str(FIXTURE_PATH),
+            "--output",
+            str(output_dir),
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    story_page = (output_dir / "stories" / "TEST_S01_C01.md").read_text(
+        encoding="utf-8"
+    )
+    assert "## Story Summary\n\n未生成" in story_page
+
+
+def test_cli_with_story_summaries_directory_shows_reviewed_summary(tmp_path):
+    """--story-summariesにdirectoryを指定すると、reviewed/approvedの
+    Summaryのみ表示され、unreviewedのsummary (TEST_SOLO_STORY) は
+    「未生成」のままであることを確認する。"""
+    output_dir = tmp_path / "wiki_out"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            "--input",
+            str(FIXTURE_PATH),
+            "--output",
+            str(output_dir),
+            "--story-summaries",
+            str(STORY_SUMMARIES_FIXTURE_DIR),
+            "--validate",
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "story_summaries" in result.stdout
+
+    story_page = (output_dir / "stories" / "TEST_S01_C01.md").read_text(
+        encoding="utf-8"
+    )
+    assert "合成CLI統合テスト用のStory Summaryです。" in story_page
+    assert "合成CLI統合テスト用のEpisode Summaryです (EP_TEST_001)。" in story_page
+
+    public_id_story_page = (
+        output_dir / "stories" / "PUBLIC_TEST_STORY_001.md"
+    ).read_text(encoding="utf-8")
+    assert "合成CLI統合テスト用のpublicStoryId照合Story Summaryです。" in (
+        public_id_story_page
+    )
+    assert "合成CLI統合テスト用のpublicEpisodeId照合Episode Summaryです。" in (
+        public_id_story_page
+    )
+
+    solo_story_page = (output_dir / "stories" / "TEST_SOLO_STORY.md").read_text(
+        encoding="utf-8"
+    )
+    assert "## Story Summary\n\n未生成" in solo_story_page
+    assert "unreviewedのため表示されない" not in solo_story_page
+
+
+def test_cli_with_story_summaries_single_file(tmp_path):
+    output_dir = tmp_path / "wiki_out"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            "--input",
+            str(FIXTURE_PATH),
+            "--output",
+            str(output_dir),
+            "--story-summaries",
+            str(STORY_SUMMARIES_FIXTURE_DIR / "test_s01_c01.yaml"),
+            "--validate",
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    story_page = (output_dir / "stories" / "TEST_S01_C01.md").read_text(
+        encoding="utf-8"
+    )
+    assert "合成CLI統合テスト用のStory Summaryです。" in story_page
+
+
+def test_cli_story_summaries_missing_path_returns_exit_1(tmp_path):
+    output_dir = tmp_path / "wiki_out"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            "--input",
+            str(FIXTURE_PATH),
+            "--output",
+            str(output_dir),
+            "--story-summaries",
+            str(tmp_path / "does_not_exist"),
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 1
+
+
+def test_cli_story_summaries_schema_invalid_returns_exit_2(tmp_path):
+    invalid_summary = tmp_path / "invalid_summary.yaml"
+    invalid_summary.write_text(
+        'schemaVersion: "0.1.0"\ndocumentType: "story_summary"\n'
+        'storyId: "not_valid_lowercase_id"\n',
+        encoding="utf-8",
+    )
+    output_dir = tmp_path / "wiki_out"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            "--input",
+            str(FIXTURE_PATH),
+            "--output",
+            str(output_dir),
+            "--story-summaries",
+            str(invalid_summary),
+            "--validate",
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 2
+
+
+def test_cli_story_summaries_without_validate_skips_schema_check(tmp_path):
+    """--validate未指定時は--character-profilesと同じく、schema検証は
+    行わず読み込みのみ行う (既存挙動と同じ「検証はopt-in」方針)。"""
+    invalid_summary = tmp_path / "invalid_summary.yaml"
+    invalid_summary.write_text(
+        'schemaVersion: "0.1.0"\ndocumentType: "story_summary"\n'
+        'storyId: "not_valid_lowercase_id"\n'
+        'language: "ja"\ngenerationStatus: "generated"\n'
+        "episodeSummaries: []\n"
+        'source:\n  sourceType: "manual"\n'
+        'review:\n  status: "reviewed"\n',
+        encoding="utf-8",
+    )
+    output_dir = tmp_path / "wiki_out"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            "--input",
+            str(FIXTURE_PATH),
+            "--output",
+            str(output_dir),
+            "--story-summaries",
+            str(invalid_summary),
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+
+
+def test_cli_story_summaries_with_character_profiles_combined(tmp_path):
+    """--story-summariesと--character-profilesを併用できることを確認する。"""
+    output_dir = tmp_path / "wiki_out"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            "--input",
+            str(FIXTURE_PATH),
+            "--output",
+            str(output_dir),
+            "--character-profiles",
+            str(CHARACTER_PROFILES_FIXTURE_PATH),
+            "--story-summaries",
+            str(STORY_SUMMARIES_FIXTURE_DIR),
+            "--validate",
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    story_page = (output_dir / "stories" / "TEST_S01_C01.md").read_text(
+        encoding="utf-8"
+    )
+    assert "合成CLI統合テスト用のStory Summaryです。" in story_page
+    character_page = (output_dir / "characters" / "CHAR_TEST_RAIN.md").read_text(
+        encoding="utf-8"
+    )
+    assert "## 基本プロフィール" in character_page
+    assert "| CV | Test Voice Actor |" in character_page
+
+
+def test_cli_story_summaries_does_not_leak_source_text(tmp_path):
+    output_dir = tmp_path / "wiki_out"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            "--input",
+            str(FIXTURE_PATH),
+            "--output",
+            str(output_dir),
+            "--story-summaries",
+            str(STORY_SUMMARIES_FIXTURE_DIR),
+            "--validate",
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    story_page = (output_dir / "stories" / "TEST_S01_C01.md").read_text(
+        encoding="utf-8"
+    )
+    assert ".dec" not in story_page
+    assert "@ChTalk" not in story_page
+    assert "$num" not in story_page

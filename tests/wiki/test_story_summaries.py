@@ -3,8 +3,9 @@ tests/wiki/test_story_summaries.py
 agents/wiki_generator/story_summaries.py のユニットテスト。
 
 すべて合成データ (EVT_TEST_* 等) のみを使う。実イベント名・実キャラ名・
-実あらすじ・実セリフは一切含まない。renderer統合はまだ実装していないため、
-loader/validatorのみを対象とする。
+実あらすじ・実セリフは一切含まない。renderer (agents/wiki_generator/
+renderer.py) 統合そのもののテストはtests/wiki/test_wiki_renderer.pyで
+行う。ここではloader/validator/resolve系helperのみを対象とする。
 """
 
 from __future__ import annotations
@@ -15,21 +16,32 @@ import pytest
 import yaml
 
 from agents.wiki_generator.story_summaries import (
+    GENERATION_STATUS_DEPRECATED,
+    GENERATION_STATUS_DRAFT,
+    GENERATION_STATUS_GENERATED,
     REVIEW_STATUS_APPROVED,
     REVIEW_STATUS_REVIEWED,
     REVIEW_STATUS_UNREVIEWED,
     EpisodeSummaryEntry,
     StorySummaryCollection,
     StorySummaryDocument,
+    StorySummaryEntry,
+    StorySummaryLookup,
     SummaryReview,
     build_public_story_summary_index,
     build_story_summary_index,
+    build_story_summary_lookup,
     find_episode_summary,
     find_episode_summary_by_public_id,
+    get_displayable_episode_summary,
+    get_displayable_story_summary,
     is_displayable_summary,
+    is_document_displayable,
     load_story_summaries,
     load_story_summary,
     parse_story_summary_document,
+    resolve_episode_summary,
+    resolve_story_summary,
     validate_story_summary_collection,
     validate_story_summary_document,
 )
@@ -404,3 +416,234 @@ def test_parse_story_summary_document_from_raw_dict():
     document = parse_story_summary_document(_minimal_raw_document())
     assert document.story_id == "EVT_TEST_A"
     assert document.review.status == "reviewed"
+
+
+# ----------------------------------------------------------------
+# is_displayable_summary (generationStatus拡張)
+# ----------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "generation_status,expected",
+    [
+        (GENERATION_STATUS_GENERATED, True),
+        (GENERATION_STATUS_DRAFT, False),
+        (GENERATION_STATUS_DEPRECATED, False),
+    ],
+)
+def test_is_displayable_summary_with_generation_status(generation_status, expected):
+    review = SummaryReview(status=REVIEW_STATUS_REVIEWED)
+    assert is_displayable_summary(review, generation_status) is expected
+
+
+def test_is_displayable_summary_generation_status_none_skips_check():
+    """generation_status未指定時はreview.statusのみで判定する
+    (既存呼び出し側との後方互換)。"""
+    review = SummaryReview(status=REVIEW_STATUS_REVIEWED)
+    assert is_displayable_summary(review) is True
+
+
+def test_is_document_displayable_true_when_reviewed_and_generated():
+    document = StorySummaryDocument(
+        story_id="EVT_TEST_A",
+        generation_status=GENERATION_STATUS_GENERATED,
+        review=SummaryReview(status=REVIEW_STATUS_REVIEWED),
+    )
+    assert is_document_displayable(document) is True
+
+
+def test_is_document_displayable_false_when_generation_status_draft():
+    document = StorySummaryDocument(
+        story_id="EVT_TEST_A",
+        generation_status=GENERATION_STATUS_DRAFT,
+        review=SummaryReview(status=REVIEW_STATUS_APPROVED),
+    )
+    assert is_document_displayable(document) is False
+
+
+def test_is_document_displayable_false_when_generation_status_deprecated():
+    document = StorySummaryDocument(
+        story_id="EVT_TEST_A",
+        generation_status=GENERATION_STATUS_DEPRECATED,
+        review=SummaryReview(status=REVIEW_STATUS_REVIEWED),
+    )
+    assert is_document_displayable(document) is False
+
+
+def test_is_document_displayable_false_when_unreviewed():
+    document = StorySummaryDocument(
+        story_id="EVT_TEST_A",
+        generation_status=GENERATION_STATUS_GENERATED,
+        review=SummaryReview(status=REVIEW_STATUS_UNREVIEWED),
+    )
+    assert is_document_displayable(document) is False
+
+
+# ----------------------------------------------------------------
+# resolve_story_summary / resolve_episode_summary /
+# build_story_summary_lookup
+# ----------------------------------------------------------------
+
+
+def _lookup(*documents: StorySummaryDocument) -> StorySummaryLookup:
+    return build_story_summary_lookup(StorySummaryCollection(documents=list(documents)))
+
+
+def test_resolve_story_summary_matches_by_story_id():
+    doc = StorySummaryDocument(story_id="EVT_TEST_A")
+    lookup = _lookup(doc)
+    assert resolve_story_summary(lookup, "EVT_TEST_A", None) is doc
+
+
+def test_resolve_story_summary_matches_by_public_story_id():
+    doc = StorySummaryDocument(story_id="EVT_TEST_A", public_story_id="PUB_A")
+    lookup = _lookup(doc)
+    assert resolve_story_summary(lookup, "NOT_MATCHING", "PUB_A") is doc
+
+
+def test_resolve_story_summary_prefers_story_id_when_consistent():
+    doc = StorySummaryDocument(story_id="EVT_TEST_A", public_story_id="PUB_A")
+    lookup = _lookup(doc)
+    assert resolve_story_summary(lookup, "EVT_TEST_A", "PUB_A") is doc
+
+
+def test_resolve_story_summary_returns_none_when_conflicting():
+    """storyId一致とpublicStoryId一致が別ドキュメントを指す場合、
+    矛盾として安全側に倒しNoneを返す。"""
+    doc_a = StorySummaryDocument(story_id="EVT_TEST_A", public_story_id="PUB_OTHER")
+    doc_b = StorySummaryDocument(story_id="EVT_TEST_B", public_story_id="PUB_A")
+    lookup = _lookup(doc_a, doc_b)
+    assert resolve_story_summary(lookup, "EVT_TEST_A", "PUB_A") is None
+
+
+def test_resolve_story_summary_returns_none_when_not_found():
+    lookup = _lookup(StorySummaryDocument(story_id="EVT_TEST_A"))
+    assert resolve_story_summary(lookup, "EVT_TEST_NOT_FOUND", None) is None
+
+
+def test_resolve_episode_summary_matches_by_episode_id():
+    entry = EpisodeSummaryEntry(episode_id="EVT_TEST_A_E01", text="本文")
+    document = StorySummaryDocument(story_id="EVT_TEST_A", episode_summaries=[entry])
+    assert resolve_episode_summary(document, "EVT_TEST_A_E01", None) is entry
+
+
+def test_resolve_episode_summary_matches_by_public_episode_id():
+    entry = EpisodeSummaryEntry(
+        episode_id="EVT_TEST_A_E01", public_episode_id="PUB_E01", text="本文"
+    )
+    document = StorySummaryDocument(story_id="EVT_TEST_A", episode_summaries=[entry])
+    assert resolve_episode_summary(document, "NOT_MATCHING", "PUB_E01") is entry
+
+
+def test_resolve_episode_summary_returns_none_when_conflicting():
+    entry_a = EpisodeSummaryEntry(
+        episode_id="EVT_TEST_A_E01", public_episode_id="PUB_OTHER", text="A"
+    )
+    entry_b = EpisodeSummaryEntry(
+        episode_id="EVT_TEST_A_E02", public_episode_id="PUB_E01", text="B"
+    )
+    document = StorySummaryDocument(
+        story_id="EVT_TEST_A", episode_summaries=[entry_a, entry_b]
+    )
+    assert resolve_episode_summary(document, "EVT_TEST_A_E01", "PUB_E01") is None
+
+
+def test_resolve_episode_summary_returns_none_when_not_found():
+    document = StorySummaryDocument(story_id="EVT_TEST_A", episode_summaries=[])
+    assert resolve_episode_summary(document, "EVT_NOT_FOUND", None) is None
+
+
+# ----------------------------------------------------------------
+# get_displayable_story_summary / get_displayable_episode_summary
+# ----------------------------------------------------------------
+
+
+def test_get_displayable_story_summary_returns_entry_when_reviewed():
+    entry = StorySummaryEntry(text="本文")
+    document = StorySummaryDocument(
+        story_id="EVT_TEST_A",
+        generation_status=GENERATION_STATUS_GENERATED,
+        story_summary=entry,
+        review=SummaryReview(status=REVIEW_STATUS_REVIEWED),
+    )
+    lookup = _lookup(document)
+    assert get_displayable_story_summary(lookup, "EVT_TEST_A", None) is entry
+
+
+def test_get_displayable_story_summary_none_when_unreviewed():
+    document = StorySummaryDocument(
+        story_id="EVT_TEST_A",
+        story_summary=StorySummaryEntry(text="本文"),
+        review=SummaryReview(status=REVIEW_STATUS_UNREVIEWED),
+    )
+    lookup = _lookup(document)
+    assert get_displayable_story_summary(lookup, "EVT_TEST_A", None) is None
+
+
+def test_get_displayable_story_summary_none_when_story_summary_missing():
+    document = StorySummaryDocument(
+        story_id="EVT_TEST_A",
+        story_summary=None,
+        review=SummaryReview(status=REVIEW_STATUS_REVIEWED),
+    )
+    lookup = _lookup(document)
+    assert get_displayable_story_summary(lookup, "EVT_TEST_A", None) is None
+
+
+def test_get_displayable_story_summary_none_when_text_blank():
+    document = StorySummaryDocument(
+        story_id="EVT_TEST_A",
+        story_summary=StorySummaryEntry(text="   "),
+        review=SummaryReview(status=REVIEW_STATUS_REVIEWED),
+    )
+    lookup = _lookup(document)
+    assert get_displayable_story_summary(lookup, "EVT_TEST_A", None) is None
+
+
+def test_get_displayable_story_summary_none_when_no_matching_document():
+    lookup = _lookup(StorySummaryDocument(story_id="EVT_TEST_OTHER"))
+    assert get_displayable_story_summary(lookup, "EVT_TEST_A", None) is None
+
+
+def test_get_displayable_episode_summary_returns_entry_when_reviewed():
+    entry = EpisodeSummaryEntry(episode_id="EVT_TEST_A_E01", text="本文")
+    document = StorySummaryDocument(
+        story_id="EVT_TEST_A",
+        generation_status=GENERATION_STATUS_GENERATED,
+        episode_summaries=[entry],
+        review=SummaryReview(status=REVIEW_STATUS_APPROVED),
+    )
+    lookup = _lookup(document)
+    result = get_displayable_episode_summary(
+        lookup, "EVT_TEST_A", None, "EVT_TEST_A_E01", None
+    )
+    assert result is entry
+
+
+def test_get_displayable_episode_summary_none_when_document_unreviewed():
+    """document全体がunreviewedの場合、個別のepisode entryがあっても
+    非表示になる。"""
+    entry = EpisodeSummaryEntry(episode_id="EVT_TEST_A_E01", text="本文")
+    document = StorySummaryDocument(
+        story_id="EVT_TEST_A",
+        episode_summaries=[entry],
+        review=SummaryReview(status=REVIEW_STATUS_UNREVIEWED),
+    )
+    lookup = _lookup(document)
+    result = get_displayable_episode_summary(
+        lookup, "EVT_TEST_A", None, "EVT_TEST_A_E01", None
+    )
+    assert result is None
+
+
+def test_get_displayable_episode_summary_none_when_no_matching_episode():
+    document = StorySummaryDocument(
+        story_id="EVT_TEST_A",
+        episode_summaries=[],
+        review=SummaryReview(status=REVIEW_STATUS_REVIEWED),
+    )
+    lookup = _lookup(document)
+    result = get_displayable_episode_summary(
+        lookup, "EVT_TEST_A", None, "EVT_TEST_A_E01", None
+    )
+    assert result is None
