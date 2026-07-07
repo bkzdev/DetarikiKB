@@ -110,7 +110,8 @@ def test_policy_doc_states_filter_policy():
     )[0]
     assert "--include-types" in filter_section
     assert "--exclude-types" in filter_section
-    assert "本PRでは実装しない" in filter_section
+    assert "--public-profile" in filter_section
+    assert "evidence-index-generation-filtering" in filter_section
 
 
 def test_policy_doc_states_evidence_page_size_policy():
