@@ -205,6 +205,8 @@ Normalized Story JSONのblock typeと整合させる（`Normalized_Story_JSON.md
 - `unknown`を許容する（Parser側の`unknown`ブロック方針と一貫させる）
 - `@ChTalk`等raw commandは公開indexのtype/どのフィールドにも出さない
 
+**Public promotion時の初期公開対象entry type（`evidence-index-generation-review`で決定）**: `stage_direction`は実データdry-runでentry数の大半（PR #85実データで約9割）を占めることが判明したため、初期Public Evidence Indexへの昇格時は原則除外する。初期公開対象は`dialogue`/`monologue`/`narration`/`choice`/`unknown`とし、`stage_direction`/`scene`/`episode`/`story`/`speaker_label`は除外または保留とする。詳細な比較・promotion criteria・filter policyは`docs/architecture/06_AI/Evidence_Index_Promotion_Policy.md`を参照。
+
 ---
 
 # 9. Evidence ID link方針（次PR以降、本PRでは未実装）
@@ -260,6 +262,7 @@ evidence/{publicEpisodeId or episodeId}.md#EVT_SAMPLE_E01_DLG0001
 | Phase 2: `evidence-index-schema-implementation` | `schemas/evidence_index.schema.json`、`docs/templates/evidence_index_template.yaml`、synthetic fixture、validator script、loader | 完了 |
 | Phase 3: `evidence-index-renderer-integration` | Evidence page生成、Story Summary/Episode Summary evidenceRefsのリンク化、Story pageからEvidence pageへの導線、raw text非表示の維持 | **完了（本PR）** |
 | Phase 4: `evidence-index-generation-dry-run` | Normalized Story JSON/Extraction ResultからEvidence index候補を生成、workspace配下でのdry-run、review後にpublic-safe evidence indexへ昇格 | **完了（本PR、昇格運用のみ未着手）** |
+| Phase 4.5: `evidence-index-generation-review` | dry-run結果レビュー、public entry type方針、promotion/exclusion criteria設計（`docs/architecture/06_AI/Evidence_Index_Promotion_Policy.md`） | **完了** |
 | Phase 5: Internal review packets | raw textや詳細contextを含むreview packetをworkspace配下に生成（commit禁止）、public wikiとは分離 | 未着手 |
 
 **実装状況（`feature/evidence-index-schema-implementation`で実施）**: `schemas/evidence_index.schema.json`（§13データモデル案をそのまま実装。`evidenceType`10種enum・`visibility.rawTextIncluded`を`const: false`で固定）、`agents/wiki_generator/evidence_index.py`（loader/validator、`build_evidence_id_index`/`group_entries_by_story`/`group_entries_by_public_story`/`group_entries_by_episode`/`group_entries_by_public_episode`等のhelper）、`scripts/validate_evidence_index.py`（schema検証・duplicate evidenceId検出・raw text禁止文字列検出・`visibility.public`/`rawTextIncluded`検証）、`docs/templates/evidence_index_template.yaml`、合成fixture（`tests/fixtures/evidence_index/`）を追加した。保存場所は`knowledge/evidence/stories/`を採用し`.gitkeep`のみで実データ未投入。
@@ -408,4 +411,5 @@ entries:
 - `docs/architecture/06_AI/Extraction_Pipeline.md`（§6 Evidenceの扱い）
 - `agents/wiki_generator/renderer.py`（`_render_evidence_refs_line`、現行evidenceRefsテキスト表示実装）
 - `docs/runbooks/Evidence_Index_Generation_Dry_Run.md`（`scripts/build_evidence_index_candidates.py`によるEvidence Index候補生成dry-run手順）
+- `docs/architecture/06_AI/Evidence_Index_Promotion_Policy.md`（dry-run結果レビュー、Public entry type方針、`knowledge/evidence/stories/`への昇格条件・除外条件・filter policy）
 - `TASKS.md`（次PR候補の追跡）
