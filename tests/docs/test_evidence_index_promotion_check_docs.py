@@ -46,7 +46,8 @@ REQUIRED_RUNBOOK_SECTIONS = (
     "# 9. Summary evidenceRefs整合性チェック方針",
     "# 10. commit前チェックリスト",
     "# 11. Non-goals",
-    "# 12. Next steps",
+    "# 12. Dry-run result",
+    "# 13. Next steps",
 )
 
 
@@ -140,3 +141,26 @@ def test_tasks_md_lists_next_pr_candidates():
     assert "evidence-index-promotion-dry-run" in content
     assert "evidence-index-promotion-copy-script" in content
     assert "internal-review-evidence-packet-design" in content
+
+
+def test_promotion_check_runbook_has_dry_run_result_section():
+    content = PROMOTION_CHECK_RUNBOOK_PATH.read_text(encoding="utf-8")
+    dry_run_section = content.split("# 12. Dry-run result", 1)[1].split(
+        "# 13. Next steps", 1
+    )[0]
+    assert "187" in dry_run_section
+    assert "PASS" in dry_run_section
+    assert "匿名化" in dry_run_section
+
+
+def test_promotion_check_runbook_has_known_limitations_and_follow_up():
+    content = PROMOTION_CHECK_RUNBOOK_PATH.read_text(encoding="utf-8")
+    assert "Known limitations" in content
+    assert "Follow-up tasks" in content
+
+
+def test_promotion_check_runbook_does_not_contain_real_data_hints():
+    """実イベント名・実ファイル名・rawPathを書かない方針の簡易チェック。"""
+    content = PROMOTION_CHECK_RUNBOOK_PATH.read_text(encoding="utf-8")
+    for forbidden in ("C:\\Users", "D:\\Dev", "EVT_260425", "CAMI3RD"):
+        assert forbidden not in content
