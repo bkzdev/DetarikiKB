@@ -13,14 +13,16 @@ generationStatus: "generated"
 storySummary:
   text: "合成CLI統合テスト用のpublicStoryId照合Story Summaryです。"
   confidence: 0.8
-  evidenceRefs: []
+  evidenceRefs:
+    - "TEST_PUBLIC_ID_STORY_E01_DLG0001"
 episodeSummaries:
   - episodeId: "EP_TEST_PUBLIC_001"
     publicEpisodeId: "PUBLIC_TEST_STORY_001_E01"
     episodeNumber: 1
     text: "合成CLI統合テスト用のpublicEpisodeId照合Episode Summaryです。"
     confidence: 0.6
-    evidenceRefs: []
+    evidenceRefs:
+      - "TEST_PUBLIC_ID_STORY_E01_DLG0001"
 source:
   sourceType: "ai_generated"
   model: "synthetic_test_model"

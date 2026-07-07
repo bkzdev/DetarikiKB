@@ -1958,3 +1958,342 @@ def test_render_story_page_does_not_crash_on_none_or_blank_summary_text(
     page = render_story_page("TEST_S01_C01", episodes, synthetic_collection, lookup)
     assert "未生成" in _story_summary_section(page)
     assert "未生成" in _episode_summaries_section(page)
+
+
+# ----------------------------------------------------------------
+# Story Summary / Episode Summary evidenceRefs display
+# (feature/story-summary-evidence-display)
+#
+# すべて合成データ (EVT_TEST_* 等のstoryId/publicStoryId・合成evidenceId)
+# のみを使う。実イベント名・実キャラ名・実あらすじ・実セリフ・実DEC由来
+# evidenceIdは一切含まない。
+# ----------------------------------------------------------------
+
+
+def test_reviewed_story_summary_evidence_refs_are_displayed(synthetic_collection):
+    lookup = _summary_lookup(
+        _raw_summary_document(
+            storySummary={
+                "text": "合成Story Summary本文。",
+                "evidenceRefs": [
+                    "TEST_S01_C01_E01_DLG0001",
+                    "TEST_S01_C01_E02_DLG0002",
+                ],
+            }
+        )
+    )
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection, lookup)
+    section = _story_summary_section(page)
+    assert (
+        "Evidence refs: `TEST_S01_C01_E01_DLG0001`, `TEST_S01_C01_E02_DLG0002`"
+        in section
+    )
+
+
+def test_approved_story_summary_evidence_refs_are_displayed(synthetic_collection):
+    lookup = _summary_lookup(
+        _raw_summary_document(
+            storySummary={
+                "text": "合成Story Summary本文。",
+                "evidenceRefs": ["TEST_S01_C01_E01_DLG0001"],
+            },
+            review={
+                "status": "approved",
+                "reviewer": None,
+                "reviewedAt": None,
+                "notes": None,
+            },
+        )
+    )
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection, lookup)
+    assert "Evidence refs: `TEST_S01_C01_E01_DLG0001`" in _story_summary_section(page)
+
+
+def test_story_summary_without_evidence_refs_shows_nothing_extra(
+    synthetic_collection,
+):
+    """evidenceRefsが空の場合、Evidence refs行自体を表示しない (案A)。"""
+    lookup = _summary_lookup(
+        _raw_summary_document(
+            storySummary={"text": "合成Story Summary本文。", "evidenceRefs": []}
+        )
+    )
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection, lookup)
+    section = _story_summary_section(page)
+    assert "合成Story Summary本文。" in section
+    assert "Evidence refs" not in section
+
+
+def test_unreviewed_story_summary_evidence_refs_are_not_displayed(
+    synthetic_collection,
+):
+    lookup = _summary_lookup(
+        _raw_summary_document(
+            storySummary={
+                "text": "この本文は表示されないはずです。",
+                "evidenceRefs": ["TEST_S01_C01_E01_DLG0001"],
+            },
+            review={
+                "status": "unreviewed",
+                "reviewer": None,
+                "reviewedAt": None,
+                "notes": None,
+            },
+        )
+    )
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection, lookup)
+    section = _story_summary_section(page)
+    assert "未生成" in section
+    assert "TEST_S01_C01_E01_DLG0001" not in section
+    assert "Evidence refs" not in section
+
+
+@pytest.mark.parametrize("status", ["rejected", "needs_revision"])
+def test_rejected_and_needs_revision_story_summary_evidence_refs_not_displayed(
+    synthetic_collection, status
+):
+    lookup = _summary_lookup(
+        _raw_summary_document(
+            storySummary={
+                "text": "この本文は表示されないはずです。",
+                "evidenceRefs": ["TEST_S01_C01_E01_DLG0001"],
+            },
+            review={
+                "status": status,
+                "reviewer": None,
+                "reviewedAt": None,
+                "notes": None,
+            },
+        )
+    )
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection, lookup)
+    section = _story_summary_section(page)
+    assert "未生成" in section
+    assert "Evidence refs" not in section
+
+
+@pytest.mark.parametrize("generation_status", ["draft", "deprecated"])
+def test_draft_and_deprecated_generation_status_evidence_refs_not_displayed(
+    synthetic_collection, generation_status
+):
+    lookup = _summary_lookup(
+        _raw_summary_document(
+            storySummary={
+                "text": "この本文は表示されないはずです。",
+                "evidenceRefs": ["TEST_S01_C01_E01_DLG0001"],
+            },
+            generationStatus=generation_status,
+        )
+    )
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection, lookup)
+    section = _story_summary_section(page)
+    assert "未生成" in section
+    assert "Evidence refs" not in section
+
+
+def test_story_summary_evidence_refs_not_displayed_when_text_blank(
+    synthetic_collection,
+):
+    """evidenceRefsだけがあってtextが空の場合、Story Summaryとしては
+    「未生成」のままであり、evidenceRefsも表示しない
+    (Story_Summary_Design.md §9・placeholder状態ではevidenceRefsを
+    表示しない方針)。"""
+    lookup = _summary_lookup(
+        _raw_summary_document(
+            storySummary={
+                "text": "   ",
+                "evidenceRefs": ["TEST_S01_C01_E01_DLG0001"],
+            }
+        )
+    )
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection, lookup)
+    section = _story_summary_section(page)
+    assert "未生成" in section
+    assert "Evidence refs" not in section
+
+
+def test_reviewed_episode_summary_evidence_refs_are_displayed(synthetic_collection):
+    lookup = _summary_lookup(
+        _raw_summary_document(
+            episodeSummaries=[
+                {
+                    "episodeId": "EP_TEST_001",
+                    "text": "合成Episode Summary本文。",
+                    "evidenceRefs": ["TEST_S01_C01_E01_DLG0001"],
+                }
+            ]
+        )
+    )
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection, lookup)
+    section = _episode_summaries_section(page)
+    assert "Evidence refs: `TEST_S01_C01_E01_DLG0001`" in section
+
+
+def test_episode_summary_evidence_refs_match_by_public_episode_id(
+    synthetic_collection,
+):
+    lookup = _summary_lookup(
+        _raw_summary_document(
+            storyId="TEST_PUBLIC_ID_STORY",
+            publicStoryId="PUBLIC_TEST_STORY_001",
+            episodeSummaries=[
+                {
+                    "episodeId": "NOT_THE_SAME_EPISODE_ID",
+                    "publicEpisodeId": "PUBLIC_TEST_STORY_001_E01",
+                    "text": "publicEpisodeId照合のEpisode Summary本文。",
+                    "evidenceRefs": ["TEST_PUBLIC_ID_STORY_E01_DLG0001"],
+                }
+            ],
+        )
+    )
+    episodes = _story_episodes(synthetic_collection, "TEST_PUBLIC_ID_STORY")
+    page = render_story_page(
+        "TEST_PUBLIC_ID_STORY", episodes, synthetic_collection, lookup
+    )
+    section = _episode_summaries_section(page)
+    assert "Evidence refs: `TEST_PUBLIC_ID_STORY_E01_DLG0001`" in section
+
+
+def test_episode_without_summary_does_not_show_evidence_refs(synthetic_collection):
+    """summaryが無いEpisodeは「未生成」のみで、Evidence refs行は
+    表示されない。"""
+    lookup = _summary_lookup(_raw_summary_document(episodeSummaries=[]))
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection, lookup)
+    section = _episode_summaries_section(page)
+    assert "Evidence refs" not in section
+
+
+def test_episode_evidence_refs_do_not_leak_between_episodes(synthetic_collection):
+    """Episode 1のevidenceRefsがEpisode 2以降に混ざらないことを確認する。"""
+    lookup = _summary_lookup(
+        _raw_summary_document(
+            episodeSummaries=[
+                {
+                    "episodeId": "EP_TEST_001",
+                    "text": "Episode 1の本文。",
+                    "evidenceRefs": ["TEST_S01_C01_E01_DLG0001"],
+                },
+                {
+                    "episodeId": "EP_TEST_002",
+                    "text": "Episode 2の本文。",
+                    "evidenceRefs": ["TEST_S01_C01_E02_DLG0002"],
+                },
+            ]
+        )
+    )
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection, lookup)
+    section = _episode_summaries_section(page)
+    ep1_block = section.split("### Episode 2", 1)[0]
+    ep2_block = section.split("### Episode 2", 1)[1]
+    assert "TEST_S01_C01_E01_DLG0001" in ep1_block
+    assert "TEST_S01_C01_E02_DLG0002" not in ep1_block
+    assert "TEST_S01_C01_E02_DLG0002" in ep2_block
+    assert "TEST_S01_C01_E01_DLG0001" not in ep2_block
+
+
+def test_evidence_refs_are_backtick_quoted(synthetic_collection):
+    lookup = _summary_lookup(
+        _raw_summary_document(
+            storySummary={
+                "text": "合成Story Summary本文。",
+                "evidenceRefs": ["TEST_S01_C01_E01_DLG0001"],
+            }
+        )
+    )
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection, lookup)
+    assert "`TEST_S01_C01_E01_DLG0001`" in page
+
+
+def test_evidence_refs_display_does_not_leak_raw_text(synthetic_collection):
+    lookup = _summary_lookup(
+        _raw_summary_document(
+            storySummary={
+                "text": "合成Story Summary本文。",
+                "evidenceRefs": ["TEST_S01_C01_E01_DLG0001"],
+            },
+            episodeSummaries=[
+                {
+                    "episodeId": "EP_TEST_001",
+                    "text": "合成Episode Summary本文。",
+                    "evidenceRefs": ["TEST_S01_C01_E01_DLG0001"],
+                }
+            ],
+        )
+    )
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection, lookup)
+    assert ".dec" not in page
+    assert "@ChTalk" not in page
+    assert "$num" not in page
+    assert "C:\\" not in page
+    assert "D:\\" not in page
+
+
+def test_evidence_refs_deduplicated_and_order_preserved(synthetic_collection):
+    lookup = _summary_lookup(
+        _raw_summary_document(
+            storySummary={
+                "text": "合成Story Summary本文。",
+                "evidenceRefs": [
+                    "TEST_S01_C01_E02_DLG0002",
+                    "TEST_S01_C01_E01_DLG0001",
+                    "TEST_S01_C01_E02_DLG0002",
+                ],
+            }
+        )
+    )
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection, lookup)
+    section = _story_summary_section(page)
+    assert (
+        "Evidence refs: `TEST_S01_C01_E02_DLG0002`, `TEST_S01_C01_E01_DLG0001`"
+        in section
+    )
+
+
+def test_evidence_refs_ignores_non_string_entries(synthetic_collection):
+    """evidenceRefs内に非文字列・空文字・whitespaceが混ざっていても
+    rendererが落ちずに安全にfallbackすることを確認する。"""
+    lookup = _summary_lookup(
+        _raw_summary_document(
+            storySummary={
+                "text": "合成Story Summary本文。",
+                "evidenceRefs": ["", "   ", "TEST_S01_C01_E01_DLG0001", None, 123],
+            }
+        )
+    )
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection, lookup)
+    section = _story_summary_section(page)
+    assert "Evidence refs: `TEST_S01_C01_E01_DLG0001`" in section
+
+
+def test_evidence_refs_display_does_not_affect_episode_page(synthetic_collection):
+    """Episode pageへのevidenceRefs表示はこのPRでは対象外
+    (story-summary-evidence-display Non-goals)。"""
+    lookup = _summary_lookup(
+        _raw_summary_document(
+            episodeSummaries=[
+                {
+                    "episodeId": "EP_TEST_001",
+                    "text": "合成Episode Summary本文。",
+                    "evidenceRefs": ["TEST_S01_C01_E01_DLG0001"],
+                }
+            ]
+        )
+    )
+    pages = build_pages(synthetic_collection, story_summary_lookup=lookup)
+    episode_page = pages["stories/EP_TEST_001.md"]
+    assert "Evidence refs" not in episode_page
+    assert "TEST_S01_C01_E01_DLG0001" not in episode_page

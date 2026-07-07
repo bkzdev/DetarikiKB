@@ -12,14 +12,17 @@ generationStatus: "generated"
 storySummary:
   text: "合成CLI統合テスト用のStory Summaryです。"
   confidence: 0.7
-  evidenceRefs: []
+  evidenceRefs:
+    - "TEST_S01_C01_E01_DLG0001"
+    - "TEST_S01_C01_E02_DLG0002"
 episodeSummaries:
   - episodeId: "EP_TEST_001"
     publicEpisodeId: null
     episodeNumber: 1
     text: "合成CLI統合テスト用のEpisode Summaryです (EP_TEST_001)。"
     confidence: 0.6
-    evidenceRefs: []
+    evidenceRefs:
+      - "TEST_S01_C01_E01_DLG0001"
 source:
   sourceType: "manual"
   model: null
