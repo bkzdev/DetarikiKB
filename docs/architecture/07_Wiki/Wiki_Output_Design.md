@@ -301,6 +301,7 @@ Relationship page（独立ページ）は現時点では見送り、Character/Or
 - 表示: マージに使われたepisode_extractionドキュメントの一覧（`documentId`/`episodeId`/`candidateCounts`）
 - Phase 3。実データのepisode一覧をそのまま公開する意味があるかは、公開方針決定時に再検討する
 - **詳細設計（`feature/story-summary-evidence-index-design`で追加）**: Summary `evidenceRefs`の将来リンク先となるEvidence indexの詳細設計を`docs/architecture/06_AI/Evidence_Index_Design.md`にまとめた。Public Evidence Index（raw textを含まない公開用索引）とInternal Review Evidence Packet（内部review用、`workspace/`配下・commit禁止）を分離し、source of truthはDedicated Evidence Index file（Normalized Story JSON/Extraction Resultから安全な情報のみ抽出）を採用する方針。初期推奨はStory別Evidence page（`evidence/{publicStoryId or storyId}.md`）。**本PRでは設計のみで、schema実装・Evidence page生成・evidenceRefsのリンク化は行っていない**（次PR`evidence-index-schema-implementation`）。
+- **schema実装（`feature/evidence-index-schema-implementation`で追加）**: `schemas/evidence_index.schema.json`・`agents/wiki_generator/evidence_index.py`（loader/validator）・`scripts/validate_evidence_index.py`（CLI）・`docs/templates/evidence_index_template.yaml`・合成fixtureを追加した。保存場所は`knowledge/evidence/stories/{storyId}.yaml`。**Evidence page生成・renderer統合・evidenceRefsのリンク化は行っていない**（次PR`evidence-index-renderer-integration`）。
 
 ## 9.17 AI analysis / speculation page
 

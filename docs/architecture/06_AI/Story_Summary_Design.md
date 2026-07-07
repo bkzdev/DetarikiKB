@@ -316,6 +316,8 @@ notes: null
 
 **Evidence index設計（`feature/story-summary-evidence-index-design`で実施）**: `evidenceRefs`テキスト表示の次段階として、将来のリンク先となるEvidence indexの役割・データモデル・公開範囲（Public Evidence Index / Internal Review Evidence Packet）を`docs/architecture/06_AI/Evidence_Index_Design.md`で設計した。初期推奨はStory別Evidence page（`evidence/{publicStoryId or storyId}.md`）、Evidence indexはAI Analysis/Speculationとは分離する。**本PRではschema実装・renderer統合・リンク化は行っていない**（設計のみ、次PR`evidence-index-schema-implementation`）。
 
+**Evidence index schema実装（`feature/evidence-index-schema-implementation`で実施）**: `schemas/evidence_index.schema.json`・`agents/wiki_generator/evidence_index.py`（loader/validator）・`scripts/validate_evidence_index.py`（CLI）を実装した。保存場所は`knowledge/evidence/stories/{storyId}.yaml`（`.gitkeep`のみ、実データ未投入）。**Story Summary/Episode SummaryのevidenceRefsをEvidence indexへリンク化する統合はまだ行っていない**（次PR`evidence-index-renderer-integration`）。
+
 ---
 
 # 10. Renderer integration plan（次PR以降の統合方針、本PRでは未実装）

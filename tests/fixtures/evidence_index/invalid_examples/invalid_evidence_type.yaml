@@ -1,0 +1,14 @@
+# Synthetic INVALID fixture: evidenceType is a raw command name
+# (@ChTalk), which must fail JSON Schema validation (enum). 完全な
+# 合成データのみ。このファイルはtests/fixtures/evidence_index直下では
+# なくinvalid_examples/配下に置く (非再帰的directory走査で除外される)。
+
+evidenceIndexVersion: 1
+entries:
+  - evidenceId: "EVT_TEST_EVIDENCE_BAD_TYPE_E01_DLG0001"
+    evidenceType: "@ChTalk"
+    storyId: "EVT_TEST_EVIDENCE_BAD_TYPE"
+    episodeId: "EVT_TEST_EVIDENCE_BAD_TYPE_E01"
+    visibility:
+      public: true
+      rawTextIncluded: false

@@ -1,0 +1,268 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://detariki-kb/schemas/evidence_index.schema.json",
+  "title": "Evidence Index (Public Evidence Index)",
+  "description": "knowledge/evidence/stories/{storyId}.yaml のスキーマ。1ファイル = 1 story を想定するが、複数storyをまとめたindexも許容する。Story Summary/Episode SummaryのevidenceRefsが将来参照する索引 (Public Evidence Index) を保持する。raw dialogue text/raw DEC command/local pathは一切含めない（docs/architecture/06_AI/Evidence_Index_Design.md参照）。Internal Review Evidence Packet（raw text等を含みうる内部review用データ）は本schemaの対象外であり、別途workspace配下で扱う。",
+
+  "type": "object",
+  "required": ["evidenceIndexVersion", "entries"],
+  "additionalProperties": false,
+
+  "properties": {
+    "evidenceIndexVersion": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "本schemaのバージョン (整数)"
+    },
+    "generatedFrom": {
+      "oneOf": [
+        { "$ref": "#/definitions/GeneratedFrom" },
+        { "type": "null" }
+      ],
+      "description": "この索引の生成元参照 (Normalized Story JSON/Extraction Result)。任意、監査用途"
+    },
+    "entries": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/EvidenceIndexEntry" },
+      "description": "Evidence index entryの一覧。空配列も有効"
+    },
+    "notes": {
+      "oneOf": [{ "type": "string" }, { "type": "null" }],
+      "description": "自由記述の補足。実データ本文の転記はしない"
+    }
+  },
+
+  "definitions": {
+
+    "GeneratedFrom": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "normalizedStoryRefs": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/NormalizedStoryRef" }
+        },
+        "extractionRefs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "参照したextraction runの識別子等 (自由文字列、詳細は次PRで検討)"
+        }
+      }
+    },
+
+    "NormalizedStoryRef": {
+      "type": "object",
+      "required": ["storyId"],
+      "additionalProperties": false,
+      "properties": {
+        "storyId": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+        "episodeId": {
+          "oneOf": [
+            { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+            { "type": "null" }
+          ]
+        }
+      }
+    },
+
+    "EvidenceIndexEntry": {
+      "type": "object",
+      "required": ["evidenceId", "evidenceType", "storyId", "episodeId", "visibility"],
+      "additionalProperties": false,
+      "properties": {
+        "evidenceId": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$",
+          "description": "Block ID優先、粗い場合はScene/Episode/Story ID (Identifier_Specification.md §8)"
+        },
+        "evidenceType": {
+          "type": "string",
+          "enum": [
+            "dialogue",
+            "monologue",
+            "narration",
+            "choice",
+            "stage_direction",
+            "speaker_label",
+            "scene",
+            "episode",
+            "story",
+            "unknown"
+          ],
+          "description": "raw command名 (@ChTalk等) はtypeとして許可しない"
+        },
+        "storyId": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "publicStoryId": {
+          "oneOf": [
+            { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+            { "type": "null" }
+          ]
+        },
+        "episodeId": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "publicEpisodeId": {
+          "oneOf": [
+            { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+            { "type": "null" }
+          ]
+        },
+        "sceneId": {
+          "oneOf": [
+            { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+            { "type": "null" }
+          ]
+        },
+        "blockId": {
+          "oneOf": [
+            { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+            { "type": "null" }
+          ]
+        },
+        "speaker": {
+          "oneOf": [
+            { "$ref": "#/definitions/Speaker" },
+            { "type": "null" }
+          ]
+        },
+        "relatedEntities": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/RelatedEntity" }
+        },
+        "referencedBy": {
+          "oneOf": [
+            { "$ref": "#/definitions/ReferencedBy" },
+            { "type": "null" }
+          ]
+        },
+        "visibility": {
+          "$ref": "#/definitions/Visibility"
+        },
+        "notes": {
+          "oneOf": [{ "type": "string" }, { "type": "null" }]
+        }
+      }
+    },
+
+    "Speaker": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "speakerId": {
+          "oneOf": [
+            { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+            { "type": "null" }
+          ]
+        },
+        "displayName": {
+          "oneOf": [{ "type": "string" }, { "type": "null" }]
+        },
+        "resolutionStatus": {
+          "type": "string",
+          "enum": ["resolved", "unresolved", "ambiguous", "unknown"]
+        }
+      }
+    },
+
+    "RelatedEntity": {
+      "type": "object",
+      "required": ["entityType", "id"],
+      "additionalProperties": false,
+      "properties": {
+        "entityType": {
+          "type": "string",
+          "enum": [
+            "character",
+            "location",
+            "organization",
+            "item",
+            "lore",
+            "event",
+            "relationship"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$"
+        },
+        "displayName": {
+          "oneOf": [{ "type": "string" }, { "type": "null" }]
+        }
+      }
+    },
+
+    "ReferencedBy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "summaries": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/SummaryReference" }
+        },
+        "candidates": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/CandidateReference" }
+        }
+      }
+    },
+
+    "SummaryReference": {
+      "type": "object",
+      "required": ["storyId", "summaryType"],
+      "additionalProperties": false,
+      "properties": {
+        "storyId": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+        "summaryType": { "type": "string", "enum": ["story", "episode"] },
+        "episodeId": {
+          "oneOf": [
+            { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+            { "type": "null" }
+          ]
+        }
+      }
+    },
+
+    "CandidateReference": {
+      "type": "object",
+      "required": ["candidateId", "entityType"],
+      "additionalProperties": false,
+      "properties": {
+        "candidateId": { "type": "string" },
+        "entityType": {
+          "type": "string",
+          "enum": [
+            "character",
+            "location",
+            "organization",
+            "item",
+            "lore",
+            "event",
+            "relationship",
+            "timeline"
+          ]
+        }
+      }
+    },
+
+    "Visibility": {
+      "type": "object",
+      "required": ["public", "rawTextIncluded"],
+      "additionalProperties": false,
+      "properties": {
+        "public": {
+          "type": "boolean",
+          "description": "Public Evidence Index内のentryは常にtrueを想定する (validator側でも確認する)"
+        },
+        "rawTextIncluded": {
+          "type": "boolean",
+          "const": false,
+          "description": "Public Evidence Indexでは常にfalse固定 (raw textを含めないことの保証)"
+        }
+      }
+    }
+  }
+}

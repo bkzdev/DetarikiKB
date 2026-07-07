@@ -1,0 +1,86 @@
+# Synthetic evidence index fixture for schema/loader/validator tests.
+# 完全な合成データのみ (実イベント名・実キャラ名・実セリフは含まない)。
+
+evidenceIndexVersion: 1
+generatedFrom:
+  normalizedStoryRefs:
+    - storyId: "EVT_TEST_EVIDENCE_ONE"
+      episodeId: "EVT_TEST_EVIDENCE_ONE_E01"
+  extractionRefs: []
+entries:
+  - evidenceId: "EVT_TEST_EVIDENCE_ONE_E01_DLG0001"
+    evidenceType: "dialogue"
+    storyId: "EVT_TEST_EVIDENCE_ONE"
+    publicStoryId: "EVT_TEST_PUBLIC_EVIDENCE_001"
+    episodeId: "EVT_TEST_EVIDENCE_ONE_E01"
+    publicEpisodeId: "EVT_TEST_PUBLIC_EVIDENCE_001_E01"
+    sceneId: "EVT_TEST_EVIDENCE_ONE_E01_SC001"
+    blockId: "EVT_TEST_EVIDENCE_ONE_E01_DLG0001"
+    speaker:
+      speakerId: "CHAR_TEST_001"
+      displayName: "Synthetic Speaker A"
+      resolutionStatus: "resolved"
+    relatedEntities:
+      - entityType: "character"
+        id: "CHAR_TEST_001"
+        displayName: "Synthetic Speaker A"
+    referencedBy:
+      summaries:
+        - storyId: "EVT_TEST_EVIDENCE_ONE"
+          summaryType: "episode"
+          episodeId: "EVT_TEST_EVIDENCE_ONE_E01"
+      candidates: []
+    visibility:
+      public: true
+      rawTextIncluded: false
+    notes: null
+  - evidenceId: "EVT_TEST_EVIDENCE_ONE_E01_NAR0001"
+    evidenceType: "narration"
+    storyId: "EVT_TEST_EVIDENCE_ONE"
+    publicStoryId: "EVT_TEST_PUBLIC_EVIDENCE_001"
+    episodeId: "EVT_TEST_EVIDENCE_ONE_E01"
+    publicEpisodeId: null
+    sceneId: "EVT_TEST_EVIDENCE_ONE_E01_SC001"
+    blockId: null
+    speaker: null
+    relatedEntities: []
+    referencedBy:
+      summaries:
+        - storyId: "EVT_TEST_EVIDENCE_ONE"
+          summaryType: "story"
+      candidates: []
+    visibility:
+      public: true
+      rawTextIncluded: false
+    notes: null
+  - evidenceId: "EVT_TEST_EVIDENCE_ONE_E01_STAGE0001"
+    evidenceType: "stage_direction"
+    storyId: "EVT_TEST_EVIDENCE_ONE"
+    publicStoryId: null
+    episodeId: "EVT_TEST_EVIDENCE_ONE_E01"
+    publicEpisodeId: null
+    sceneId: null
+    blockId: null
+    speaker: null
+    relatedEntities: []
+    referencedBy: null
+    visibility:
+      public: true
+      rawTextIncluded: false
+    notes: "Synthetic stage direction entry."
+  - evidenceId: "EVT_TEST_EVIDENCE_ONE_E01_UNKNOWN0001"
+    evidenceType: "unknown"
+    storyId: "EVT_TEST_EVIDENCE_ONE"
+    publicStoryId: null
+    episodeId: "EVT_TEST_EVIDENCE_ONE_E01"
+    publicEpisodeId: null
+    sceneId: null
+    blockId: null
+    speaker: null
+    relatedEntities: []
+    referencedBy: null
+    visibility:
+      public: true
+      rawTextIncluded: false
+    notes: null
+notes: null
