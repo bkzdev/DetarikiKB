@@ -131,11 +131,13 @@ uv run python scripts/render_wiki.py \
 
 # 7. dry-run結果からEvidence Indexへの昇格（本ドキュメントでは行わない）
 
-生成されたEvidence Index候補（`workspace/evidence_index_dry_runs/`配下）は**人間レビュー前のローカル専用データ**であり、以下はこのdry-run手順の対象外である（将来PR`evidence-index-generation-review`等の検討課題）。
+生成されたEvidence Index候補（`workspace/evidence_index_dry_runs/`配下）は**人間レビュー前のローカル専用データ**であり、以下はこのdry-run手順の対象外である。
 
 - `knowledge/evidence/stories/{storyId}.yaml`への昇格判断・実際の配置
 - 生成候補の妥当性レビュー（speaker解決の正確性、related entities過不足等）のワークフロー
 - 複数回のdry-run結果の差分比較
+
+`evidence-index-generation-review`でPR #85の実データdry-run結果をレビューし、Public Evidence Indexの初期公開対象entry type・`knowledge/evidence/stories/`への昇格条件（promotion criteria）・除外条件（exclusion criteria）・filter policy・Evidence page size policyを`docs/architecture/06_AI/Evidence_Index_Promotion_Policy.md`にまとめた。**同文書でもpromotion script実装・filter機能実装・実Evidence Indexのcommitは行っていない**（設計のみ、次候補`evidence-index-generation-filtering`/`evidence-index-promotion-policy-implementation`）。
 
 ---
 
@@ -170,5 +172,6 @@ uv run python scripts/render_wiki.py \
 
 - `docs/runbooks/Real_Data_Dry_Run.md`（Normalized Story JSON/Extraction Result/Merged Knowledge Collection生成手順）
 - `docs/architecture/06_AI/Evidence_Index_Design.md`（Evidence Indexの役割・raw text非表示方針・データモデル・実装フェーズ）
+- `docs/architecture/06_AI/Evidence_Index_Promotion_Policy.md`（本手順で生成した候補のPublic entry type方針・昇格条件・除外条件・filter policy）
 - `docs/architecture/07_Wiki/Wiki_Output_Design.md` §9.16（Evidence page renderer統合）
 - `TASKS.md`（次PR候補の追跡）
