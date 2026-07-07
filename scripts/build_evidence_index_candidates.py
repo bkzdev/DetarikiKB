@@ -28,8 +28,28 @@ generation-dry-run）:
 - Internal Review Evidence Packetは生成しない（Public Evidence Index
   候補のみを対象とする）
 
+**entry type filtering**（`docs/architecture/06_AI/Evidence_Index_Promotion_Policy.md`
+§4・§7、feature/evidence-index-generation-filtering）:
+- `--public-profile default|full|review`でPublic向け/全件/review向けの
+  evidenceType集合を切り替える。**デフォルトは`default`**（Public向け、
+  `stage_direction`を除外する）。PR #85相当の全type生成が必要な場合は
+  `--public-profile full`を指定する
+- `--include-types`/`--exclude-types`（comma区切りのevidenceType一覧）で
+  profileのtype集合を上書き・追加除外できる。優先順位は
+  「profile → `--include-types`（指定時はprofileのinclude集合を丸ごと
+  置き換え） → `--exclude-types`（常に最後に適用、includeと衝突時は
+  excludeが勝つ）」
+- filterで除外されたBlockは**skip（`skippedBlockCount`）ではなく
+  filter（`filteredEntryCount`）としてカウントする**（IDが無い/type未対応で
+  「そもそも候補化できない」skipと、「候補化はできるがprofileにより
+  出力しない」filterは意味が異なるため区別する）
+- `referencedBy.candidates`はfilterで出力対象になったentryにのみ付与する
+  （filteredで除外されたentryのcandidate referencesはreportにも出力YAMLにも
+  含まれない）
+
 Usage:
     # Normalized Story JSON単体、または directory (直下の*.jsonを収集)
+    # --public-profileを省略した場合はdefault（Public向け、stage_direction除外）
     uv run python scripts/build_evidence_index_candidates.py \\
         --input workspace/dry_runs/evidence_index_generation/normalized \\
         --output workspace/evidence_index_dry_runs/evidence_index_generation \\
@@ -42,11 +62,19 @@ Usage:
         --output workspace/evidence_index_dry_runs/evidence_index_generation \\
         --clean
 
+    # stage_directionも含めた全type生成 (review/internal用途)
+    uv run python scripts/build_evidence_index_candidates.py \\
+        --input workspace/dry_runs/evidence_index_generation/normalized \\
+        --output workspace/evidence_index_dry_runs/evidence_index_generation_full \\
+        --public-profile full \\
+        --clean
+
 Exit codes:
     0: 生成成功（0件の場合も含む）
     1: 生成したEvidence Index候補がschema検証/整合性検証に失敗した、
        または入力JSONの読み込みに失敗した (すべての入力が読めなかった場合)
-    2: --inputパスが見つからない
+    2: --inputパスが見つからない、または--include-types/--exclude-types に
+       未知のevidenceTypeが指定された
 """
 
 from __future__ import annotations
@@ -66,6 +94,7 @@ if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
 from agents.wiki_generator.evidence_index import (  # noqa: E402
+    VALID_EVIDENCE_TYPES,
     EvidenceIndexCollection,
     parse_evidence_index_document,
     validate_evidence_index_collection,
@@ -82,6 +111,28 @@ BLOCK_TYPE_TO_EVIDENCE_TYPE: dict[str, str] = {
     "choice": "choice",
     "stage_direction": "stage_direction",
     "unknown": "unknown",
+}
+
+# このスクリプトが実際に生成しうるevidenceType (Scene/Episode/Story/
+# speaker_labelは生成しないため含まない)。
+GENERATABLE_EVIDENCE_TYPES: frozenset[str] = frozenset(
+    BLOCK_TYPE_TO_EVIDENCE_TYPE.values()
+)
+
+# public-profile方針 (docs/architecture/06_AI/Evidence_Index_Promotion_Policy.md
+# §4・§7)。PR #86で決定したPublic向け初期公開entry typeを"default"の既定値に
+# する。"review"は本PRでは"full"と同じ挙動 (将来Internal Review Evidence
+# Packetに寄せる可能性があるため名前だけ予約する)。
+PUBLIC_PROFILE_DEFAULT = "default"
+PUBLIC_PROFILE_FULL = "full"
+PUBLIC_PROFILE_REVIEW = "review"
+
+PUBLIC_PROFILES: dict[str, frozenset[str]] = {
+    PUBLIC_PROFILE_DEFAULT: frozenset(
+        {"dialogue", "monologue", "narration", "choice", "unknown"}
+    ),
+    PUBLIC_PROFILE_FULL: GENERATABLE_EVIDENCE_TYPES,
+    PUBLIC_PROFILE_REVIEW: GENERATABLE_EVIDENCE_TYPES,
 }
 
 # Extraction Result側のcandidate配列キー -> CandidateReference.entityType
@@ -113,6 +164,22 @@ RAW_TEXT_FIELD_NAMES: tuple[str, ...] = (
 # ----------------------------------------------------------------
 # Argument parser
 # ----------------------------------------------------------------
+
+
+def _parse_evidence_type_list(value: str) -> tuple[str, ...]:
+    """comma区切りのevidenceType一覧を検証しながらパースする。
+
+    argparseの`type=`に渡すことで、未知のtypeが指定された場合に
+    argparse自身がusageを表示してexit code 2で終了する。
+    """
+    types = tuple(t.strip() for t in value.split(",") if t.strip())
+    invalid = sorted({t for t in types if t not in VALID_EVIDENCE_TYPES})
+    if invalid:
+        raise argparse.ArgumentTypeError(
+            f"未知のevidenceType: {', '.join(invalid)} "
+            f"(有効な値: {', '.join(sorted(VALID_EVIDENCE_TYPES))})"
+        )
+    return types
 
 
 def parse_args() -> argparse.Namespace:
@@ -160,6 +227,34 @@ def parse_args() -> argparse.Namespace:
         help=f"evidence_index.schema.jsonのパス (デフォルト: {DEFAULT_SCHEMA_PATH})",
     )
     parser.add_argument(
+        "--public-profile",
+        choices=sorted(PUBLIC_PROFILES),
+        default=PUBLIC_PROFILE_DEFAULT,
+        help=(
+            "生成対象evidenceTypeのprofile (デフォルト: default = Public向け、"
+            "stage_directionを除外。full/reviewはstage_directionを含む全type)"
+        ),
+    )
+    parser.add_argument(
+        "--include-types",
+        type=_parse_evidence_type_list,
+        default=None,
+        help=(
+            "comma区切りのevidenceType一覧。指定した場合、--public-profileの"
+            "include集合をこの一覧で置き換える (例: dialogue,narration)"
+        ),
+    )
+    parser.add_argument(
+        "--exclude-types",
+        type=_parse_evidence_type_list,
+        default=None,
+        help=(
+            "comma区切りのevidenceType一覧。--public-profile/--include-types"
+            "で決まった集合から、常に最後にこの一覧を除外する"
+            "(includeと衝突した場合はexcludeが勝つ)"
+        ),
+    )
+    parser.add_argument(
         "--clean",
         action="store_true",
         help="出力先ディレクトリを書き込み前に削除する",
@@ -171,6 +266,25 @@ def parse_args() -> argparse.Namespace:
         help="進捗メッセージを抑制する",
     )
     return parser.parse_args()
+
+
+def _resolve_included_types(args: argparse.Namespace) -> frozenset[str]:
+    """--public-profile/--include-types/--exclude-typesから、最終的に
+    出力対象とするevidenceType集合を決定する
+    (Evidence_Index_Promotion_Policy.md §4・§7の優先順位)。
+
+    1. --public-profileのinclude集合から開始する
+    2. --include-typesが指定されていれば、profileのinclude集合を
+       丸ごと置き換える (union ではなく置き換え)
+    3. --exclude-typesが指定されていれば、常に最後に除外する
+       (includeと衝突した場合はexcludeが勝つ)
+    """
+    included = set(PUBLIC_PROFILES[args.public_profile])
+    if args.include_types is not None:
+        included = set(args.include_types)
+    if args.exclude_types is not None:
+        included -= set(args.exclude_types)
+    return frozenset(included)
 
 
 # ----------------------------------------------------------------
@@ -249,6 +363,8 @@ class GenerationStats:
     def __init__(self) -> None:
         self.skipped_reason_counts: dict[str, int] = {}
         self.entries_by_evidence_type: dict[str, int] = {}
+        self.filtered_reason_counts: dict[str, int] = {}
+        self.filtered_by_type_counts: dict[str, int] = {}
         self.raw_text_fields_ignored_count = 0
         self.episode_count = 0
 
@@ -262,6 +378,19 @@ class GenerationStats:
             self.entries_by_evidence_type.get(evidence_type, 0) + 1
         )
 
+    def record_filtered(self, evidence_type: str) -> None:
+        """Block自体は候補化できたが、--public-profile/--include-types/
+        --exclude-typesにより出力対象外となったentryを記録する
+        (IDが無い・type未対応で候補化自体できないskipとは区別する、
+        Evidence_Index_Promotion_Policy.md §5・§6)。"""
+        reason = f"excluded_by_profile:{evidence_type}"
+        self.filtered_reason_counts[reason] = (
+            self.filtered_reason_counts.get(reason, 0) + 1
+        )
+        self.filtered_by_type_counts[evidence_type] = (
+            self.filtered_by_type_counts.get(evidence_type, 0) + 1
+        )
+
     @property
     def skipped_block_count(self) -> int:
         return sum(self.skipped_reason_counts.values())
@@ -269,6 +398,10 @@ class GenerationStats:
     @property
     def generated_entry_count(self) -> int:
         return sum(self.entries_by_evidence_type.values())
+
+    @property
+    def filtered_entry_count(self) -> int:
+        return sum(self.filtered_by_type_counts.values())
 
 
 def _build_speaker_and_related_entities(
@@ -353,6 +486,7 @@ def _process_block(
     scene_id: str | None,
     location_id: str | None,
     candidate_index: dict[str, list[dict[str, str]]],
+    included_types: frozenset[str],
     stats: GenerationStats,
 ) -> dict[str, Any] | None:
     if any(field_name in block for field_name in RAW_TEXT_FIELD_NAMES):
@@ -367,6 +501,13 @@ def _process_block(
     evidence_type = BLOCK_TYPE_TO_EVIDENCE_TYPE.get(block_type)
     if evidence_type is None:
         stats.record_skip(f"unmapped_block_type:{block_type}")
+        return None
+
+    if evidence_type not in included_types:
+        # 候補化はできるが、--public-profile/--include-types/--exclude-types
+        # により出力対象外 (skipではなくfilter、candidate referencesも
+        # 付与しない、Evidence_Index_Promotion_Policy.md §5・§6)。
+        stats.record_filtered(evidence_type)
         return None
 
     entry = _build_entry(
@@ -393,6 +534,7 @@ def _non_blank(value: Any) -> str | None:
 def _process_normalized_story_document(
     document: dict[str, Any],
     candidate_index: dict[str, list[dict[str, str]]],
+    included_types: frozenset[str],
     stats: GenerationStats,
 ) -> dict[str, dict[str, Any]]:
     """1つのNormalized Story JSONドキュメントを処理し、
@@ -429,6 +571,7 @@ def _process_normalized_story_document(
                     scene_id=scene_id,
                     location_id=location_id,
                     candidate_index=candidate_index,
+                    included_types=included_types,
                     stats=stats,
                 )
                 if entry is not None:
@@ -494,29 +637,35 @@ def _validate_raw_document(
     return validate_evidence_index_collection(collection)
 
 
-def _write_report(
-    output_dir: Path,
+def _build_report_dict(
     *,
     input_file_count: int,
     extraction_file_count: int,
-    story_documents: dict[str, dict[str, Any]],
+    story_count: int,
     stats: GenerationStats,
     written_files: list[str],
     validation_issues: dict[str, list[str]],
-) -> None:
-    story_count = len(story_documents)
-    candidate_reference_count = sum(
-        1
-        for data in story_documents.values()
-        for entry in data["entries"]
-        if entry.get("referencedBy")
-    )
-    report = {
+    public_profile: str,
+    included_types: frozenset[str],
+    excluded_types: frozenset[str],
+    candidate_reference_count: int,
+) -> dict[str, Any]:
+    return {
         "inputFileCount": input_file_count,
         "extractionInputFileCount": extraction_file_count,
         "storyCount": story_count,
         "episodeCount": stats.episode_count,
+        "publicProfile": public_profile,
+        "includedTypes": sorted(included_types),
+        "excludedTypes": sorted(excluded_types),
         "generatedEntryCount": stats.generated_entry_count,
+        "generatedEntryCountBeforeFilter": (
+            stats.generated_entry_count + stats.filtered_entry_count
+        ),
+        "generatedEntryCountAfterFilter": stats.generated_entry_count,
+        "filteredEntryCount": stats.filtered_entry_count,
+        "filteredReasonCounts": stats.filtered_reason_counts,
+        "filteredByTypeCounts": stats.filtered_by_type_counts,
         "skippedBlockCount": stats.skipped_block_count,
         "skippedReasonCounts": stats.skipped_reason_counts,
         "entriesByEvidenceType": stats.entries_by_evidence_type,
@@ -529,61 +678,123 @@ def _write_report(
         },
     }
 
-    output_dir.mkdir(parents=True, exist_ok=True)
-    (output_dir / "report.json").write_text(
-        json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
-    )
 
+def _append_counted_lines(
+    lines: list[str], heading: str, counts: dict[str, int], *, empty_label: str
+) -> None:
+    lines.append(heading)
+    lines.append("")
+    if counts:
+        for key, count in sorted(counts.items()):
+            lines.append(f"- {key}: {count}")
+    else:
+        lines.append(f"- {empty_label}")
+    lines.append("")
+
+
+def _build_report_markdown_lines(report: dict[str, Any]) -> list[str]:
     lines = [
         "# Evidence Index Generation Dry-Run Report",
         "",
-        f"- Input files (normalized): {input_file_count}",
-        f"- Input files (extractions): {extraction_file_count}",
-        f"- Story count: {story_count}",
-        f"- Episode count: {stats.episode_count}",
-        f"- Generated entry count: {stats.generated_entry_count}",
-        f"- Skipped block count: {stats.skipped_block_count}",
-        f"- Raw text fields ignored (blocks): {stats.raw_text_fields_ignored_count}",
-        f"- Candidate references attached: {candidate_reference_count}",
+        f"- Input files (normalized): {report['inputFileCount']}",
+        f"- Input files (extractions): {report['extractionInputFileCount']}",
+        f"- Story count: {report['storyCount']}",
+        f"- Episode count: {report['episodeCount']}",
+        f"- Public profile: {report['publicProfile']}",
+        "- Generated entry count (before filter): "
+        f"{report['generatedEntryCountBeforeFilter']}",
+        "- Generated entry count (after filter): "
+        f"{report['generatedEntryCountAfterFilter']}",
+        f"- Filtered entry count: {report['filteredEntryCount']}",
+        f"- Skipped block count: {report['skippedBlockCount']}",
+        f"- Raw text fields ignored (blocks): {report['rawTextFieldsIgnoredCount']}",
+        "- Candidate references attached: "
+        f"{report['candidateReferencesAttachedCount']}",
         "",
-        "## Skipped reason counts",
+        "## Filter",
+        "",
+        f"- Included types: {', '.join(report['includedTypes']) or '(none)'}",
+        f"- Excluded types: {', '.join(report['excludedTypes']) or '(none)'}",
         "",
     ]
-    if stats.skipped_reason_counts:
-        for reason, count in sorted(stats.skipped_reason_counts.items()):
-            lines.append(f"- {reason}: {count}")
+    if report["filteredByTypeCounts"]:
+        for evidence_type, count in sorted(report["filteredByTypeCounts"].items()):
+            lines.append(f"- filtered {evidence_type}: {count}")
     else:
-        lines.append("- (none)")
+        lines.append("- (no entries filtered)")
     lines.append("")
-    lines.append("## Entries by evidenceType")
-    lines.append("")
-    if stats.entries_by_evidence_type:
-        for evidence_type, count in sorted(stats.entries_by_evidence_type.items()):
-            lines.append(f"- {evidence_type}: {count}")
-    else:
-        lines.append("- (none)")
-    lines.append("")
+    _append_counted_lines(
+        lines,
+        "## Skipped reason counts",
+        report["skippedReasonCounts"],
+        empty_label="(none)",
+    )
+    _append_counted_lines(
+        lines,
+        "## Entries by evidenceType (after filter)",
+        report["entriesByEvidenceType"],
+        empty_label="(none)",
+    )
     lines.append("## Output files")
     lines.append("")
-    if written_files:
-        for path in written_files:
-            lines.append(f"- {path}")
+    if report["outputFiles"]:
+        lines.extend(f"- {path}" for path in report["outputFiles"])
     else:
         lines.append("- (none)")
     lines.append("")
     lines.append("## Validation")
     lines.append("")
+    validation_issues = report["validation"]["issuesByStoryId"]
     if validation_issues:
         lines.append("schemaValid: false")
         for story_id, issues in validation_issues.items():
             lines.append(f"- {story_id}:")
-            for issue in issues:
-                lines.append(f"  - {issue}")
+            lines.extend(f"  - {issue}" for issue in issues)
     else:
         lines.append("schemaValid: true")
     lines.append("")
+    return lines
 
-    (output_dir / "report.md").write_text("\n".join(lines), encoding="utf-8")
+
+def _write_report(
+    output_dir: Path,
+    *,
+    input_file_count: int,
+    extraction_file_count: int,
+    story_documents: dict[str, dict[str, Any]],
+    stats: GenerationStats,
+    written_files: list[str],
+    validation_issues: dict[str, list[str]],
+    public_profile: str,
+    included_types: frozenset[str],
+    excluded_types: frozenset[str],
+) -> None:
+    candidate_reference_count = sum(
+        1
+        for data in story_documents.values()
+        for entry in data["entries"]
+        if entry.get("referencedBy")
+    )
+    report = _build_report_dict(
+        input_file_count=input_file_count,
+        extraction_file_count=extraction_file_count,
+        story_count=len(story_documents),
+        stats=stats,
+        written_files=written_files,
+        validation_issues=validation_issues,
+        public_profile=public_profile,
+        included_types=included_types,
+        excluded_types=excluded_types,
+        candidate_reference_count=candidate_reference_count,
+    )
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    (output_dir / "report.json").write_text(
+        json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
+    (output_dir / "report.md").write_text(
+        "\n".join(_build_report_markdown_lines(report)), encoding="utf-8"
+    )
 
 
 def _load_json_documents(
@@ -690,11 +901,16 @@ def main() -> int:
     if exit_code is not None:
         return exit_code
 
+    included_types = _resolve_included_types(args)
+    excluded_types = frozenset(VALID_EVIDENCE_TYPES) - included_types
+
     candidate_index = _build_candidate_reference_index(extraction_documents)
 
     stats = GenerationStats()
     story_groups = [
-        _process_normalized_story_document(document, candidate_index, stats)
+        _process_normalized_story_document(
+            document, candidate_index, included_types, stats
+        )
         for document in normalized_documents
     ]
     story_documents = _merge_story_groups(story_groups)
@@ -715,13 +931,18 @@ def main() -> int:
         stats=stats,
         written_files=written_files,
         validation_issues=validation_issues,
+        public_profile=args.public_profile,
+        included_types=included_types,
+        excluded_types=excluded_types,
     )
 
     if not args.quiet:
         print(
             f"[build] evidence_index候補: {len(story_documents)} story、"
             f"{stats.generated_entry_count} entries生成 "
-            f"({stats.skipped_block_count} block skip)"
+            f"({stats.skipped_block_count} block skip, "
+            f"{stats.filtered_entry_count} entry filtered "
+            f"[profile={args.public_profile}])"
         )
         print(f"[build] 出力先: {output_dir}")
         if validation_issues:

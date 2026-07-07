@@ -47,6 +47,26 @@ Path: `docs/architecture/06_AI/Evidence_Index_Promotion_Policy.md`
 
 `choice`型entryは今回のサンプルに0件だった（選択肢を含まないepisodeだったため）。
 
+## 2.1 filtering実装後の再実行結果（`feature/evidence-index-generation-filtering`、匿名化）
+
+同じ匿名化サンプルで`--public-profile default`/`--public-profile full`を再実行し、以下を確認した。
+
+| 項目 | default profile | full profile |
+|---|---|---|
+| generated entry count | 187 | 1793（PR #85と一致） |
+| filtered entry count | 1606（すべて`stage_direction`） | 0 |
+| うち `dialogue` | 153 | 153 |
+| うち `narration` | 26 | 26 |
+| うち `monologue` | 6 | 6 |
+| うち `unknown` | 2 | 2 |
+| うち `stage_direction` | 0（filter済み） | 1606 |
+| candidate references attached | 155 | 159 |
+| `validate_evidence_index.py` | 成功 | 成功 |
+| `render_wiki.py --evidence-index` | 成功（Evidence page entry数187） | 未確認（review用途、本PRでは未render） |
+| source text exposure check | 問題なし | 問題なし |
+
+candidate referencesがdefault profileで159件から155件に減少したのは、`stage_direction`entryを根拠にしていた4件がentry自体の出力対象外化に伴い失われたため（§9.2参照）。
+
 ---
 
 # 3. Problem: stage_direction explosion（stage_direction大量生成問題）
@@ -141,26 +161,28 @@ Path: `docs/architecture/06_AI/Evidence_Index_Promotion_Policy.md`
 
 ---
 
-# 7. Filter policy（将来のfilter機能、本PRでは未実装）
+# 7. Filter policy（`feature/evidence-index-generation-filtering`で実装済み）
 
-`scripts/build_evidence_index_candidates.py`にfilter機能を追加するかどうかを検討した。
-
-候補インターフェース案:
+`scripts/build_evidence_index_candidates.py`にfilter機能を実装した。
 
 ```powershell
---include-types dialogue,monologue,narration,choice,unknown
---exclude-types stage_direction
---public-profile default
---public-profile full
---review-profile internal
+--public-profile default   # 既定値。Public向け (dialogue/monologue/narration/choice/unknown)
+--public-profile full      # stage_directionを含む全type (review/internal用途)
+--public-profile review    # 本PRではfullと同じ挙動 (将来Internal Review Evidence Packetに寄せる可能性がある名称のみ予約)
+--include-types dialogue,narration   # profileのinclude集合を丸ごと置き換え
+--exclude-types stage_direction      # 常に最後に適用、includeと衝突時はexcludeが勝つ
 ```
 
-## 7.1 推奨方針
+## 7.1 実装方針（実装済み）
 
-- 次PR以降（`evidence-index-generation-filtering`）で`--include-types`/`--exclude-types`を追加する
-- 初期defaultはPublic向けに`dialogue,monologue,narration,choice,unknown`とする
-- `stage_direction`は明示指定時のみ含める（opt-in）
-- **本PRでは実装しない**。次候補として`TASKS.md`に残す（§13参照）
+- `--public-profile`のデフォルトは`default`（Public向け、`stage_direction`を除外）。**このスクリプトのdefault挙動自体をPR #85時点（全type生成）から変更した**。PR #85相当の全type生成が必要な場合は明示的に`--public-profile full`を指定する
+- 優先順位: `--public-profile`のinclude集合 → `--include-types`指定時はそれで置き換え → `--exclude-types`は常に最後に適用（includeと衝突時はexcludeが勝つ）
+- 未知のevidenceTypeを指定した場合はexit code `2`でargparseがエラーを返す
+- filterで除外されたentryは`skippedBlockCount`ではなく`filteredEntryCount`/`filteredByTypeCounts`/`filteredReasonCounts`として区別してreportに記録する（§5・§6参照、`missing_block_id`等の「候補化自体できない」skipとは意味が異なるため）
+- `referencedBy.candidates`はfilterで出力対象になったentryにのみ付与する（§9参照）
+- raw text非表示（Blockの`text`/`rawText`/`raw`/`rawCommand`/`args`等を読み取らない方針）はfilterの有無にかかわらず常に維持する
+
+詳細は`docs/runbooks/Evidence_Index_Generation_Dry_Run.md` §3.3を参照。
 
 ---
 
@@ -179,7 +201,7 @@ Path: `docs/architecture/06_AI/Evidence_Index_Promotion_Policy.md`
 ## 8.2 初期方針
 
 - まずはStory別Evidence page（`Evidence_Index_Design.md` §9.4で採用済み）を維持する
-- Public対象entry type（§4.1）を絞ることでentry数を抑える。PR #85のサンプルでは`stage_direction`除外により1793件→約187件（`dialogue`153 + `narration`26 + `monologue`6 + `unknown`2）まで縮小する
+- Public対象entry type（§4.1）を絞ることでentry数を抑える。PR #85と同じ匿名化サンプルで`--public-profile default`を再実行し、1793件→187件（`dialogue`153 + `narration`26 + `monologue`6 + `unknown`2 + `choice`0）まで縮小することを確認した（`feature/evidence-index-generation-filtering`、§7参照）。`--public-profile full`では1793件（PR #85相当）を再現できることも確認した
 - 1 pageが大きすぎる場合は、Episode別Evidence pageへの分割を後続検討する（`Evidence_Index_Design.md` §9.3の候補C）
 - `stage_direction`はPublic pageには原則出さない（§3・§4.2）
 - 具体的な数値しきい値（例: 1ページあたり◯件）は本PRでは確定しない。実データでの複数storyサンプルが揃った時点で`evidence-index-promotion-policy-implementation`で再検討する（§15未確定事項）
@@ -198,6 +220,10 @@ PR #85のdry-runでは`referencedBy.candidates`が159件付与された（`--ext
 - review用途では有用なため、データ（YAML）自体には保持し続ける
 - rendererでの表示要否は別方針として扱ってよい（表示するかは`agents/wiki_generator/renderer.py`側の設計判断であり、本PRでは変更しない）
 - 将来的にReview modeやInternal Review Evidence Packetへ表示を寄せる可能性を残す
+
+## 9.2 filteringとの関係（`feature/evidence-index-generation-filtering`で実装済み）
+
+`referencedBy.candidates`はfilterで出力対象になったentryにのみ付与する。filteredで除外されたentry（`stage_direction`等）のcandidate referencesは、出力YAML・reportいずれにも含まれない。PR #85と同じ匿名化サンプルで`--public-profile default`を再実行したところ、candidate references付与件数は159件から155件に減少した（`stage_direction`を根拠に付与されていた4件が、entry自体の出力対象外化に伴い失われた）。この4件は`--public-profile full`で確認できる（review/internal用途）。
 
 ---
 
@@ -251,16 +277,20 @@ Story Summary / Episode Summaryの`evidenceRefs`は引き続きPublic Evidence I
 | フェーズ | 内容 | 状態 |
 |---|---|---|
 | Phase 1〜4 | Evidence Index設計・schema・renderer統合・dry-run生成（PR #82〜#85） | 完了 |
-| Phase 5: `evidence-index-generation-review`（本PR） | dry-run結果レビュー、public entry type方針、promotion/exclusion criteria、filter policy設計、Evidence page size policy、candidate references方針、Summary evidenceRefs優先方針の整理 | **完了（本PR）** |
-| Phase 6: `evidence-index-generation-filtering` | `--include-types`/`--exclude-types`等のfilter機能実装（§7） | 未着手 |
+| Phase 5: `evidence-index-generation-review`（PR #86） | dry-run結果レビュー、public entry type方針、promotion/exclusion criteria、filter policy設計、Evidence page size policy、candidate references方針、Summary evidenceRefs優先方針の整理 | 完了 |
+| Phase 6: `evidence-index-generation-filtering`（本PR） | `--include-types`/`--exclude-types`/`--public-profile`によるfilter機能実装（§7） | **完了（本PR）** |
 | Phase 7: `evidence-index-promotion-policy-implementation` | 本文書のpromotion criteriaを実装するpromotion script/運用手順（人間承認フロー含む） | 未着手 |
 | Phase 8: `internal-review-evidence-packet-design` | `stage_direction`等を含むInternal Review Evidence Packetの詳細設計 | 未着手 |
 
+**実装状況（`feature/evidence-index-generation-filtering`で実施）**: `scripts/build_evidence_index_candidates.py`に`--public-profile default|full|review`（デフォルト`default`）・`--include-types`・`--exclude-types`を追加した。default profileは`stage_direction`を除外し、PR #85と同じ匿名化サンプルで再実行したところentry数は1793件→187件（`dialogue`153・`narration`26・`monologue`6・`unknown`2）に縮小、`--public-profile full`では1793件（PR #85相当）を再現できることを確認した。filterで除外されたentryは`skippedBlockCount`ではなく`filteredEntryCount`/`filteredByTypeCounts`/`filteredReasonCounts`として区別してreportに記録する。`referencedBy.candidates`はfilterで出力対象になったentryにのみ付与し、同サンプルでcandidate references付与件数は159件から155件に減少した。`validate_evidence_index.py`・`render_wiki.py --evidence-index`・source text exposure checkいずれも問題なし。**promotion script実装・Evidence page renderer変更・Internal Review Evidence Packet生成・実Evidence Indexのcommitは行っていない**（次候補`evidence-index-promotion-policy-implementation`/`internal-review-evidence-packet-design`）。
+
 ---
 
-# 14. Non-goals（本PRで行わないこと）
+# 14. Non-goals
 
-- Evidence Index filter実装（`--include-types`/`--exclude-types`等）
+`evidence-index-generation-review`（PR #86、本文書の初版）時点でのNon-goals:
+
+- Evidence Index filter実装（`--include-types`/`--exclude-types`等） → **`feature/evidence-index-generation-filtering`で実装済み**（§7参照）
 - Evidence Index promotion script実装
 - 実Evidence Indexの`knowledge/evidence/stories/`へのcommit
 - Internal Review Evidence Packet生成
@@ -270,7 +300,9 @@ Story Summary / Episode Summaryの`evidenceRefs`は引き続きPublic Evidence I
 - evidenceRefsリンク化ロジック変更
 - Episode page変更・Episode別Evidence page生成
 - Evidence Index schema変更
-- `scripts/build_evidence_index_candidates.py`の変更
+- `scripts/build_evidence_index_candidates.py`の変更 → **`feature/evidence-index-generation-filtering`で変更済み**（filtering機能追加のみ、raw text非表示方針・skip判定ロジックは変更していない）
+
+`feature/evidence-index-generation-filtering`（本PR）でも以下は行っていない: Evidence Index promotion script実装、実Evidence Indexの`knowledge/evidence/stories/`へのcommit、Internal Review Evidence Packet生成、raw text review packet生成、Evidence page renderer変更、evidenceRefsリンク化ロジック変更、Episode page変更、Evidence Index schema変更。
 
 ---
 
@@ -293,6 +325,6 @@ Story Summary / Episode Summaryの`evidenceRefs`は引き続きPublic Evidence I
 - `docs/architecture/07_Wiki/Story_Page_Design.md`（Story page設計、Evidence pageへの導線）
 - `docs/architecture/07_Wiki/Wiki_Output_Design.md`（§9.16 Evidence page renderer統合）
 - `schemas/evidence_index.schema.json`（evidenceType enum、visibility.rawTextIncluded固定）
-- `scripts/build_evidence_index_candidates.py`（dry-run生成スクリプト、本PRでは変更しない）
+- `scripts/build_evidence_index_candidates.py`（dry-run生成スクリプト、`--public-profile`/`--include-types`/`--exclude-types`は`feature/evidence-index-generation-filtering`で実装済み）
 - `scripts/validate_evidence_index.py`（schema/整合性検証CLI）
 - `TASKS.md`（次PR候補の追跡）

@@ -29,6 +29,7 @@ Path: `docs/runbooks/Evidence_Index_Generation_Dry_Run.md`
 ## 3.1 生成するもの
 
 - Block単位のEvidence Index entry（`evidenceType`は`dialogue`/`monologue`/`narration`/`choice`/`stage_direction`/`unknown`の6種、`Normalized_Story_JSON.md` §13.2のBlock typeと1対1対応）
+- `--public-profile`/`--include-types`/`--exclude-types`によるentry type filtering（`feature/evidence-index-generation-filtering`で追加、§3.3参照）
 - `storyId`/`publicStoryId`/`episodeId`/`publicEpisodeId`/`sceneId`/`blockId`（既存ID体系そのまま、新しいID生成ルールは追加しない）
 - `speaker`（`isResolved: true`かつ`speakerId`がある場合のみ、`displayName`は常に`null`）
 - `relatedEntities`（解決済みspeakerの`character`、Sceneの`locationId`が設定されている場合の`location`のみ）
@@ -45,6 +46,20 @@ Path: `docs/runbooks/Evidence_Index_Generation_Dry_Run.md`
 - **Internal Review Evidence Packet**（raw textを含みうる内部review用データは一切生成しない）
 - **`knowledge/evidence/stories/`への直接書き込み**（出力先は必ず`workspace/`配下、人間レビュー後の昇格は別途手動で行う）
 - **review済みEvidence Indexへの自動昇格**
+
+## 3.3 entry type filtering（`feature/evidence-index-generation-filtering`で追加）
+
+`docs/architecture/06_AI/Evidence_Index_Promotion_Policy.md`（PR #86）で決定したPublic Evidence Indexの初期公開対象entry type方針を、`scripts/build_evidence_index_candidates.py`のCLIオプションとして実装した。
+
+- `--public-profile default|full|review`（**デフォルト`default`**）でPublic向け/全件/review向けのevidenceType集合を切り替える
+  - `default`: `dialogue`/`monologue`/`narration`/`choice`/`unknown`のみ生成（`stage_direction`は除外）
+  - `full`: このスクリプトが生成しうる全type（`dialogue`/`monologue`/`narration`/`choice`/`stage_direction`/`unknown`）を生成（PR #85相当）
+  - `review`: 本PRでは`full`と同じ挙動（将来Internal Review Evidence Packetに寄せる可能性がある名称のみ予約）
+- `--include-types`/`--exclude-types`（comma区切りのevidenceType一覧）でprofileのtype集合を上書き・追加除外できる。優先順位は「profile → `--include-types`（指定時はprofileのinclude集合を丸ごと置き換え） → `--exclude-types`（常に最後に適用、includeと衝突時はexcludeが勝つ）」
+- 未知のevidenceTypeを`--include-types`/`--exclude-types`/`--public-profile`に指定した場合はexit code `2`でエラーになる
+- **skipとfilterは区別する**: IDが無い/未対応typeで「そもそも候補化できない」ものは`skippedBlockCount`（変わらず`missing_block_id`/`unmapped_block_type:*`）、候補化はできるがprofileにより出力しなかったものは`filteredEntryCount`/`filteredByTypeCounts`/`filteredReasonCounts`（`excluded_by_profile:{evidenceType}`形式）としてreportに記録する
+- `referencedBy.candidates`はfilterで出力対象になったentryにのみ付与する。filteredで除外されたentryのcandidate referencesは出力YAML・reportいずれにも含まれない
+- raw text非表示（§4）はfilterの有無にかかわらず常に維持される
 
 ---
 
@@ -77,18 +92,28 @@ Path: `docs/runbooks/Evidence_Index_Generation_Dry_Run.md`
 ## 6.2 Evidence Index候補生成
 
 ```bash
+# --public-profileを省略した場合はdefault（Public向け、stage_direction除外）
 uv run python scripts/build_evidence_index_candidates.py \
     --input workspace/dry_runs/<timestamp>/normalized \
     --extractions workspace/dry_runs/<timestamp>/extracted \
-    --output workspace/evidence_index_dry_runs/<timestamp> \
+    --output workspace/evidence_index_dry_runs/<timestamp>/default \
+    --clean
+
+# stage_directionも含めた全type生成 (review/internal用途)
+uv run python scripts/build_evidence_index_candidates.py \
+    --input workspace/dry_runs/<timestamp>/normalized \
+    --extractions workspace/dry_runs/<timestamp>/extracted \
+    --output workspace/evidence_index_dry_runs/<timestamp>/full \
+    --public-profile full \
     --clean
 ```
 
 - `--extractions`は任意（未指定なら`referencedBy.candidates`は常に空、`generatedFrom.extractionRefs`は常に空配列）
 - `--input`/`--extractions`はファイル・directory（直下の`*.json`を非recursiveに収集）のどちらも指定可能
+- `--public-profile`/`--include-types`/`--exclude-types`は任意（§3.3参照、未指定時は`default`プロファイル）
 - 出力先直下に`stories/{storyId}.yaml`・`report.md`・`report.json`を書き出す
 
-Exit code: `0`成功（0件の場合も含む）、`1`生成したEvidence Index候補がschema/整合性検証に失敗した場合（該当storyの書き出しはskipされる）または全入力の読み込みに失敗した場合、`2`入力パスが見つからない場合。
+Exit code: `0`成功（0件の場合も含む）、`1`生成したEvidence Index候補がschema/整合性検証に失敗した場合（該当storyの書き出しはskipされる）または全入力の読み込みに失敗した場合、`2`入力パスが見つからない場合、または`--include-types`/`--exclude-types`/`--public-profile`に未知の値が指定された場合。
 
 ## 6.3 生成候補の検証
 
@@ -105,7 +130,7 @@ uv run python scripts/validate_evidence_index.py \
 uv run python scripts/render_wiki.py \
     --input workspace/dry_runs/<timestamp>/merged_knowledge_collection.json \
     --output workspace/wiki_preview/<timestamp> \
-    --evidence-index workspace/evidence_index_dry_runs/<timestamp>/stories \
+    --evidence-index workspace/evidence_index_dry_runs/<timestamp>/default/stories \
     --validate --clean
 ```
 
@@ -120,11 +145,15 @@ uv run python scripts/render_wiki.py \
 |---|---|
 | `inputFileCount` / `extractionInputFileCount` | 入力ファイル数 |
 | `storyCount` / `episodeCount` | 生成対象のstory/episode数 |
-| `generatedEntryCount` | 生成されたEvidence entry総数 |
-| `skippedBlockCount` / `skippedReasonCounts` | skipされたBlock数と理由別内訳（`missing_block_id`/`unmapped_block_type:*`） |
-| `entriesByEvidenceType` | evidenceType別のentry数 |
+| `publicProfile` | 適用されたprofile（`default`/`full`/`review`） |
+| `includedTypes` / `excludedTypes` | 最終的に出力対象/対象外となったevidenceType一覧（§3.3の優先順位適用後） |
+| `generatedEntryCount` | 生成されたEvidence entry総数（filter適用後、`generatedEntryCountAfterFilter`と同値） |
+| `generatedEntryCountBeforeFilter` / `generatedEntryCountAfterFilter` | filter適用前後のentry数 |
+| `filteredEntryCount` / `filteredByTypeCounts` / `filteredReasonCounts` | profileにより出力しなかったentry数と内訳（`skippedReasonCounts`とは別集計、§3.3参照） |
+| `skippedBlockCount` / `skippedReasonCounts` | skipされたBlock数と理由別内訳（`missing_block_id`/`unmapped_block_type:*`。filterとは別集計） |
+| `entriesByEvidenceType` | evidenceType別のentry数（filter適用後） |
 | `rawTextFieldsIgnoredCount` | raw text系フィールドを検知し無視したBlock数（除外の証跡） |
-| `candidateReferencesAttachedCount` | `referencedBy.candidates`が付与されたentry数（`--extractions`指定時のみ非0） |
+| `candidateReferencesAttachedCount` | `referencedBy.candidates`が付与されたentry数（`--extractions`指定時のみ非0。filterで除外されたentryには付与されない） |
 | `validation.schemaValid` / `validation.issuesByStoryId` | 生成candidate自体の検証結果。`false`の場合、該当storyのYAMLは書き出されていない |
 
 ---

@@ -57,7 +57,13 @@ def _run_cli(*extra_args: str) -> subprocess.CompletedProcess:
     )
 
 
-def _run_generation(tmp_path: Path, *, with_extractions: bool = False) -> Path:
+def _run_generation(
+    tmp_path: Path,
+    *,
+    with_extractions: bool = False,
+    profile: str | None = None,
+    extra_args: list[str] | None = None,
+) -> Path:
     output_dir = tmp_path / "out"
     args = [
         "--input",
@@ -68,6 +74,10 @@ def _run_generation(tmp_path: Path, *, with_extractions: bool = False) -> Path:
     ]
     if with_extractions:
         args.extend(["--extractions", str(EXTRACTION_FIXTURES_DIR)])
+    if profile is not None:
+        args.extend(["--public-profile", profile])
+    if extra_args:
+        args.extend(extra_args)
     result = _run_cli(*args)
     assert result.returncode == 0, result.stderr
     return output_dir
@@ -185,7 +195,9 @@ def test_generated_entries_have_raw_text_included_false(tmp_path):
 
 
 def test_evidence_type_mapping_matches_block_types(tmp_path):
-    output_dir = _run_generation(tmp_path)
+    # full profileでstage_direction/unknown等も含む全typeを確認する
+    # (defaultはPublic向けにstage_directionを除外するため)。
+    output_dir = _run_generation(tmp_path, profile="full")
     document = _load_story_document(output_dir, "TEST_S01_C01")
     by_id = {e["evidenceId"]: e for e in document["entries"]}
 
@@ -200,7 +212,8 @@ def test_evidence_type_mapping_matches_block_types(tmp_path):
 
 
 def test_blocks_without_id_are_skipped_and_counted(tmp_path):
-    output_dir = _run_generation(tmp_path)
+    # full profileでfilterの影響を受けない状態でskip件数のみを確認する。
+    output_dir = _run_generation(tmp_path, profile="full")
     document = _load_story_document(output_dir, "TEST_S01_C01")
     ids = {e["evidenceId"] for e in document["entries"]}
     # 2件のid無しblock (トップレベル1件・choice option内1件) は生成されない
@@ -347,7 +360,8 @@ def test_generated_output_passes_validate_evidence_index_cli(tmp_path):
 
 
 def test_report_json_has_expected_counts(tmp_path):
-    output_dir = _run_generation(tmp_path, with_extractions=True)
+    # full profileでfilterの影響を受けない状態で既存カウントを確認する。
+    output_dir = _run_generation(tmp_path, with_extractions=True, profile="full")
     with open(output_dir / "report.json", encoding="utf-8") as f:
         report = json.load(f)
 
@@ -356,6 +370,11 @@ def test_report_json_has_expected_counts(tmp_path):
     assert report["storyCount"] == 2
     assert report["episodeCount"] == 3
     assert report["generatedEntryCount"] == 9
+    assert report["generatedEntryCountBeforeFilter"] == 9
+    assert report["generatedEntryCountAfterFilter"] == 9
+    assert report["filteredEntryCount"] == 0
+    assert report["filteredReasonCounts"] == {}
+    assert report["filteredByTypeCounts"] == {}
     assert report["skippedBlockCount"] == 3
     assert report["candidateReferencesAttachedCount"] == 1
     assert report["validation"]["schemaValid"] is True
@@ -382,3 +401,236 @@ def test_report_does_not_contain_raw_text(tmp_path):
     report_text += (output_dir / "report.json").read_text(encoding="utf-8")
     for forbidden in FORBIDDEN_SUBSTRINGS:
         assert forbidden not in report_text
+
+
+# ----------------------------------------------------------------
+# entry type filtering (--public-profile / --include-types / --exclude-types)
+# ----------------------------------------------------------------
+
+
+def test_default_profile_excludes_stage_direction(tmp_path):
+    output_dir = _run_generation(tmp_path)
+    document = _load_story_document(output_dir, "TEST_S01_C01")
+    evidence_types = {e["evidenceType"] for e in document["entries"]}
+    assert "stage_direction" not in evidence_types
+    assert "TEST_S01_C01_E01_STAGE0001" not in {
+        e["evidenceId"] for e in document["entries"]
+    }
+
+
+def test_full_profile_includes_stage_direction(tmp_path):
+    output_dir = _run_generation(tmp_path, profile="full")
+    document = _load_story_document(output_dir, "TEST_S01_C01")
+    by_id = {e["evidenceId"]: e for e in document["entries"]}
+    assert by_id["TEST_S01_C01_E01_STAGE0001"]["evidenceType"] == "stage_direction"
+
+
+def test_review_profile_behaves_like_full_profile(tmp_path):
+    output_dir = _run_generation(tmp_path, profile="review")
+    document = _load_story_document(output_dir, "TEST_S01_C01")
+    by_id = {e["evidenceId"]: e for e in document["entries"]}
+    assert by_id["TEST_S01_C01_E01_STAGE0001"]["evidenceType"] == "stage_direction"
+
+
+def test_include_types_restricts_output_to_listed_types(tmp_path):
+    output_dir = _run_generation(
+        tmp_path, extra_args=["--include-types", "dialogue,narration"]
+    )
+    document = _load_story_document(output_dir, "TEST_S01_C01")
+    evidence_types = {e["evidenceType"] for e in document["entries"]}
+    assert evidence_types == {"dialogue", "narration"}
+
+
+def test_include_types_overrides_profile_include_set(tmp_path):
+    # defaultはunknownを含むが、--include-typesは丸ごと置き換えるため
+    # unknownは出力されない
+    output_dir = _run_generation(tmp_path, extra_args=["--include-types", "dialogue"])
+    document = _load_story_document(output_dir, "TEST_S01_C01")
+    evidence_types = {e["evidenceType"] for e in document["entries"]}
+    assert evidence_types == {"dialogue"}
+
+
+def test_exclude_types_removes_listed_types_from_full_profile(tmp_path):
+    output_dir = _run_generation(
+        tmp_path,
+        profile="full",
+        extra_args=["--exclude-types", "stage_direction"],
+    )
+    document = _load_story_document(output_dir, "TEST_S01_C01")
+    evidence_types = {e["evidenceType"] for e in document["entries"]}
+    assert "stage_direction" not in evidence_types
+    assert evidence_types == {"dialogue", "monologue", "narration", "unknown", "choice"}
+
+
+def test_exclude_types_wins_over_include_types_conflict(tmp_path):
+    output_dir = _run_generation(
+        tmp_path,
+        extra_args=[
+            "--include-types",
+            "dialogue,stage_direction",
+            "--exclude-types",
+            "stage_direction",
+        ],
+    )
+    document = _load_story_document(output_dir, "TEST_S01_C01")
+    evidence_types = {e["evidenceType"] for e in document["entries"]}
+    assert evidence_types == {"dialogue"}
+
+
+def test_invalid_evidence_type_in_include_types_exits_two(tmp_path):
+    result = _run_cli(
+        "--input",
+        str(NORMALIZED_FIXTURES_DIR),
+        "--output",
+        str(tmp_path / "out"),
+        "--include-types",
+        "dialogue,not_a_real_type",
+    )
+    assert result.returncode == 2
+    assert "not_a_real_type" in result.stderr
+
+
+def test_invalid_evidence_type_in_exclude_types_exits_two(tmp_path):
+    result = _run_cli(
+        "--input",
+        str(NORMALIZED_FIXTURES_DIR),
+        "--output",
+        str(tmp_path / "out"),
+        "--exclude-types",
+        "not_a_real_type",
+    )
+    assert result.returncode == 2
+
+
+def test_invalid_public_profile_exits_two(tmp_path):
+    result = _run_cli(
+        "--input",
+        str(NORMALIZED_FIXTURES_DIR),
+        "--output",
+        str(tmp_path / "out"),
+        "--public-profile",
+        "not_a_real_profile",
+    )
+    assert result.returncode == 2
+
+
+# ----------------------------------------------------------------
+# Report: filter counts, skip vs filter distinction
+# ----------------------------------------------------------------
+
+
+def test_report_json_has_filter_counts_for_default_profile(tmp_path):
+    output_dir = _run_generation(tmp_path, with_extractions=True)
+    with open(output_dir / "report.json", encoding="utf-8") as f:
+        report = json.load(f)
+
+    assert report["publicProfile"] == "default"
+    assert report["includedTypes"] == [
+        "choice",
+        "dialogue",
+        "monologue",
+        "narration",
+        "unknown",
+    ]
+    assert report["excludedTypes"] == [
+        "episode",
+        "scene",
+        "speaker_label",
+        "stage_direction",
+        "story",
+    ]
+    # TEST_S01_C01のSTAGE0001 1件のみがfilterされる
+    # (TEST_S02_SOLOにはstage_directionが無い)
+    assert report["filteredEntryCount"] == 1
+    assert report["filteredByTypeCounts"] == {"stage_direction": 1}
+    assert report["filteredReasonCounts"] == {"excluded_by_profile:stage_direction": 1}
+    assert report["generatedEntryCount"] == 8
+    assert report["generatedEntryCountBeforeFilter"] == 9
+    assert report["generatedEntryCountAfterFilter"] == 8
+
+
+def test_skip_and_filter_counts_are_tracked_separately(tmp_path):
+    output_dir = _run_generation(tmp_path)
+    with open(output_dir / "report.json", encoding="utf-8") as f:
+        report = json.load(f)
+
+    # skip (missing_block_id/unmapped_block_type) はprofileの影響を受けない
+    assert report["skippedBlockCount"] == 3
+    assert report["skippedReasonCounts"] == {
+        "missing_block_id": 2,
+        "unmapped_block_type:future_unmapped_type": 1,
+    }
+    # filter (stage_direction) はskippedReasonCountsに含まれない
+    assert "stage_direction" not in "".join(report["skippedReasonCounts"].keys())
+    assert report["filteredEntryCount"] == 1
+
+
+def test_report_md_mentions_filter_section(tmp_path):
+    output_dir = _run_generation(tmp_path)
+    content = (output_dir / "report.md").read_text(encoding="utf-8")
+    assert "## Filter" in content
+    assert "Public profile: default" in content
+    assert "Included types:" in content
+    assert "Excluded types:" in content
+    assert "filtered stage_direction: 1" in content
+
+
+# ----------------------------------------------------------------
+# Candidate references: only attached to entries that survive filtering
+# ----------------------------------------------------------------
+
+
+def test_candidate_references_not_attached_to_filtered_out_entries(tmp_path):
+    # stage_directionを対象にreferencedBy.candidatesが付与されうる状況でも、
+    # default profileで除外されたentryにはcandidate referencesが付かない
+    # (そもそも出力entry自体が存在しない)。
+    output_dir = _run_generation(tmp_path, with_extractions=True)
+    document = _load_story_document(output_dir, "TEST_S01_C01")
+    ids = {e["evidenceId"] for e in document["entries"]}
+    assert "TEST_S01_C01_E01_STAGE0001" not in ids
+
+
+def test_candidate_references_still_attached_to_included_entries(tmp_path):
+    output_dir = _run_generation(tmp_path, with_extractions=True)
+    document = _load_story_document(output_dir, "TEST_S01_C01")
+    by_id = {e["evidenceId"]: e for e in document["entries"]}
+    entry = by_id["TEST_S01_C01_E01_DLG0001"]
+    assert entry["referencedBy"]["candidates"] == [
+        {"candidateId": "TEST_S01_C01_E01_CAND_CHAR001", "entityType": "character"}
+    ]
+
+
+# ----------------------------------------------------------------
+# Schema validation / raw text policy still hold after filtering
+# ----------------------------------------------------------------
+
+
+def test_filtered_output_passes_validate_evidence_index_cli(tmp_path):
+    output_dir = _run_generation(tmp_path, with_extractions=True)
+    validate_script = PROJECT_ROOT / "scripts" / "validate_evidence_index.py"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(validate_script),
+            "--input",
+            str(output_dir / "stories"),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+
+
+def test_filtered_output_entries_have_raw_text_included_false(tmp_path):
+    output_dir = _run_generation(tmp_path)
+    document = _load_story_document(output_dir, "TEST_S01_C01")
+    assert document["entries"], "entries should not be empty"
+    for entry in document["entries"]:
+        assert entry["visibility"]["rawTextIncluded"] is False
+
+
+def test_raw_text_fields_still_ignored_under_default_profile(tmp_path):
+    output_dir = _run_generation(tmp_path, with_extractions=True)
+    generated_text = _all_generated_text(output_dir)
+    for forbidden in FORBIDDEN_SUBSTRINGS:
+        assert forbidden not in generated_text
