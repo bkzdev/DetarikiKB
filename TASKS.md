@@ -8,6 +8,7 @@
 
 ## Current Focus
 
+- `feature/story-summary-evidence-index-design`: `evidenceRefs`（PR #81）の将来リンク先となるEvidence indexの設計を`docs/architecture/06_AI/Evidence_Index_Design.md`にまとめた。Public Evidence Index（raw textを含まない公開用索引）とInternal Review Evidence Packet（内部review用、`workspace/review_packets/evidence/`・commit禁止）を分離。raw dialogue text/raw DEC command/local pathは非表示方針。source of truthはDedicated Evidence Index file（Normalized Story JSON/Extraction Resultから安全な情報のみ抽出）を採用、Merged CollectionやSummaryはEvidence indexを参照する側と位置づけた。evidenceType（dialogue/monologue/narration/choice/stage_direction/speaker_label/scene/episode/story/unknown、10種で固定）・data model草案・Evidence ID link方針（初期推奨: Story別Evidence page `evidence/{publicStoryId or storyId}.md`）・Story page/Episode page/Summary/Unresolved reportとの関係・AI Analysis/Speculationとの分離方針を設計した。実装フェーズ案（Phase 1設計のみ〜Phase 5 internal review packets）を整理。**本PRではschema実装・renderer実装・Evidence page生成・リンク化は行っていない**（設計docsのみ、次PR`evidence-index-schema-implementation`）。
 - `feature/story-summary-evidence-display`: Story page上の表示可能なStory Summary/Episode Summary本文の下に、対応する`evidenceRefs`をIDのみ短く表示するようにした（`agents/wiki_generator/renderer.py`の`_render_evidence_refs_line`、`Evidence refs: `ID1`, `ID2``形式）。表示対象条件はPR #80と同じ（`review.status`がreviewed/approved かつ `generationStatus`がgenerated）で、非表示Summaryは本文同様evidenceRefsも表示しない。evidenceRefsが空の場合は何も表示しない（案A、Summary本文の邪魔にならないことを優先）。renderer側でも非list値・非文字列・空文字列・重複を安全に処理する。**Episode pageへの表示・Evidence indexへのリンク化・Evidence index本体の実装は行っていない**（次候補`story-summary-evidence-index-design`）。既存fixture（`tests/fixtures/story_summaries/renderer_integration/`）にevidenceRefsを追加し、テスト18件（renderer）+1件（CLI）を追加、実データ未投入。
 - `feature/story-summary-renderer-integration`: `docs/architecture/06_AI/Story_Summary_Design.md`（PR #78/#79）の設計・実装を踏まえ、Story Summary/Episode SummaryをWiki rendererへ統合した。`scripts/render_wiki.py`に`--story-summaries <path>`（file/directory対応、`--validate`/`--character-profiles`と併用可）を追加し、`agents/wiki_generator/story_summaries.py`に`StorySummaryLookup`/`resolve_story_summary`/`resolve_episode_summary`/`get_displayable_story_summary`/`get_displayable_episode_summary`/`is_document_displayable`を追加した。`is_displayable_summary`を`generationStatus`（`generated`のみ表示）も判定できるよう拡張（既存呼び出しとの後方互換は維持）。`storyId`優先→`publicStoryId`、`episodeId`優先→`publicEpisodeId`で照合し、矛盾時は非表示（安全側）。`review.status`が`reviewed`/`approved`かつ`generationStatus`が`generated`のSummaryのみStory pageの`## Story Summary`/`## Episode Summaries` placeholderを実本文へ差し替え、それ以外（unreviewed/rejected/needs_revision/draft/deprecated/未登録）は従来通り「未生成」。**Episode page/Character page/Characters index/Unresolved reportは変更していない**。evidenceRefs表示・AI要約生成は行っていない（次候補`story-summary-evidence-display`）。合成fixture（`tests/fixtures/story_summaries/renderer_integration/`）とテスト（renderer 29件・loader追加24件・CLI 8件）で確認、実データsummary未投入。
 - `feature/story-summary-schema-implementation`: `docs/architecture/06_AI/Story_Summary_Design.md`（PR #78）の設計を実装した。`schemas/story_summary.schema.json`（1 story 1 file、`storyId`/`language`/`generationStatus`/`episodeSummaries`/`source`/`review`必須）、`agents/wiki_generator/story_summaries.py`（load/index/find/`is_displayable_summary`等のloader）、`scripts/validate_story_summaries.py`（schema検証・duplicate storyId/publicStoryId/episodeId/publicEpisodeId検出・raw/source text禁止文字列検出・`--require-reviewed`）、`docs/templates/story_summary_template.yaml`、`tests/fixtures/story_summaries/`（合成fixture、無効例は`invalid_examples/`配下で非再帰的走査から除外）を追加した。`knowledge/summaries/stories/`は`.gitkeep`のみで実データsummaryは未投入。`.gitignore`に`workspace/summary_drafts/`を追加した。**renderer統合（`render_wiki.py --story-summaries`等）・Story page rendererの変更・AI要約生成は行っていない**（次PR`story-summary-renderer-integration`）。
@@ -19,10 +20,10 @@
 
 直近5件程度。着手前にユーザーへ確認する。
 
-1. **story-summary-generation-planning**: AI要約生成パイプライン（LLM provider/prompt設計）の着手時期・方式を検討する
-2. **story-summary-evidence-index-design**: Evidence index本体の設計、evidenceRefsのリンク化・Evidence detail page検討
-3. **story-title-subtitle-candidate-builder-real-trial**: `scripts/build_story_title_subtitle_candidates.py`を実際のWiki/CSV入力に対して実行し、生成候補を人間が確認する
-4. **character profile import batch 002**: unmatched 200件のうち、displayName表記ゆれ解消やconfirmed化が進んだ分の人間確認済みcandidateを再照合し追加投入する
+1. **evidence-index-schema-implementation**: `docs/architecture/06_AI/Evidence_Index_Design.md`を踏まえ、`schemas/evidence_index.schema.json`・`docs/templates/evidence_index_template.yaml`・合成fixture・validator・loaderを実装する
+2. **evidence-index-renderer-integration**: Evidence page生成・Story Summary/Episode Summary evidenceRefsのリンク化・Story pageからの導線を実装する
+3. **evidence-index-generation-dry-run**: Normalized Story JSON/Extraction ResultからEvidence index候補を生成し、workspace配下でdry-runする
+4. **story-summary-generation-planning**: AI要約生成パイプライン（LLM provider/prompt設計）の着手時期・方式を検討する
 5. **public-publishing-platform-evaluation**: public publishing workflow着手前に、MkDocs Material継続/MkDocs標準テーマ・別テーマ/Docusaurus/VitePress・Astro/独自HTML rendererを再評価する
 
 ---
@@ -37,7 +38,7 @@
 - **story-manifest-public-id-nested-path**: Story/EpisodeのURLを現行フラット構成`stories/{episodeId}.md`からネスト構成`stories/{storyId}/{episodeId}.md`へ移行するかの検討（`publicStoryId`のWiki出力への活用含む、`Story_Page_Design.md` §10 候補C・Wiki_Output_Design.md §14）
 - **public-id-manifest-assignment-policy**: `publicStoryId`/`publicEpisodeId`の採番・割当運用（人間手動 vs 半自動）を正式に決める
 - story-summary-schema-design（Next参照）
-- story-title-subtitle-candidate-builder-real-trial（Next参照）
+- **story-title-subtitle-candidate-builder-real-trial**: `scripts/build_story_title_subtitle_candidates.py`を実際のWiki/CSV入力に対して実行し、生成候補を人間が確認する
 - **story-manifest-confirmed-metadata-batch-001**: 人間確認済みの公式タイトル・サブタイトル情報を`story_manifest.yaml`へ投入する（`metadataStatus: pending` → `confirmed`。story-title-subtitle-candidate-builder-real-trialの後続作業）
 - `--check-compat`のレポート出力先をオプション化するか、既定動作として明示的にドキュメント化する
 - `agents/parser/parser.py::_parse_tokens`のparse state dataclassリファクタ本体（Known Issues参照）
@@ -59,7 +60,7 @@
 ### Wiki / MkDocs
 
 - **story-page-related-characters-refinement**: Story page Related Charactersの表示（順序・重複・unresolvedの扱い等）をさらに改善する
-- **story-summary-evidence-index-design**（Next参照）
+- **evidence-index-schema-implementation** / **evidence-index-renderer-integration** / **evidence-index-generation-dry-run**（Next参照）
 - **mkdocs-manual-visual-review-002**: ユーザーによる`uv run mkdocs serve -f workspace/wiki_preview/manual_review_002/mkdocs_manual_review.yml -a 127.0.0.1:8125`起動後、`http://127.0.0.1:8125/`でのブラウザ目視確認
 - **wiki-story-index-link-text-real-sample-review**: 実データ小規模サンプルでEpisode link text優先順位・metadataStatus表示を確認する
 - **speaker-label-normalization-real-sample-review**: 実データ小規模サンプルでspeaker group/generic speaker検出の網羅性・誤検出を確認する（合成fixtureのみのため後続作業）
@@ -68,7 +69,7 @@
 
 ### Character Dictionary / Profiles
 
-- **character profile import batch 002**（Next参照）
+- **character profile import batch 002**: unmatched 200件のうち、displayName表記ゆれ解消やconfirmed化が進んだ分の人間確認済みcandidateを再照合し追加投入する
 - character dictionary confirmed batch 004: 残る未確認10件（234/225/230/222/232/83/258/86/85/257）について、人間確認済みmappingが提供され次第confirmed化する
 - キャラクターIDの完全辞書化・主要キャラクターのcanonical ID確定（loader/validation/coverage report/レビュー運用は実装済み。実データ頻出の未確認IDを人間がローマ字確認しconfirmed化する作業自体が残っている）
 
@@ -105,6 +106,7 @@
 
 直近のみ短く記録。詳細は`docs/project_history/Completed_PRs_2026-07.md`参照。
 
+- **story summary evidence index design**: `evidenceRefs`の将来リンク先となるEvidence indexの設計を`docs/architecture/06_AI/Evidence_Index_Design.md`にまとめた。Public Evidence Index（raw text非公開の索引）とInternal Review Evidence Packet（`workspace/review_packets/evidence/`・commit禁止）を分離し、raw dialogue text/raw DEC command/local pathを表示しない方針を明記。source of truthはDedicated Evidence Index file（Normalized Story JSON/Extraction Resultから安全な情報のみ抽出）を採用。evidenceType 10種固定・data model草案・Evidence ID link方針（初期推奨: Story別Evidence page）・Story page/Episode page/Summary/Unresolved reportとの関係・AI Analysis/Speculationとの分離方針を整理し、Phase 1〜5の実装フェーズ案を示した。**本PRではschema実装・renderer実装・Evidence page生成・リンク化は行っていない**（設計docsのみ、次PR`evidence-index-schema-implementation`）。
 - **story summary evidence display**: Story pageの表示可能なStory Summary/Episode Summary本文の下に、対応する`evidenceRefs`をIDのみ短く表示するようにした（`_render_evidence_refs_line`、`Evidence refs: `ID1`, `ID2``形式）。表示対象はPR #80と同じ条件、evidenceRefsが空の場合は何も表示しない方針（案A）を採用。**Episode pageへの表示・Evidence indexへのリンク化・Evidence index本体は未実装**（次候補`story-summary-evidence-index-design`）。既存fixtureにevidenceRefsを追加、テスト19件追加、実データ未投入。
 - **story summary renderer integration**: Story Summary/Episode SummaryをWiki rendererへ統合した。`render_wiki.py --story-summaries <path>`を追加し、`agents/wiki_generator/story_summaries.py`にresolve/get系helper（`StorySummaryLookup`/`resolve_story_summary`/`resolve_episode_summary`/`get_displayable_story_summary`/`get_displayable_episode_summary`/`is_document_displayable`）を追加。`is_displayable_summary`を`generationStatus`判定込みに拡張（後方互換維持）。`review.status`がreviewed/approvedかつ`generationStatus`がgeneratedのSummaryのみStory pageへ表示、storyId/episodeId優先→publicStoryId/publicEpisodeIdで照合し矛盾時は非表示。**Episode page/Character page/Characters index/Unresolved reportは無変更**、evidenceRefs表示・AI要約生成は未実装。合成fixtureとテスト61件追加で確認、実データ未投入。
 - **story summary schema implementation**: `Story_Summary_Design.md`（PR #78）を実装した。`schemas/story_summary.schema.json`・`agents/wiki_generator/story_summaries.py`（loader/validator）・`scripts/validate_story_summaries.py`（CLI、`--require-reviewed`でreviewed/approved以外をエラーにできる）・`docs/templates/story_summary_template.yaml`・合成fixture（`tests/fixtures/story_summaries/`）を追加した。生成ステータスフィールドは`review.status`との混同を避けるため`generationStatus`に改名。`knowledge/summaries/stories/`は`.gitkeep`のみで実データ未投入、`workspace/summary_drafts/`を`.gitignore`に追加した。**renderer統合・Story page renderer変更・AI要約生成は行っていない**（次PR`story-summary-renderer-integration`）。

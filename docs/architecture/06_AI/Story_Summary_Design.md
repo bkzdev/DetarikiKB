@@ -314,6 +314,8 @@ notes: null
 - **Episode pageへのevidenceRefs表示は行っていない**（Story pageのみ対象、Non-goals）
 - raw dialogue text・raw DEC command・raw pathはevidenceRefs表示に一切含まれない（IDのみ表示のため）
 
+**Evidence index設計（`feature/story-summary-evidence-index-design`で実施）**: `evidenceRefs`テキスト表示の次段階として、将来のリンク先となるEvidence indexの役割・データモデル・公開範囲（Public Evidence Index / Internal Review Evidence Packet）を`docs/architecture/06_AI/Evidence_Index_Design.md`で設計した。初期推奨はStory別Evidence page（`evidence/{publicStoryId or storyId}.md`）、Evidence indexはAI Analysis/Speculationとは分離する。**本PRではschema実装・renderer統合・リンク化は行っていない**（設計のみ、次PR`evidence-index-schema-implementation`）。
+
 ---
 
 # 10. Renderer integration plan（次PR以降の統合方針、本PRでは未実装）
@@ -399,6 +401,7 @@ notes: null
 # 15. 参照
 
 - `docs/architecture/07_Wiki/Story_Page_Design.md`（Story page設計、§8 Summary placement）
+- `docs/architecture/06_AI/Evidence_Index_Design.md`（evidenceRefsの将来リンク先となるEvidence indexの設計）
 - `docs/architecture/07_Wiki/Wiki_Output_Design.md`（§3 情報分離方針、§4 evidenceRefs方針、§9.17 AI analysis page）
 - `docs/architecture/06_AI/Extraction_Pipeline.md`（Evidence構造・fact/inference分離の元設計）
 - `docs/architecture/06_AI/Extraction_Result_Schema.md`（EvidenceRef構造、`Identifier_Specification.md` §8）
