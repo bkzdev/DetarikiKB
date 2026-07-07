@@ -25,16 +25,24 @@ from agents.wiki_generator import (
     build_pages,
     character_page_path,
     episode_page_path,
+    evidence_page_path,
     is_page_eligible,
     render_character_index_page,
     render_character_page,
     render_episode_page,
+    render_evidence_page,
     render_index_page,
     render_story_index_page,
     render_story_page,
     render_unresolved_report,
     story_page_path,
     write_pages,
+)
+from agents.wiki_generator.evidence_index import (
+    EvidenceIndexCollection,
+    EvidenceIndexLookup,
+    build_evidence_index_lookup,
+    parse_evidence_index_document,
 )
 from agents.wiki_generator.story_summaries import (
     StorySummaryCollection,
@@ -224,6 +232,30 @@ def test_story_page_path_strips_whitespace_around_public_story_id():
         story_page_path("TEST_S01_C01", "  PUBLIC_TEST_001  ")
         == "stories/PUBLIC_TEST_001.md"
     )
+
+
+# ----------------------------------------------------------------
+# evidence_page_path (feature/evidence-index-renderer-integration)
+# ----------------------------------------------------------------
+
+
+def test_evidence_page_path_uses_story_id_when_no_public_story_id():
+    assert evidence_page_path("TEST_S01_C01") == "evidence/TEST_S01_C01.md"
+
+
+def test_evidence_page_path_prefers_public_story_id_when_present():
+    assert (
+        evidence_page_path("TEST_PUBLIC_ID_STORY", "PUBLIC_TEST_STORY_001")
+        == "evidence/PUBLIC_TEST_STORY_001.md"
+    )
+
+
+def test_evidence_page_path_falls_back_when_public_story_id_is_none():
+    assert evidence_page_path("TEST_S01_C01", None) == "evidence/TEST_S01_C01.md"
+
+
+def test_evidence_page_path_falls_back_when_public_story_id_is_blank():
+    assert evidence_page_path("TEST_S01_C01", "   ") == "evidence/TEST_S01_C01.md"
 
 
 # ----------------------------------------------------------------
@@ -2297,3 +2329,348 @@ def test_evidence_refs_display_does_not_affect_episode_page(synthetic_collection
     episode_page = pages["stories/EP_TEST_001.md"]
     assert "Evidence refs" not in episode_page
     assert "TEST_S01_C01_E01_DLG0001" not in episode_page
+
+
+# ----------------------------------------------------------------
+# Evidence Index renderer integration
+# (feature/evidence-index-renderer-integration)
+#
+# すべて合成データ (TEST_* 等のstoryId/evidenceId) のみを使う。実イベント名・
+# 実キャラ名・実あらすじ・実セリフ・実DEC由来evidenceIdは一切含まない。
+# ----------------------------------------------------------------
+
+
+def _raw_evidence_entry(**overrides) -> dict:
+    entry = {
+        "evidenceId": "TEST_S01_C01_E01_DLG0001",
+        "evidenceType": "dialogue",
+        "storyId": "TEST_S01_C01",
+        "publicStoryId": None,
+        "episodeId": "EP_TEST_001",
+        "publicEpisodeId": None,
+        "sceneId": None,
+        "blockId": None,
+        "speaker": None,
+        "relatedEntities": [],
+        "referencedBy": None,
+        "visibility": {"public": True, "rawTextIncluded": False},
+        "notes": None,
+    }
+    entry.update(overrides)
+    return entry
+
+
+def _raw_evidence_document(**overrides) -> dict:
+    data = {
+        "evidenceIndexVersion": 1,
+        "generatedFrom": None,
+        "entries": [_raw_evidence_entry()],
+        "notes": None,
+    }
+    data.update(overrides)
+    return data
+
+
+def _evidence_lookup(*raw_documents: dict) -> EvidenceIndexLookup:
+    collection = EvidenceIndexCollection(
+        documents=[parse_evidence_index_document(d) for d in raw_documents]
+    )
+    return build_evidence_index_lookup(collection)
+
+
+def test_evidence_ref_stays_plain_id_when_lookup_not_provided(synthetic_collection):
+    summary_lookup = _summary_lookup(
+        _raw_summary_document(
+            storySummary={
+                "text": "合成Story Summary本文。",
+                "evidenceRefs": ["TEST_S01_C01_E01_DLG0001"],
+            }
+        )
+    )
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page(
+        "TEST_S01_C01", episodes, synthetic_collection, summary_lookup
+    )
+    section = _story_summary_section(page)
+    assert "Evidence refs: `TEST_S01_C01_E01_DLG0001`" in section
+    assert "](.." not in section
+
+
+def test_story_summary_evidence_ref_is_linked_when_present(synthetic_collection):
+    summary_lookup = _summary_lookup(
+        _raw_summary_document(
+            storySummary={
+                "text": "合成Story Summary本文。",
+                "evidenceRefs": ["TEST_S01_C01_E01_DLG0001"],
+            }
+        )
+    )
+    evidence_lookup = _evidence_lookup(_raw_evidence_document())
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page(
+        "TEST_S01_C01",
+        episodes,
+        synthetic_collection,
+        summary_lookup,
+        evidence_lookup,
+    )
+    section = _story_summary_section(page)
+    assert (
+        "Evidence refs: [`TEST_S01_C01_E01_DLG0001`]"
+        "(../evidence/TEST_S01_C01.md#test_s01_c01_e01_dlg0001)" in section
+    )
+
+
+def test_episode_summary_evidence_ref_is_linked_when_present(synthetic_collection):
+    summary_lookup = _summary_lookup(
+        _raw_summary_document(
+            episodeSummaries=[
+                {
+                    "episodeId": "EP_TEST_001",
+                    "text": "合成Episode Summary本文。",
+                    "evidenceRefs": ["TEST_S01_C01_E01_DLG0001"],
+                }
+            ]
+        )
+    )
+    evidence_lookup = _evidence_lookup(_raw_evidence_document())
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page(
+        "TEST_S01_C01",
+        episodes,
+        synthetic_collection,
+        summary_lookup,
+        evidence_lookup,
+    )
+    section = _episode_summaries_section(page)
+    assert (
+        "Evidence refs: [`TEST_S01_C01_E01_DLG0001`]"
+        "(../evidence/TEST_S01_C01.md#test_s01_c01_e01_dlg0001)" in section
+    )
+
+
+def test_unresolved_evidence_ref_is_not_linked(synthetic_collection):
+    """Evidence Indexに存在しないevidenceRefは、リンクせずID表示のまま
+    (unresolved扱い、errorにしない)。"""
+    summary_lookup = _summary_lookup(
+        _raw_summary_document(
+            storySummary={
+                "text": "合成Story Summary本文。",
+                "evidenceRefs": ["NOT_IN_EVIDENCE_INDEX"],
+            }
+        )
+    )
+    evidence_lookup = _evidence_lookup(_raw_evidence_document())
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page(
+        "TEST_S01_C01",
+        episodes,
+        synthetic_collection,
+        summary_lookup,
+        evidence_lookup,
+    )
+    section = _story_summary_section(page)
+    assert "Evidence refs: `NOT_IN_EVIDENCE_INDEX`" in section
+    assert "](.." not in section
+
+
+def test_render_evidence_page_has_front_matter_and_title():
+    document = parse_evidence_index_document(_raw_evidence_document())
+    page = render_evidence_page("TEST_S01_C01", document.entries)
+    assert page.startswith("---\n")
+    assert 'page_type: "evidence"' in page
+    assert 'story_id: "TEST_S01_C01"' in page
+    assert "# Evidence: TEST_S01_C01" in page
+
+
+def test_render_evidence_page_title_uses_public_story_id_when_present():
+    document = parse_evidence_index_document(
+        _raw_evidence_document(
+            entries=[
+                _raw_evidence_entry(
+                    storyId="TEST_S01_C01", publicStoryId="EVT_TEST_PUBLIC_001"
+                )
+            ]
+        )
+    )
+    page = render_evidence_page("TEST_S01_C01", document.entries)
+    assert "# Evidence: EVT_TEST_PUBLIC_001" in page
+
+
+def test_evidence_page_is_generated_for_story_with_evidence(synthetic_collection):
+    evidence_lookup = _evidence_lookup(_raw_evidence_document())
+    pages = build_pages(synthetic_collection, evidence_index_lookup=evidence_lookup)
+    assert "evidence/TEST_S01_C01.md" in pages
+
+
+def test_evidence_page_path_uses_public_story_id_from_evidence_entries(
+    synthetic_collection,
+):
+    evidence_lookup = _evidence_lookup(
+        _raw_evidence_document(
+            entries=[
+                _raw_evidence_entry(
+                    storyId="TEST_S01_C01", publicStoryId="EVT_TEST_PUBLIC_001"
+                )
+            ]
+        )
+    )
+    pages = build_pages(synthetic_collection, evidence_index_lookup=evidence_lookup)
+    assert "evidence/EVT_TEST_PUBLIC_001.md" in pages
+    assert "evidence/TEST_S01_C01.md" not in pages
+
+
+def test_evidence_page_not_generated_for_story_without_evidence(synthetic_collection):
+    """Evidence Indexに含まれないstoryのEvidence pageは生成されない。"""
+    evidence_lookup = _evidence_lookup(_raw_evidence_document())
+    pages = build_pages(synthetic_collection, evidence_index_lookup=evidence_lookup)
+    assert "evidence/TEST_SOLO_STORY.md" not in pages
+
+
+def test_story_page_review_links_includes_evidence_link_when_available(
+    synthetic_collection,
+):
+    evidence_lookup = _evidence_lookup(_raw_evidence_document())
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page(
+        "TEST_S01_C01", episodes, synthetic_collection, None, evidence_lookup
+    )
+    assert "- [Evidence index](../evidence/TEST_S01_C01.md)" in page
+
+
+def test_story_page_review_links_no_evidence_link_when_story_has_no_evidence(
+    synthetic_collection,
+):
+    evidence_lookup = _evidence_lookup(_raw_evidence_document())
+    episodes = _story_episodes(synthetic_collection, "TEST_SOLO_STORY")
+    page = render_story_page(
+        "TEST_SOLO_STORY", episodes, synthetic_collection, None, evidence_lookup
+    )
+    assert "Evidence index" not in page
+    assert "[Unresolved report](../reports/unresolved.md)" in page
+
+
+def test_story_page_review_links_no_evidence_link_when_lookup_absent(
+    synthetic_collection,
+):
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection)
+    assert "Evidence index" not in page
+
+
+def test_evidence_page_shows_entry_fields(synthetic_collection):
+    evidence_lookup = _evidence_lookup(
+        _raw_evidence_document(
+            entries=[
+                _raw_evidence_entry(
+                    publicEpisodeId="EVT_TEST_PUBLIC_001_E01",
+                    sceneId="TEST_S01_C01_E01_SC001",
+                    blockId="TEST_S01_C01_E01_DLG0001",
+                    speaker={
+                        "speakerId": "CHAR_TEST_001",
+                        "displayName": "Synthetic Speaker",
+                        "resolutionStatus": "resolved",
+                    },
+                    relatedEntities=[
+                        {
+                            "entityType": "character",
+                            "id": "CHAR_TEST_001",
+                            "displayName": "Synthetic Speaker",
+                        }
+                    ],
+                    referencedBy={
+                        "summaries": [
+                            {
+                                "storyId": "TEST_S01_C01",
+                                "summaryType": "episode",
+                                "episodeId": "EP_TEST_001",
+                            }
+                        ],
+                        "candidates": [],
+                    },
+                )
+            ]
+        )
+    )
+    pages = build_pages(synthetic_collection, evidence_index_lookup=evidence_lookup)
+    evidence_page = pages["evidence/TEST_S01_C01.md"]
+    assert "### TEST_S01_C01_E01_DLG0001" in evidence_page
+    assert "dialogue" in evidence_page
+    assert "`EP_TEST_001`" in evidence_page
+    assert "`EVT_TEST_PUBLIC_001_E01`" in evidence_page
+    assert "`TEST_S01_C01_E01_SC001`" in evidence_page
+    assert "Synthetic Speaker" in evidence_page
+    assert "resolved" in evidence_page
+    assert "character `CHAR_TEST_001`" in evidence_page
+    assert "summary episode `EP_TEST_001`" in evidence_page
+
+
+def test_evidence_page_overview_shows_raw_text_included_no(synthetic_collection):
+    evidence_lookup = _evidence_lookup(_raw_evidence_document())
+    pages = build_pages(synthetic_collection, evidence_index_lookup=evidence_lookup)
+    evidence_page = pages["evidence/TEST_S01_C01.md"]
+    assert "- Raw text included: No" in evidence_page
+
+
+def test_evidence_page_does_not_leak_raw_text(synthetic_collection):
+    evidence_lookup = _evidence_lookup(
+        _raw_evidence_document(
+            entries=[
+                _raw_evidence_entry(
+                    speaker={
+                        "speakerId": "CHAR_TEST_001",
+                        "displayName": "Synthetic Speaker",
+                        "resolutionStatus": "resolved",
+                    }
+                )
+            ]
+        )
+    )
+    pages = build_pages(synthetic_collection, evidence_index_lookup=evidence_lookup)
+    evidence_page = pages["evidence/TEST_S01_C01.md"]
+    assert ".dec" not in evidence_page
+    assert "@ChTalk" not in evidence_page
+    assert "$num" not in evidence_page
+    assert "C:\\" not in evidence_page
+    assert "D:\\" not in evidence_page
+
+
+def test_evidence_index_does_not_affect_episode_page(synthetic_collection):
+    """Episode pageはEvidence Indexの影響を受けない
+    (evidence-index-renderer-integration Non-goals)。"""
+    evidence_lookup = _evidence_lookup(_raw_evidence_document())
+    pages = build_pages(synthetic_collection, evidence_index_lookup=evidence_lookup)
+    episode_page = pages["stories/EP_TEST_001.md"]
+    assert "Evidence refs" not in episode_page
+    assert "evidence/" not in episode_page
+
+
+def test_evidence_index_does_not_affect_character_page(synthetic_collection):
+    evidence_lookup = _evidence_lookup(_raw_evidence_document())
+    pages = build_pages(synthetic_collection, evidence_index_lookup=evidence_lookup)
+    character_page = pages["characters/CHAR_TEST_RAIN.md"]
+    assert "evidence/" not in character_page
+
+
+def test_evidence_index_does_not_affect_characters_index(synthetic_collection):
+    evidence_lookup = _evidence_lookup(_raw_evidence_document())
+    pages = build_pages(synthetic_collection, evidence_index_lookup=evidence_lookup)
+    assert "evidence/" not in pages["characters/index.md"]
+
+
+def test_evidence_index_does_not_affect_unresolved_report(synthetic_collection):
+    evidence_lookup = _evidence_lookup(_raw_evidence_document())
+    pages = build_pages(synthetic_collection, evidence_index_lookup=evidence_lookup)
+    assert "evidence/" not in pages["reports/unresolved.md"]
+
+
+def test_build_pages_with_evidence_index_keeps_existing_pages(synthetic_collection):
+    """evidence_index_lookup指定時も、既存ページの集合は失われず
+    Evidence pageのみが追加されることを確認する。"""
+    without_evidence = set(build_pages(synthetic_collection).keys())
+    evidence_lookup = _evidence_lookup(_raw_evidence_document())
+    with_evidence = set(
+        build_pages(synthetic_collection, evidence_index_lookup=evidence_lookup).keys()
+    )
+    assert without_evidence.issubset(with_evidence)
+    assert with_evidence - without_evidence == {"evidence/TEST_S01_C01.md"}

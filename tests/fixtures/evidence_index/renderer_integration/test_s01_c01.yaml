@@ -1,0 +1,52 @@
+# Synthetic evidence index fixture for scripts/render_wiki.py CLI
+# integration tests. storyId/evidenceId match tests/fixtures/story_summaries/
+# renderer_integration/test_s01_c01.yaml's evidenceRefs (TEST_S01_C01_E01_DLG0001 /
+# TEST_S01_C01_E02_DLG0002), and storyId matches tests/fixtures/wiki/
+# synthetic_merged_collection.json's TEST_S01_C01 (episodes EP_TEST_001-005).
+# 完全な合成データのみ (実イベント名・実キャラ名・実あらすじは含まない)。
+
+evidenceIndexVersion: 1
+generatedFrom: null
+entries:
+  - evidenceId: "TEST_S01_C01_E01_DLG0001"
+    evidenceType: "dialogue"
+    storyId: "TEST_S01_C01"
+    publicStoryId: null
+    episodeId: "EP_TEST_001"
+    publicEpisodeId: null
+    sceneId: "TEST_S01_C01_E01_SC001"
+    blockId: "TEST_S01_C01_E01_DLG0001"
+    speaker:
+      speakerId: "CHAR_TEST_001"
+      displayName: "Synthetic Speaker A"
+      resolutionStatus: "resolved"
+    relatedEntities:
+      - entityType: "character"
+        id: "CHAR_TEST_001"
+        displayName: "Synthetic Speaker A"
+    referencedBy:
+      summaries:
+        - storyId: "TEST_S01_C01"
+          summaryType: "episode"
+          episodeId: "EP_TEST_001"
+      candidates: []
+    visibility:
+      public: true
+      rawTextIncluded: false
+    notes: null
+  - evidenceId: "TEST_S01_C01_E02_DLG0002"
+    evidenceType: "dialogue"
+    storyId: "TEST_S01_C01"
+    publicStoryId: null
+    episodeId: "EP_TEST_002"
+    publicEpisodeId: null
+    sceneId: null
+    blockId: null
+    speaker: null
+    relatedEntities: []
+    referencedBy: null
+    visibility:
+      public: true
+      rawTextIncluded: false
+    notes: null
+notes: null

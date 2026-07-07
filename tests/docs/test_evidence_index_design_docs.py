@@ -170,3 +170,22 @@ def test_tasks_md_lists_next_pr_candidates():
     assert "evidence-index-schema-implementation" in content
     assert "evidence-index-renderer-integration" in content
     assert "evidence-index-generation-dry-run" in content
+
+
+def test_design_doc_states_renderer_integration_complete():
+    """feature/evidence-index-renderer-integrationで、Phase 3
+    (Evidence page生成・evidenceRefsリンク化) が完了したことが
+    §10 Implementation phasesに記録されていることを確認する。"""
+    content = _read_design_doc()
+    phases_section = content.split("# 10. Implementation phases", 1)[1].split(
+        "# 11. Story page", 1
+    )[0]
+    assert "**完了（本PR）**" in phases_section
+    assert "実装状況（`feature/evidence-index-renderer-integration`で実施）" in content
+    integration_status = content.split(
+        "実装状況（`feature/evidence-index-renderer-integration`で実施）", 1
+    )[1]
+    assert "--evidence-index" in integration_status
+    assert "evidence_page_path" in integration_status
+    assert "render_evidence_page" in integration_status
+    assert "常に" in integration_status

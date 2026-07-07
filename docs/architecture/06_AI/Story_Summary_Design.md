@@ -307,7 +307,7 @@ notes: null
 **Story pageへの表示方針・実装状況（`feature/story-summary-evidence-display`で実施）**:
 
 - 表示対象はPR #80と同じ表示可能条件（`review.status`が`reviewed`/`approved`・`generationStatus`が`generated`）を満たすSummaryのみ。それ以外（unreviewed/rejected/needs_revision/draft/deprecated/未登録/textが空）は`evidenceRefs`も一切表示しない
-- 表示形式は「`Evidence refs: `ID1`, `ID2``」のようにIDのみをbacktickで囲んだ1行のインライン表示とする（実装の単純さ・読みやすさを優先、`_render_evidence_refs_line`）。件数が多い場合のbullet list化・Evidence indexへのリンク化は本PRでは行わず、将来（`story-summary-evidence-index-design`等）の検討課題とする
+- 表示形式は「`Evidence refs: `ID1`, `ID2``」のようにIDのみをbacktickで囲んだ1行のインライン表示とする（実装の単純さ・読みやすさを優先、`_render_evidence_refs_line`）。件数が多い場合のbullet list化は本PRでは行わない。Evidence indexへのリンク化は`feature/evidence-index-renderer-integration`で実装済み（後述）
 - **evidenceRefsが空の場合は「案A」を採用し、Evidence refs行自体を何も表示しない**（Summary本文の邪魔にならないことを優先。`evidenceRefs`は任意項目でありempty自体はエラーではないため）
 - renderer側でも安全性を確認する: `list`以外の値は無視、非文字列・空文字列・whitespaceのみの要素は無視、重複は除去（元の順序は維持）
 - Story Summary/Episode Summaryいずれも同じ`_render_evidence_refs_line`ヘルパーを共有する
@@ -317,6 +317,8 @@ notes: null
 **Evidence index設計（`feature/story-summary-evidence-index-design`で実施）**: `evidenceRefs`テキスト表示の次段階として、将来のリンク先となるEvidence indexの役割・データモデル・公開範囲（Public Evidence Index / Internal Review Evidence Packet）を`docs/architecture/06_AI/Evidence_Index_Design.md`で設計した。初期推奨はStory別Evidence page（`evidence/{publicStoryId or storyId}.md`）、Evidence indexはAI Analysis/Speculationとは分離する。**本PRではschema実装・renderer統合・リンク化は行っていない**（設計のみ、次PR`evidence-index-schema-implementation`）。
 
 **Evidence index schema実装（`feature/evidence-index-schema-implementation`で実施）**: `schemas/evidence_index.schema.json`・`agents/wiki_generator/evidence_index.py`（loader/validator）・`scripts/validate_evidence_index.py`（CLI）を実装した。保存場所は`knowledge/evidence/stories/{storyId}.yaml`（`.gitkeep`のみ、実データ未投入）。**Story Summary/Episode SummaryのevidenceRefsをEvidence indexへリンク化する統合はまだ行っていない**（次PR`evidence-index-renderer-integration`）。
+
+**Evidence index renderer統合（`feature/evidence-index-renderer-integration`で実施）**: `scripts/render_wiki.py --evidence-index <path>`で読み込んだEvidence Indexを`renderer.py`の`_render_evidence_refs_line`へ渡すようにした。`evidenceRefs`中の各IDについて、Evidence Indexに該当`evidenceId`が存在すればStory別Evidence page（`evidence/{publicStoryId or storyId}.md`）の該当anchorへのMarkdownリンクとして表示し、存在しない場合は従来通りbacktickのID表示のまま（エラーにはしない、unresolved扱い）。Story Summary/Episode Summaryいずれも同じ挙動。`--evidence-index`未指定時は従来通りID表示のみで、本挙動は完全にopt-inである。
 
 ---
 
@@ -363,9 +365,11 @@ notes: null
 | `story-summary-schema-design` | データモデル・保存場所・status/review方針・evidenceRefs方針・AI考察分離方針・renderer連携方針の設計のみ | 完了 |
 | `story-summary-schema-implementation` | `schemas/story_summary.schema.json`実装、`agents/wiki_generator/story_summaries.py`（loader/validator）実装、`scripts/validate_story_summaries.py`（CLI）実装、`docs/templates/story_summary_template.yaml`・合成fixture・テスト追加、`workspace/summary_drafts/`のgitignoreパターン追加 | 完了 |
 | `story-summary-renderer-integration` | `render_wiki.py --story-summaries`実装、`_render_story_summary_section`/`_render_episode_summaries_section`の実データ連携、合成fixtureでの確認 | 完了 |
-| `story-summary-evidence-display` | Story pageのStory/Episode Summary本文下にevidenceRefsをIDのみ短く表示（`_render_evidence_refs_line`） | **完了（本PR）** |
+| `story-summary-evidence-display` | Story pageのStory/Episode Summary本文下にevidenceRefsをIDのみ短く表示（`_render_evidence_refs_line`） | 完了 |
+| `story-summary-evidence-index-design` | Evidence index本体の設計（`Evidence_Index_Design.md`） | 完了 |
+| `evidence-index-schema-implementation` | Evidence indexのschema/loader/validator実装 | 完了 |
+| `evidence-index-renderer-integration` | Story別Evidence page生成、evidenceRefsのEvidence indexへのリンク化 | **完了（本PR）** |
 | 将来 `story-summary-generation-planning` | AI要約生成パイプライン（LLM provider/prompt実装）の着手時期・方式検討 | 未着手 |
-| 将来 `story-summary-evidence-index-design` | Evidence index本体の設計、evidenceRefsのリンク化・Evidence detail page | 未着手 |
 | 将来 | Episode pageへのSummary/evidenceRefs表示可否判断、実データでの表示確認（manual review） | 未着手 |
 
 ---

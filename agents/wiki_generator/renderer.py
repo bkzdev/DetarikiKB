@@ -29,6 +29,11 @@ from typing import Any
 
 from agents.parser.character_profiles import Birthday, CharacterProfile, Reading
 
+from .evidence_index import (
+    EvidenceIndexEntry,
+    EvidenceIndexLookup,
+    resolve_group_public_story_id,
+)
 from .models import (
     ENTITY_KEY_TO_TYPE,
     GENERATED_FROM,
@@ -38,6 +43,7 @@ from .models import (
 from .paths import (
     character_page_path,
     episode_page_path,
+    evidence_page_path,
     is_page_eligible,
     story_page_path,
 )
@@ -1232,7 +1238,41 @@ def _resolve_episode_summary_heading(
 _SUMMARY_MISSING_LABEL = "未生成"
 
 
-def _render_evidence_refs_line(evidence_refs: list[Any]) -> list[str]:
+def _evidence_anchor(evidence_id: str) -> str:
+    """Evidence page内の見出し (`### {evidenceId}`) に対応するanchorを
+    組み立てる。MkDocs/Material (python-markdown標準のslugify) は見出しを
+    小文字化してanchorにするため、ここでも同じ変換 (小文字化のみ、
+    アンダースコアは維持) を行う (`Evidence_Index_Design.md` §9)。
+    """
+    return evidence_id.lower()
+
+
+def _format_evidence_ref_display(
+    evidence_id: str, evidence_index_lookup: EvidenceIndexLookup | None
+) -> str:
+    """1件のevidenceRefを表示用に整形する。
+
+    `evidence_index_lookup`が指定されていて、かつ該当`evidenceId`が
+    Evidence Indexに存在する場合は、そのEvidence pageの該当anchorへの
+    リンクにする。指定なし、または該当entryが見つからない場合は
+    unresolvedとして扱い、従来通りbacktick付きのID表示のままにする
+    (`Evidence_Index_Design.md` §9、unresolved evidenceRefをerrorには
+    しない)。
+    """
+    if evidence_index_lookup is None:
+        return f"`{evidence_id}`"
+    entry = evidence_index_lookup.by_evidence_id.get(evidence_id)
+    if entry is None:
+        return f"`{evidence_id}`"
+    path = evidence_page_path(entry.story_id, entry.public_story_id)
+    anchor = _evidence_anchor(evidence_id)
+    return f"[`{evidence_id}`](../{path}#{anchor})"
+
+
+def _render_evidence_refs_line(
+    evidence_refs: list[Any],
+    evidence_index_lookup: EvidenceIndexLookup | None = None,
+) -> list[str]:
     """Summary本文の下に、根拠となるevidenceRefsをIDのみ短く表示する行を
     組み立てる (`Story_Summary_Design.md` §9)。
 
@@ -1241,7 +1281,9 @@ def _render_evidence_refs_line(evidence_refs: list[Any]) -> list[str]:
     raw dialogue text・raw DEC command・raw pathは一切表示しない
     (validator側でID形式が検証されている前提だが、renderer側でも
     list以外・空文字列・whitespaceのみの値は無視し、重複は除去した上で
-    元の順序を維持して表示する)。
+    元の順序を維持して表示する)。`evidence_index_lookup`を渡すと、
+    該当するIDはEvidence pageへのリンクになる
+    (feature/evidence-index-renderer-integration)。
     """
     if not isinstance(evidence_refs, list):
         return []
@@ -1257,7 +1299,9 @@ def _render_evidence_refs_line(evidence_refs: list[Any]) -> list[str]:
         cleaned.append(stripped)
     if not cleaned:
         return []
-    refs_display = ", ".join(f"`{ref}`" for ref in cleaned)
+    refs_display = ", ".join(
+        _format_evidence_ref_display(ref, evidence_index_lookup) for ref in cleaned
+    )
     return [f"Evidence refs: {refs_display}", ""]
 
 
@@ -1265,6 +1309,7 @@ def _render_story_summary_section(
     story_summary_lookup: StorySummaryLookup | None,
     story_id: str,
     public_story_id: str | None,
+    evidence_index_lookup: EvidenceIndexLookup | None = None,
 ) -> list[str]:
     """Story Summaryセクションを組み立てる。
 
@@ -1275,7 +1320,8 @@ def _render_story_summary_section(
     unreviewed/rejected/needs_revision/draft/deprecated) は従来通り
     「未生成」を表示し、evidenceRefsも表示しない
     (`Story_Page_Design.md` §8、`Story_Summary_Design.md` §6.3・§9)。
-    元セリフ全文・AI考察は含めない。
+    元セリフ全文・AI考察は含めない。`evidence_index_lookup`を渡すと、
+    evidenceRefsのうちEvidence Indexに存在するものはリンクになる。
     """
     lines = ["## Story Summary", ""]
     if story_summary_lookup is None:
@@ -1293,7 +1339,7 @@ def _render_story_summary_section(
 
     lines.append(entry.text.strip())
     lines.append("")
-    lines.extend(_render_evidence_refs_line(entry.evidence_refs))
+    lines.extend(_render_evidence_refs_line(entry.evidence_refs, evidence_index_lookup))
     return lines
 
 
@@ -1302,6 +1348,7 @@ def _render_episode_summaries_section(
     story_summary_lookup: StorySummaryLookup | None,
     story_id: str,
     public_story_id: str | None,
+    evidence_index_lookup: EvidenceIndexLookup | None = None,
 ) -> list[str]:
     """Episode SummariesをEpisodeごとに区切って表示するsectionを
     組み立てる (`Story_Page_Design.md` §8)。
@@ -1309,7 +1356,8 @@ def _render_episode_summaries_section(
     Episodeごとに表示可能なEpisode Summary（`review.status`が`reviewed`/
     `approved`・`generationStatus`が`generated`）があればその本文と、
     対応する`evidenceRefs`（あれば）を表示する。無ければ「未生成」を表示し、
-    evidenceRefsも表示しない。
+    evidenceRefsも表示しない。`evidence_index_lookup`を渡すと、
+    evidenceRefsのうちEvidence Indexに存在するものはリンクになる。
     """
     lines = ["## Episode Summaries", ""]
     for index, source_document in enumerate(episodes, start=1):
@@ -1333,7 +1381,9 @@ def _render_episode_summaries_section(
             continue
         lines.append(entry.text.strip())
         lines.append("")
-        lines.extend(_render_evidence_refs_line(entry.evidence_refs))
+        lines.extend(
+            _render_evidence_refs_line(entry.evidence_refs, evidence_index_lookup)
+        )
     return lines
 
 
@@ -1393,17 +1443,24 @@ def _render_story_related_characters_section(
     return lines
 
 
-def _render_story_review_links_section() -> list[str]:
-    """Unresolved reportへの導線のみを置く (`Story_Page_Design.md` §11)。
-    Story別のunresolved集計・Special Speaker Labelsの個別表示は後続PRに
-    回す（Unresolved report側に既にsectionがあるため導線のみでよい）。
+def _render_story_review_links_section(
+    evidence_page_relative_path: str | None = None,
+) -> list[str]:
+    """Unresolved report・Evidence indexへの導線を置く
+    (`Story_Page_Design.md` §11)。Story別のunresolved集計・Special
+    Speaker Labelsの個別表示は後続PRに回す（Unresolved report側に既に
+    sectionがあるため導線のみでよい）。
+
+    `evidence_page_relative_path`が指定されている場合のみEvidence index
+    へのリンクを追加する (該当storyのEvidence Indexが提供されている
+    場合のみ、feature/evidence-index-renderer-integration)。
     """
-    return [
-        "## Review Links",
-        "",
-        "- [Unresolved report](../reports/unresolved.md)",
-        "",
-    ]
+    lines = ["## Review Links", ""]
+    if evidence_page_relative_path is not None:
+        lines.append(f"- [Evidence index]({evidence_page_relative_path})")
+    lines.append("- [Unresolved report](../reports/unresolved.md)")
+    lines.append("")
+    return lines
 
 
 def render_story_page(
@@ -1411,6 +1468,7 @@ def render_story_page(
     episodes: list[dict[str, Any]],
     collection: dict[str, Any],
     story_summary_lookup: StorySummaryLookup | None = None,
+    evidence_index_lookup: EvidenceIndexLookup | None = None,
 ) -> str:
     """Story pageを生成する (`Story_Page_Design.md`、
     feature/wiki-story-page-renderer)。
@@ -1425,6 +1483,12 @@ def render_story_page(
     `generationStatus`が`generated`のStory/Episode Summaryを本文として
     表示する（feature/story-summary-renderer-integration）。省略時、
     または該当するSummaryが無い場合は従来通り「未生成」を表示する。
+
+    `evidence_index_lookup`（`agents.wiki_generator.evidence_index.
+    EvidenceIndexLookup`）を渡すと、Story/Episode SummaryのevidenceRefsの
+    うちEvidence Indexに存在するものをEvidence pageへリンクし、この
+    storyのEvidence Indexが存在する場合はReview LinksにEvidence index
+    へのリンクを追加する（feature/evidence-index-renderer-integration）。
     """
     sorted_episodes = _sorted_story_episodes(episodes)
     public_story_id = _resolve_group_public_story_id(sorted_episodes)
@@ -1455,11 +1519,17 @@ def render_story_page(
     lines = [front_matter, f"# {display_title}", "", "## Overview", ""]
     lines.extend(_render_key_value_list(overview_items))
     lines.extend(
-        _render_story_summary_section(story_summary_lookup, story_id, public_story_id)
+        _render_story_summary_section(
+            story_summary_lookup, story_id, public_story_id, evidence_index_lookup
+        )
     )
     lines.extend(
         _render_episode_summaries_section(
-            sorted_episodes, story_summary_lookup, story_id, public_story_id
+            sorted_episodes,
+            story_summary_lookup,
+            story_id,
+            public_story_id,
+            evidence_index_lookup,
         )
     )
     lines.extend(_render_story_episode_list_section(sorted_episodes))
@@ -1468,7 +1538,131 @@ def render_story_page(
         doc.get("episodeId") for doc in sorted_episodes if doc.get("episodeId")
     ]
     lines.extend(_render_story_related_characters_section(collection, episode_ids))
-    lines.extend(_render_story_review_links_section())
+
+    evidence_link = None
+    if evidence_index_lookup is not None:
+        evidence_entries = evidence_index_lookup.by_story_id.get(story_id)
+        if evidence_entries:
+            evidence_public_story_id = resolve_group_public_story_id(evidence_entries)
+            evidence_path = evidence_page_path(story_id, evidence_public_story_id)
+            evidence_link = f"../{evidence_path}"
+    lines.extend(_render_story_review_links_section(evidence_link))
+
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def _format_evidence_entry_speaker(speaker: Any) -> str:
+    """entry.speakerを1行の安全な表示へ整形する
+    (speakerId/displayName/resolutionStatusのみ、raw textは含まない)。"""
+    if speaker is None:
+        return "未登録"
+    display_name = speaker.display_name or "未登録"
+    speaker_id = _format_code(speaker.speaker_id)
+    return f"{display_name}（{speaker_id}, {speaker.resolution_status}）"
+
+
+def _format_evidence_entry_related_entities(related_entities: list[Any]) -> str:
+    """entry.relatedEntitiesを1行の安全な表示へ整形する
+    (entityType/id/displayNameのみ)。"""
+    if not related_entities:
+        return "未登録"
+    parts = []
+    for related in related_entities:
+        label = f"{related.entity_type} {_format_code(related.id)}"
+        if related.display_name:
+            label += f"（{related.display_name}）"
+        parts.append(label)
+    return "、".join(parts)
+
+
+def _format_evidence_entry_referenced_by(referenced_by: Any) -> str:
+    """entry.referencedByを1行の安全な表示へ整形する
+    (summaryType/episodeId/storyId、candidateId/entityTypeのみ)。"""
+    if referenced_by is None:
+        return "未登録"
+    parts: list[str] = []
+    for summary_ref in referenced_by.summaries:
+        target = (
+            summary_ref.episode_id
+            if summary_ref.summary_type == "episode"
+            else summary_ref.story_id
+        )
+        parts.append(f"summary {summary_ref.summary_type} {_format_code(target)}")
+    for candidate_ref in referenced_by.candidates:
+        candidate_id = _format_code(candidate_ref.candidate_id)
+        parts.append(f"candidate {candidate_ref.entity_type} {candidate_id}")
+    if not parts:
+        return "未登録"
+    return "、".join(parts)
+
+
+def _render_evidence_entry(entry: EvidenceIndexEntry) -> list[str]:
+    """1件のEvidence Index entryを、安全な項目のみで表示するsectionに
+    整形する。raw dialogue text・raw DEC command・local pathは
+    entry自体に含まれない前提だが (`agents/wiki_generator/
+    evidence_index.py`のvalidatorで確認済み)、ここでも安全な項目のみを
+    個別に選んで表示する (`Evidence_Index_Design.md` §5.1)。
+    """
+    lines = [f"### {entry.evidence_id}", ""]
+    items = [
+        ("Type", entry.evidence_type),
+        ("Episode ID", _format_code(entry.episode_id)),
+        ("Public Episode ID", _format_code(entry.public_episode_id)),
+        ("Scene ID", _format_code(entry.scene_id)),
+        ("Block ID", _format_code(entry.block_id)),
+        ("Speaker", _format_evidence_entry_speaker(entry.speaker)),
+        (
+            "Related Entities",
+            _format_evidence_entry_related_entities(entry.related_entities),
+        ),
+        (
+            "Referenced by",
+            _format_evidence_entry_referenced_by(entry.referenced_by),
+        ),
+    ]
+    lines.extend(_render_key_value_list(items))
+    return lines
+
+
+def render_evidence_page(story_id: str, entries: list[EvidenceIndexEntry]) -> str:
+    """Story別Evidence pageを生成する (`Evidence_Index_Design.md` §9.2
+    候補B、feature/evidence-index-renderer-integration)。
+
+    Public Evidence Index entryの安全な項目のみを表示する。raw dialogue
+    text・raw DECコマンド・ローカル絶対パス・generatedFromの詳細・
+    extraction JSONの生dumpは一切表示しない。
+    """
+    public_story_id = resolve_group_public_story_id(entries)
+    display_title = public_story_id or story_id
+
+    front_matter = build_front_matter(
+        {
+            "title": f"Evidence: {display_title}",
+            "page_type": "evidence",
+            "story_id": story_id,
+            "generated_from": GENERATED_FROM,
+        }
+    )
+
+    overview_items = [
+        ("Story ID", _format_code(story_id)),
+        ("Public Story ID", _format_code(public_story_id)),
+        ("Entries", str(len(entries))),
+        ("Raw text included", "No"),
+    ]
+
+    lines = [
+        front_matter,
+        f"# Evidence: {display_title}",
+        "",
+        "## Overview",
+        "",
+    ]
+    lines.extend(_render_key_value_list(overview_items))
+    lines.append("## Entries")
+    lines.append("")
+    for entry in entries:
+        lines.extend(_render_evidence_entry(entry))
 
     return "\n".join(lines).rstrip() + "\n"
 
@@ -1477,6 +1671,7 @@ def build_pages(
     collection: dict[str, Any],
     character_profiles: CharacterProfileIndex | None = None,
     story_summary_lookup: StorySummaryLookup | None = None,
+    evidence_index_lookup: EvidenceIndexLookup | None = None,
 ) -> dict[str, str]:
     """merged knowledge collectionから、生成するページ全体を組み立てる。
 
@@ -1492,6 +1687,12 @@ def build_pages(
     「未生成」のまま）。Character page/Characters index/Unresolved
     report/Episode pageには影響しない
     (feature/story-summary-renderer-integration)。
+
+    `evidence_index_lookup`（`EvidenceIndexLookup`）を渡すと、Story別
+    Evidence page（`evidence/{publicStoryId or storyId}.md`）を生成し、
+    Story SummaryのevidenceRefsをそこへリンクする（省略時は従来通り
+    Evidence pageを生成せず、evidenceRefsはID表示のまま）。Episode
+    pageには影響しない (feature/evidence-index-renderer-integration)。
     """
     characters = collection.get("entities", {}).get("characters", []) or []
     pages: dict[str, str] = {
@@ -1510,7 +1711,11 @@ def build_pages(
         public_story_id = _resolve_group_public_story_id(sorted_episodes)
         path = story_page_path(story_id, public_story_id)
         pages[path] = render_story_page(
-            story_id, sorted_episodes, collection, story_summary_lookup
+            story_id,
+            sorted_episodes,
+            collection,
+            story_summary_lookup,
+            evidence_index_lookup,
         )
 
     for source_document in source_documents:
@@ -1522,6 +1727,12 @@ def build_pages(
         path = character_page_path(entity)
         if path is not None:
             pages[path] = render_character_page(entity, character_profiles)
+
+    if evidence_index_lookup is not None:
+        for story_id, entries in evidence_index_lookup.by_story_id.items():
+            evidence_public_story_id = resolve_group_public_story_id(entries)
+            path = evidence_page_path(story_id, evidence_public_story_id)
+            pages[path] = render_evidence_page(story_id, entries)
 
     return pages
 
