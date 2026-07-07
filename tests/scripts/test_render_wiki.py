@@ -578,3 +578,40 @@ def test_cli_story_summaries_does_not_leak_source_text(tmp_path):
     assert ".dec" not in story_page
     assert "@ChTalk" not in story_page
     assert "$num" not in story_page
+
+
+def test_cli_story_summaries_directory_shows_evidence_refs(tmp_path):
+    """--story-summariesのfixtureにevidenceRefsが含まれる場合、Story
+    page上にIDのみの短い形式で表示されることを確認する
+    (feature/story-summary-evidence-display)。"""
+    output_dir = tmp_path / "wiki_out"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            "--input",
+            str(FIXTURE_PATH),
+            "--output",
+            str(output_dir),
+            "--story-summaries",
+            str(STORY_SUMMARIES_FIXTURE_DIR),
+            "--validate",
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    story_page = (output_dir / "stories" / "TEST_S01_C01.md").read_text(
+        encoding="utf-8"
+    )
+    assert (
+        "Evidence refs: `TEST_S01_C01_E01_DLG0001`, `TEST_S01_C01_E02_DLG0002`"
+        in story_page
+    )
+    assert "Evidence refs: `TEST_S01_C01_E01_DLG0001`" in story_page
+
+    solo_story_page = (output_dir / "stories" / "TEST_SOLO_STORY.md").read_text(
+        encoding="utf-8"
+    )
+    assert "TEST_SOLO_STORY_E01_DLG0001" not in solo_story_page

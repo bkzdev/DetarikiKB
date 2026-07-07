@@ -304,6 +304,16 @@ notes: null
 
 **実装状況（`feature/story-summary-schema-implementation`で実施）**: `schemas/story_summary.schema.json`の`EvidenceRef`定義で形式検証（`^[A-Z][A-Z0-9_]*$`）を実装した。Block/Scene/Episode/Story IDいずれの粒度も許可する（`Identifier_Specification.md` §8の段階的fallbackを妨げないよう、suffix別のenum制約はかけない）。
 
+**Story pageへの表示方針・実装状況（`feature/story-summary-evidence-display`で実施）**:
+
+- 表示対象はPR #80と同じ表示可能条件（`review.status`が`reviewed`/`approved`・`generationStatus`が`generated`）を満たすSummaryのみ。それ以外（unreviewed/rejected/needs_revision/draft/deprecated/未登録/textが空）は`evidenceRefs`も一切表示しない
+- 表示形式は「`Evidence refs: `ID1`, `ID2``」のようにIDのみをbacktickで囲んだ1行のインライン表示とする（実装の単純さ・読みやすさを優先、`_render_evidence_refs_line`）。件数が多い場合のbullet list化・Evidence indexへのリンク化は本PRでは行わず、将来（`story-summary-evidence-index-design`等）の検討課題とする
+- **evidenceRefsが空の場合は「案A」を採用し、Evidence refs行自体を何も表示しない**（Summary本文の邪魔にならないことを優先。`evidenceRefs`は任意項目でありempty自体はエラーではないため）
+- renderer側でも安全性を確認する: `list`以外の値は無視、非文字列・空文字列・whitespaceのみの要素は無視、重複は除去（元の順序は維持）
+- Story Summary/Episode Summaryいずれも同じ`_render_evidence_refs_line`ヘルパーを共有する
+- **Episode pageへのevidenceRefs表示は行っていない**（Story pageのみ対象、Non-goals）
+- raw dialogue text・raw DEC command・raw pathはevidenceRefs表示に一切含まれない（IDのみ表示のため）
+
 ---
 
 # 10. Renderer integration plan（次PR以降の統合方針、本PRでは未実装）
@@ -348,10 +358,11 @@ notes: null
 |---|---|---|
 | `story-summary-schema-design` | データモデル・保存場所・status/review方針・evidenceRefs方針・AI考察分離方針・renderer連携方針の設計のみ | 完了 |
 | `story-summary-schema-implementation` | `schemas/story_summary.schema.json`実装、`agents/wiki_generator/story_summaries.py`（loader/validator）実装、`scripts/validate_story_summaries.py`（CLI）実装、`docs/templates/story_summary_template.yaml`・合成fixture・テスト追加、`workspace/summary_drafts/`のgitignoreパターン追加 | 完了 |
-| `story-summary-renderer-integration` | `render_wiki.py --story-summaries`実装、`_render_story_summary_section`/`_render_episode_summaries_section`の実データ連携、合成fixtureでの確認 | **完了（本PR）** |
+| `story-summary-renderer-integration` | `render_wiki.py --story-summaries`実装、`_render_story_summary_section`/`_render_episode_summaries_section`の実データ連携、合成fixtureでの確認 | 完了 |
+| `story-summary-evidence-display` | Story pageのStory/Episode Summary本文下にevidenceRefsをIDのみ短く表示（`_render_evidence_refs_line`） | **完了（本PR）** |
 | 将来 `story-summary-generation-planning` | AI要約生成パイプライン（LLM provider/prompt実装）の着手時期・方式検討 | 未着手 |
-| 将来 `story-summary-evidence-display` | evidenceRefsのStory page表示、Evidence indexとの連携 | 未着手 |
-| 将来 | Episode pageへのSummary表示可否判断、実データでの表示確認（manual review） | 未着手 |
+| 将来 `story-summary-evidence-index-design` | Evidence index本体の設計、evidenceRefsのリンク化・Evidence detail page | 未着手 |
+| 将来 | Episode pageへのSummary/evidenceRefs表示可否判断、実データでの表示確認（manual review） | 未着手 |
 
 ---
 

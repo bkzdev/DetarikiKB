@@ -12,7 +12,8 @@ generationStatus: "generated"
 storySummary:
   text: "この本文はunreviewedのため表示されないはずです。"
   confidence: null
-  evidenceRefs: []
+  evidenceRefs:
+    - "TEST_SOLO_STORY_E01_DLG0001"
 episodeSummaries: []
 source:
   sourceType: "ai_generated"

@@ -1232,6 +1232,35 @@ def _resolve_episode_summary_heading(
 _SUMMARY_MISSING_LABEL = "未生成"
 
 
+def _render_evidence_refs_line(evidence_refs: list[Any]) -> list[str]:
+    """Summary本文の下に、根拠となるevidenceRefsをIDのみ短く表示する行を
+    組み立てる (`Story_Summary_Design.md` §9)。
+
+    evidenceRefsが空・存在しない場合は何も表示しない (案A、Summary本文の
+    邪魔にならないことを優先する方針)。IDはbacktickで囲んで表示し、
+    raw dialogue text・raw DEC command・raw pathは一切表示しない
+    (validator側でID形式が検証されている前提だが、renderer側でも
+    list以外・空文字列・whitespaceのみの値は無視し、重複は除去した上で
+    元の順序を維持して表示する)。
+    """
+    if not isinstance(evidence_refs, list):
+        return []
+    seen: set[str] = set()
+    cleaned: list[str] = []
+    for ref in evidence_refs:
+        if not isinstance(ref, str):
+            continue
+        stripped = ref.strip()
+        if not stripped or stripped in seen:
+            continue
+        seen.add(stripped)
+        cleaned.append(stripped)
+    if not cleaned:
+        return []
+    refs_display = ", ".join(f"`{ref}`" for ref in cleaned)
+    return [f"Evidence refs: {refs_display}", ""]
+
+
 def _render_story_summary_section(
     story_summary_lookup: StorySummaryLookup | None,
     story_id: str,
@@ -1241,10 +1270,11 @@ def _render_story_summary_section(
 
     `story_summary_lookup`が指定されていて、かつ`review.status`が
     `reviewed`/`approved`・`generationStatus`が`generated`のStory Summaryが
-    storyId (無ければpublicStoryId) で見つかった場合はその本文を表示する。
-    それ以外 (未指定・未生成・unreviewed/rejected/needs_revision/draft/
-    deprecated) は従来通り「未生成」を表示する
-    (`Story_Page_Design.md` §8、`Story_Summary_Design.md` §6.3)。
+    storyId (無ければpublicStoryId) で見つかった場合はその本文と、
+    対応する`evidenceRefs`（あれば）を表示する。それ以外 (未指定・未生成・
+    unreviewed/rejected/needs_revision/draft/deprecated) は従来通り
+    「未生成」を表示し、evidenceRefsも表示しない
+    (`Story_Page_Design.md` §8、`Story_Summary_Design.md` §6.3・§9)。
     元セリフ全文・AI考察は含めない。
     """
     lines = ["## Story Summary", ""]
@@ -1256,8 +1286,14 @@ def _render_story_summary_section(
     entry = get_displayable_story_summary(
         story_summary_lookup, story_id, public_story_id
     )
-    lines.append(entry.text.strip() if entry is not None else _SUMMARY_MISSING_LABEL)
+    if entry is None:
+        lines.append(_SUMMARY_MISSING_LABEL)
+        lines.append("")
+        return lines
+
+    lines.append(entry.text.strip())
     lines.append("")
+    lines.extend(_render_evidence_refs_line(entry.evidence_refs))
     return lines
 
 
@@ -1271,8 +1307,9 @@ def _render_episode_summaries_section(
     組み立てる (`Story_Page_Design.md` §8)。
 
     Episodeごとに表示可能なEpisode Summary（`review.status`が`reviewed`/
-    `approved`・`generationStatus`が`generated`）があればその本文を、
-    無ければ「未生成」を表示する。
+    `approved`・`generationStatus`が`generated`）があればその本文と、
+    対応する`evidenceRefs`（あれば）を表示する。無ければ「未生成」を表示し、
+    evidenceRefsも表示しない。
     """
     lines = ["## Episode Summaries", ""]
     for index, source_document in enumerate(episodes, start=1):
@@ -1290,10 +1327,13 @@ def _render_episode_summaries_section(
             if story_summary_lookup is not None
             else None
         )
-        lines.append(
-            entry.text.strip() if entry is not None else _SUMMARY_MISSING_LABEL
-        )
+        if entry is None:
+            lines.append(_SUMMARY_MISSING_LABEL)
+            lines.append("")
+            continue
+        lines.append(entry.text.strip())
         lines.append("")
+        lines.extend(_render_evidence_refs_line(entry.evidence_refs))
     return lines
 
 
