@@ -90,6 +90,14 @@ story_title_subtitle_candidates_*.csv
 !docs/templates/story_title_subtitle_candidates_template.yaml
 title_subtitle_rows*.csv
 
+# Story/Episode summary drafts
+# (docs/architecture/06_AI/Story_Summary_Design.md、
+# feature/story-summary-schema-implementation)。review.statusがreviewed/
+# approvedになるまでのAI生成・下書きsummaryはローカル専用データであり、
+# knowledge/summaries/stories/ (review済みのみcommit) とは別物として
+# ignoreする。
+workspace/summary_drafts/
+
 # Secrets / logs
 .env
 .env.*

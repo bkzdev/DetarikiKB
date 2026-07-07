@@ -1,0 +1,204 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://detariki-kb/schemas/story_summary.schema.json",
+  "title": "Story Summary (Story/Episode要約)",
+  "description": "knowledge/summaries/stories/{storyId}.yaml のスキーマ。1ファイル = 1 story。Story Summary（story全体の簡潔なあらすじ）とEpisode Summary（episodeごとの簡潔なあらすじ）を保持する。AI考察・推測・矛盾点・fan theoryは含めない（docs/architecture/06_AI/Story_Summary_Design.md参照）。review.statusがreviewed/approvedのファイルのみcommit・将来のWiki表示対象とする。",
+
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "documentType",
+    "storyId",
+    "language",
+    "generationStatus",
+    "episodeSummaries",
+    "source",
+    "review"
+  ],
+  "additionalProperties": false,
+
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "description": "本スキーマのバージョン"
+    },
+    "documentType": {
+      "type": "string",
+      "const": "story_summary",
+      "description": "固定値 story_summary"
+    },
+    "storyId": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_]*$",
+      "description": "対象Story ID"
+    },
+    "publicStoryId": {
+      "oneOf": [
+        { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+        { "type": "null" }
+      ],
+      "description": "公開Wiki URL用ID (story_manifest.yamlのpublicStoryIdと対応)"
+    },
+    "language": {
+      "type": "string",
+      "minLength": 1,
+      "description": "要約本文の言語。現時点では常に'ja'を想定するが、将来の多言語対応のため列挙値には固定しない"
+    },
+    "generationStatus": {
+      "type": "string",
+      "enum": ["missing", "draft", "generated", "deprecated"],
+      "description": "ドキュメント全体の生成ステータス。'missing'は通常永続化しない値であり、loader/renderer側が「該当ファイル/エントリなし」を解釈するための予約値(Story_Summary_Design.md §6.1)"
+    },
+    "storySummary": {
+      "oneOf": [
+        { "$ref": "#/definitions/StorySummaryEntry" },
+        { "type": "null" }
+      ],
+      "description": "Story全体の要約。未生成ならnullまたは省略"
+    },
+    "episodeSummaries": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/EpisodeSummaryEntry" },
+      "description": "Episodeごとの要約。空配列も有効 (Story Summaryのみ先に生成されるケース)"
+    },
+    "source": {
+      "$ref": "#/definitions/Source"
+    },
+    "review": {
+      "$ref": "#/definitions/Review"
+    },
+    "notes": {
+      "oneOf": [{ "type": "string" }, { "type": "null" }],
+      "description": "自由記述の補足。実データ本文の転記はしない"
+    }
+  },
+
+  "definitions": {
+
+    "StorySummaryEntry": {
+      "type": "object",
+      "required": ["text"],
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "description": "要約本文。明示された事実の簡潔なあらすじのみ。AI考察・推測・元セリフ全文は含めない"
+        },
+        "confidence": {
+          "oneOf": [
+            { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+            { "type": "null" }
+          ],
+          "description": "要約の確からしさ (AI生成時の目安。人間執筆時はnullでよい)"
+        },
+        "evidenceRefs": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/EvidenceRef" },
+          "description": "根拠となるevidenceId (Block/Scene/Episode/Story ID) の配列。必須ではない"
+        }
+      }
+    },
+
+    "EpisodeSummaryEntry": {
+      "type": "object",
+      "required": ["episodeId", "text"],
+      "additionalProperties": false,
+      "properties": {
+        "episodeId": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$",
+          "description": "対象Episode ID"
+        },
+        "publicEpisodeId": {
+          "oneOf": [
+            { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+            { "type": "null" }
+          ],
+          "description": "公開Wiki URL用ID (story_manifest.yamlのpublicEpisodeIdと対応)"
+        },
+        "episodeNumber": {
+          "oneOf": [
+            { "type": "integer", "minimum": 1 },
+            { "type": "null" }
+          ],
+          "description": "story内の並び順"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "description": "要約本文。明示された事実の簡潔なあらすじのみ"
+        },
+        "confidence": {
+          "oneOf": [
+            { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+            { "type": "null" }
+          ]
+        },
+        "evidenceRefs": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/EvidenceRef" },
+          "description": "根拠となるevidenceId (Block/Scene/Episode/Story ID) の配列。必須ではない"
+        }
+      }
+    },
+
+    "EvidenceRef": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_]*$",
+      "description": "Normalized Story JSON/Extraction ResultのevidenceId (Block ID優先、粗い場合はScene/Episode/Story ID、Identifier_Specification.md §8)。raw textやraw pathではなくIDのみを許可する"
+    },
+
+    "Source": {
+      "type": "object",
+      "required": ["sourceType"],
+      "additionalProperties": false,
+      "properties": {
+        "sourceType": {
+          "type": "string",
+          "enum": ["manual", "ai_generated", "imported", "unknown"],
+          "description": "要約の生成元"
+        },
+        "model": {
+          "oneOf": [{ "type": "string" }, { "type": "null" }],
+          "description": "AI生成時のモデル名・provider識別子"
+        },
+        "promptVersion": {
+          "oneOf": [{ "type": "string" }, { "type": "null" }]
+        },
+        "generatedAt": {
+          "oneOf": [{ "type": "string" }, { "type": "null" }],
+          "description": "ISO8601タイムスタンプ"
+        },
+        "inputRefs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "生成時に参照したepisodeId等 (監査用)"
+        }
+      }
+    },
+
+    "Review": {
+      "type": "object",
+      "required": ["status"],
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["unreviewed", "reviewed", "approved", "rejected", "needs_revision"],
+          "description": "人間レビューの状態。reviewed/approvedのみ将来のWiki表示・knowledge/summaries/への commit対象とする"
+        },
+        "reviewer": {
+          "oneOf": [{ "type": "string" }, { "type": "null" }]
+        },
+        "reviewedAt": {
+          "oneOf": [{ "type": "string" }, { "type": "null" }],
+          "description": "ISO8601タイムスタンプまたは日付文字列"
+        },
+        "notes": {
+          "oneOf": [{ "type": "string" }, { "type": "null" }]
+        }
+      }
+    }
+  }
+}

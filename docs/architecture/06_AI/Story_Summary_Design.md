@@ -128,10 +128,12 @@ data/generated/summaries/
 [確定]        knowledge/summaries/stories/{storyId}.yaml ← commitする (§6のreview状態に従う)
 ```
 
-- `workspace/summary_drafts/`は既存の`workspace/`ディレクトリ配下であり、追加のgitignoreパターンなしで既存ルール（`workspace/`配下は生成物置き場、実装によっては個別パターン追加が必要）に整合する。実際のgitignoreパターン追加は本PRでは行わず、次PR（`story-summary-schema-implementation`）で必要になった時点で行う
+- `workspace/summary_drafts/`は既存の`workspace/`ディレクトリ配下であり、`.gitignore`に個別パターンを追加してignore対象とする
 - `knowledge/summaries/stories/{storyId}.yaml`にコミットしてよいのは、`review.status`が`reviewed`または`approved`のSummaryのみとする（§6・§7）。`unreviewed`/`needs_revision`/`rejected`のエントリを`knowledge/summaries/`側にcommitしない
 
 候補Aと候補Bの比較では長期的な件数増加を見込みBを推奨するが、初期PR（`story-summary-schema-implementation`）ではローダー実装の負荷を考慮し、まず候補Bのシンプルな実装（1ファイル1story、YAML読み込みのみ）から始めることを推奨する。
+
+**実装状況（`feature/story-summary-schema-implementation`で実施）**: `.gitignore`へ`workspace/summary_drafts/`を追加した（実データ由来のdraft summaryをcommitしないため）。`knowledge/summaries/stories/`・`knowledge/summaries/`には空ディレクトリ維持用の`.gitkeep`のみを追加し、実データsummaryは追加していない。`scripts/validate_story_summaries.py --require-reviewed`で、`review.status`が`reviewed`/`approved`以外のファイルをエラーにできるようにした（§10.3実装状況参照）。
 
 ---
 
@@ -205,10 +207,9 @@ documentType: story_summary
 storyId: EVT_SAMPLE
 publicStoryId: EVT_260101_001
 language: ja
-status: generated
+generationStatus: generated
 storySummary:
   text: "..."
-  status: generated
   confidence: 0.7
   evidenceRefs:
     - EVT_SAMPLE_E01_DLG0001
@@ -217,7 +218,6 @@ episodeSummaries:
     publicEpisodeId: EVT_260101_001_E01
     episodeNumber: 1
     text: "..."
-    status: generated
     confidence: 0.6
     evidenceRefs:
       - EVT_SAMPLE_E01_DLG0001
@@ -235,6 +235,8 @@ review:
 notes: null
 ```
 
+**実装状況（`feature/story-summary-schema-implementation`で実施）**: ドキュメント直下の生成ステータスフィールドは、`review.status`との混同を避けるため`status`から`generationStatus`へ改名して実装した（`schemas/story_summary.schema.json`）。`storySummary`/`episodeSummaries[]`個別の`status`継承フィールドは実装しない（スコープを単純化し、ドキュメント直下の`generationStatus`のみを単一のソースとする）。
+
 ## 8.2 Required / optional fields
 
 ### Story-level（ドキュメント直下）
@@ -245,7 +247,7 @@ notes: null
 | `documentType` | Yes | string | 固定値 `story_summary` |
 | `storyId` | Yes | string | 対象Story ID |
 | `publicStoryId` | No | string \| null | 公開Wiki URL用ID。`story_manifest.yaml`の`publicStoryId`と対応させる |
-| `status` | Yes | string | ドキュメント全体の生成ステータス（§6.1）。個別の`storySummary.status`/`episodeSummaries[].status`が無い場合のfallback値としても使う |
+| `generationStatus` | Yes | string | ドキュメント全体の生成ステータス（§6.1） |
 | `language` | Yes | string | 既定 `ja` |
 | `storySummary` | No | object \| null | §8.3。未生成なら省略またはnull |
 | `episodeSummaries` | Yes | array | §8.4。要素0件も許容（Story Summaryのみ先に生成されるケース） |
@@ -258,7 +260,6 @@ notes: null
 | Field | 必須 | 型 | 説明 |
 |---|---:|---|---|
 | `text` | Yes | string | 要約本文 |
-| `status` | No | string | 省略時はドキュメント直下の`status`を継承 |
 | `confidence` | No | number | 0.0〜1.0 |
 | `evidenceRefs` | No | string[] | §9 |
 
@@ -270,7 +271,6 @@ notes: null
 | `publicEpisodeId` | No | string \| null | `story_manifest.yaml`の`publicEpisodeId`と対応 |
 | `episodeNumber` | No | integer | story内の並び順（`Story_Page_Design.md` §8のEpisode Summaries見出し解決と同じ考え方） |
 | `text` | Yes | string | 要約本文 |
-| `status` | No | string | 省略時はドキュメント直下の`status`を継承 |
 | `confidence` | No | number | 0.0〜1.0 |
 | `evidenceRefs` | No | string[] | §9 |
 
@@ -302,6 +302,8 @@ notes: null
 - `evidenceRefs`を持たせても、元セリフ全文は保存しない（`evidenceRefs`は根拠の**参照**であり、根拠テキストの**引用**ではない）
 - `evidenceRefs`はSummaryの根拠確認用であり、将来のEvidence index（`Wiki_Output_Design.md` §9.16、未実装）との連携を見込む。連携方式（Evidence indexからSummaryへの逆引き等）は本文書では設計しない
 
+**実装状況（`feature/story-summary-schema-implementation`で実施）**: `schemas/story_summary.schema.json`の`EvidenceRef`定義で形式検証（`^[A-Z][A-Z0-9_]*$`）を実装した。Block/Scene/Episode/Story IDいずれの粒度も許可する（`Identifier_Specification.md` §8の段階的fallbackを妨げないよう、suffix別のenum制約はかけない）。
+
 ---
 
 # 10. Renderer integration plan（次PR以降の統合方針、本PRでは未実装）
@@ -314,6 +316,8 @@ notes: null
 4. `review.status`が`reviewed`/`approved`のSummaryのみ、Story pageのplaceholderを実テキストへ置き換える（§6.3）。それ以外は従来通り「未生成」のまま表示する
 5. Episode pageへのEpisode Summary表示可否は本文書では決定しない（後続PRで判断、§4 Non-goals）
 
+**実装状況（`feature/story-summary-schema-implementation`で実施）**: 上記1〜4の土台となるloader（`load_story_summary`/`load_story_summaries`/`build_story_summary_index`/`build_public_story_summary_index`/`find_episode_summary`/`find_episode_summary_by_public_id`/`is_displayable_summary`）を`agents/wiki_generator/story_summaries.py`に実装した。**`render_wiki.py`/`renderer.py`への統合自体は行っていない**（次PR`story-summary-renderer-integration`のスコープ）。
+
 ---
 
 # 11. Validation plan（次PR以降、本PRでは未実装）
@@ -324,16 +328,18 @@ notes: null
 - `storyId`/`episodeId`が実在のNormalized Story JSON/Merged Knowledge Collection側と一致するかは、schema単体では検証できないため、CLI側（`scripts/validate_story_summaries.py`相当、未作成）でのcross-reference検証を別途検討する
 - `evidenceRefs`が実在の`evidenceId`かどうかの検証は、既存の「semantic validationの範囲が限定的」という既知課題（`TASKS.md` Known Issues）と同様、初期実装では必須にしない
 
+**実装状況（`feature/story-summary-schema-implementation`で実施）**: `schemas/story_summary.schema.json`によるstructural validationと、`scripts/validate_story_summaries.py`によるPython側validation（duplicate storyId/publicStoryId/episodeId/publicEpisodeId検出、raw/source text禁止文字列検出、`--require-reviewed`指定時のreview status enforcement）を実装した。実在のNormalized Story JSON/Merged Knowledge Collectionとのcross-reference検証（storyId/episodeIdが実在するか）は、上記記載の通り本PRでも未実装のまま次PR以降の課題とする。
+
 ---
 
 # 12. Implementation phases（実装フェーズ案）
 
-| フェーズ | 内容 |
-|---|---|
-| 本PR（`story-summary-schema-design`） | データモデル・保存場所・status/review方針・evidenceRefs方針・AI考察分離方針・renderer連携方針の設計のみ |
-| 次PR候補 `story-summary-schema-implementation` | `schemas/story_summary.schema.json`実装、`agents/`側のloader/validator実装、合成fixtureでのテスト |
-| 次PR候補 `story-summary-renderer-integration` | `render_wiki.py --story-summaries`実装、`_render_story_summary_section`/`_render_episode_summaries_section`の実データ連携、合成fixtureでの確認、実データでの表示確認（manual review） |
-| 将来 | AI要約生成パイプライン（LLM provider/prompt実装）、`workspace/summary_drafts/`のgitignoreパターン追加、Evidence indexとの連携、Episode pageへのSummary表示可否判断 |
+| フェーズ | 内容 | 状態 |
+|---|---|---|
+| `story-summary-schema-design` | データモデル・保存場所・status/review方針・evidenceRefs方針・AI考察分離方針・renderer連携方針の設計のみ | 完了 |
+| `story-summary-schema-implementation` | `schemas/story_summary.schema.json`実装、`agents/wiki_generator/story_summaries.py`（loader/validator）実装、`scripts/validate_story_summaries.py`（CLI）実装、`docs/templates/story_summary_template.yaml`・合成fixture・テスト追加、`workspace/summary_drafts/`のgitignoreパターン追加 | **完了（本PR）** |
+| 次PR候補 `story-summary-renderer-integration` | `render_wiki.py --story-summaries`実装、`_render_story_summary_section`/`_render_episode_summaries_section`の実データ連携、合成fixtureでの確認、実データでの表示確認（manual review） | 未着手 |
+| 将来 | AI要約生成パイプライン（LLM provider/prompt実装）、Evidence indexとの連携、Episode pageへのSummary表示可否判断 | 未着手 |
 
 ---
 
@@ -353,6 +359,8 @@ notes: null
 - Evidence index実装
 - AI Analysis / Speculation schema実装
 
+上記は本文書の初版（`story-summary-schema-design`）時点でのNon-goalsの記録である。schema/loader/validator/template/fixtureの実装は`story-summary-schema-implementation`で完了済み、renderer統合・AI要約生成は引き続きNon-goalsのまま（§12 Implementation phasesの状態列を参照）。
+
 ---
 
 # 14. Open questions（未確定事項）
@@ -360,9 +368,8 @@ notes: null
 - Episode Summaryの複数版（改訂履歴）を持たせるかどうか（現状は1 episodeにつき0〜1個のみ設計）
 - Episode pageにもEpisode Summaryを表示するかどうか（§10.5、後続PRで判断）
 - Summary text自体の文字数上限（`character_profiles.yaml`の`selfIntroduction`同様、著作権・引用量の観点は本文書のスコープ外）
-- `workspace/summary_drafts/`の正式なgitignoreパターン追加タイミング（実装PRで必要になった時点で追加）
 - Evidence indexとの具体的な連携方式（`Wiki_Output_Design.md` §9.16が未実装のため）
-- `knowledge/summaries/`へのcommit可否判定を、人間の目視確認以外の方法（CIチェック等）でも担保すべきか
+- `knowledge/summaries/`へのcommit可否判定を、人間の目視確認以外の方法（CIチェック等）でも担保すべきか。`scripts/validate_story_summaries.py --require-reviewed`は実装したが、CIへの組み込み自体はまだ行っていない
 
 ---
 
@@ -375,4 +382,8 @@ notes: null
 - `docs/architecture/06_AI/Merged_Knowledge_Design.md`（§11 生成物/手動管理ソースの分離パターン、本文書の保存場所方針が踏襲する先例）
 - `docs/architecture/06_AI/Character_Profile_Dictionary_Design.md`（committedな公式データ辞書の先例、draft→confirmed昇格運用の踏襲元）
 - `agents/wiki_generator/renderer.py`（`_render_story_summary_section`/`_render_episode_summaries_section`、置き換え対象）
+- `schemas/story_summary.schema.json`（本設計のJSON Schema実装）
+- `agents/wiki_generator/story_summaries.py`（loader/validator/index構築のPython実装）
+- `scripts/validate_story_summaries.py`（CLI validator）
+- `docs/templates/story_summary_template.yaml`（合成データのみのテンプレート見本）
 - `TASKS.md`（次PR候補の追跡）

@@ -1,0 +1,40 @@
+# Synthetic INVALID fixture: episodeSummaries contains the same episodeId
+# twice. Passes JSON Schema (schema does not check for duplicates within an
+# array) but must fail agents.wiki_generator.story_summaries validation
+# (duplicate episodeId within a story, Story_Summary_Design.md §8.4)。
+#
+# 完全な合成データのみ。このファイルはtests/fixtures/story_summaries直下
+# ではなくinvalid_examples/配下に置く (非再帰的directory走査で除外される)。
+
+schemaVersion: "0.1.0"
+documentType: "story_summary"
+storyId: "EVT_TEST_SUMMARY_DUP"
+publicStoryId: null
+language: "ja"
+generationStatus: "generated"
+storySummary: null
+episodeSummaries:
+  - episodeId: "EVT_TEST_SUMMARY_DUP_E01"
+    publicEpisodeId: null
+    episodeNumber: 1
+    text: "合成テスト用のEpisode Summaryです (1件目)。"
+    confidence: null
+    evidenceRefs: []
+  - episodeId: "EVT_TEST_SUMMARY_DUP_E01"
+    publicEpisodeId: null
+    episodeNumber: 1
+    text: "同じepisodeIdを持つ2件目 (重複検出テスト用)。"
+    confidence: null
+    evidenceRefs: []
+source:
+  sourceType: "manual"
+  model: null
+  promptVersion: null
+  generatedAt: null
+  inputRefs: []
+review:
+  status: "unreviewed"
+  reviewer: null
+  reviewedAt: null
+  notes: null
+notes: null

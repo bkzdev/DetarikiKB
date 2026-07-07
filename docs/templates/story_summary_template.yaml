@@ -1,0 +1,50 @@
+# Story Summary Template（Story Summary/Episode Summaryの見本）
+#
+# scripts/validate_story_summaries.py / agents/wiki_generator/story_summaries.py
+# が実際に読み込むknowledge/summaries/stories/{storyId}.yamlは、この見本と
+# 同じ構造を持つ (docs/architecture/06_AI/Story_Summary_Design.md 参照)。
+#
+# このファイル自体は合成データのみで構成されており、実イベント名・実
+# キャラクター名・実セリフ・実あらすじは一切含まない。実際に要約を投入する
+# 際は、この見本と同じ構造でファイルを作成し、review.statusがreviewed/
+# approvedになるまではworkspace/summary_drafts/側に置くこと
+# (knowledge/summaries/stories/へ置いてよいのはreviewed/approvedのみ)。
+
+schemaVersion: "0.1.0"
+documentType: "story_summary"
+storyId: "EVT_SAMPLE"
+publicStoryId: "EVT_260101_001"
+language: "ja"
+generationStatus: "generated"
+storySummary:
+  text: "これは合成のStory Summary見本です。実イベントのあらすじではありません。"
+  confidence: 0.7
+  evidenceRefs:
+    - "EVT_SAMPLE_E01_DLG0001"
+episodeSummaries:
+  - episodeId: "EVT_SAMPLE_E01"
+    publicEpisodeId: "EVT_260101_001_E01"
+    episodeNumber: 1
+    text: "これは合成のEpisode Summary見本です (episode 1)。"
+    confidence: 0.6
+    evidenceRefs:
+      - "EVT_SAMPLE_E01_DLG0001"
+  # publicEpisodeId未設定の例 (fallback確認用)
+  - episodeId: "EVT_SAMPLE_E02"
+    publicEpisodeId: null
+    episodeNumber: 2
+    text: "これは合成のEpisode Summary見本です (episode 2、public ID未設定)。"
+    confidence: null
+    evidenceRefs: []
+source:
+  sourceType: "manual"
+  model: null
+  promptVersion: null
+  generatedAt: null
+  inputRefs: []
+review:
+  status: "reviewed"
+  reviewer: "synthetic_reviewer"
+  reviewedAt: "2026-07-08"
+  notes: "Synthetic template entry only."
+notes: "Synthetic template entry. Not real story content."

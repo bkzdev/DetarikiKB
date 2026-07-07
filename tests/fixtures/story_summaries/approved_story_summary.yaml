@@ -1,0 +1,29 @@
+# Synthetic story summary fixture: approved review status, no story-level
+# summary yet (storySummary omitted), no public IDs. 完全な合成データのみ。
+
+schemaVersion: "0.1.0"
+documentType: "story_summary"
+storyId: "EVT_TEST_SUMMARY_TWO"
+publicStoryId: null
+language: "ja"
+generationStatus: "generated"
+storySummary: null
+episodeSummaries:
+  - episodeId: "EVT_TEST_SUMMARY_TWO_E01"
+    publicEpisodeId: null
+    episodeNumber: 1
+    text: "合成テスト用のEpisode Summaryです (storySummaryなしのケース)。"
+    confidence: 0.5
+    evidenceRefs: []
+source:
+  sourceType: "manual"
+  model: null
+  promptVersion: null
+  generatedAt: null
+  inputRefs: []
+review:
+  status: "approved"
+  reviewer: "synthetic_reviewer"
+  reviewedAt: "2026-07-08"
+  notes: "Synthetic approved example."
+notes: null

@@ -1,0 +1,28 @@
+# Synthetic story summary fixture: draft generation status, unreviewed
+# review status, no episode summaries yet. 完全な合成データのみ。
+# --require-reviewed指定時のvalidatorエラー確認、および通常検証時は
+# 問題なく通ることの確認に使う。
+
+schemaVersion: "0.1.0"
+documentType: "story_summary"
+storyId: "EVT_TEST_SUMMARY_THREE"
+publicStoryId: null
+language: "ja"
+generationStatus: "draft"
+storySummary:
+  text: "合成テスト用の下書きStory Summaryです (未レビュー)。"
+  confidence: null
+  evidenceRefs: []
+episodeSummaries: []
+source:
+  sourceType: "ai_generated"
+  model: "synthetic_test_model"
+  promptVersion: "test_v0.1"
+  generatedAt: "2026-07-08T00:00:00Z"
+  inputRefs: []
+review:
+  status: "unreviewed"
+  reviewer: null
+  reviewedAt: null
+  notes: null
+notes: null
