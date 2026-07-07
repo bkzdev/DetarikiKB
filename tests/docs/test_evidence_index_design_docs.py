@@ -189,3 +189,21 @@ def test_design_doc_states_renderer_integration_complete():
     assert "evidence_page_path" in integration_status
     assert "render_evidence_page" in integration_status
     assert "常に" in integration_status
+
+
+def test_design_doc_states_generation_dry_run_complete():
+    """feature/evidence-index-generation-dry-runで、Phase 4
+    (dry-run生成) が完了したことが§10 Implementation phasesに
+    記録されていることを確認する。"""
+    content = _read_design_doc()
+    phases_section = content.split("# 10. Implementation phases", 1)[1].split(
+        "# 11. Story page", 1
+    )[0]
+    assert "**完了（本PR、昇格運用のみ未着手）**" in phases_section
+    assert "実装状況（`feature/evidence-index-generation-dry-run`で実施）" in content
+    dry_run_status = content.split(
+        "実装状況（`feature/evidence-index-generation-dry-run`で実施）", 1
+    )[1]
+    assert "build_evidence_index_candidates.py" in dry_run_status
+    assert "workspace/evidence_index_dry_runs/" in dry_run_status
+    assert "Evidence_Index_Generation_Dry_Run.md" in dry_run_status

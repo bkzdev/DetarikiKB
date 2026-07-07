@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "0.2",
+  "documentType": "normalized_story",
+  "storyId": "TEST_S01_C01",
+  "storyCategory": "MAIN",
+  "metadata": {
+    "storyTitle": "Synthetic Test Story"
+  },
+  "parser": {
+    "parserName": "DKB Story Parser",
+    "parserVersion": "0.2.0",
+    "parserMode": "game_script",
+    "preserveStageDirections": true
+  },
+  "source": {
+    "sourceFile": "synthetic_test_story_e02",
+    "sourceFormat": "game_script"
+  },
+  "episodes": [
+    {
+      "episodeId": "TEST_S01_C01_E02",
+      "episodeNumber": 2,
+      "metadata": {},
+      "scenes": [
+        {
+          "sceneId": "TEST_S01_C01_E02_SC001",
+          "sceneNumber": 1,
+          "blocks": [
+            {
+              "id": "TEST_S01_C01_E02_DLG0001",
+              "type": "dialogue",
+              "speaker": {
+                "speakerId": null,
+                "speakerName": "不明人物(ID:9)",
+                "isResolved": false
+              },
+              "text": "Synthetic episode 2 dialogue text.",
+              "source": {
+                "sourceFile": "synthetic_test_story_e02",
+                "lineStart": 1,
+                "lineEnd": 1
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

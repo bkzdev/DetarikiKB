@@ -98,6 +98,15 @@ title_subtitle_rows*.csv
 # ignoreする。
 workspace/summary_drafts/
 
+# Evidence Index generation dry-run output
+# (docs/architecture/06_AI/Evidence_Index_Design.md、
+# scripts/build_evidence_index_candidates.py、
+# feature/evidence-index-generation-dry-run)。Normalized Story JSON/
+# Extraction Resultから機械生成したEvidence Index候補・reportは
+# 人間レビュー前のローカル専用データであり、knowledge/evidence/stories/
+# (review済みのみcommit) とは別物としてignoreする。
+workspace/evidence_index_dry_runs/
+
 # Secrets / logs
 .env
 .env.*
