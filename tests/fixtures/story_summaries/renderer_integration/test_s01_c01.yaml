@@ -1,0 +1,34 @@
+# Synthetic story summary fixture for scripts/render_wiki.py CLI
+# integration tests. storyId matches tests/fixtures/wiki/
+# synthetic_merged_collection.json's TEST_S01_C01 (episodes EP_TEST_001-005).
+# 完全な合成データのみ (実イベント名・実キャラ名・実あらすじは含まない)。
+
+schemaVersion: "0.1.0"
+documentType: "story_summary"
+storyId: "TEST_S01_C01"
+publicStoryId: null
+language: "ja"
+generationStatus: "generated"
+storySummary:
+  text: "合成CLI統合テスト用のStory Summaryです。"
+  confidence: 0.7
+  evidenceRefs: []
+episodeSummaries:
+  - episodeId: "EP_TEST_001"
+    publicEpisodeId: null
+    episodeNumber: 1
+    text: "合成CLI統合テスト用のEpisode Summaryです (EP_TEST_001)。"
+    confidence: 0.6
+    evidenceRefs: []
+source:
+  sourceType: "manual"
+  model: null
+  promptVersion: null
+  generatedAt: null
+  inputRefs: []
+review:
+  status: "reviewed"
+  reviewer: "synthetic_reviewer"
+  reviewedAt: "2026-07-08"
+  notes: null
+notes: null

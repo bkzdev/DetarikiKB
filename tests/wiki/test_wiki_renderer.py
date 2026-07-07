@@ -36,6 +36,12 @@ from agents.wiki_generator import (
     story_page_path,
     write_pages,
 )
+from agents.wiki_generator.story_summaries import (
+    StorySummaryCollection,
+    StorySummaryLookup,
+    build_story_summary_lookup,
+    parse_story_summary_document,
+)
 
 FIXTURE_PATH = (
     Path(__file__).parent.parent
@@ -1586,3 +1592,369 @@ def test_write_pages_does_not_crash_on_minimal_collection(minimal_collection, tm
     assert len(written) == len(pages)
     for relative_path in pages:
         assert (tmp_path / relative_path).is_file()
+
+
+# ----------------------------------------------------------------
+# Story Summary renderer integration
+# (feature/story-summary-renderer-integration)
+#
+# すべて合成データ (EVT_TEST_* 等のstoryId/publicStoryId・合成本文) の
+# みを使う。実イベント名・実キャラ名・実あらすじ・実セリフは一切含まない。
+# ----------------------------------------------------------------
+
+
+def _raw_summary_document(**overrides) -> dict:
+    data = {
+        "schemaVersion": "0.1.0",
+        "documentType": "story_summary",
+        "storyId": "TEST_S01_C01",
+        "publicStoryId": None,
+        "language": "ja",
+        "generationStatus": "generated",
+        "storySummary": None,
+        "episodeSummaries": [],
+        "source": {
+            "sourceType": "manual",
+            "model": None,
+            "promptVersion": None,
+            "generatedAt": None,
+            "inputRefs": [],
+        },
+        "review": {
+            "status": "reviewed",
+            "reviewer": None,
+            "reviewedAt": None,
+            "notes": None,
+        },
+        "notes": None,
+    }
+    data.update(overrides)
+    return data
+
+
+def _summary_lookup(*raw_documents: dict) -> StorySummaryLookup:
+    collection = StorySummaryCollection(
+        documents=[parse_story_summary_document(d) for d in raw_documents]
+    )
+    return build_story_summary_lookup(collection)
+
+
+def _story_summary_section(page: str) -> str:
+    return page.split("## Story Summary", 1)[1].split("## Episode Summaries", 1)[0]
+
+
+def _episode_summaries_section(page: str) -> str:
+    return page.split("## Episode Summaries", 1)[1].split("## Episodes", 1)[0]
+
+
+def test_story_summary_lookup_none_keeps_placeholder(synthetic_collection):
+    """summary未指定 (story_summary_lookup省略) 時、Story Summaryは
+    従来通り「未生成」のまま。"""
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection)
+    assert "未生成" in _story_summary_section(page)
+
+
+def test_reviewed_story_summary_is_displayed(synthetic_collection):
+    lookup = _summary_lookup(
+        _raw_summary_document(
+            storySummary={"text": "合成reviewed Story Summaryの本文です。"}
+        )
+    )
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection, lookup)
+    assert "合成reviewed Story Summaryの本文です。" in _story_summary_section(page)
+
+
+def test_approved_story_summary_is_displayed(synthetic_collection):
+    lookup = _summary_lookup(
+        _raw_summary_document(
+            storySummary={"text": "合成approved Story Summaryの本文です。"},
+            review={
+                "status": "approved",
+                "reviewer": None,
+                "reviewedAt": None,
+                "notes": None,
+            },
+        )
+    )
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection, lookup)
+    assert "合成approved Story Summaryの本文です。" in _story_summary_section(page)
+
+
+def test_unreviewed_story_summary_is_not_displayed(synthetic_collection):
+    lookup = _summary_lookup(
+        _raw_summary_document(
+            storySummary={"text": "この本文は表示されないはずです。"},
+            review={
+                "status": "unreviewed",
+                "reviewer": None,
+                "reviewedAt": None,
+                "notes": None,
+            },
+        )
+    )
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection, lookup)
+    section = _story_summary_section(page)
+    assert "未生成" in section
+    assert "この本文は表示されないはずです。" not in section
+
+
+@pytest.mark.parametrize("status", ["rejected", "needs_revision"])
+def test_rejected_and_needs_revision_story_summary_is_not_displayed(
+    synthetic_collection, status
+):
+    lookup = _summary_lookup(
+        _raw_summary_document(
+            storySummary={"text": "この本文は表示されないはずです。"},
+            review={
+                "status": status,
+                "reviewer": None,
+                "reviewedAt": None,
+                "notes": None,
+            },
+        )
+    )
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection, lookup)
+    section = _story_summary_section(page)
+    assert "未生成" in section
+    assert "この本文は表示されないはずです。" not in section
+
+
+def test_deprecated_generation_status_is_not_displayed(synthetic_collection):
+    """review.statusはreviewedでも、generationStatusがdeprecatedなら
+    表示しない。"""
+    lookup = _summary_lookup(
+        _raw_summary_document(
+            storySummary={"text": "この本文は表示されないはずです。"},
+            generationStatus="deprecated",
+        )
+    )
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection, lookup)
+    section = _story_summary_section(page)
+    assert "未生成" in section
+    assert "この本文は表示されないはずです。" not in section
+
+
+def test_draft_generation_status_is_not_displayed(synthetic_collection):
+    lookup = _summary_lookup(
+        _raw_summary_document(
+            storySummary={"text": "この本文は表示されないはずです。"},
+            generationStatus="draft",
+        )
+    )
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection, lookup)
+    section = _story_summary_section(page)
+    assert "未生成" in section
+    assert "この本文は表示されないはずです。" not in section
+
+
+def test_reviewed_episode_summary_is_displayed(synthetic_collection):
+    lookup = _summary_lookup(
+        _raw_summary_document(
+            episodeSummaries=[
+                {
+                    "episodeId": "EP_TEST_001",
+                    "publicEpisodeId": None,
+                    "episodeNumber": 1,
+                    "text": "合成reviewed Episode Summaryの本文です。",
+                    "confidence": None,
+                    "evidenceRefs": [],
+                }
+            ]
+        )
+    )
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection, lookup)
+    section = _episode_summaries_section(page)
+    assert "合成reviewed Episode Summaryの本文です。" in section
+    # EP_TEST_001以外の4episodeはsummary未登録のまま「未生成」
+    assert section.count("未生成") == 4
+
+
+def test_episode_without_summary_shows_missing_placeholder(synthetic_collection):
+    lookup = _summary_lookup(_raw_summary_document(episodeSummaries=[]))
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection, lookup)
+    section = _episode_summaries_section(page)
+    assert section.count("未生成") == 5
+
+
+def test_episode_summary_matches_by_episode_id(synthetic_collection):
+    lookup = _summary_lookup(
+        _raw_summary_document(
+            episodeSummaries=[
+                {
+                    "episodeId": "EP_TEST_002",
+                    "publicEpisodeId": None,
+                    "text": "episodeId照合で表示される本文です。",
+                }
+            ]
+        )
+    )
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection, lookup)
+    assert "episodeId照合で表示される本文です。" in _episode_summaries_section(page)
+
+
+def test_episode_summary_matches_by_public_episode_id(synthetic_collection):
+    """publicEpisodeIdが設定されたepisode (EP_TEST_PUBLIC_001 /
+    PUBLIC_TEST_STORY_001_E01) について、publicEpisodeId照合で
+    Episode Summaryが表示されることを確認する。"""
+    lookup = _summary_lookup(
+        _raw_summary_document(
+            storyId="TEST_PUBLIC_ID_STORY",
+            publicStoryId="PUBLIC_TEST_STORY_001",
+            episodeSummaries=[
+                {
+                    "episodeId": "NOT_THE_SAME_EPISODE_ID",
+                    "publicEpisodeId": "PUBLIC_TEST_STORY_001_E01",
+                    "text": "publicEpisodeId照合で表示される本文です。",
+                }
+            ],
+        )
+    )
+    episodes = _story_episodes(synthetic_collection, "TEST_PUBLIC_ID_STORY")
+    page = render_story_page(
+        "TEST_PUBLIC_ID_STORY", episodes, synthetic_collection, lookup
+    )
+    assert "publicEpisodeId照合で表示される本文です。" in _episode_summaries_section(
+        page
+    )
+
+
+def test_story_summary_matches_by_story_id(synthetic_collection):
+    lookup = _summary_lookup(
+        _raw_summary_document(
+            storyId="TEST_S01_C01",
+            storySummary={"text": "storyId照合で表示される本文です。"},
+        )
+    )
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection, lookup)
+    assert "storyId照合で表示される本文です。" in _story_summary_section(page)
+
+
+def test_story_summary_matches_by_public_story_id(synthetic_collection):
+    """storyIdが一致しなくても、publicStoryIdが一致すれば表示される
+    (TEST_PUBLIC_ID_STORY / PUBLIC_TEST_STORY_001)。"""
+    lookup = _summary_lookup(
+        _raw_summary_document(
+            storyId="NOT_THE_SAME_STORY_ID",
+            publicStoryId="PUBLIC_TEST_STORY_001",
+            storySummary={"text": "publicStoryId照合で表示される本文です。"},
+        )
+    )
+    episodes = _story_episodes(synthetic_collection, "TEST_PUBLIC_ID_STORY")
+    page = render_story_page(
+        "TEST_PUBLIC_ID_STORY", episodes, synthetic_collection, lookup
+    )
+    assert "publicStoryId照合で表示される本文です。" in _story_summary_section(page)
+
+
+def test_conflicting_story_id_and_public_story_id_summary_is_not_displayed(
+    synthetic_collection,
+):
+    """storyId一致のdocumentとpublicStoryId一致のdocumentが異なる場合、
+    矛盾として安全側に倒しどちらも表示しない。"""
+    lookup = _summary_lookup(
+        _raw_summary_document(
+            storyId="TEST_S01_C01",
+            publicStoryId="SOME_OTHER_PUBLIC_ID",
+            storySummary={"text": "storyId側の本文（表示されないはず）。"},
+        ),
+        _raw_summary_document(
+            storyId="TEST_PUBLIC_ID_STORY",
+            publicStoryId="PUBLIC_TEST_STORY_001",
+            storySummary={"text": "別ドキュメントのpublicStoryId側の本文。"},
+        ),
+    )
+    # TEST_S01_C01のepisodesにpublicStoryId: PUBLIC_TEST_STORY_001を
+    # 意図的に付与し、storyId一致(1件目)とpublicStoryId一致(2件目)が
+    # 別ドキュメントを指す矛盾状態を作る。
+    episodes = [
+        {**doc, "publicStoryId": "PUBLIC_TEST_STORY_001"}
+        for doc in _story_episodes(synthetic_collection, "TEST_S01_C01")
+    ]
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection, lookup)
+    section = _story_summary_section(page)
+    assert "未生成" in section
+    assert "本文（表示されないはず）" not in section
+    assert "別ドキュメントのpublicStoryId側の本文。" not in section
+
+
+def test_story_summary_lookup_does_not_affect_character_page(synthetic_collection):
+    lookup = _summary_lookup(
+        _raw_summary_document(storySummary={"text": "合成Story Summary本文。"})
+    )
+    pages = build_pages(synthetic_collection, story_summary_lookup=lookup)
+    character_page = pages["characters/CHAR_TEST_RAIN.md"]
+    assert "合成Story Summary本文。" not in character_page
+    assert "## 基本プロフィール" in character_page
+
+
+def test_story_summary_lookup_does_not_affect_characters_index(synthetic_collection):
+    lookup = _summary_lookup(
+        _raw_summary_document(storySummary={"text": "合成Story Summary本文。"})
+    )
+    pages = build_pages(synthetic_collection, story_summary_lookup=lookup)
+    assert "合成Story Summary本文。" not in pages["characters/index.md"]
+
+
+def test_story_summary_lookup_does_not_affect_unresolved_report(synthetic_collection):
+    lookup = _summary_lookup(
+        _raw_summary_document(storySummary={"text": "合成Story Summary本文。"})
+    )
+    pages = build_pages(synthetic_collection, story_summary_lookup=lookup)
+    assert "合成Story Summary本文。" not in pages["reports/unresolved.md"]
+
+
+def test_story_summary_lookup_does_not_affect_episode_page(synthetic_collection):
+    """Episode pageへのSummary表示はこのPRでは対象外
+    (story-summary-renderer-integration Non-goals)。"""
+    lookup = _summary_lookup(
+        _raw_summary_document(
+            episodeSummaries=[
+                {"episodeId": "EP_TEST_001", "text": "合成Episode Summary本文。"}
+            ]
+        )
+    )
+    pages = build_pages(synthetic_collection, story_summary_lookup=lookup)
+    episode_page = pages["stories/EP_TEST_001.md"]
+    assert "合成Episode Summary本文。" not in episode_page
+    assert "本文セリフはこのページに掲載しません" in episode_page
+
+
+def test_build_pages_with_story_summary_lookup_generates_same_page_set(
+    synthetic_collection,
+):
+    """story_summary_lookup指定時も、生成されるページの集合自体は
+    変わらないことを確認する。"""
+    lookup = _summary_lookup(_raw_summary_document())
+    without_summaries = set(build_pages(synthetic_collection).keys())
+    with_summaries = set(
+        build_pages(synthetic_collection, story_summary_lookup=lookup).keys()
+    )
+    assert without_summaries == with_summaries
+
+
+def test_render_story_page_does_not_crash_on_none_or_blank_summary_text(
+    synthetic_collection,
+):
+    """summary textがNone/空文字/whitespaceのみの場合、rendererが
+    落ちずに「未生成」を表示することを確認する (raw値の安全策)。"""
+    lookup = _summary_lookup(
+        _raw_summary_document(
+            storySummary={"text": "   "},
+            episodeSummaries=[{"episodeId": "EP_TEST_001", "text": ""}],
+        )
+    )
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection, lookup)
+    assert "未生成" in _story_summary_section(page)
+    assert "未生成" in _episode_summaries_section(page)

@@ -8,6 +8,7 @@
 
 ## Current Focus
 
+- `feature/story-summary-renderer-integration`: `docs/architecture/06_AI/Story_Summary_Design.md`（PR #78/#79）の設計・実装を踏まえ、Story Summary/Episode SummaryをWiki rendererへ統合した。`scripts/render_wiki.py`に`--story-summaries <path>`（file/directory対応、`--validate`/`--character-profiles`と併用可）を追加し、`agents/wiki_generator/story_summaries.py`に`StorySummaryLookup`/`resolve_story_summary`/`resolve_episode_summary`/`get_displayable_story_summary`/`get_displayable_episode_summary`/`is_document_displayable`を追加した。`is_displayable_summary`を`generationStatus`（`generated`のみ表示）も判定できるよう拡張（既存呼び出しとの後方互換は維持）。`storyId`優先→`publicStoryId`、`episodeId`優先→`publicEpisodeId`で照合し、矛盾時は非表示（安全側）。`review.status`が`reviewed`/`approved`かつ`generationStatus`が`generated`のSummaryのみStory pageの`## Story Summary`/`## Episode Summaries` placeholderを実本文へ差し替え、それ以外（unreviewed/rejected/needs_revision/draft/deprecated/未登録）は従来通り「未生成」。**Episode page/Character page/Characters index/Unresolved reportは変更していない**。evidenceRefs表示・AI要約生成は行っていない（次候補`story-summary-evidence-display`）。合成fixture（`tests/fixtures/story_summaries/renderer_integration/`）とテスト（renderer 29件・loader追加24件・CLI 8件）で確認、実データsummary未投入。
 - `feature/story-summary-schema-implementation`: `docs/architecture/06_AI/Story_Summary_Design.md`（PR #78）の設計を実装した。`schemas/story_summary.schema.json`（1 story 1 file、`storyId`/`language`/`generationStatus`/`episodeSummaries`/`source`/`review`必須）、`agents/wiki_generator/story_summaries.py`（load/index/find/`is_displayable_summary`等のloader）、`scripts/validate_story_summaries.py`（schema検証・duplicate storyId/publicStoryId/episodeId/publicEpisodeId検出・raw/source text禁止文字列検出・`--require-reviewed`）、`docs/templates/story_summary_template.yaml`、`tests/fixtures/story_summaries/`（合成fixture、無効例は`invalid_examples/`配下で非再帰的走査から除外）を追加した。`knowledge/summaries/stories/`は`.gitkeep`のみで実データsummaryは未投入。`.gitignore`に`workspace/summary_drafts/`を追加した。**renderer統合（`render_wiki.py --story-summaries`等）・Story page rendererの変更・AI要約生成は行っていない**（次PR`story-summary-renderer-integration`）。
 - `feature/story-summary-schema-design`: Story page（PR #76）のStory Summary/Episode Summary「未生成」placeholderを実データで置き換えるための設計を`docs/architecture/06_AI/Story_Summary_Design.md`にまとめた。Summaryは(A) Story Summary/(B) Episode Summary/(C) AI Analysis・Speculationを区別し、(C)はSummary schemaに混ぜない方針。保存場所は`knowledge/summaries/stories/{storyId}.yaml`（1 story 1 file）を採用、draftは`workspace/summary_drafts/`側でreviewしてから昇格する運用とした。生成ステータス（`missing`/`draft`/`generated`/`deprecated`）とレビューステータス（`unreviewed`/`reviewed`/`approved`/`rejected`/`needs_revision`）を分離し、`review.status`が`reviewed`/`approved`のもののみcommit・Wiki表示対象とする。`evidenceRefs`は任意保持可（Episode単位のevidenceId体系のまま、rawテキストは含めない）。**本PRではschema実装・renderer統合・AI要約生成は行っていない**（設計docsのみ）。
 - `feature/story-page-manual-review`: `feature/wiki-story-page-renderer`（PR #76）で実装したStory page中心の導線を、実データ小規模サンプル（EVENTカテゴリ1件・episode2件、匿名化）でStory index→Story page→Episode pageまで`mkdocs serve`（`http://127.0.0.1:8127/`）で目視確認できる状態にした。episode1に合成`publicStoryId`/`publicEpisodeId`・合成title/subtitleを付与、episode2は`publicEpisodeId`未設定のままfallback確認用に残した。Story page Overview/Story Summary placeholder/Episode Summaries placeholder/Episode list/Related Characters集約/Review Links、Characters index/Character page/Unresolved report/Special Speaker Labelsいずれも表示・リンクとも問題なし。`workspace/wiki_preview/story_page_manual_review/`・`_site/`へ保持（**commit対象外**）。source text exposure check問題なし（`episodeId`にsourceKey由来語が残る既知課題のみ、本PRのscope外）。実装変更なし。ユーザーの実ブラウザ目視確認待ち。
@@ -17,11 +18,11 @@
 
 直近5件程度。着手前にユーザーへ確認する。
 
-1. **story-summary-renderer-integration**: `render_wiki.py --story-summaries`を追加し、Story page Summary placeholderを実際のSummaryデータへ差し替える
+1. **story-summary-generation-planning**: AI要約生成パイプライン（LLM provider/prompt設計）の着手時期・方式を検討する
 2. **story-title-subtitle-candidate-builder-real-trial**: `scripts/build_story_title_subtitle_candidates.py`を実際のWiki/CSV入力に対して実行し、生成候補を人間が確認する
 3. **character profile import batch 002**: unmatched 200件のうち、displayName表記ゆれ解消やconfirmed化が進んだ分の人間確認済みcandidateを再照合し追加投入する
 4. **public-publishing-platform-evaluation**: public publishing workflow着手前に、MkDocs Material継続/MkDocs標準テーマ・別テーマ/Docusaurus/VitePress・Astro/独自HTML rendererを再評価する
-5. **story-summary-generation-planning**: AI要約生成パイプライン（LLM provider/prompt設計）の着手時期・方式を検討する
+5. **story-summary-evidence-display**: Story pageのSummary表示にevidenceRefs（根拠ID）を追加表示する
 
 ---
 
@@ -57,7 +58,7 @@
 ### Wiki / MkDocs
 
 - **story-page-related-characters-refinement**: Story page Related Charactersの表示（順序・重複・unresolvedの扱い等）をさらに改善する
-- **story-summary-renderer-integration**（Next参照）
+- **story-summary-evidence-display**（Next参照）
 - **mkdocs-manual-visual-review-002**: ユーザーによる`uv run mkdocs serve -f workspace/wiki_preview/manual_review_002/mkdocs_manual_review.yml -a 127.0.0.1:8125`起動後、`http://127.0.0.1:8125/`でのブラウザ目視確認
 - **wiki-story-index-link-text-real-sample-review**: 実データ小規模サンプルでEpisode link text優先順位・metadataStatus表示を確認する
 - **speaker-label-normalization-real-sample-review**: 実データ小規模サンプルでspeaker group/generic speaker検出の網羅性・誤検出を確認する（合成fixtureのみのため後続作業）
@@ -103,6 +104,7 @@
 
 直近のみ短く記録。詳細は`docs/project_history/Completed_PRs_2026-07.md`参照。
 
+- **story summary renderer integration**: Story Summary/Episode SummaryをWiki rendererへ統合した。`render_wiki.py --story-summaries <path>`を追加し、`agents/wiki_generator/story_summaries.py`にresolve/get系helper（`StorySummaryLookup`/`resolve_story_summary`/`resolve_episode_summary`/`get_displayable_story_summary`/`get_displayable_episode_summary`/`is_document_displayable`）を追加。`is_displayable_summary`を`generationStatus`判定込みに拡張（後方互換維持）。`review.status`がreviewed/approvedかつ`generationStatus`がgeneratedのSummaryのみStory pageへ表示、storyId/episodeId優先→publicStoryId/publicEpisodeIdで照合し矛盾時は非表示。**Episode page/Character page/Characters index/Unresolved reportは無変更**、evidenceRefs表示・AI要約生成は未実装。合成fixtureとテスト61件追加で確認、実データ未投入。
 - **story summary schema implementation**: `Story_Summary_Design.md`（PR #78）を実装した。`schemas/story_summary.schema.json`・`agents/wiki_generator/story_summaries.py`（loader/validator）・`scripts/validate_story_summaries.py`（CLI、`--require-reviewed`でreviewed/approved以外をエラーにできる）・`docs/templates/story_summary_template.yaml`・合成fixture（`tests/fixtures/story_summaries/`）を追加した。生成ステータスフィールドは`review.status`との混同を避けるため`generationStatus`に改名。`knowledge/summaries/stories/`は`.gitkeep`のみで実データ未投入、`workspace/summary_drafts/`を`.gitignore`に追加した。**renderer統合・Story page renderer変更・AI要約生成は行っていない**（次PR`story-summary-renderer-integration`）。
 - **story summary schema design**: Story Summary/Episode Summaryのデータ構造設計を`docs/architecture/06_AI/Story_Summary_Design.md`にまとめた。(A) Story Summary/(B) Episode Summary/(C) AI Analysis・Speculationを区別しSummary schemaには(C)を含めない方針、保存場所は`knowledge/summaries/stories/{storyId}.yaml`採用（draftは`workspace/summary_drafts/`側でレビュー後に昇格）、生成ステータスとレビューステータスを分離、`evidenceRefs`は任意保持可でrawテキストは含めない方針を決定した。schema実装・renderer統合・AI要約生成は次PR（`story-summary-schema-implementation`/`story-summary-renderer-integration`）に持ち越し、本PRでは実装変更なし。
 - **story page manual review**: 実データ小規模サンプル（EVENTカテゴリ1件・episode2件、匿名化。うちepisode1に合成`publicStoryId`/`publicEpisodeId`/合成title・subtitleを付与、episode2は`publicEpisodeId`未設定のままfallback確認用）で、PR #76のStory page中心導線（Story index→Story page→Episode page）を`normalize→extract→merge→render→mkdocs build --strict`まで通し確認した。Story page Overview・Story/Episode Summary placeholder・Episode list（publicEpisodeIdあり/fallbackとも正しくリンク）・Related Characters集約・Unresolved report導線、Characters index/Character page（profile登録あり2件）/Unresolved report/Special Speaker Labelsいずれも問題なし。`workspace/wiki_preview/story_page_manual_review/`・`_site/`へ保持（**commit対象外**）。source text exposure check問題なし（`episodeId`にsourceKey由来語が残る既知課題を除く、`Story_ID_Policy_Review.md`参照）。`mkdocs serve`（`http://127.0.0.1:8127/`）経由でcurl確認（全ページ200）、実装変更なし。ユーザーの実ブラウザ目視確認待ち。

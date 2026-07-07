@@ -276,11 +276,132 @@ def find_episode_summary_by_public_id(
     return None
 
 
-def is_displayable_summary(review: SummaryReview) -> bool:
+def is_displayable_summary(
+    review: SummaryReview, generation_status: str | None = None
+) -> bool:
     """review.statusが`reviewed`/`approved`かどうかを判定する
-    (Story_Summary_Design.md §6.3、renderer統合はまだ実装しないが、
-    後続PRで使うための判定helperだけ先に用意する)。"""
-    return review.status in DISPLAYABLE_REVIEW_STATUSES
+    (Story_Summary_Design.md §6.3)。
+
+    `generation_status`を渡した場合は、`generated`以外
+    (`draft`/`deprecated`/`missing`) も非表示と判定する
+    (feature/story-summary-renderer-integration)。省略時
+    (デフォルトNone) はreview.statusのみで判定し、既存呼び出し側の挙動を
+    変えない。
+    """
+    if review.status not in DISPLAYABLE_REVIEW_STATUSES:
+        return False
+    if (
+        generation_status is not None
+        and generation_status != GENERATION_STATUS_GENERATED
+    ):
+        return False
+    return True
+
+
+def is_document_displayable(document: StorySummaryDocument) -> bool:
+    """StorySummaryDocument全体が表示対象かどうかを判定する
+    (review.status/generationStatus両方を見る、`is_displayable_summary`の
+    document単位版)。"""
+    return is_displayable_summary(document.review, document.generation_status)
+
+
+@dataclass
+class StorySummaryLookup:
+    """`storyId`/`publicStoryId`両方からStorySummaryDocumentを引ける索引を
+    まとめたコンテナ (renderer統合で複数のindex dictを引き回さずに済むように
+    まとめる、feature/story-summary-renderer-integration)。"""
+
+    by_story_id: dict[str, StorySummaryDocument] = field(default_factory=dict)
+    by_public_story_id: dict[str, StorySummaryDocument] = field(default_factory=dict)
+
+
+def build_story_summary_lookup(
+    collection: StorySummaryCollection,
+) -> StorySummaryLookup:
+    """`StorySummaryCollection`から`StorySummaryLookup`を組み立てる。"""
+    return StorySummaryLookup(
+        by_story_id=build_story_summary_index(collection),
+        by_public_story_id=build_public_story_summary_index(collection),
+    )
+
+
+def resolve_story_summary(
+    lookup: StorySummaryLookup, story_id: str, public_story_id: str | None
+) -> StorySummaryDocument | None:
+    """`storyId`優先、次に`publicStoryId`で一致するStorySummaryDocumentを
+    解決する。
+
+    両方が一致する場合、同一ドキュメントであれば問題ないが、異なる
+    ドキュメントを指す場合は矛盾しているため安全側に倒してNoneを返す
+    (`storyId`/`publicStoryId`照合方針、複雑なconflict検出・warningは
+    このPRでは行わない)。
+    """
+    by_story_id = lookup.by_story_id.get(story_id) if story_id else None
+    by_public_id = (
+        lookup.by_public_story_id.get(public_story_id) if public_story_id else None
+    )
+    if by_story_id is not None and by_public_id is not None:
+        if by_story_id is not by_public_id:
+            return None
+        return by_story_id
+    return by_story_id or by_public_id
+
+
+def resolve_episode_summary(
+    document: StorySummaryDocument,
+    episode_id: str | None,
+    public_episode_id: str | None,
+) -> EpisodeSummaryEntry | None:
+    """`episodeId`優先、次に`publicEpisodeId`で一致するEpisode Summaryを
+    解決する。両方一致するが異なるエントリを指す場合はNoneを返す
+    (`resolve_story_summary`と同じ安全側の方針)。
+    """
+    by_episode_id = find_episode_summary(document, episode_id) if episode_id else None
+    by_public_id = (
+        find_episode_summary_by_public_id(document, public_episode_id)
+        if public_episode_id
+        else None
+    )
+    if by_episode_id is not None and by_public_id is not None:
+        if by_episode_id is not by_public_id:
+            return None
+        return by_episode_id
+    return by_episode_id or by_public_id
+
+
+def get_displayable_story_summary(
+    lookup: StorySummaryLookup, story_id: str, public_story_id: str | None
+) -> StorySummaryEntry | None:
+    """表示可能 (review済み・generationStatus: generated) なStory Summaryを
+    取得する。該当が無い・非表示条件に当てはまる場合はNoneを返す
+    (呼び出し側はNoneの場合「未生成」を表示する)。
+    """
+    document = resolve_story_summary(lookup, story_id, public_story_id)
+    if document is None or not is_document_displayable(document):
+        return None
+    entry = document.story_summary
+    if entry is None or not entry.text or not entry.text.strip():
+        return None
+    return entry
+
+
+def get_displayable_episode_summary(
+    lookup: StorySummaryLookup,
+    story_id: str,
+    public_story_id: str | None,
+    episode_id: str | None,
+    public_episode_id: str | None,
+) -> EpisodeSummaryEntry | None:
+    """表示可能なEpisode Summaryを取得する。該当が無い・非表示条件に
+    当てはまる場合はNoneを返す (呼び出し側はNoneの場合「未生成」を表示する)。
+    """
+    document = resolve_story_summary(lookup, story_id, public_story_id)
+    if document is None or not is_document_displayable(document):
+        return None
+    entry = resolve_episode_summary(document, episode_id, public_episode_id)
+    if entry is None or not entry.text or not entry.text.strip():
+        return None
+    return entry
 
 
 # ----------------------------------------------------------------

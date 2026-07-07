@@ -41,6 +41,11 @@ from .paths import (
     is_page_eligible,
     story_page_path,
 )
+from .story_summaries import (
+    StorySummaryLookup,
+    get_displayable_episode_summary,
+    get_displayable_story_summary,
+)
 
 CharacterProfileIndex = dict[str, CharacterProfile]
 
@@ -1224,25 +1229,70 @@ def _resolve_episode_summary_heading(
     return "?"
 
 
-def _render_story_summary_section() -> list[str]:
-    """Story Summary placeholderを組み立てる。
+_SUMMARY_MISSING_LABEL = "未生成"
 
-    AI要約生成パイプラインは後続PRで実装するため、当面は「未生成」を
-    表示する (`Story_Page_Design.md` §8)。元セリフ全文・AI考察は
-    含めない。
+
+def _render_story_summary_section(
+    story_summary_lookup: StorySummaryLookup | None,
+    story_id: str,
+    public_story_id: str | None,
+) -> list[str]:
+    """Story Summaryセクションを組み立てる。
+
+    `story_summary_lookup`が指定されていて、かつ`review.status`が
+    `reviewed`/`approved`・`generationStatus`が`generated`のStory Summaryが
+    storyId (無ければpublicStoryId) で見つかった場合はその本文を表示する。
+    それ以外 (未指定・未生成・unreviewed/rejected/needs_revision/draft/
+    deprecated) は従来通り「未生成」を表示する
+    (`Story_Page_Design.md` §8、`Story_Summary_Design.md` §6.3)。
+    元セリフ全文・AI考察は含めない。
     """
-    return ["## Story Summary", "", "未生成", ""]
+    lines = ["## Story Summary", ""]
+    if story_summary_lookup is None:
+        lines.append(_SUMMARY_MISSING_LABEL)
+        lines.append("")
+        return lines
+
+    entry = get_displayable_story_summary(
+        story_summary_lookup, story_id, public_story_id
+    )
+    lines.append(entry.text.strip() if entry is not None else _SUMMARY_MISSING_LABEL)
+    lines.append("")
+    return lines
 
 
-def _render_episode_summaries_section(episodes: list[dict[str, Any]]) -> list[str]:
-    """Episode SummariesをEpisodeごとに区切って表示するplaceholderを
-    組み立てる (`Story_Page_Design.md` §8)。"""
+def _render_episode_summaries_section(
+    episodes: list[dict[str, Any]],
+    story_summary_lookup: StorySummaryLookup | None,
+    story_id: str,
+    public_story_id: str | None,
+) -> list[str]:
+    """Episode SummariesをEpisodeごとに区切って表示するsectionを
+    組み立てる (`Story_Page_Design.md` §8)。
+
+    Episodeごとに表示可能なEpisode Summary（`review.status`が`reviewed`/
+    `approved`・`generationStatus`が`generated`）があればその本文を、
+    無ければ「未生成」を表示する。
+    """
     lines = ["## Episode Summaries", ""]
     for index, source_document in enumerate(episodes, start=1):
         heading = _resolve_episode_summary_heading(source_document, index)
         lines.append(f"### {heading}")
         lines.append("")
-        lines.append("未生成")
+        entry = (
+            get_displayable_episode_summary(
+                story_summary_lookup,
+                story_id,
+                public_story_id,
+                source_document.get("episodeId"),
+                source_document.get("publicEpisodeId"),
+            )
+            if story_summary_lookup is not None
+            else None
+        )
+        lines.append(
+            entry.text.strip() if entry is not None else _SUMMARY_MISSING_LABEL
+        )
         lines.append("")
     return lines
 
@@ -1317,15 +1367,24 @@ def _render_story_review_links_section() -> list[str]:
 
 
 def render_story_page(
-    story_id: str, episodes: list[dict[str, Any]], collection: dict[str, Any]
+    story_id: str,
+    episodes: list[dict[str, Any]],
+    collection: dict[str, Any],
+    story_summary_lookup: StorySummaryLookup | None = None,
 ) -> str:
     """Story pageを生成する (`Story_Page_Design.md`、
     feature/wiki-story-page-renderer)。
 
-    閲覧者向けの入口ページとして、Overview・Story Summary（placeholder）・
-    Episode Summaries（placeholder、episodeごとに区切る）・Episode一覧・
-    Related Characters・Unresolved reportへの導線を表示する。本文セリフ・
-    raw DECコマンド・ローカル絶対パス・extraction JSONの生dumpは出さない。
+    閲覧者向けの入口ページとして、Overview・Story Summary・Episode
+    Summaries（episodeごとに区切る）・Episode一覧・Related Characters・
+    Unresolved reportへの導線を表示する。本文セリフ・raw DECコマンド・
+    ローカル絶対パス・extraction JSONの生dumpは出さない。
+
+    `story_summary_lookup`（`agents.wiki_generator.story_summaries.
+    StorySummaryLookup`）を渡すと、`review.status`が`reviewed`/`approved`・
+    `generationStatus`が`generated`のStory/Episode Summaryを本文として
+    表示する（feature/story-summary-renderer-integration）。省略時、
+    または該当するSummaryが無い場合は従来通り「未生成」を表示する。
     """
     sorted_episodes = _sorted_story_episodes(episodes)
     public_story_id = _resolve_group_public_story_id(sorted_episodes)
@@ -1355,8 +1414,14 @@ def render_story_page(
 
     lines = [front_matter, f"# {display_title}", "", "## Overview", ""]
     lines.extend(_render_key_value_list(overview_items))
-    lines.extend(_render_story_summary_section())
-    lines.extend(_render_episode_summaries_section(sorted_episodes))
+    lines.extend(
+        _render_story_summary_section(story_summary_lookup, story_id, public_story_id)
+    )
+    lines.extend(
+        _render_episode_summaries_section(
+            sorted_episodes, story_summary_lookup, story_id, public_story_id
+        )
+    )
     lines.extend(_render_story_episode_list_section(sorted_episodes))
 
     episode_ids = [
@@ -1371,6 +1436,7 @@ def render_story_page(
 def build_pages(
     collection: dict[str, Any],
     character_profiles: CharacterProfileIndex | None = None,
+    story_summary_lookup: StorySummaryLookup | None = None,
 ) -> dict[str, str]:
     """merged knowledge collectionから、生成するページ全体を組み立てる。
 
@@ -1380,6 +1446,12 @@ def build_pages(
     `character_profiles`は`characterId -> CharacterProfile`の索引
     (省略時は全Character pageの「基本プロフィール」sectionが
     「プロフィール未登録」表示になる)。
+
+    `story_summary_lookup`（`StorySummaryLookup`）を渡すと、Story page
+    のStory/Episode SummaryをSummaryデータで表示する（省略時は従来通り
+    「未生成」のまま）。Character page/Characters index/Unresolved
+    report/Episode pageには影響しない
+    (feature/story-summary-renderer-integration)。
     """
     characters = collection.get("entities", {}).get("characters", []) or []
     pages: dict[str, str] = {
@@ -1397,7 +1469,9 @@ def build_pages(
         sorted_episodes = _sorted_story_episodes(episodes)
         public_story_id = _resolve_group_public_story_id(sorted_episodes)
         path = story_page_path(story_id, public_story_id)
-        pages[path] = render_story_page(story_id, sorted_episodes, collection)
+        pages[path] = render_story_page(
+            story_id, sorted_episodes, collection, story_summary_lookup
+        )
 
     for source_document in source_documents:
         path = episode_page_path(source_document)

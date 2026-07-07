@@ -170,6 +170,8 @@ Relationship page（独立ページ）は現時点では見送り、Character/Or
 
 **Story page renderer実装（`feature/wiki-story-page-renderer`で追加）**: `render_story_index_page`を、Episode単位の行からStory単位（`storyId`でグルーピング）の行へ変更した。表は`| Story | Episodes | Status | Category |`の4列で、Story列はStory pageへのリンク（リンクtextは`storyTitle > publicStoryId > storyId`の優先順位、`displayTitle`はEpisode単位のためStory titleには使わない）、Episodesはそのstoryに属するepisode数、Statusはstory内のepisodeで`metadataStatus`が一致すればその値、異なれば`mixed`と表示する。Episode単位のtitle fallback（`displayTitle > episodeSubtitle > storyTitle > episodeId`）はStory page内のEpisode一覧セクションへ引き継いだ（詳細は`Story_Page_Design.md`参照）。`agents/wiki_generator/paths.py`に`story_page_path`/`resolve_story_path_id`を追加し、`publicStoryId`があればそれを、無ければ`storyId`をfilenameに使う（短期URL構造は候補A、flat維持）。Episode pageの`episode_page_path`・`publicEpisodeId`によるfallback方針（PR #73）は変更していない。
 
+**Story Summary/Episode Summaries表示（`feature/story-summary-renderer-integration`で実装）**: Story pageの`## Story Summary`/`## Episode Summaries`が、`scripts/render_wiki.py --story-summaries`で指定した`knowledge/summaries/stories/{storyId}.yaml`相当のデータから、`review.status`が`reviewed`/`approved`・`generationStatus`が`generated`のSummary本文を表示するようになった（`agents/wiki_generator/story_summaries.py`の`StorySummaryLookup`/`get_displayable_story_summary`/`get_displayable_episode_summary`）。`storyId`優先→`publicStoryId`、`episodeId`優先→`publicEpisodeId`で照合し、両者が矛盾する場合は表示しない。未指定・非表示条件のSummaryは従来通り「未生成」。詳細は`docs/architecture/06_AI/Story_Summary_Design.md`参照。
+
 **Episode link text改善（`feature/wiki-story-index-link-text-improvement`で実装）**: manual visual review 001/002で「Episode pageへのリンクテキストがepisodeId中心で分かりにくい」と指摘されたため、Episode列自体を`displayTitle > episodeSubtitle > storyTitle > episodeId`優先の人間向けタイトルへのリンクへ変更した（`_episode_link_text`/`_get_episode_display_title`/`_first_non_blank`）。空文字列・whitespaceのみの値は未登録として次の優先順位へfallbackする。リンク先URL・ファイル名（`stories/{episodeId}.md`）・`episodeId`自体は一切変更していない。あわせて、Episode link textと内容が重複していた独立の「Display Title」列を廃止し、`report.inputResults`由来のinput validation status（valid/invalid、Episode page側のValidation sectionで引き続き確認可能）をmetadataStatus表示（`_format_metadata_status`、PR #62から継続）へ置き換えた。表構成は`| Story ID | Episode | Status | Category |`の4列（storyIdはcode表示）。titleに`|`/`[`/`]`が含まれる場合に備え、`_escape_markdown_table_text`で最小限のMarkdown escapeを行う。storyId/episodeId体系・URL・ファイル名は本PRの対象外（別PRで扱う）。
 
 ## 9.3 Episode page
@@ -303,7 +305,7 @@ Relationship page（独立ページ）は現時点では見送り、Character/Or
 - 表示: 「AI-generated analysis」の明示ラベル、confidence、evidenceRefs
 - 表示してはいけないもの: 公式情報・抽出情報との混在（§3）
 - Phase 3。LLM抽出自体が未実装のため、当面は空またはページ自体を生成しない
-- Story/Episode Summary（§9.2 Story index/`Story_Page_Design.md`のStory page Summary placeholder）とは別物である。要約（明示された事実の簡潔なあらすじ）とAI考察（推測・伏線考察・矛盾点考察）の分離方針・データ構造は`docs/architecture/06_AI/Story_Summary_Design.md` §2.3・§7を参照（`feature/story-summary-schema-implementation`でschema/loader/validatorを実装済み、renderer統合はまだ未実装）
+- Story/Episode Summary（§9.2 Story index/`Story_Page_Design.md`のStory page Summary placeholder）とは別物である。要約（明示された事実の簡潔なあらすじ）とAI考察（推測・伏線考察・矛盾点考察）の分離方針・データ構造は`docs/architecture/06_AI/Story_Summary_Design.md` §2.3・§7を参照（`feature/story-summary-schema-implementation`でschema/loader/validatorを実装済み、`feature/story-summary-renderer-integration`でStory page（Story Summary/Episode Summaries）へのrenderer統合を実装済み。AI Analysis pageとしての統合はまだ未実装）
 
 ---
 
