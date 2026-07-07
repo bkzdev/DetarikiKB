@@ -1,0 +1,37 @@
+# Synthetic INVALID fixture: storySummary.text contains a forbidden raw
+# script token ($num). Passes JSON Schema (schema does not forbid arbitrary
+# text) but must fail agents.wiki_generator.story_summaries validation
+# (raw text禁止チェック, Story_Summary_Design.md §7.3)。
+#
+# 完全な合成データのみ。実DEC由来の変数・コマンドではなく、禁止パターン
+# 検出ロジックをテストするために意図的に含めた文字列である。
+#
+# NOTE: このファイルはtests/fixtures/story_summaries直下ではなく
+# invalid_examples/ 配下に置く。story summary loaderのdirectory走査は
+# 非再帰的 (*.yaml/*.ymlの直下のみ) であるため、
+# `scripts/validate_story_summaries.py --input tests/fixtures/story_summaries`
+# を実行した際にこのファイルは対象に含まれない。
+
+schemaVersion: "0.1.0"
+documentType: "story_summary"
+storyId: "EVT_TEST_SUMMARY_BAD_TEXT"
+publicStoryId: null
+language: "ja"
+generationStatus: "draft"
+storySummary:
+  text: "この要約には $num1= のようなraw script変数が混入しています。"
+  confidence: null
+  evidenceRefs: []
+episodeSummaries: []
+source:
+  sourceType: "ai_generated"
+  model: null
+  promptVersion: null
+  generatedAt: null
+  inputRefs: []
+review:
+  status: "unreviewed"
+  reviewer: null
+  reviewedAt: null
+  notes: null
+notes: null
