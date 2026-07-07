@@ -133,6 +133,7 @@ candidate referencesがdefault profileで159件から155件に減少したのは
 
 - [ ] `schemas/evidence_index.schema.json`によるschema validationが成功している
 - [ ] `scripts/validate_evidence_index.py`の実行が成功している（exit code 0）
+- [ ] `scripts/check_evidence_index_promotion.py`の実行が成功している（exit code 0、`docs/runbooks/Evidence_Index_Promotion_Check.md`参照。ただしPASSは必要条件であり、人間レビューを省略してよい十分条件ではない）
 - [ ] §11のsource text exposure checkが完了し、問題が見つかっていない
 - [ ] raw text / raw DEC command / local absolute pathを含むentryが存在しない
 - [ ] 各entryの`evidenceType`が§4.1の公開対象entry typeである（`stage_direction`/`scene`/`episode`/`story`/`speaker_label`を含む場合は、それらを除外またはInternal Review側へ切り出した上で昇格する）
@@ -264,6 +265,7 @@ Story Summary / Episode Summaryの`evidenceRefs`は引き続きPublic Evidence I
 - [ ] speaker解決の正確性（`speakerId`が妥当か、誤解決が無いか）
 - [ ] `relatedEntities`の過不足（関連が薄いentityが混入していないか、必要な関連が欠けていないか）
 - [ ] §4.1の公開対象entry typeのみで構成されているか
+- [ ] `scripts/check_evidence_index_promotion.py`がPASSしているか（`docs/runbooks/Evidence_Index_Promotion_Check.md`、機械的checkの実行結果を確認する）
 - [ ] §11のsource text exposure checkが完了しているか
 - [ ] Evidence page（`mkdocs serve`経由）を目視確認し、可読性に問題が無いか
 - [ ] Story page Review Links → Evidence pageの導線が機能しているか
@@ -278,11 +280,15 @@ Story Summary / Episode Summaryの`evidenceRefs`は引き続きPublic Evidence I
 |---|---|---|
 | Phase 1〜4 | Evidence Index設計・schema・renderer統合・dry-run生成（PR #82〜#85） | 完了 |
 | Phase 5: `evidence-index-generation-review`（PR #86） | dry-run結果レビュー、public entry type方針、promotion/exclusion criteria、filter policy設計、Evidence page size policy、candidate references方針、Summary evidenceRefs優先方針の整理 | 完了 |
-| Phase 6: `evidence-index-generation-filtering`（本PR） | `--include-types`/`--exclude-types`/`--public-profile`によるfilter機能実装（§7） | **完了（本PR）** |
-| Phase 7: `evidence-index-promotion-policy-implementation` | 本文書のpromotion criteriaを実装するpromotion script/運用手順（人間承認フロー含む） | 未着手 |
-| Phase 8: `internal-review-evidence-packet-design` | `stage_direction`等を含むInternal Review Evidence Packetの詳細設計 | 未着手 |
+| Phase 6: `evidence-index-generation-filtering`（PR #87） | `--include-types`/`--exclude-types`/`--public-profile`によるfilter機能実装（§7） | 完了 |
+| Phase 7: `evidence-index-promotion-policy-implementation`（本PR） | 本文書のpromotion criteriaを実装するpromotion check script・human review template・promotion runbook | **完了（本PR、check-onlyのみ。実昇格copyは未実装）** |
+| Phase 8: `evidence-index-promotion-dry-run` | 実データfiltered outputに対する本scriptの実行結果レビュー | 未着手 |
+| Phase 9: `evidence-index-promotion-copy-script` | PASSした候補を`knowledge/evidence/stories/`へ実際にcopyする昇格script（人間承認フロー込み） | 未着手 |
+| Phase 10: `internal-review-evidence-packet-design` | `stage_direction`等を含むInternal Review Evidence Packetの詳細設計 | 未着手 |
 
 **実装状況（`feature/evidence-index-generation-filtering`で実施）**: `scripts/build_evidence_index_candidates.py`に`--public-profile default|full|review`（デフォルト`default`）・`--include-types`・`--exclude-types`を追加した。default profileは`stage_direction`を除外し、PR #85と同じ匿名化サンプルで再実行したところentry数は1793件→187件（`dialogue`153・`narration`26・`monologue`6・`unknown`2）に縮小、`--public-profile full`では1793件（PR #85相当）を再現できることを確認した。filterで除外されたentryは`skippedBlockCount`ではなく`filteredEntryCount`/`filteredByTypeCounts`/`filteredReasonCounts`として区別してreportに記録する。`referencedBy.candidates`はfilterで出力対象になったentryにのみ付与し、同サンプルでcandidate references付与件数は159件から155件に減少した。`validate_evidence_index.py`・`render_wiki.py --evidence-index`・source text exposure checkいずれも問題なし。**promotion script実装・Evidence page renderer変更・Internal Review Evidence Packet生成・実Evidence Indexのcommitは行っていない**（次候補`evidence-index-promotion-policy-implementation`/`internal-review-evidence-packet-design`）。
+
+**実装状況（`feature/evidence-index-promotion-policy-implementation`で実施）**: `scripts/check_evidence_index_promotion.py`を追加した（詳細手順は`docs/runbooks/Evidence_Index_Promotion_Check.md`）。schema検証・`validate_evidence_index_collection`と同等の整合性検証に加え、Evidence Index YAML全文に対するraw/source text禁止文字列scan、`--policy public-default`によるentry type policy check（`dialogue`/`monologue`/`narration`/`choice`/`unknown`のみ許可、`stage_direction`は専用メッセージでblocking error、`scene`/`episode`/`story`/`speaker_label`もblocking error）を実装した。`--story-summaries`指定時のみ、reviewed/approvedかつgeneratedなSummaryの`evidenceRefs`がEvidence Indexに存在するかを確認し、missingはwarning（blockingにしない）として`--report`のMarkdownに記録する。**実際のcopy・commit・自動昇格は行っていない**（check-onlyのgatekeeper script。次候補`evidence-index-promotion-dry-run`/`evidence-index-promotion-copy-script`/`internal-review-evidence-packet-design`）。`docs/templates/evidence_index_promotion_review_template.md`（human review記録テンプレート、合成データのみ）を追加した。
 
 ---
 
@@ -291,7 +297,7 @@ Story Summary / Episode Summaryの`evidenceRefs`は引き続きPublic Evidence I
 `evidence-index-generation-review`（PR #86、本文書の初版）時点でのNon-goals:
 
 - Evidence Index filter実装（`--include-types`/`--exclude-types`等） → **`feature/evidence-index-generation-filtering`で実装済み**（§7参照）
-- Evidence Index promotion script実装
+- Evidence Index promotion script実装 → **`feature/evidence-index-promotion-policy-implementation`で実装済み**（check-onlyのみ、§13参照）
 - 実Evidence Indexの`knowledge/evidence/stories/`へのcommit
 - Internal Review Evidence Packet生成
 - raw text review packet生成
@@ -302,7 +308,9 @@ Story Summary / Episode Summaryの`evidenceRefs`は引き続きPublic Evidence I
 - Evidence Index schema変更
 - `scripts/build_evidence_index_candidates.py`の変更 → **`feature/evidence-index-generation-filtering`で変更済み**（filtering機能追加のみ、raw text非表示方針・skip判定ロジックは変更していない）
 
-`feature/evidence-index-generation-filtering`（本PR）でも以下は行っていない: Evidence Index promotion script実装、実Evidence Indexの`knowledge/evidence/stories/`へのcommit、Internal Review Evidence Packet生成、raw text review packet生成、Evidence page renderer変更、evidenceRefsリンク化ロジック変更、Episode page変更、Evidence Index schema変更。
+`feature/evidence-index-generation-filtering`（PR #87）でも以下は行っていない: Evidence Index promotion script実装、実Evidence Indexの`knowledge/evidence/stories/`へのcommit、Internal Review Evidence Packet生成、raw text review packet生成、Evidence page renderer変更、evidenceRefsリンク化ロジック変更、Episode page変更、Evidence Index schema変更。
+
+`feature/evidence-index-promotion-policy-implementation`（本PR）でも以下は行っていない: 実際のcopy・commit・自動昇格、`knowledge/evidence/stories/`への実データ昇格、promotion copy script実装、Internal Review Evidence Packet生成、raw text review packet生成、Evidence page renderer変更、evidenceRefsリンク化ロジック変更、Evidence Index generation filterの変更、Episode page変更、Evidence Index schema変更、Story Summary schema変更。
 
 ---
 
@@ -327,4 +335,7 @@ Story Summary / Episode Summaryの`evidenceRefs`は引き続きPublic Evidence I
 - `schemas/evidence_index.schema.json`（evidenceType enum、visibility.rawTextIncluded固定）
 - `scripts/build_evidence_index_candidates.py`（dry-run生成スクリプト、`--public-profile`/`--include-types`/`--exclude-types`は`feature/evidence-index-generation-filtering`で実装済み）
 - `scripts/validate_evidence_index.py`（schema/整合性検証CLI）
+- `scripts/check_evidence_index_promotion.py`（promotion check script、`feature/evidence-index-promotion-policy-implementation`で実装済み、check-onlyで実copyは行わない）
+- `docs/runbooks/Evidence_Index_Promotion_Check.md`（promotion check手順）
+- `docs/templates/evidence_index_promotion_review_template.md`（human review記録テンプレート）
 - `TASKS.md`（次PR候補の追跡）
