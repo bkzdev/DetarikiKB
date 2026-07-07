@@ -27,6 +27,10 @@ CHARACTER_PROFILES_FIXTURE_PATH = (
 STORY_SUMMARIES_FIXTURE_DIR = (
     PROJECT_ROOT / "tests" / "fixtures" / "story_summaries" / "renderer_integration"
 )
+EVIDENCE_INDEX_FIXTURE_DIR = (
+    PROJECT_ROOT / "tests" / "fixtures" / "evidence_index" / "renderer_integration"
+)
+EVIDENCE_INDEX_BASE_FIXTURE_DIR = PROJECT_ROOT / "tests" / "fixtures" / "evidence_index"
 
 
 def test_cli_generates_expected_markdown_files(tmp_path):
@@ -615,3 +619,230 @@ def test_cli_story_summaries_directory_shows_evidence_refs(tmp_path):
         encoding="utf-8"
     )
     assert "TEST_SOLO_STORY_E01_DLG0001" not in solo_story_page
+
+
+# ----------------------------------------------------------------
+# --evidence-index (feature/evidence-index-renderer-integration)
+# ----------------------------------------------------------------
+
+
+def test_cli_without_evidence_index_keeps_existing_behavior(tmp_path):
+    """--evidence-index未指定でも既存の生成結果が変わらないことを
+    確認する (後方互換性)。"""
+    output_dir = tmp_path / "wiki_out"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            "--input",
+            str(FIXTURE_PATH),
+            "--output",
+            str(output_dir),
+            "--story-summaries",
+            str(STORY_SUMMARIES_FIXTURE_DIR),
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert not (output_dir / "evidence").exists()
+    story_page = (output_dir / "stories" / "TEST_S01_C01.md").read_text(
+        encoding="utf-8"
+    )
+    assert "Evidence refs: `TEST_S01_C01_E01_DLG0001`" in story_page
+    assert "Evidence index" not in story_page
+
+
+def test_cli_with_evidence_index_generates_evidence_pages_and_links(tmp_path):
+    """--evidence-index指定時、Story別Evidence pageが生成され、Story
+    Summary/Episode SummaryのevidenceRefsがそこへリンクされることを
+    確認する。"""
+    output_dir = tmp_path / "wiki_out"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            "--input",
+            str(FIXTURE_PATH),
+            "--output",
+            str(output_dir),
+            "--story-summaries",
+            str(STORY_SUMMARIES_FIXTURE_DIR),
+            "--evidence-index",
+            str(EVIDENCE_INDEX_FIXTURE_DIR),
+            "--validate",
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "evidence_index" in result.stdout
+
+    evidence_page = (output_dir / "evidence" / "TEST_S01_C01.md").read_text(
+        encoding="utf-8"
+    )
+    assert "### TEST_S01_C01_E01_DLG0001" in evidence_page
+
+    story_page = (output_dir / "stories" / "TEST_S01_C01.md").read_text(
+        encoding="utf-8"
+    )
+    assert (
+        "[`TEST_S01_C01_E01_DLG0001`]"
+        "(../evidence/TEST_S01_C01.md#test_s01_c01_e01_dlg0001)" in story_page
+    )
+    assert "- [Evidence index](../evidence/TEST_S01_C01.md)" in story_page
+
+    public_id_evidence_page = (
+        output_dir / "evidence" / "PUBLIC_TEST_STORY_001.md"
+    ).read_text(encoding="utf-8")
+    assert "TEST_PUBLIC_ID_STORY_E01_DLG0001" in public_id_evidence_page
+
+
+def test_cli_evidence_index_missing_path_returns_exit_1(tmp_path):
+    output_dir = tmp_path / "wiki_out"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            "--input",
+            str(FIXTURE_PATH),
+            "--output",
+            str(output_dir),
+            "--evidence-index",
+            str(tmp_path / "does_not_exist"),
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 1
+
+
+def test_cli_evidence_index_raw_text_included_true_returns_exit_2(tmp_path):
+    """rawTextIncluded=trueのfixtureを渡すと、--validate未指定でも
+    常に失敗することを確認する (Evidence Indexは安全性を常に検証する)。"""
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            "--input",
+            str(FIXTURE_PATH),
+            "--output",
+            str(tmp_path / "wiki_out"),
+            "--evidence-index",
+            str(
+                EVIDENCE_INDEX_BASE_FIXTURE_DIR
+                / "invalid_examples"
+                / "invalid_raw_text_included.yaml"
+            ),
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 2
+
+
+def test_cli_evidence_index_raw_command_returns_exit_2(tmp_path):
+    """raw commandを含むfixtureを渡すと、--validate未指定でも常に
+    失敗することを確認する。"""
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            "--input",
+            str(FIXTURE_PATH),
+            "--output",
+            str(tmp_path / "wiki_out"),
+            "--evidence-index",
+            str(
+                EVIDENCE_INDEX_BASE_FIXTURE_DIR
+                / "invalid_examples"
+                / "invalid_raw_text_evidence_index.yaml"
+            ),
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 2
+
+
+def test_cli_evidence_index_duplicate_evidence_id_returns_exit_2(tmp_path):
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            "--input",
+            str(FIXTURE_PATH),
+            "--output",
+            str(tmp_path / "wiki_out"),
+            "--evidence-index",
+            str(
+                EVIDENCE_INDEX_BASE_FIXTURE_DIR
+                / "invalid_examples"
+                / "duplicate_evidence_id.yaml"
+            ),
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 2
+
+
+def test_cli_evidence_index_invalid_evidence_type_returns_exit_2(tmp_path):
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            "--input",
+            str(FIXTURE_PATH),
+            "--output",
+            str(tmp_path / "wiki_out"),
+            "--evidence-index",
+            str(
+                EVIDENCE_INDEX_BASE_FIXTURE_DIR
+                / "invalid_examples"
+                / "invalid_evidence_type.yaml"
+            ),
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 2
+
+
+def test_cli_evidence_index_does_not_leak_source_text(tmp_path):
+    output_dir = tmp_path / "wiki_out"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            "--input",
+            str(FIXTURE_PATH),
+            "--output",
+            str(output_dir),
+            "--story-summaries",
+            str(STORY_SUMMARIES_FIXTURE_DIR),
+            "--evidence-index",
+            str(EVIDENCE_INDEX_FIXTURE_DIR),
+            "--validate",
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    evidence_page = (output_dir / "evidence" / "TEST_S01_C01.md").read_text(
+        encoding="utf-8"
+    )
+    assert ".dec" not in evidence_page
+    assert "@ChTalk" not in evidence_page
+    assert "$num" not in evidence_page
+    assert "C:\\" not in evidence_page
+    assert "D:\\" not in evidence_page
+    assert "<script" not in evidence_page

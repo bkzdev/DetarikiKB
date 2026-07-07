@@ -386,6 +386,40 @@ def group_entries_by_public_episode(
     return groups
 
 
+@dataclass
+class EvidenceIndexLookup:
+    """renderer統合で使う索引一式をまとめたコンテナ
+    (`agents.wiki_generator.story_summaries.StorySummaryLookup`と同じ
+    パターン、feature/evidence-index-renderer-integration)。"""
+
+    by_evidence_id: dict[str, EvidenceIndexEntry] = field(default_factory=dict)
+    by_story_id: dict[str, list[EvidenceIndexEntry]] = field(default_factory=dict)
+
+
+def build_evidence_index_lookup(
+    collection: EvidenceIndexCollection,
+) -> EvidenceIndexLookup:
+    """`EvidenceIndexCollection`から`EvidenceIndexLookup`を組み立てる。"""
+    return EvidenceIndexLookup(
+        by_evidence_id=build_evidence_id_index(collection),
+        by_story_id=group_entries_by_story(collection),
+    )
+
+
+def resolve_group_public_story_id(entries: list[EvidenceIndexEntry]) -> str | None:
+    """story内のentry群から`publicStoryId`を解決する。
+
+    複数entryにまたがって`publicStoryId`が混在する場合は、最初に見つかった
+    非空の値を採用する（`agents.wiki_generator.renderer.
+    _resolve_group_public_story_id`と同じ「複雑なconflict処理はしない」
+    方針、`Evidence_Index_Design.md` §7 grouping方針）。
+    """
+    for entry in entries:
+        if isinstance(entry.public_story_id, str) and entry.public_story_id.strip():
+            return entry.public_story_id.strip()
+    return None
+
+
 # ----------------------------------------------------------------
 # Validation
 # ----------------------------------------------------------------

@@ -152,3 +152,19 @@ def test_design_doc_states_renderer_switch_implemented_for_public_episode_id():
         assert "赤城陽菜" not in content
         # 合成データであることが明示されていること
         assert "合成データ" in content
+
+
+def test_design_doc_states_evidence_page_renderer_integration():
+    """feature/evidence-index-renderer-integrationで、Story別Evidence
+    page生成がrenderer統合として§9.16に記録されていることを確認する。"""
+    content = _read_design_doc()
+    evidence_section = content.split("## 9.16 Source / evidence index page", 1)[
+        1
+    ].split("## 9.17 AI analysis", 1)[0]
+    assert "実装状況（`feature/evidence-index-renderer-integration`で実施" in (
+        evidence_section
+    ) or "renderer統合（`feature/evidence-index-renderer-integration`で追加）" in (
+        evidence_section
+    )
+    assert "--evidence-index" in evidence_section
+    assert "render_evidence_page" in evidence_section

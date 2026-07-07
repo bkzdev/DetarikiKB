@@ -95,3 +95,14 @@ def episode_page_path(source_document: dict[str, Any]) -> str | None:
     if not episode_path_id:
         return None
     return f"stories/{episode_path_id}.md"
+
+
+def evidence_page_path(story_id: str, public_story_id: str | None = None) -> str:
+    """Evidence pageの出力先相対パスを返す (Story別Evidence page、
+    `Evidence_Index_Design.md` §9.2候補B、feature/evidence-index-renderer-integration)。
+
+    `story_page_path`と同じID解決方針 (`publicStoryId`優先、無ければ
+    `storyId`へfallback) のため、`resolve_story_path_id`をそのまま
+    再利用する。Episode別Evidence pageはまだ作らない (nested化もしない)。
+    """
+    return f"evidence/{resolve_story_path_id(story_id, public_story_id)}.md"

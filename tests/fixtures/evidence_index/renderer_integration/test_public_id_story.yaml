@@ -1,0 +1,34 @@
+# Synthetic evidence index fixture for scripts/render_wiki.py CLI
+# integration tests. storyId/publicStoryId/evidenceId match
+# tests/fixtures/story_summaries/renderer_integration/
+# test_public_id_story.yaml's evidenceRefs (TEST_PUBLIC_ID_STORY_E01_DLG0001),
+# and storyId/publicStoryId match tests/fixtures/wiki/
+# synthetic_merged_collection.json's TEST_PUBLIC_ID_STORY
+# (publicStoryId: PUBLIC_TEST_STORY_001). 完全な合成データのみ。
+
+evidenceIndexVersion: 1
+generatedFrom: null
+entries:
+  - evidenceId: "TEST_PUBLIC_ID_STORY_E01_DLG0001"
+    evidenceType: "dialogue"
+    storyId: "TEST_PUBLIC_ID_STORY"
+    publicStoryId: "PUBLIC_TEST_STORY_001"
+    episodeId: "EP_TEST_PUBLIC_001"
+    publicEpisodeId: "PUBLIC_TEST_STORY_001_E01"
+    sceneId: null
+    blockId: null
+    speaker:
+      speakerId: null
+      displayName: "Synthetic Unresolved Speaker"
+      resolutionStatus: "unresolved"
+    relatedEntities: []
+    referencedBy:
+      summaries:
+        - storyId: "TEST_PUBLIC_ID_STORY"
+          summaryType: "story"
+      candidates: []
+    visibility:
+      public: true
+      rawTextIncluded: false
+    notes: null
+notes: null

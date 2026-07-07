@@ -29,6 +29,14 @@ placeholderを、`review.status`が`reviewed`/`approved`・`generationStatus`が
 Episode pageへのSummary表示はこのCLIでは行わない
 (feature/story-summary-renderer-integration)。
 
+`--evidence-index`（任意）で`knowledge/evidence/stories/`相当のfileまたは
+directoryを指定すると、Story別Evidence page（`evidence/{publicStoryId or
+storyId}.md`）を生成し、Story Summary/Episode SummaryのevidenceRefsのうち
+Evidence Indexに存在するものをそこへリンクする。Evidence Indexに存在しない
+evidenceRefsは従来通りID表示のまま（unresolved扱い、errorにはしない）。
+Evidence pageにはraw text/raw DECコマンド/ローカル絶対パスを一切表示しない
+(feature/evidence-index-renderer-integration)。
+
 Usage:
     uv run python scripts/render_wiki.py \\
         --input tests/fixtures/wiki/synthetic_merged_collection.json \\
@@ -58,13 +66,22 @@ Usage:
         --story-summaries tests/fixtures/story_summaries \\
         --validate
 
+    # evidence indexを読み込んでEvidence pageを生成し、summary evidenceRefsを
+    # リンク化する場合
+    uv run python scripts/render_wiki.py \\
+        --input tests/fixtures/wiki/synthetic_merged_collection.json \\
+        --output workspace/wiki_preview \\
+        --story-summaries tests/fixtures/story_summaries \\
+        --evidence-index tests/fixtures/evidence_index \\
+        --validate
+
 Exit codes:
     0: 生成成功
     1: 入力ファイルが見つからない、またはJSONとして読み込めない
-       (--character-profiles/--story-summaries指定時、そのパスが
-       見つからない場合も含む)
+       (--character-profiles/--story-summaries/--evidence-index指定時、
+       そのパスが見つからない場合も含む)
     2: --validate指定時にschema検証、またはcharacter_profiles/
-       story_summariesの整合性検証に失敗した
+       story_summaries/evidence_indexの整合性検証に失敗した
 """
 
 from __future__ import annotations
@@ -88,6 +105,13 @@ from agents.parser.character_profiles import (  # noqa: E402
     validate_character_profiles,
 )
 from agents.wiki_generator import build_pages, write_pages  # noqa: E402
+from agents.wiki_generator.evidence_index import (  # noqa: E402
+    EvidenceIndexCollection,
+    EvidenceIndexLookup,
+    build_evidence_index_lookup,
+    parse_evidence_index_document,
+    validate_evidence_index_collection,
+)
 from agents.wiki_generator.story_summaries import (  # noqa: E402
     StorySummaryCollection,
     StorySummaryLookup,
@@ -107,6 +131,9 @@ DEFAULT_CHARACTER_PROFILES_SCHEMA_PATH = (
 )
 DEFAULT_STORY_SUMMARY_SCHEMA_PATH = (
     _PROJECT_ROOT / "schemas" / "story_summary.schema.json"
+)
+DEFAULT_EVIDENCE_INDEX_SCHEMA_PATH = (
+    _PROJECT_ROOT / "schemas" / "evidence_index.schema.json"
 )
 
 
@@ -311,6 +338,91 @@ def resolve_story_summaries(
     return lookup, None
 
 
+def _collect_evidence_index_yaml_paths(input_path: Path) -> list[Path]:
+    """--evidence-indexがfileならそれ単体、directoryなら直下の
+    *.yaml/*.ymlを返す (scripts/validate_evidence_index.pyと同じ方針)。"""
+    if input_path.is_file():
+        return [input_path]
+    return sorted(input_path.glob("*.yaml")) + sorted(input_path.glob("*.yml"))
+
+
+def _load_evidence_index_collection(
+    input_path: Path,
+) -> tuple[EvidenceIndexCollection | None, list[str]]:
+    """`--evidence-index`のパスからEvidence Indexを読み込み、schema検証+
+    整合性検証を行う。
+
+    Evidence Indexはraw text非公開を保証する必要があるため、
+    `--validate`の指定有無にかかわらず常にこの検証を行う
+    (`docs/architecture/06_AI/Evidence_Index_Design.md` §6、
+    raw text禁止文字列検出・`visibility.rawTextIncluded`検証・
+    duplicate evidenceId検出を含む)。
+
+    戻り値: (成功時のcollection (エラー時はNone)、エラーメッセージ一覧)。
+    """
+    with open(DEFAULT_EVIDENCE_INDEX_SCHEMA_PATH, encoding="utf-8") as f:
+        schema = json.load(f)
+
+    documents = []
+    errors: list[str] = []
+    for path in _collect_evidence_index_yaml_paths(input_path):
+        with open(path, encoding="utf-8") as f:
+            raw_data = yaml.safe_load(f) or {}
+        if not raw_data:
+            continue
+        schema_errors = sorted(
+            Draft7Validator(schema).iter_errors(raw_data), key=lambda e: list(e.path)
+        )
+        if schema_errors:
+            errors.extend(f"{path}: {list(e.path)}: {e.message}" for e in schema_errors)
+            continue
+        documents.append(parse_evidence_index_document(raw_data))
+
+    if errors:
+        return None, errors
+
+    collection = EvidenceIndexCollection(documents=documents)
+    integrity_issues = validate_evidence_index_collection(collection)
+    if integrity_issues:
+        return None, integrity_issues
+    return collection, []
+
+
+def resolve_evidence_index(
+    args: argparse.Namespace,
+) -> tuple[EvidenceIndexLookup | None, int | None]:
+    """`--evidence-index`引数を解決する。
+
+    戻り値は (lookup (未指定ならNone), エラー時のexit code (問題無ければNone))。
+    """
+    if not args.evidence_index:
+        return None, None
+
+    input_path = Path(args.evidence_index)
+    if not input_path.exists():
+        print(
+            f"[エラー] evidence-indexパスが見つかりません: {input_path}",
+            file=sys.stderr,
+        )
+        return None, 1
+
+    collection, errors = _load_evidence_index_collection(input_path)
+    if collection is None:
+        print("[エラー] evidence indexの検証に失敗しました:", file=sys.stderr)
+        for error in errors:
+            print(f"  - {error}", file=sys.stderr)
+        return None, 2
+
+    lookup = build_evidence_index_lookup(collection)
+    if not args.quiet:
+        entry_count = sum(len(doc.entries) for doc in collection.documents)
+        print(
+            f"[wiki] evidence_index: {input_path} "
+            f"({len(collection.documents)} ファイル、{entry_count} entries)"
+        )
+    return lookup, None
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
@@ -358,6 +470,17 @@ def parse_args() -> argparse.Namespace:
             "指定した場合のみStory pageのStory/Episode Summaryを、"
             "review.statusがreviewed/approved・generationStatusがgeneratedの"
             "Summary本文で表示する。未指定でも既存の生成結果は変わらない"
+        ),
+    )
+    parser.add_argument(
+        "--evidence-index",
+        default=None,
+        help=(
+            "knowledge/evidence/stories/相当のfileまたはdirectoryのパス (任意)。"
+            "指定した場合のみStory別Evidence pageを生成し、Summary evidenceRefsの"
+            "うち該当するIDをそこへリンクする。schema検証・raw text禁止文字列検出・"
+            "visibility.rawTextIncluded検証は--validate指定の有無にかかわらず常に"
+            "行う。未指定でも既存の生成結果は変わらない"
         ),
     )
     parser.add_argument(
@@ -418,10 +541,15 @@ def main() -> int:
     if error_code is not None:
         return error_code
 
+    evidence_index_lookup, error_code = resolve_evidence_index(args)
+    if error_code is not None:
+        return error_code
+
     pages = build_pages(
         collection,
         character_profiles=character_profiles_index,
         story_summary_lookup=story_summary_lookup,
+        evidence_index_lookup=evidence_index_lookup,
     )
     output_dir = Path(args.output)
     written = write_pages(pages, output_dir, clean=args.clean)

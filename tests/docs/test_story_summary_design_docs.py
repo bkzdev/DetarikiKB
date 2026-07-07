@@ -143,3 +143,18 @@ def test_tasks_md_lists_next_pr_candidates():
     content = TASKS_PATH.read_text(encoding="utf-8")
     assert "story-summary-schema-implementation" in content
     assert "story-summary-renderer-integration" in content
+
+
+def test_design_doc_states_evidence_index_linkification_implemented():
+    """feature/evidence-index-renderer-integrationで、evidenceRefsが
+    Evidence Indexへリンク化されたことが§9に記録されていることを確認する。"""
+    content = _read_design_doc()
+    evidence_section = content.split("# 9. Evidence references", 1)[1].split(
+        "# 10. Renderer integration plan", 1
+    )[0]
+    integration_label = (
+        "Evidence index renderer統合"
+        "（`feature/evidence-index-renderer-integration`で実施）"
+    )
+    assert integration_label in evidence_section
+    assert "--evidence-index" in evidence_section

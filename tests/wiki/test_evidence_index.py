@@ -3,8 +3,9 @@ tests/wiki/test_evidence_index.py
 agents/wiki_generator/evidence_index.py のユニットテスト。
 
 すべて合成データ (EVT_TEST_* 等) のみを使う。実イベント名・実キャラ名・
-実あらすじ・実セリフは一切含まない。renderer統合はまだ実装していないため、
-loader/validatorのみを対象とする。
+実あらすじ・実セリフは一切含まない。renderer (agents/wiki_generator/
+renderer.py) 統合そのもののテストはtests/wiki/test_wiki_renderer.pyで
+行う。ここではloader/validator/lookup系helperのみを対象とする。
 """
 
 from __future__ import annotations
@@ -18,10 +19,12 @@ from agents.wiki_generator.evidence_index import (
     EvidenceIndexCollection,
     EvidenceIndexDocument,
     EvidenceIndexEntry,
+    EvidenceIndexLookup,
     RelatedEntity,
     Speaker,
     Visibility,
     build_evidence_id_index,
+    build_evidence_index_lookup,
     group_entries_by_episode,
     group_entries_by_public_episode,
     group_entries_by_public_story,
@@ -29,6 +32,7 @@ from agents.wiki_generator.evidence_index import (
     load_evidence_index,
     load_evidence_indexes,
     parse_evidence_index_document,
+    resolve_group_public_story_id,
     validate_evidence_index_collection,
     validate_evidence_index_document,
 )
@@ -387,3 +391,36 @@ def test_parse_evidence_index_document_from_raw_dict():
     assert len(document.entries) == 1
     assert document.entries[0].evidence_id == "EVT_TEST_A_E01_DLG0001"
     assert document.entries[0].visibility.raw_text_included is False
+
+
+# ----------------------------------------------------------------
+# EvidenceIndexLookup / build_evidence_index_lookup /
+# resolve_group_public_story_id (feature/evidence-index-renderer-integration)
+# ----------------------------------------------------------------
+
+
+def test_build_evidence_index_lookup_from_fixtures_directory():
+    collection = load_evidence_indexes(FIXTURES_DIR)
+    lookup = build_evidence_index_lookup(collection)
+    assert isinstance(lookup, EvidenceIndexLookup)
+    assert "EVT_TEST_EVIDENCE_ONE_E01_DLG0001" in lookup.by_evidence_id
+    assert "EVT_TEST_EVIDENCE_ONE" in lookup.by_story_id
+    assert len(lookup.by_story_id["EVT_TEST_EVIDENCE_ONE"]) == 4
+
+
+def test_resolve_group_public_story_id_returns_first_non_blank():
+    entries = [
+        _entry(public_story_id=None),
+        _entry(public_story_id="PUB_A"),
+        _entry(public_story_id="PUB_B"),
+    ]
+    assert resolve_group_public_story_id(entries) == "PUB_A"
+
+
+def test_resolve_group_public_story_id_returns_none_when_all_blank():
+    entries = [_entry(public_story_id=None), _entry(public_story_id="   ")]
+    assert resolve_group_public_story_id(entries) is None
+
+
+def test_resolve_group_public_story_id_empty_list_returns_none():
+    assert resolve_group_public_story_id([]) is None

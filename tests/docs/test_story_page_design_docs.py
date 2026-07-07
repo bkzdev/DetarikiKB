@@ -123,3 +123,20 @@ def test_tasks_md_reflects_story_page_policy():
     content = TASKS_PATH.read_text(encoding="utf-8")
     assert "Story page" in content
     assert "wiki-story-page-renderer" in content
+
+
+def test_design_doc_states_evidence_page_review_links_policy():
+    """feature/evidence-index-renderer-integrationで、Review Linksへの
+    Evidence pageリンクが条件付きで追加されたことが§8に記録されている
+    ことを確認する。"""
+    content = _read_design_doc()
+    summary_section = content.split("# 8. Summary placement", 1)[1].split(
+        "# 9. Evidence management", 1
+    )[0]
+    integration_label = (
+        "Evidence index renderer統合"
+        "（`feature/evidence-index-renderer-integration`で実施）"
+    )
+    assert integration_label in summary_section
+    assert "Review Links" in summary_section
+    assert "render_evidence_page" in summary_section
