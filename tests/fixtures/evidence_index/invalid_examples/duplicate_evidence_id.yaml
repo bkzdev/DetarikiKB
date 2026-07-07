@@ -1,0 +1,24 @@
+# Synthetic INVALID fixture: entries contains the same evidenceId twice.
+# Passes JSON Schema (schema does not check for duplicates within an
+# array) but must fail agents.wiki_generator.evidence_index validation
+# (duplicate evidenceId, Evidence_Index_Design.md §9)。
+#
+# 完全な合成データのみ。このファイルはtests/fixtures/evidence_index直下
+# ではなくinvalid_examples/配下に置く (非再帰的directory走査で除外される)。
+
+evidenceIndexVersion: 1
+entries:
+  - evidenceId: "EVT_TEST_EVIDENCE_DUP_E01_DLG0001"
+    evidenceType: "dialogue"
+    storyId: "EVT_TEST_EVIDENCE_DUP"
+    episodeId: "EVT_TEST_EVIDENCE_DUP_E01"
+    visibility:
+      public: true
+      rawTextIncluded: false
+  - evidenceId: "EVT_TEST_EVIDENCE_DUP_E01_DLG0001"
+    evidenceType: "dialogue"
+    storyId: "EVT_TEST_EVIDENCE_DUP"
+    episodeId: "EVT_TEST_EVIDENCE_DUP_E01"
+    visibility:
+      public: true
+      rawTextIncluded: false

@@ -1,0 +1,25 @@
+# Synthetic evidence index fixture: choice evidenceType, unresolved
+# speaker, no generatedFrom/notes at document level. 完全な合成データのみ。
+
+evidenceIndexVersion: 1
+generatedFrom: null
+entries:
+  - evidenceId: "EVT_TEST_EVIDENCE_TWO_E01_CHOICE001"
+    evidenceType: "choice"
+    storyId: "EVT_TEST_EVIDENCE_TWO"
+    publicStoryId: null
+    episodeId: "EVT_TEST_EVIDENCE_TWO_E01"
+    publicEpisodeId: null
+    sceneId: "EVT_TEST_EVIDENCE_TWO_E01_SC001"
+    blockId: "EVT_TEST_EVIDENCE_TWO_E01_CHOICE001"
+    speaker:
+      speakerId: null
+      displayName: "Synthetic Unresolved Speaker"
+      resolutionStatus: "unresolved"
+    relatedEntities: []
+    referencedBy: null
+    visibility:
+      public: true
+      rawTextIncluded: false
+    notes: null
+notes: null

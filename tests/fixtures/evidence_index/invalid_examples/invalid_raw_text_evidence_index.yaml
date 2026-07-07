@@ -1,0 +1,18 @@
+# Synthetic INVALID fixture: entries[].notes contains a forbidden raw
+# script token ($num). Passes JSON Schema (schema does not forbid
+# arbitrary text) but must fail agents.wiki_generator.evidence_index
+# validation (raw text禁止チェック, Evidence_Index_Design.md §6)。
+#
+# 完全な合成データのみ。このファイルはtests/fixtures/evidence_index直下
+# ではなくinvalid_examples/配下に置く (非再帰的directory走査で除外される)。
+
+evidenceIndexVersion: 1
+entries:
+  - evidenceId: "EVT_TEST_EVIDENCE_BAD_TEXT_E01_DLG0001"
+    evidenceType: "dialogue"
+    storyId: "EVT_TEST_EVIDENCE_BAD_TEXT"
+    episodeId: "EVT_TEST_EVIDENCE_BAD_TEXT_E01"
+    visibility:
+      public: true
+      rawTextIncluded: false
+    notes: "この参照には $num1= のようなraw script変数が混入しています。"

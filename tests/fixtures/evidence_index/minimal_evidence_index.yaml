@@ -1,0 +1,13 @@
+# Synthetic evidence index fixture: minimal single entry, no
+# generatedFrom/notes, no relatedEntities/referencedBy/speaker/sceneId/
+# blockId/publicIds. 完全な合成データのみ。
+
+evidenceIndexVersion: 1
+entries:
+  - evidenceId: "EVT_TEST_EVIDENCE_THREE_E01_MONO0001"
+    evidenceType: "monologue"
+    storyId: "EVT_TEST_EVIDENCE_THREE"
+    episodeId: "EVT_TEST_EVIDENCE_THREE_E01"
+    visibility:
+      public: true
+      rawTextIncluded: false

@@ -1,0 +1,16 @@
+# Synthetic INVALID fixture: visibility.rawTextIncluded=true, which
+# violates both the JSON Schema (const: false) and the Public Evidence
+# Index policy. 完全な合成データのみ。
+#
+# このファイルはtests/fixtures/evidence_index直下ではなく
+# invalid_examples/配下に置く (非再帰的directory走査で除外される)。
+
+evidenceIndexVersion: 1
+entries:
+  - evidenceId: "EVT_TEST_EVIDENCE_RAW_INCLUDED_E01_DLG0001"
+    evidenceType: "dialogue"
+    storyId: "EVT_TEST_EVIDENCE_RAW_INCLUDED"
+    episodeId: "EVT_TEST_EVIDENCE_RAW_INCLUDED_E01"
+    visibility:
+      public: true
+      rawTextIncluded: true

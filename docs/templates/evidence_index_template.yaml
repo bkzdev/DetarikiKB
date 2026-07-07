@@ -1,0 +1,63 @@
+# Evidence Index Template（Public Evidence Indexの見本）
+#
+# scripts/validate_evidence_index.py / agents/wiki_generator/evidence_index.py
+# が実際に読み込むknowledge/evidence/stories/{storyId}.yamlは、この見本と
+# 同じ構造を持つ (docs/architecture/06_AI/Evidence_Index_Design.md 参照)。
+#
+# このファイル自体は合成データのみで構成されており、実イベント名・実
+# キャラクター名・実セリフ・実あらすじは一切含まない。raw dialogue text・
+# raw DEC command・local pathは一切含めない (Public Evidence Index方針)。
+# Internal Review Evidence Packet (raw textを含みうる内部review用データ)
+# はこのファイルの対象外であり、別途workspace/review_packets/evidence/
+# 配下で扱う (commit禁止)。
+
+evidenceIndexVersion: 1
+generatedFrom:
+  normalizedStoryRefs:
+    - storyId: "EVT_SAMPLE"
+      episodeId: "EVT_SAMPLE_E01"
+  extractionRefs: []
+entries:
+  - evidenceId: "EVT_SAMPLE_E01_DLG0001"
+    evidenceType: "dialogue"
+    storyId: "EVT_SAMPLE"
+    publicStoryId: "EVT_260101_001"
+    episodeId: "EVT_SAMPLE_E01"
+    publicEpisodeId: "EVT_260101_001_E01"
+    sceneId: "EVT_SAMPLE_E01_SC001"
+    blockId: "EVT_SAMPLE_E01_DLG0001"
+    speaker:
+      speakerId: "CHAR_TEST_001"
+      displayName: "Synthetic Speaker"
+      resolutionStatus: "resolved"
+    relatedEntities:
+      - entityType: "character"
+        id: "CHAR_TEST_001"
+        displayName: "Synthetic Speaker"
+    referencedBy:
+      summaries:
+        - storyId: "EVT_SAMPLE"
+          summaryType: "episode"
+          episodeId: "EVT_SAMPLE_E01"
+      candidates: []
+    visibility:
+      public: true
+      rawTextIncluded: false
+    notes: null
+  # speaker未解決・sceneId/blockId省略・relatedEntitiesなしの最小エントリ例
+  - evidenceId: "EVT_SAMPLE_E01_NAR0001"
+    evidenceType: "narration"
+    storyId: "EVT_SAMPLE"
+    publicStoryId: null
+    episodeId: "EVT_SAMPLE_E01"
+    publicEpisodeId: null
+    sceneId: null
+    blockId: null
+    speaker: null
+    relatedEntities: []
+    referencedBy: null
+    visibility:
+      public: true
+      rawTextIncluded: false
+    notes: "Synthetic template entry only."
+notes: "Synthetic template document. Not real story content."
