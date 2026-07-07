@@ -97,7 +97,8 @@ Extraction / Merge:
 - `docs/architecture/06_AI/Merged_Knowledge_Design.md`
 - `docs/architecture/06_AI/Canonical_ID_Policy.md`
 - `docs/architecture/06_AI/Character_Profile_Dictionary_Design.md`
-- `docs/architecture/06_AI/Story_Summary_Design.md`（Story/Episode Summaryのデータ構造・保存場所（`knowledge/summaries/stories/{storyId}.yaml`）・status/review workflow設計。schema/loader/validator・Story page renderer統合（`--story-summaries`）・evidenceRefsのIDのみ表示まで実装済み。AI要約生成・Episode pageへの表示・Evidence indexはまだ未着手）
+- `docs/architecture/06_AI/Story_Summary_Design.md`（Story/Episode Summaryのデータ構造・保存場所（`knowledge/summaries/stories/{storyId}.yaml`）・status/review workflow設計。schema/loader/validator・Story page renderer統合（`--story-summaries`）・evidenceRefsのIDのみ表示まで実装済み。AI要約生成・Episode pageへの表示はまだ未着手）
+- `docs/architecture/06_AI/Evidence_Index_Design.md`（evidenceRefsの将来リンク先となるEvidence indexの設計。Public Evidence Index/Internal Review Evidence Packetの分離、初期推奨はStory別Evidence page。設計のみ、schema/renderer実装は未着手）
 
 Wiki:
 - `docs/architecture/07_Wiki/Wiki_Output_Design.md`
