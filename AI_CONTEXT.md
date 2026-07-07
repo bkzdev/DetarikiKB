@@ -98,7 +98,7 @@ Extraction / Merge:
 - `docs/architecture/06_AI/Canonical_ID_Policy.md`
 - `docs/architecture/06_AI/Character_Profile_Dictionary_Design.md`
 - `docs/architecture/06_AI/Story_Summary_Design.md`（Story/Episode Summaryのデータ構造・保存場所（`knowledge/summaries/stories/{storyId}.yaml`）・status/review workflow設計。schema/loader/validator・Story page renderer統合（`--story-summaries`）・evidenceRefsのEvidence indexへのリンク化まで実装済み。AI要約生成・Episode pageへの表示はまだ未着手）
-- `docs/architecture/06_AI/Evidence_Index_Design.md`（evidenceRefsのリンク先となるEvidence indexの設計。Public Evidence Index/Internal Review Evidence Packetの分離、初期推奨はStory別Evidence page。schema/loader/validator（`schemas/evidence_index.schema.json`/`agents/wiki_generator/evidence_index.py`/`scripts/validate_evidence_index.py`）とrenderer統合（`render_wiki.py --evidence-index`、Story別Evidence page生成、evidenceRefsのリンク化）は実装済み、自動生成/Internal Review Evidence Packetはまだ未着手）
+- `docs/architecture/06_AI/Evidence_Index_Design.md`（evidenceRefsのリンク先となるEvidence indexの設計。Public Evidence Index/Internal Review Evidence Packetの分離、初期推奨はStory別Evidence page。schema/loader/validator・renderer統合（`render_wiki.py --evidence-index`）に加え、`scripts/build_evidence_index_candidates.py`によるNormalized Story JSON/Extraction Resultからの候補生成dry-run（`docs/runbooks/Evidence_Index_Generation_Dry_Run.md`）まで実装済み。`knowledge/evidence/stories/`への自動昇格・Internal Review Evidence Packetはまだ未着手）
 
 Wiki:
 - `docs/architecture/07_Wiki/Wiki_Output_Design.md`
@@ -109,6 +109,7 @@ Runbooks:
 - `docs/runbooks/MkDocs_Local_Preview_Dry_Run.md`
 - `docs/runbooks/Story_Title_Subtitle_Import.md`
 - `docs/runbooks/Character_Dictionary_Review.md`
+- `docs/runbooks/Evidence_Index_Generation_Dry_Run.md`（`scripts/build_evidence_index_candidates.py`によるEvidence Index候補生成dry-run手順）
 
 履歴・作業管理:
 - `docs/project_history/Completed_PRs_2026-07.md`（完了済みPRの要約履歴）

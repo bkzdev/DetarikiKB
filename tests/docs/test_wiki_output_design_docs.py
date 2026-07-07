@@ -168,3 +168,14 @@ def test_design_doc_states_evidence_page_renderer_integration():
     )
     assert "--evidence-index" in evidence_section
     assert "render_evidence_page" in evidence_section
+
+
+def test_design_doc_states_evidence_index_generation_dry_run():
+    """feature/evidence-index-generation-dry-runで、候補生成scriptが
+    §9.16に記録されていることを確認する。"""
+    content = _read_design_doc()
+    evidence_section = content.split("## 9.16 Source / evidence index page", 1)[
+        1
+    ].split("## 9.17 AI analysis", 1)[0]
+    assert "build_evidence_index_candidates.py" in evidence_section
+    assert "workspace/evidence_index_dry_runs/" in evidence_section

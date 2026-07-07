@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "0.2",
+  "documentType": "normalized_story",
+  "storyId": "TEST_S02_SOLO",
+  "storyCategory": "EVT",
+  "metadata": {
+    "storyTitle": "Synthetic Solo Story"
+  },
+  "parser": {
+    "parserName": "DKB Story Parser",
+    "parserVersion": "0.2.0",
+    "parserMode": "game_script",
+    "preserveStageDirections": true
+  },
+  "source": {
+    "sourceFile": "synthetic_solo_story",
+    "sourceFormat": "game_script"
+  },
+  "episodes": [
+    {
+      "episodeId": "TEST_S02_SOLO_E01",
+      "episodeNumber": 1,
+      "metadata": {},
+      "scenes": [
+        {
+          "sceneId": "TEST_S02_SOLO_E01_SC001",
+          "sceneNumber": 1,
+          "blocks": [
+            {
+              "id": "TEST_S02_SOLO_E01_DLG0001",
+              "type": "dialogue",
+              "speaker": {
+                "speakerId": null,
+                "speakerName": "不明人物(ID:5)",
+                "isResolved": false
+              },
+              "text": "Synthetic solo story dialogue text.",
+              "source": {
+                "sourceFile": "synthetic_solo_story",
+                "lineStart": 1,
+                "lineEnd": 1
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
