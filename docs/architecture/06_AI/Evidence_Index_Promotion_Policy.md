@@ -286,8 +286,9 @@ Story Summary / Episode Summaryの`evidenceRefs`は引き続きPublic Evidence I
 | Phase 9: `evidence-index-promotion-copy-script`（PR #90） | PASSした候補を`knowledge/evidence/stories/`へ実際にcopyする昇格script（人間承認フロー込み） | 完了（dry-run既定・実データcommitは未実施） |
 | Phase 10: `evidence-index-promotion-first-reviewed-sample`（PR #91） | 実データ1 storyの初回昇格試行 | 見送り（§15参照） |
 | Phase 11: `evidence-index-promotion-target-filename-policy`（PR #92） | 内部ID/公開ID分離方針の設計（`docs/architecture/06_AI/Evidence_Index_Public_ID_Policy.md`） | 完了（設計のみ） |
-| Phase 12: `evidence-index-public-id-schema-design`（本PR） | `publicEvidenceId`の形式・prefix mapping・採番方針確定、`schemas/evidence_index.schema.json`へのoptional追加 | **完了（本PR、schema/loaderの最小変更のみ）** |
-| Phase 13: `evidence-index-public-id-projection` | projection層の実装（`publicEvidenceId`の実際の値の付与） | 未着手 |
+| Phase 12: `evidence-index-public-id-schema-design`（PR #93） | `publicEvidenceId`の形式・prefix mapping・採番方針確定、`schemas/evidence_index.schema.json`へのoptional追加 | 完了（schema/loaderの最小変更のみ） |
+| Phase 13: `evidence-index-public-id-projection`（本PR） | Compatible projection（案A）層の実装。`scripts/project_evidence_index_public_ids.py`で`publicEvidenceId`の実際の値を付与する（内部IDは削除しない） | **完了（本PR）** |
+| Phase 13.5: `evidence-index-public-id-public-safe-projection` | Public-safe projection（案B）の実装。内部IDを完全除去したPublic Evidence Index本体を生成する | 未着手 |
 | Phase 14: `evidence-index-promotion-first-reviewed-sample-retry` | projection実装後、実データ1 storyの初回昇格を再試行する | 未着手 |
 | Phase 15: `internal-review-evidence-packet-design` | `stage_direction`等を含むInternal Review Evidence Packetの詳細設計 | 未着手 |
 
@@ -304,6 +305,8 @@ Story Summary / Episode Summaryの`evidenceRefs`は引き続きPublic Evidence I
 **設計方針決定（`feature/evidence-index-promotion-target-filename-policy`で実施）**: `docs/architecture/06_AI/Evidence_Index_Public_ID_Policy.md`を新設し、内部trace ID（`storyId`/`evidenceId`等）と公開ID（`publicStoryId`/`publicEpisodeId`/`publicEvidenceId`）を分離する方針（案C）を長期方針として採用した。**実装・schema変更・実データcommitはいずれも行っていない**（設計のみ）。
 
 **実装状況（`feature/evidence-index-public-id-schema-design`で実施）**: `publicEvidenceId`の形式（`{publicEpisodeId}_{PREFIX}{sequence:04d}`）・evidenceType prefix mapping・採番方針を`Evidence_Index_Public_ID_Policy.md` §6で確定し、`schemas/evidence_index.schema.json`に`publicEvidenceId`をoptionalフィールドとして追加した（`evidenceId`/`storyId`/`episodeId`のrequiredは不変）。`agents/wiki_generator/evidence_index.py`のloaderにも対応するフィールドを追加し、schema/loader testsを追加した。**projection実装（実際の値の付与）・promotion script変更・renderer変更・実Evidence Indexのcommitは行っていない**（次候補`evidence-index-public-id-projection`/`evidence-index-promotion-first-reviewed-sample-retry`）。
+
+**実装状況（`feature/evidence-index-public-id-projection`で実施）**: `scripts/project_evidence_index_public_ids.py`を追加し、Compatible projection（案A）を実装した。`--policy public-default`で許可されたevidenceType（`dialogue`/`monologue`/`narration`/`choice`/`unknown`）のentryのみ`(publicEpisodeId, evidenceType)`単位で連番を振り`publicEvidenceId`を付与し、内部ID（`evidenceId`/`storyId`/`episodeId`/`sceneId`/`blockId`）は一切削除しない。documentのpublicStoryId欠落・entryのpublicEpisodeId欠落・既存publicEvidenceIdとの不一致・重複・projected出力のschema検証失敗はいずれもblocking error（exit code 1）とした。`--output`/`--mapping-output`/`--report`は`knowledge/evidence/`配下を指定するとexit code 2で拒否する安全策を実装し、内部IDを含む`--mapping-output`（CSV）はcommit禁止として明示した。**Compatible projectionの出力は内部IDが残るため引き続きpromotion対象ではない**（`promote_evidence_index.py --execute`は未実行）。`tests/scripts/test_project_evidence_index_public_ids.py`（28件）で検証した。**Public-safe projection（案B）実装・promotion script/renderer変更・実promotion retry・実Evidence Indexのcommitは行っていない**（次候補`evidence-index-public-id-public-safe-projection`/`evidence-index-public-id-renderer-switch`/`evidence-index-promotion-first-reviewed-sample-retry`）。
 
 ---
 
@@ -331,7 +334,9 @@ Story Summary / Episode Summaryの`evidenceRefs`は引き続きPublic Evidence I
 
 `feature/evidence-index-promotion-copy-script`（PR #90）でも以下は行っていない: **実データEvidence Indexの`knowledge/evidence/stories/`への実copy・commit**（`--execute`はtests/合成データでのみ確認、実データはdry-runのみ）、自動昇格、GitHub Actionsでの自動promotion、Internal Review Evidence Packet生成、raw text review packet生成、Evidence page renderer変更、evidenceRefsリンク化ロジック変更、Evidence Index generation filter変更、Episode page変更、Evidence Index schema変更、Story Summary schema変更。
 
-`feature/evidence-index-promotion-first-reviewed-sample`（本PR）でも以下は行っていない: **実データEvidence Indexの`knowledge/evidence/stories/`への実copy・commit**（§15の`storyId`/ファイル名の公開可否判断待ちのため安全側で見送り）、`promote_evidence_index.py`/`check_evidence_index_promotion.py`の変更、複数story promotion、batch promotion、Internal Review Evidence Packet生成。
+`feature/evidence-index-promotion-first-reviewed-sample`（PR #91）でも以下は行っていない: **実データEvidence Indexの`knowledge/evidence/stories/`への実copy・commit**（§15の`storyId`/ファイル名の公開可否判断待ちのため安全側で見送り）、`promote_evidence_index.py`/`check_evidence_index_promotion.py`の変更、複数story promotion、batch promotion、Internal Review Evidence Packet生成。
+
+`feature/evidence-index-public-id-projection`（本PR）でも以下は行っていない: 実Evidence Indexの`knowledge/evidence/stories/`への実copy・commit、Public-safe projection（案B、内部ID完全除去）実装、`agents/wiki_generator/renderer.py`/`agents/wiki_generator/paths.py`の変更、`scripts/promote_evidence_index.py`/`scripts/check_evidence_index_promotion.py`の変更、`promote_evidence_index.py --execute`の実行、実promotion retry、Internal Review Evidence Packetの正式な設計・保管場所確定。
 
 ---
 
@@ -343,7 +348,7 @@ Story Summary / Episode Summaryの`evidenceRefs`は引き続きPublic Evidence I
 - promotion承認者（誰が最終承認するか）の運用ルール（`TASKS.md` Next「evidence-index-promotion-policy」参照）
 - Scene/Episode/Story単位の粗い粒度entryを将来追加する場合、Public/Internal振り分けをどうするか
 - `speaker_label`型entryを将来追加する場合の公開方針
-- **【`feature/evidence-index-promotion-first-reviewed-sample`で新たに判明】`knowledge/evidence/stories/{storyId}.yaml`のファイル名およびEvidence Index内の`evidenceId`/`storyId`/`episodeId`/`sceneId`/`blockId`主キーが、sourceKey由来の`storyId`をそのまま使う設計になっている問題** → **`docs/architecture/06_AI/Evidence_Index_Public_ID_Policy.md`（`feature/evidence-index-promotion-target-filename-policy`）で設計方針を決定した**。内部trace IDと公開IDを分離し、Public Evidence Indexは`publicStoryId`/`publicEpisodeId`/`publicEvidenceId`中心のprojectionとして保存する方針（案C）を採用。`publicEvidenceId`のschema（optional追加）は`feature/evidence-index-public-id-schema-design`で実装済み。projection層・renderer切替は後続PR（`evidence-index-public-id-projection`）で行う。promotion再開はprojection実装完了まで停止する
+- **【`feature/evidence-index-promotion-first-reviewed-sample`で新たに判明】`knowledge/evidence/stories/{storyId}.yaml`のファイル名およびEvidence Index内の`evidenceId`/`storyId`/`episodeId`/`sceneId`/`blockId`主キーが、sourceKey由来の`storyId`をそのまま使う設計になっている問題** → **`docs/architecture/06_AI/Evidence_Index_Public_ID_Policy.md`（`feature/evidence-index-promotion-target-filename-policy`）で設計方針を決定した**。内部trace IDと公開IDを分離し、Public Evidence Indexは`publicStoryId`/`publicEpisodeId`/`publicEvidenceId`中心のprojectionとして保存する方針（案C）を採用。`publicEvidenceId`のschema（optional追加）は`feature/evidence-index-public-id-schema-design`で実装済み、Compatible projection（案A）は`feature/evidence-index-public-id-projection`で実装済み（内部IDは削除しない）。Public-safe projection（案B）・renderer切替は後続PR（`evidence-index-public-id-public-safe-projection`/`evidence-index-public-id-renderer-switch`）で行う。promotion再開はこれらの完了・実データでの安全性再確認まで停止する
 
 ---
 

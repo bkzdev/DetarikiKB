@@ -12,7 +12,9 @@ Path: `docs/architecture/06_AI/Evidence_Index_Public_ID_Policy.md`
 
 本文書は、この問題を整理し、Public Evidence Indexにおける内部ID（trace用）と公開ID（Wiki/Git履歴に出してよいID）の分離方針を決定する。**`evidence-index-promotion-target-filename-policy`（PR #92）では実装・schema変更・実Evidence Indexのcommitはいずれも行わなかった**（設計のみ）。
 
-**`evidence-index-public-id-schema-design`（本PR）で、`publicEvidenceId`の形式・prefix mapping・採番方針を確定し、`schemas/evidence_index.schema.json`への最小限のoptional追加（§10.3）を行った。実Evidence Indexのcommit・projection実装・renderer変更はまだ行わない**（§13参照）。
+`evidence-index-public-id-schema-design`（PR #93）で、`publicEvidenceId`の形式・prefix mapping・採番方針を確定し、`schemas/evidence_index.schema.json`への最小限のoptional追加（§10.3）を行った。
+
+**`evidence-index-public-id-projection`（本PR）で、Compatible projection（案A）を実装した**。`scripts/project_evidence_index_public_ids.py`が実際に`publicEvidenceId`を生成・付与するが、内部ID（`evidenceId`/`storyId`/`episodeId`/`sceneId`/`blockId`）は削除しない（§6.7）。**実Evidence Indexのcommit・Public-safe projection（案B）実装・renderer変更・promotion再開はまだ行わない**（§13参照）。
 
 ---
 
@@ -216,6 +218,19 @@ EVT_YYYYMMDD_NNN_E01_MONO0001
 - `choice`のoption入れ子blockも、既存の`_iter_blocks_recursive`と同じ「出現順」でtype別連番に含める（Choice本体と入れ子dialogueが同じ`DLG`連番空間を共有するか、別空間にするかは実装PRで確定）
 - 具体的な採番ロジック（`build_evidence_index_candidates.py`拡張か新規projection scriptか）は`evidence-index-public-id-projection`（§12 Phase 2）で実装する
 
+## 6.7 projection実装状況（`feature/evidence-index-public-id-projection`で実施）
+
+`scripts/project_evidence_index_public_ids.py`（新規script、`build_evidence_index_candidates.py`拡張ではなく独立scriptとして実装）を追加し、§6.4〜6.6で決定した形式・prefix mapping・採番方針を**Compatible projection（案A、§4.3案C路線の第一段階）**として実装した。
+
+- **Compatible projectionのみ**: 既存の内部ID（`evidenceId`/`storyId`/`episodeId`/`sceneId`/`blockId`）は一切削除・改名しない。`publicEvidenceId`を追加するだけで、既存schema/loader/renderer/promotion scriptとの後方互換を維持する。内部IDを完全に取り除く"Public-safe projection"（案B）は`evidence-index-public-id-public-safe-projection`として別PRに委ねる
+- **CLI**: `--input`/`--output`/`--mapping-output`/`--report`必須、`--schema`/`--policy`（デフォルト`public-default`）/`--strict`/`--quiet`任意。`--output`（projection結果のdirectory）・`--mapping-output`（内部ID⇔公開IDのmapping CSV）・`--report`（Markdown report）はいずれも`knowledge/evidence/`配下を指定するとexit code 2で拒否する
+- **採番対象の絞り込み**: `--policy`で許可されたevidenceType（既定`public-default`＝`dialogue`/`monologue`/`narration`/`choice`/`unknown`）のentryのみ`publicEvidenceId`を採番する。`stage_direction`等policy対象外のtypeは既定では採番せず素通し（entry自体は出力に残る）、`--strict`指定時のみblocking errorにする
+- **blocking条件**: documentにpublicStoryIdを持つentryが1件も無い、entryにpublicEpisodeIdが欠落している（evidenceTypeが`unknown`でも同様に必須）、既存`publicEvidenceId`が再生成結果と一致しない、`publicEvidenceId`が重複する、projected出力がschema検証に失敗する、のいずれかに該当するとexit code 1
+- **exit codes**: `0`成功、`1`projection validation失敗、`2`IO/config error（安全確認拒否含む）
+- **常に出力を書く**: `promote_evidence_index.py`のdry-run既定パターンとは異なり、本scriptは`--output`/`--mapping-output`/`--report`をworkspace配下の安全なpathである限り常に書き出す（blocking issueがあってもreview用に出力する）。ただし**Compatible projectionの出力は常にnot promotion-ready**であり、`promote_evidence_index.py --execute`には使わないこと
+- **mapping output commit禁止**: `--mapping-output`のCSVは内部ID（`storyId`/`episodeId`/`evidenceId`等）と公開IDを1行に並べて記録するため、常にworkspace配下に留め、**commit禁止**とする。Internal Review Evidence Packet（`internal-review-evidence-packet-design`、未実装）の候補データとして位置づける
+- `tests/scripts/test_project_evidence_index_public_ids.py`（28件）で、prefix生成・per-episode/per-type採番・publicStoryId/publicEpisodeId欠落・既存publicEvidenceIdの一致/不一致・重複検出・mapping/report出力・directory/file入力・projected出力のschema検証・入力ファイル不変・knowledge/evidence/への書き込み拒否を検証した
+
 ---
 
 # 7. internalTrace policy（内部trace情報の扱い方針）
@@ -348,7 +363,8 @@ evidenceRefs:
 |---|---|---|
 | Phase 0: `evidence-index-promotion-target-filename-policy`（PR #92） | 問題整理・ID分類・案A/B/C/D比較・採用方針決定・publicEvidenceId/internalTrace方針の設計 | 完了（設計のみ） |
 | Phase 1: `evidence-index-public-id-schema-design`（本PR） | `publicEvidenceId`の形式・prefix mapping・採番方針の確定、`schemas/evidence_index.schema.json`へのoptional追加、loader対応 | **完了（本PR、schema/loaderの最小変更のみ）** |
-| Phase 2: `evidence-index-public-id-projection` | projection/rewrite層の実装（内部ID→公開IDのmapping生成、`publicEvidenceId`の実際の付与） | 未着手 |
+| Phase 2: `evidence-index-public-id-projection`（本PR） | Compatible projection（案A）の実装。`scripts/project_evidence_index_public_ids.py`で内部ID→公開IDのmapping生成、`publicEvidenceId`の実際の付与を行う（内部IDは削除しない） | **完了（本PR）** |
+| Phase 2.5: `evidence-index-public-id-public-safe-projection` | Public-safe projection（案B）の実装。内部IDを完全に除去したPublic Evidence Index本体を生成する | 未着手 |
 | Phase 3: renderer/paths.py対応 | Evidence page見出し・anchor・Summary evidenceRefsリンクを`publicEvidenceId`中心に切り替え | 未着手 |
 | Phase 4: `promote_evidence_index.py`/`check_evidence_index_promotion.py`対応 | target filenameの`publicStoryId`必須化、projection済みEvidence Indexのみpromotion対象にする、sourceKey混入scanの追加検討 | 未着手 |
 | Phase 5: `evidence-index-promotion-first-reviewed-sample-retry` | Phase 1〜4完了後、実データ1 storyの初回昇格を再試行する | 未着手 |
@@ -379,10 +395,10 @@ evidenceRefs:
 - raw text review packet生成
 - Evidence Index batch promotion
 
-`evidence-index-public-id-schema-design`（本PR）でも以下は行っていない:
+`evidence-index-public-id-schema-design`（PR #93）でも以下は行っていない:
 
 - 実Evidence Indexのcommit・`knowledge/evidence/stories/`への実データ昇格
-- public ID projection実装（`publicEvidenceId`の実際の値の付与・rewrite script）
+- public ID projection実装（`publicEvidenceId`の実際の値の付与・rewrite script） → **`feature/evidence-index-public-id-projection`でCompatible projection（案A）のみ実装済み**（§6.7参照）
 - ID rewrite実装
 - `scripts/promote_evidence_index.py`/`scripts/check_evidence_index_promotion.py`/`scripts/build_evidence_index_candidates.py`の変更
 - `agents/wiki_generator/renderer.py`/`agents/wiki_generator/paths.py`の変更（Evidence page anchor・Summary evidenceRefsリンク化ロジックは無変更）
@@ -392,11 +408,23 @@ evidenceRefs:
 - `evidenceId`のrequired解除
 - Internal Review Evidence Packet生成
 
+`evidence-index-public-id-projection`（本PR）でも以下は行っていない:
+
+- 実Evidence Indexのcommit・`knowledge/evidence/stories/`への実データ昇格
+- **Public-safe projection（案B）実装**: 内部ID（`evidenceId`/`storyId`/`episodeId`/`sceneId`/`blockId`）の完全除去。本PRのCompatible projection（案A）は内部IDを保持したまま`publicEvidenceId`を追加するのみ（次PR候補`evidence-index-public-id-public-safe-projection`）
+- `agents/wiki_generator/renderer.py`/`agents/wiki_generator/paths.py`の変更（Evidence page見出し・anchor・Summary evidenceRefsリンクの`publicEvidenceId`中心切替は次PR候補`evidence-index-public-id-renderer-switch`）
+- `scripts/promote_evidence_index.py`/`scripts/check_evidence_index_promotion.py`の変更（projection済みEvidence Indexのみをpromotion対象にする制約は未実装）
+- `promote_evidence_index.py --execute`の実行、実promotion retry（次PR候補`evidence-index-promotion-first-reviewed-sample-retry`）
+- Internal Review Evidence Packet生成（mapping CSVの出力自体は実装したが、正式なInternal Review Evidence Packetとしての設計・保管場所確定は次PR候補`internal-review-evidence-packet-design`）
+- `schemas/evidence_index.schema.json`の変更（既存schemaのまま、追加フィールドなし）
+
 ---
 
 # 14. Open questions（未確定事項）
 
-- ~~`publicEvidenceId`の具体的な採番ルール~~ → **`feature/evidence-index-public-id-schema-design`で決定済み**（§6.4〜6.6、type別prefix付き連番）。ただし`choice`のoption入れ子blockの採番空間（本体と共有か別空間か）は実装PR（`evidence-index-public-id-projection`）で確定する
+- ~~`publicEvidenceId`の具体的な採番ルール~~ → **`feature/evidence-index-public-id-schema-design`で決定済み**（§6.4〜6.6、type別prefix付き連番）
+- ~~`choice`のoption入れ子blockの採番空間（本体と共有か別空間か）~~ → **`feature/evidence-index-public-id-projection`で確定**: 本scriptはEvidence Index entries配列をflatなリストとして扱い、入れ子構造の解決は行わない（`build_evidence_index_candidates.py`側で既にflat化されたentries順序をそのまま採番順として使う）。choice本体とoption入れ子blockが別entryとして存在する場合、両者は同じ`(publicEpisodeId, evidenceType)`連番空間を共有する
+- ~~`publicEvidenceId`の採番が、同一storyの複数回のdry-run生成間で安定するか~~ → **`feature/evidence-index-public-id-projection`で確認**: 採番は入力entriesの出現順のみに依存する決定的なロジックのため、入力の順序が変わらない限り再現可能。ただし入力（`build_evidence_index_candidates.py`の出力）自体の順序が変われば`publicEvidenceId`も変わりうる（§6.4の既知の制約通り）
 - `internalTrace`/mapping tableの生成方法（`build_evidence_index_candidates.py`の拡張か、別scriptか）
 - mapping tableの保管場所・アクセス制御（`workspace/review_packets/evidence/`が適切か、`internal-review-evidence-packet-design`との統合方法）
 - 既存の`evidenceId`（内部ID）を将来的に完全廃止するか、常に保持しつつPublic Evidence Indexでのみ非表示にするか
