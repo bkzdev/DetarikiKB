@@ -136,3 +136,64 @@ def test_tasks_md_lists_next_pr_candidates():
 def test_tasks_md_records_no_real_data_commit():
     content = TASKS_PATH.read_text(encoding="utf-8")
     assert "実データEvidence Indexのcommitは未実施" in content
+
+
+# ----------------------------------------------------------------
+# feature/evidence-index-promotion-first-reviewed-sample
+# ----------------------------------------------------------------
+
+
+def test_promotion_copy_runbook_has_first_reviewed_sample_result():
+    content = _read_runbook()
+    assert "## 13.1 初回実施結果" in content
+    section = content.split("## 13.1 初回実施結果", 1)[1].split(
+        "# 14. 関連ドキュメント", 1
+    )[0]
+    assert "187" in section
+    assert "見送った" in section
+
+
+def test_promotion_copy_runbook_states_target_filename_concern():
+    content = _read_runbook()
+    section = content.split("## 13.1 初回実施結果", 1)[1].split(
+        "# 14. 関連ドキュメント", 1
+    )[0]
+    assert "sourceKey由来" in section
+    assert "publicStoryId" in section
+    assert "Git履歴に永続的に残る" in section
+
+
+def test_promotion_copy_runbook_does_not_contain_real_data_hints():
+    """実イベント名・実ファイル名・raw pathを書かない方針の簡易チェック。"""
+    content = _read_runbook()
+    for forbidden in ("CAMI3RD", "260425", "C:\\Users", "D:\\Dev", ".dec\n"):
+        assert forbidden not in content
+
+
+def test_promotion_policy_states_first_sample_result():
+    content = PROMOTION_POLICY_PATH.read_text(encoding="utf-8")
+    assert (
+        "実施結果（`feature/evidence-index-promotion-first-reviewed-sample`" in content
+    )
+    assert "見送った" in content
+
+
+def test_promotion_policy_open_questions_mentions_filename_policy():
+    content = PROMOTION_POLICY_PATH.read_text(encoding="utf-8")
+    open_questions_section = content.split("# 15. 未確定事項", 1)[1].split(
+        "# 16. 参照", 1
+    )[0]
+    assert "publicStoryId" in open_questions_section
+    assert "ファイル名" in open_questions_section
+
+
+def test_tasks_md_lists_target_filename_policy_next_candidate():
+    content = TASKS_PATH.read_text(encoding="utf-8")
+    assert "evidence-index-promotion-target-filename-policy" in content
+    assert "evidence-index-promotion-first-sample-visual-review" in content
+
+
+def test_tasks_md_does_not_contain_real_data_hints():
+    content = TASKS_PATH.read_text(encoding="utf-8")
+    for forbidden in ("CAMI3RD", "260425", "C:\\Users", "D:\\Dev"):
+        assert forbidden not in content
