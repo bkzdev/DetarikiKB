@@ -43,6 +43,7 @@ def _entry(**overrides) -> dict:
         "publicStoryId": None,
         "episodeId": "EVT_SYNTHETIC_SAMPLE_E01",
         "publicEpisodeId": None,
+        "publicEvidenceId": None,
         "sceneId": None,
         "blockId": None,
         "speaker": None,
@@ -126,6 +127,7 @@ def test_document_with_full_entry_is_valid():
             _entry(
                 publicStoryId="EVT_TEST_PUBLIC_001",
                 publicEpisodeId="EVT_TEST_PUBLIC_001_E01",
+                publicEvidenceId="EVT_TEST_PUBLIC_001_E01_DLG0001",
                 sceneId="EVT_SYNTHETIC_SAMPLE_E01_SC001",
                 blockId="EVT_SYNTHETIC_SAMPLE_E01_DLG0001",
                 speaker={
@@ -269,6 +271,35 @@ def test_rejects_invalid_public_story_id_format():
 def test_public_story_id_null_is_valid():
     document = _document(entries=[_entry(publicStoryId=None)])
     assert _validate(document) == []
+
+
+def test_public_evidence_id_valid_format_is_accepted():
+    document = _document(
+        entries=[_entry(publicEvidenceId="EVT_TEST_PUBLIC_001_E01_DLG0001")]
+    )
+    assert _validate(document) == []
+
+
+def test_public_evidence_id_null_is_valid():
+    document = _document(entries=[_entry(publicEvidenceId=None)])
+    assert _validate(document) == []
+
+
+def test_public_evidence_id_can_be_omitted():
+    entry = _entry()
+    del entry["publicEvidenceId"]
+    assert _validate(_document(entries=[entry])) == []
+
+
+def test_rejects_invalid_public_evidence_id_format():
+    document = _document(entries=[_entry(publicEvidenceId="not-a-valid-id")])
+    assert _validate(document) != []
+
+
+def test_evidence_id_still_required_when_public_evidence_id_present():
+    entry = _entry(publicEvidenceId="EVT_TEST_PUBLIC_001_E01_DLG0001")
+    del entry["evidenceId"]
+    assert _validate(_document(entries=[entry])) != []
 
 
 def test_rejects_invalid_related_entity_id_format():
