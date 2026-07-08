@@ -197,7 +197,7 @@ PR #87で使用した匿名化済み実データサンプル（EVENTカテゴリ
 
 # 13. Next steps
 
-- `evidence-index-promotion-copy-script`: `check_evidence_index_promotion.py`がPASSした候補を`knowledge/evidence/stories/`へ実際にcopyする昇格scriptを検討する（人間承認フロー込み）
+- `evidence-index-promotion-copy-script`: `check_evidence_index_promotion.py`がPASSした候補を`knowledge/evidence/stories/`へ実際にcopyする昇格script → **実装済み**（`scripts/promote_evidence_index.py`、`docs/runbooks/Evidence_Index_Promotion_Copy.md`参照。dry-run既定・`--execute`必須・実データcommitはまだ未実施）
 - `evidence-index-promotion-first-reviewed-sample`: 実データreviewed/approved Summary投入後にSummary evidenceRefs整合性チェックを再確認する
 - `internal-review-evidence-packet-design`: `stage_direction`等を含むInternal Review Evidence Packetの詳細設計
 
@@ -206,9 +206,11 @@ PR #87で使用した匿名化済み実データサンプル（EVENTカテゴリ
 # 14. 関連ドキュメント
 
 - `docs/runbooks/Evidence_Index_Generation_Dry_Run.md`（Evidence Index候補生成dry-run手順）
+- `docs/runbooks/Evidence_Index_Promotion_Copy.md`（本checkをPASSした候補を`knowledge/evidence/stories/`へcopyする手順）
 - `docs/architecture/06_AI/Evidence_Index_Promotion_Policy.md`（promotion criteria/exclusion criteria/public entry type policy/candidate references方針）
 - `docs/architecture/06_AI/Evidence_Index_Design.md`（Evidence Indexの役割・データモデル・実装フェーズ）
 - `docs/templates/evidence_index_promotion_review_template.md`（human review記録テンプレート）
 - `scripts/check_evidence_index_promotion.py`（本手順のcheck script）
+- `scripts/promote_evidence_index.py`（promotion checkをPASSした候補のcopy script）
 - `scripts/validate_evidence_index.py`（schema/整合性検証CLI）
 - `TASKS.md`（次PR候補の追跡）
