@@ -14,6 +14,7 @@ entries:
     publicStoryId: "EVT_TEST_PUBLIC_EVIDENCE_001"
     episodeId: "EVT_TEST_EVIDENCE_ONE_E01"
     publicEpisodeId: "EVT_TEST_PUBLIC_EVIDENCE_001_E01"
+    publicEvidenceId: "EVT_TEST_PUBLIC_EVIDENCE_001_E01_DLG0001"
     sceneId: "EVT_TEST_EVIDENCE_ONE_E01_SC001"
     blockId: "EVT_TEST_EVIDENCE_ONE_E01_DLG0001"
     speaker:

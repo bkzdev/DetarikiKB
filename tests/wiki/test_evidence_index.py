@@ -66,6 +66,7 @@ def _raw_entry(**overrides) -> dict:
         "publicStoryId": None,
         "episodeId": "EVT_TEST_A_E01",
         "publicEpisodeId": None,
+        "publicEvidenceId": None,
         "sceneId": None,
         "blockId": None,
         "speaker": None,
@@ -93,6 +94,30 @@ def test_load_evidence_index_basic(tmp_path):
     assert document is not None
     assert len(document.entries) == 1
     assert document.entries[0].evidence_id == "EVT_TEST_A_E01_DLG0001"
+
+
+def test_load_evidence_index_reads_public_evidence_id(tmp_path):
+    path = _write_document(
+        tmp_path,
+        "EVT_TEST_A.yaml",
+        _minimal_raw_document(
+            entries=[_raw_entry(publicEvidenceId="EVT_TEST_PUBLIC_A_E01_DLG0001")]
+        ),
+    )
+    document = load_evidence_index(path)
+    assert document is not None
+    assert document.entries[0].public_evidence_id == "EVT_TEST_PUBLIC_A_E01_DLG0001"
+
+
+def test_load_evidence_index_public_evidence_id_defaults_to_none(tmp_path):
+    path = _write_document(
+        tmp_path,
+        "EVT_TEST_A.yaml",
+        _minimal_raw_document(entries=[_raw_entry()]),
+    )
+    document = load_evidence_index(path)
+    assert document is not None
+    assert document.entries[0].public_evidence_id is None
 
 
 def test_load_evidence_index_missing_file_returns_none(tmp_path):
@@ -192,6 +217,13 @@ def _document(**overrides) -> EvidenceIndexDocument:
 
 def test_validate_accepts_minimal_valid_document():
     assert validate_evidence_index_document(_document(entries=[_entry()])) == []
+
+
+def test_validate_accepts_document_with_public_evidence_id():
+    issues = validate_evidence_index_document(
+        _document(entries=[_entry(public_evidence_id="EVT_TEST_PUBLIC_A_E01_DLG0001")])
+    )
+    assert issues == []
 
 
 def test_validate_rejects_invalid_evidence_id():

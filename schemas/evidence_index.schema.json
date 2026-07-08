@@ -111,6 +111,13 @@
             { "type": "null" }
           ]
         },
+        "publicEvidenceId": {
+          "oneOf": [
+            { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+            { "type": "null" }
+          ],
+          "description": "Public-safe evidence identifier used for Wiki anchors and public Summary evidenceRefs (docs/architecture/06_AI/Evidence_Index_Public_ID_Policy.md). Optional for now; evidenceId remains required as the internal trace ID. Must not contain sourceKey-derived internal storyId/episodeId/blockId fragments."
+        },
         "sceneId": {
           "oneOf": [
             { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },

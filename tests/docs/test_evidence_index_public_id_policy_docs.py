@@ -213,3 +213,78 @@ def test_tasks_md_does_not_contain_real_data_hints():
     content = TASKS_PATH.read_text(encoding="utf-8")
     for forbidden in REAL_DATA_HINTS:
         assert forbidden not in content
+
+
+# ----------------------------------------------------------------
+# feature/evidence-index-public-id-schema-design
+# ----------------------------------------------------------------
+
+
+def test_public_id_policy_doc_states_public_evidence_id_format():
+    content = _read_doc()
+    section = content.split("## 6.4 publicEvidenceId形式（決定）", 1)[1].split(
+        "## 6.5 evidenceType prefix mapping", 1
+    )[0]
+    assert "{publicEpisodeId}_{PREFIX}{sequence:04d}" in section
+    assert "候補B" in section
+
+
+def test_public_id_policy_doc_has_prefix_mapping_table():
+    content = _read_doc()
+    section = content.split("## 6.5 evidenceType prefix mapping", 1)[1].split(
+        "## 6.6 採番方針", 1
+    )[0]
+    expected_prefixes = {
+        "dialogue": "DLG",
+        "monologue": "MONO",
+        "narration": "NAR",
+        "choice": "CHO",
+        "unknown": "UNK",
+        "stage_direction": "STG",
+    }
+    for evidence_type, prefix in expected_prefixes.items():
+        assert evidence_type in section
+        assert prefix in section
+
+
+def test_public_id_policy_doc_states_numbering_policy():
+    content = _read_doc()
+    section = content.split("## 6.6 採番方針（決定）", 1)[1].split("---", 1)[0]
+    assert "evidenceType別に連番" in section
+    assert "stage_direction" in section
+
+
+def test_public_id_policy_doc_states_schema_implementation_status():
+    content = _read_doc()
+    assert (
+        "## 10.3 実装状況（`feature/evidence-index-public-id-schema-design`で実施）"
+        in content
+    )
+    section = content.split(
+        "## 10.3 実装状況（`feature/evidence-index-public-id-schema-design`で実施）",
+        1,
+    )[1].split("## 10.4", 1)[0]
+    assert "publicEvidenceId" in section
+    assert "optional" in section
+    assert "evidenceId" in section
+
+
+def test_public_id_policy_doc_states_required_timing():
+    content = _read_doc()
+    assert "## 10.4 publicStoryId / publicEpisodeId required化タイミング" in content
+    section = content.split(
+        "## 10.4 publicStoryId / publicEpisodeId required化タイミング", 1
+    )[1].split("---", 1)[0]
+    assert "本PRでは`publicStoryId`/`publicEpisodeId`のrequired化は行わない" in section
+
+
+def test_public_id_policy_doc_schema_change_is_documented_in_non_goals_history():
+    content = _read_doc()
+    section = content.split("# 13. Non-goals", 1)[1].split("# 14. Open questions", 1)[0]
+    assert "feature/evidence-index-public-id-schema-design`で最小実装済み" in section
+
+
+def test_schema_file_states_public_evidence_id_field():
+    schema_path = PROJECT_ROOT / "schemas" / "evidence_index.schema.json"
+    content = schema_path.read_text(encoding="utf-8")
+    assert "publicEvidenceId" in content

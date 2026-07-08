@@ -159,6 +159,7 @@ class EvidenceIndexEntry:
     visibility: Visibility = field(default_factory=Visibility)
     public_story_id: str | None = None
     public_episode_id: str | None = None
+    public_evidence_id: str | None = None
     scene_id: str | None = None
     block_id: str | None = None
     speaker: Speaker | None = None
@@ -264,6 +265,7 @@ def _parse_entry(raw: dict[str, Any]) -> EvidenceIndexEntry:
         visibility=_parse_visibility(raw.get("visibility")),
         public_story_id=raw.get("publicStoryId"),
         public_episode_id=raw.get("publicEpisodeId"),
+        public_evidence_id=raw.get("publicEvidenceId"),
         scene_id=raw.get("sceneId"),
         block_id=raw.get("blockId"),
         speaker=_parse_speaker(raw.get("speaker")),
