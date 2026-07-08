@@ -284,8 +284,11 @@ Story Summary / Episode Summaryの`evidenceRefs`は引き続きPublic Evidence I
 | Phase 7: `evidence-index-promotion-policy-implementation`（PR #88） | 本文書のpromotion criteriaを実装するpromotion check script・human review template・promotion runbook | 完了（check-onlyのみ、実昇格copyは未実装） |
 | Phase 8: `evidence-index-promotion-dry-run`（PR #89） | 実データfiltered outputに対する本scriptの実行結果レビュー | 完了 |
 | Phase 9: `evidence-index-promotion-copy-script`（PR #90） | PASSした候補を`knowledge/evidence/stories/`へ実際にcopyする昇格script（人間承認フロー込み） | 完了（dry-run既定・実データcommitは未実施） |
-| Phase 10: `evidence-index-promotion-first-reviewed-sample`（本PR） | 実データ1 storyの初回昇格試行 | **見送り（本PR、§15参照）** |
-| Phase 11: `internal-review-evidence-packet-design` | `stage_direction`等を含むInternal Review Evidence Packetの詳細設計 | 未着手 |
+| Phase 10: `evidence-index-promotion-first-reviewed-sample`（PR #91） | 実データ1 storyの初回昇格試行 | 見送り（§15参照） |
+| Phase 11: `evidence-index-promotion-target-filename-policy`（本PR） | 内部ID/公開ID分離方針の設計（`docs/architecture/06_AI/Evidence_Index_Public_ID_Policy.md`） | **完了（本PR、設計のみ）** |
+| Phase 12: `evidence-index-public-id-schema-design` / `evidence-index-public-id-projection` | `publicEvidenceId`のschema実装・projection層の実装 | 未着手 |
+| Phase 13: `evidence-index-promotion-first-reviewed-sample-retry` | projection実装後、実データ1 storyの初回昇格を再試行する | 未着手 |
+| Phase 14: `internal-review-evidence-packet-design` | `stage_direction`等を含むInternal Review Evidence Packetの詳細設計 | 未着手 |
 
 **実装状況（`feature/evidence-index-generation-filtering`で実施）**: `scripts/build_evidence_index_candidates.py`に`--public-profile default|full|review`（デフォルト`default`）・`--include-types`・`--exclude-types`を追加した。default profileは`stage_direction`を除外し、PR #85と同じ匿名化サンプルで再実行したところentry数は1793件→187件（`dialogue`153・`narration`26・`monologue`6・`unknown`2）に縮小、`--public-profile full`では1793件（PR #85相当）を再現できることを確認した。filterで除外されたentryは`skippedBlockCount`ではなく`filteredEntryCount`/`filteredByTypeCounts`/`filteredReasonCounts`として区別してreportに記録する。`referencedBy.candidates`はfilterで出力対象になったentryにのみ付与し、同サンプルでcandidate references付与件数は159件から155件に減少した。`validate_evidence_index.py`・`render_wiki.py --evidence-index`・source text exposure checkいずれも問題なし。**promotion script実装・Evidence page renderer変更・Internal Review Evidence Packet生成・実Evidence Indexのcommitは行っていない**（次候補`evidence-index-promotion-policy-implementation`/`internal-review-evidence-packet-design`）。
 
@@ -335,7 +338,7 @@ Story Summary / Episode Summaryの`evidenceRefs`は引き続きPublic Evidence I
 - promotion承認者（誰が最終承認するか）の運用ルール（`TASKS.md` Next「evidence-index-promotion-policy」参照）
 - Scene/Episode/Story単位の粗い粒度entryを将来追加する場合、Public/Internal振り分けをどうするか
 - `speaker_label`型entryを将来追加する場合の公開方針
-- **【`feature/evidence-index-promotion-first-reviewed-sample`で新たに判明】`knowledge/evidence/stories/{storyId}.yaml`のファイル名およびEvidence Index内の`evidenceId`/`storyId`/`episodeId`/`sceneId`/`blockId`主キーが、sourceKey由来の`storyId`をそのまま使う設計になっている問題**。`publicStoryId`/`publicEpisodeId`という匿名化済みIDはentryごとに別途存在するが、ファイル名・主キーはsourceKey由来のまま。commit時にGit履歴へ永続的に残るため、(a) 該当storyIdの内容が公開して問題ないことを人間が個別に確認する運用にするか、(b) `knowledge/evidence/stories/`の保存先ファイル名・主キーを`publicStoryId`/`publicEpisodeId`基準に変更する設計変更を行うか、を決定する必要がある（`docs/architecture/05_Parser/Identifier_Specification.md`・`Story_ID_Policy_Decision.md`との整合も要検討、TASKS.md Known Issues「EVENT storyId/episodeId形式の再検討余地」と同根の課題）
+- **【`feature/evidence-index-promotion-first-reviewed-sample`で新たに判明】`knowledge/evidence/stories/{storyId}.yaml`のファイル名およびEvidence Index内の`evidenceId`/`storyId`/`episodeId`/`sceneId`/`blockId`主キーが、sourceKey由来の`storyId`をそのまま使う設計になっている問題** → **`docs/architecture/06_AI/Evidence_Index_Public_ID_Policy.md`（`feature/evidence-index-promotion-target-filename-policy`）で設計方針を決定した**。内部trace IDと公開IDを分離し、Public Evidence Indexは`publicStoryId`/`publicEpisodeId`/`publicEvidenceId`中心のprojectionとして保存する方針（案C）を採用。実装（schema拡張・projection層・renderer切替）は後続PRで行う。promotion再開はprojection実装完了まで停止する
 
 ---
 
@@ -352,6 +355,7 @@ Story Summary / Episode Summaryの`evidenceRefs`は引き続きPublic Evidence I
 - `scripts/check_evidence_index_promotion.py`（promotion check script、`feature/evidence-index-promotion-policy-implementation`で実装済み、check-onlyで実copyは行わない）
 - `scripts/promote_evidence_index.py`（promotion checkをPASSした候補のcopy script、`feature/evidence-index-promotion-copy-script`で実装済み、dry-run既定・`--execute`必須）
 - `docs/runbooks/Evidence_Index_Promotion_Check.md`（promotion check手順）
-- `docs/runbooks/Evidence_Index_Promotion_Copy.md`（promotion checkをPASSした候補のcopy手順）
+- `docs/runbooks/Evidence_Index_Promotion_Copy.md`（promotion checkをPASSした候補のcopy手順、§13.1に初回試行結果）
+- `docs/architecture/06_AI/Evidence_Index_Public_ID_Policy.md`（内部trace ID/公開ID分離方針、`publicEvidenceId`方針、promotion再開の前提条件）
 - `docs/templates/evidence_index_promotion_review_template.md`（human review記録テンプレート）
 - `TASKS.md`（次PR候補の追跡）

@@ -409,6 +409,7 @@ notes: null
 - `docs/architecture/07_Wiki/Story_Page_Design.md`（Story page設計、§8 Summary placement）
 - `docs/architecture/06_AI/Evidence_Index_Design.md`（evidenceRefsの将来リンク先となるEvidence indexの設計）
 - `docs/architecture/06_AI/Evidence_Index_Promotion_Policy.md`（Summary evidenceRefsが指すEvidence entryのPublic promotion優先方針、`stage_direction`を指す場合の扱い）
+- `docs/architecture/06_AI/Evidence_Index_Public_ID_Policy.md`（Summary `evidenceRefs`が将来`publicEvidenceId`を参照する方針への影響、§8）
 - `docs/architecture/07_Wiki/Wiki_Output_Design.md`（§3 情報分離方針、§4 evidenceRefs方針、§9.17 AI analysis page）
 - `docs/architecture/06_AI/Extraction_Pipeline.md`（Evidence構造・fact/inference分離の元設計）
 - `docs/architecture/06_AI/Extraction_Result_Schema.md`（EvidenceRef構造、`Identifier_Specification.md` §8）
