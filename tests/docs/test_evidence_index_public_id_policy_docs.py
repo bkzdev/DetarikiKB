@@ -1,0 +1,215 @@
+"""
+tests/docs/test_evidence_index_public_id_policy_docs.py
+Evidence Index Public ID Policy
+(docs/architecture/06_AI/Evidence_Index_Public_ID_Policy.md) の
+軽量な整合性テスト。
+
+PR #91のfirst promotion attemptで発見されたsourceKey由来ID問題の記録、
+ID分類（内部trace ID/公開ID/表示用label）、案A/B/C/D比較、案C採用方針、
+publicEvidenceId方針、internalTrace方針、Summary evidenceRefs/Renderer/
+schema/promotion copyへの影響、既存docsからのリンク、TASKS.mdの次PR候補
+を確認する。実storyId・実sourceKeyがdocsに含まれていないことも確認する。
+"""
+
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+PUBLIC_ID_POLICY_PATH = (
+    PROJECT_ROOT
+    / "docs"
+    / "architecture"
+    / "06_AI"
+    / "Evidence_Index_Public_ID_Policy.md"
+)
+PROMOTION_POLICY_PATH = (
+    PROJECT_ROOT
+    / "docs"
+    / "architecture"
+    / "06_AI"
+    / "Evidence_Index_Promotion_Policy.md"
+)
+EVIDENCE_INDEX_DESIGN_PATH = (
+    PROJECT_ROOT / "docs" / "architecture" / "06_AI" / "Evidence_Index_Design.md"
+)
+PROMOTION_COPY_RUNBOOK_PATH = (
+    PROJECT_ROOT / "docs" / "runbooks" / "Evidence_Index_Promotion_Copy.md"
+)
+STORY_SUMMARY_DESIGN_PATH = (
+    PROJECT_ROOT / "docs" / "architecture" / "06_AI" / "Story_Summary_Design.md"
+)
+TASKS_PATH = PROJECT_ROOT / "TASKS.md"
+
+REQUIRED_SECTIONS = (
+    "# 1. Background",
+    "# 2. Problem discovered in first promotion attempt",
+    "# 3. ID categories",
+    "# 4. Options",
+    "# 5. Adopted direction",
+    "# 6. publicEvidenceId policy",
+    "# 7. internalTrace policy",
+    "# 8. Summary evidenceRefsへの影響",
+    "# 9. Renderer / pathへの影響",
+    "# 10. Schemaへの影響",
+    "# 11. Promotion copyへの影響",
+    "# 12. Implementation phases",
+    "# 13. Non-goals",
+    "# 14. Open questions",
+    "# 15. 参照",
+)
+
+REAL_DATA_HINTS = ("CAMI3RD", "260425", "260707", "C:\\Users", "D:\\Dev")
+
+
+def _read_doc() -> str:
+    return PUBLIC_ID_POLICY_PATH.read_text(encoding="utf-8")
+
+
+def test_public_id_policy_doc_exists():
+    assert PUBLIC_ID_POLICY_PATH.is_file()
+
+
+def test_public_id_policy_doc_has_required_sections():
+    content = _read_doc()
+    missing = [s for s in REQUIRED_SECTIONS if s not in content]
+    assert not missing, f"不足しているセクション: {missing}"
+
+
+def test_public_id_policy_doc_states_problem_discovered():
+    content = _read_doc()
+    section = content.split("# 2. Problem discovered in first promotion attempt", 1)[
+        1
+    ].split("# 3. ID categories", 1)[0]
+    assert "187" in section
+    assert "ファイル名" in section
+    assert "publicStoryId" in section
+    assert "Git履歴" in section
+
+
+def test_public_id_policy_doc_classifies_id_categories():
+    content = _read_doc()
+    section = content.split("# 3. ID categories", 1)[1].split("# 4. Options", 1)[0]
+    assert "内部trace ID" in section
+    assert "公開ID" in section
+    assert "表示用label" in section
+    for field in ("storyId", "episodeId", "sceneId", "blockId", "evidenceId"):
+        assert field in section
+    for field in ("publicStoryId", "publicEpisodeId", "publicEvidenceId"):
+        assert field in section
+
+
+def test_public_id_policy_doc_compares_options():
+    content = _read_doc()
+    section = content.split("# 4. Options", 1)[1].split("# 5. Adopted direction", 1)[0]
+    for heading in ("案A", "案B", "案C", "案D"):
+        assert heading in section
+
+
+def test_public_id_policy_doc_adopts_option_c():
+    content = _read_doc()
+    section = content.split("# 5. Adopted direction", 1)[1].split(
+        "# 6. publicEvidenceId policy", 1
+    )[0]
+    assert "案Cを長期方針として採用する" in section
+    assert "案Aは採用しない" in section
+
+
+def test_public_id_policy_doc_states_public_evidence_id_policy():
+    content = _read_doc()
+    section = content.split("# 6. publicEvidenceId policy", 1)[1].split(
+        "# 7. internalTrace policy", 1
+    )[0]
+    assert "publicEvidenceId" in section
+    assert "publicEpisodeId" in section
+
+
+def test_public_id_policy_doc_states_internal_trace_policy():
+    content = _read_doc()
+    section = content.split("# 7. internalTrace policy", 1)[1].split(
+        "# 8. Summary evidenceRefsへの影響", 1
+    )[0]
+    assert "internalTraceRef" in section or "mapping" in section
+
+
+def test_public_id_policy_doc_states_summary_impact():
+    content = _read_doc()
+    section = content.split("# 8. Summary evidenceRefsへの影響", 1)[1].split(
+        "# 9. Renderer / pathへの影響", 1
+    )[0]
+    assert "evidenceRefs" in section
+    assert "publicEvidenceId" in section
+
+
+def test_public_id_policy_doc_states_renderer_impact():
+    content = _read_doc()
+    section = content.split("# 9. Renderer / pathへの影響", 1)[1].split(
+        "# 10. Schemaへの影響", 1
+    )[0]
+    assert "render_evidence_page" in section or "evidence_page_path" in section
+    assert "anchor" in section
+
+
+def test_public_id_policy_doc_states_schema_impact():
+    content = _read_doc()
+    section = content.split("# 10. Schemaへの影響", 1)[1].split(
+        "# 11. Promotion copyへの影響", 1
+    )[0]
+    assert "evidence_index.schema.json" in section
+    assert "急に既存schemaを破壊しない" in section
+
+
+def test_public_id_policy_doc_states_promotion_copy_impact():
+    content = _read_doc()
+    section = content.split("# 11. Promotion copyへの影響", 1)[1].split(
+        "# 12. Implementation phases", 1
+    )[0]
+    assert "promote_evidence_index.py" in section
+
+
+def test_public_id_policy_doc_states_non_goals():
+    content = _read_doc()
+    section = content.split("# 13. Non-goals", 1)[1].split("# 14. Open questions", 1)[0]
+    for forbidden in (
+        "実Evidence Indexのcommit",
+        "knowledge/evidence/stories/",
+        "ID rewrite実装",
+    ):
+        assert forbidden in section
+
+
+def test_public_id_policy_doc_does_not_contain_real_data_hints():
+    content = _read_doc()
+    for forbidden in REAL_DATA_HINTS:
+        assert forbidden not in content
+
+
+def test_promotion_policy_links_to_public_id_policy():
+    content = PROMOTION_POLICY_PATH.read_text(encoding="utf-8")
+    assert "Evidence_Index_Public_ID_Policy.md" in content
+
+
+def test_evidence_index_design_links_to_public_id_policy():
+    content = EVIDENCE_INDEX_DESIGN_PATH.read_text(encoding="utf-8")
+    assert "Evidence_Index_Public_ID_Policy.md" in content
+
+
+def test_promotion_copy_runbook_links_to_public_id_policy():
+    content = PROMOTION_COPY_RUNBOOK_PATH.read_text(encoding="utf-8")
+    assert "Evidence_Index_Public_ID_Policy.md" in content
+
+
+def test_story_summary_design_links_to_public_id_policy():
+    content = STORY_SUMMARY_DESIGN_PATH.read_text(encoding="utf-8")
+    assert "Evidence_Index_Public_ID_Policy.md" in content
+
+
+def test_tasks_md_lists_next_pr_candidates():
+    content = TASKS_PATH.read_text(encoding="utf-8")
+    assert "evidence-index-public-id-schema-design" in content
+    assert "evidence-index-public-id-projection" in content
+    assert "evidence-index-promotion-first-reviewed-sample-retry" in content
+
+
+def test_tasks_md_does_not_contain_real_data_hints():
+    content = TASKS_PATH.read_text(encoding="utf-8")
+    for forbidden in REAL_DATA_HINTS:
+        assert forbidden not in content
