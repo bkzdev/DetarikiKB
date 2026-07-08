@@ -288,3 +288,74 @@ def test_schema_file_states_public_evidence_id_field():
     schema_path = PROJECT_ROOT / "schemas" / "evidence_index.schema.json"
     content = schema_path.read_text(encoding="utf-8")
     assert "publicEvidenceId" in content
+
+
+# ----------------------------------------------------------------
+# feature/evidence-index-public-id-projection
+# ----------------------------------------------------------------
+
+PROJECTION_STATUS_HEADING = (
+    "## 6.7 projection実装状況（`feature/evidence-index-public-id-projection`で実施）"
+)
+
+
+def _projection_status_section() -> str:
+    content = _read_doc()
+    return content.split(PROJECTION_STATUS_HEADING, 1)[1].split(
+        "# 7. internalTrace policy", 1
+    )[0]
+
+
+def test_public_id_policy_doc_states_projection_implementation_status():
+    content = _read_doc()
+    assert PROJECTION_STATUS_HEADING in content
+    section = _projection_status_section()
+    assert "Compatible projection" in section
+    assert "project_evidence_index_public_ids.py" in section
+    assert "案A" in section
+
+
+def test_public_id_policy_doc_states_compatible_projection_not_promotion_ready():
+    section = _projection_status_section()
+    assert "not promotion-ready" in section
+
+
+def test_public_id_policy_doc_states_mapping_output_commit_prohibition():
+    section = _projection_status_section()
+    assert "mapping" in section.lower()
+    assert "commit禁止" in section or "commit対象外" in section
+
+
+def test_public_id_policy_doc_records_projection_as_completed_in_phases():
+    content = _read_doc()
+    section = content.split("# 12. Implementation phases", 1)[1].split(
+        "# 13. Non-goals", 1
+    )[0]
+    assert "evidence-index-public-id-projection" in section
+    assert "evidence-index-public-id-public-safe-projection" in section
+
+
+def test_public_id_policy_doc_projection_non_goals_mentions_public_safe_projection():
+    content = _read_doc()
+    section = content.split("# 13. Non-goals", 1)[1].split("# 14. Open questions", 1)[0]
+    assert "Public-safe projection" in section
+
+
+def test_evidence_index_design_states_projection_implementation():
+    content = EVIDENCE_INDEX_DESIGN_PATH.read_text(encoding="utf-8")
+    assert "project_evidence_index_public_ids.py" in content
+    assert "Compatible projection" in content
+
+
+def test_promotion_policy_states_projection_implementation():
+    content = PROMOTION_POLICY_PATH.read_text(encoding="utf-8")
+    assert "project_evidence_index_public_ids.py" in content
+
+
+def test_tasks_md_lists_public_safe_projection_next_candidate():
+    content = TASKS_PATH.read_text(encoding="utf-8")
+    assert "evidence-index-public-id-public-safe-projection" in content
+    assert "evidence-index-public-id-renderer-switch" in content
+    assert "evidence-index-promotion-first-reviewed-sample-retry" in content
+    assert "internal-review-evidence-packet-design" in content
+    assert "story-summary-generation-planning" in content
