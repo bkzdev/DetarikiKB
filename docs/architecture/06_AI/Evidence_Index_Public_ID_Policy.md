@@ -231,6 +231,35 @@ EVT_YYYYMMDD_NNN_E01_MONO0001
 - **mapping output commit禁止**: `--mapping-output`のCSVは内部ID（`storyId`/`episodeId`/`evidenceId`等）と公開IDを1行に並べて記録するため、常にworkspace配下に留め、**commit禁止**とする。Internal Review Evidence Packet（`internal-review-evidence-packet-design`、未実装）の候補データとして位置づける
 - `tests/scripts/test_project_evidence_index_public_ids.py`（28件）で、prefix生成・per-episode/per-type採番・publicStoryId/publicEpisodeId欠落・既存publicEvidenceIdの一致/不一致・重複検出・mapping/report出力・directory/file入力・projected出力のschema検証・入力ファイル不変・knowledge/evidence/への書き込み拒否を検証した
 
+## 6.8 public-safe projection実装状況（`feature/evidence-index-public-id-public-safe-projection`で実施）
+
+§4.3案C路線の第二段階として、`scripts/project_evidence_index_public_ids.py`に`--projection-mode {compatible,public-safe}`（デフォルト`compatible`）を追加し、**Public-safe projection（案B）**を実装した。
+
+- **compatible modeの位置づけを明文化**: `--projection-mode compatible`（既定）は§6.7のCompatible projectionそのものであり、**migration/debugging/mapping確認用であって、Public promotion対象ではない**。既存の28件のcompatible modeテスト・既存挙動は本PRで一切変更していない
+- **public-safe modeのfield rewrite方針**:
+  - `evidenceId`の値を`publicEvidenceId`へ、`storyId`の値を`publicStoryId`へ、`episodeId`の値を`publicEpisodeId`へ置換する（schema互換のため、`evidenceId`/`storyId`/`episodeId`自体はrequired fieldとして維持しつつ、値だけを公開向けIDにする。§10.4で述べた「required化は別途検討」を待たずにschema互換を保つための現実的な選択）
+  - `publicEvidenceId`/`publicStoryId`/`publicEpisodeId`は元の値のままentryに保持する（rewriteされた`evidenceId`等と重複するが、読み手が「これはpublic-safe projectionである」と機械的に確認できるようにするため）
+  - `sceneId`/`blockId`/`referencedBy`/document-level`generatedFrom`は出力しない（`referencedBy.summaries.storyId`/`referencedBy.candidates.candidateId`は現行schemaでは内部ID/内部参照キーのままであり、公開向けの代替フィールドが存在しないため、本PRのスコープでは安全側に倒して除去する。将来`referencedBy`を公開ID中心に再設計する場合は別PRで扱う）
+  - `speaker`は`resolutionStatus: resolved`のentryのみ保持し、`unresolved`/`ambiguous`/`unknown`（「不明人物」等のplaceholder表示を含みうる）は保持しない
+  - `notes`/`relatedEntities`はそのまま保持する（`relatedEntities`はcanonical character/location等の辞書IDであり、sourceKey由来の内部trace IDではないため）。ただし§6.9のexposure scanが最終防波堤として機能する
+  - `publicEvidenceId`を持たないentry（`--policy`対象外のevidenceType、既定では`stage_direction`等）はpublic-safe出力から除外する。schema上`evidenceId`はrequiredかつ`^[A-Z][A-Z0-9_]*$`のpattern一致必須のため、値を持たないentryをそのまま出力に含めることができないという技術的制約に加え、そもそも`stage_direction`はPublic promotion対象外という既存方針（`Evidence_Index_Promotion_Policy.md` §3/§4.2）とも整合する
+- **出力ファイル名方針**: public-safe modeの出力ファイル名は`{publicStoryId}.yaml`（1 document = 1 publicStoryId）とする。1つの入力document内に複数の異なるpublicStoryIdが混在する場合、または複数の入力ファイルが同じpublicStoryIdへ解決される場合（出力ファイル名の衝突）は、いずれもblocking errorとする。**推測によるファイル分割・自動マージは行わない**
+- **sourceKey由来ID exposure scan（§6.9で詳述）**: public-safe出力の直列化文字列に対し、入力entryのstoryId/episodeId/evidenceId/sceneId/blockIdの値のうち、対応する公開ID値と異なり4文字以上のものが残っていないかをscanし、検出した場合はblocking errorにする
+- **publicEpisodeId欠落の扱い**: compatible modeと同様、public-safe modeでもentryの`publicEpisodeId`欠落はblocking errorのままとする。**自動補完・推測は行わない**（次PR候補`evidence-index-public-episode-id-assignment`、§12 Next参照）
+- **mapping output**: `--mapping-output`はpublic-safe modeでも内部ID⇔公開IDのmappingを引き続き出力する（compatible modeと同じ列構成）。Internal Review Evidence Packet候補データであり、**commit禁止**は不変
+- **report**: `projection mode`・`public-safe field rewrite summary`（rewritten ID fields count/removed internal fields count/excluded entry count）・`internal ID exposure scan result`・`promotion readiness`（`compatible`は常に`not-promotion-ready`、`public-safe`はvalidation/exposure scanをすべて通過した場合のみ`promotion-candidate`）を追加した
+- `tests/scripts/test_project_evidence_index_public_ids.py`に23件のpublic-safe modeテストを追加した（field rewrite、filename policy、internal ID exposure、mapping、schema validation、promotion readiness reporting）。既存29件のcompatible modeテストは無変更のまま通過を確認した
+- 匿名化実データサンプル（`workspace/evidence_index_dry_runs/first_reviewed_sample/default/stories`）へのpublic-safe modeでのdry-runでは、Episode 2の`publicEpisodeId`未確定によりcompatible mode時（PR #94）と同様にblocking FAILすることを確認した（想定どおりの安全側挙動、§6.7の既知の制約を引き継ぐ）
+
+## 6.9 sourceKey由来ID exposure scanの実装詳細
+
+- 収集対象: 入力entryの`storyId`/`episodeId`/`evidenceId`/`sceneId`/`blockId`の値
+- 除外対象: `publicStoryId`/`publicEpisodeId`/`publicEvidenceId`と一致する値（偶然の一致は安全と判断する）
+- 閾値: 4文字未満の値は誤検出防止のため対象外とする（実データの内部IDはいずれも十分に長いため、この閾値で実運用上の取りこぼしは生じないと判断した）
+- scan対象: public-safe出力ドキュメントを直列化した文字列全体（entryの`notes`/`speaker.displayName`/`relatedEntities`等、field rewriteの対象外として保持したfield経由の混入も検出できるようにするため）
+- 検出時の扱い: 1件でも検出すればblocking error（exit code 1）とし、reportに検出件数・該当内部ID一覧を記録する
+- **本scanはヒューリスティックであり、実sourceKeyの一覧と突き合わせる方式ではない**（`Evidence_Index_Public_ID_Policy.md` §14の未確定事項のまま）。将来的な精度向上は別PRで検討する
+
 ---
 
 # 7. internalTrace policy（内部trace情報の扱い方針）
@@ -364,13 +393,14 @@ evidenceRefs:
 | Phase 0: `evidence-index-promotion-target-filename-policy`（PR #92） | 問題整理・ID分類・案A/B/C/D比較・採用方針決定・publicEvidenceId/internalTrace方針の設計 | 完了（設計のみ） |
 | Phase 1: `evidence-index-public-id-schema-design`（本PR） | `publicEvidenceId`の形式・prefix mapping・採番方針の確定、`schemas/evidence_index.schema.json`へのoptional追加、loader対応 | **完了（本PR、schema/loaderの最小変更のみ）** |
 | Phase 2: `evidence-index-public-id-projection`（本PR） | Compatible projection（案A）の実装。`scripts/project_evidence_index_public_ids.py`で内部ID→公開IDのmapping生成、`publicEvidenceId`の実際の付与を行う（内部IDは削除しない） | **完了（本PR）** |
-| Phase 2.5: `evidence-index-public-id-public-safe-projection` | Public-safe projection（案B）の実装。内部IDを完全に除去したPublic Evidence Index本体を生成する | 未着手 |
+| Phase 2.5: `evidence-index-public-id-public-safe-projection`（本PR） | Public-safe projection（案B）の実装。`scripts/project_evidence_index_public_ids.py`に`--projection-mode public-safe`を追加し、内部IDを公開ID中心へ置換・除去したPublic Evidence Index本体を生成する | **完了（本PR、§6.8/§6.9参照）** |
 | Phase 3: renderer/paths.py対応 | Evidence page見出し・anchor・Summary evidenceRefsリンクを`publicEvidenceId`中心に切り替え | 未着手 |
 | Phase 4: `promote_evidence_index.py`/`check_evidence_index_promotion.py`対応 | target filenameの`publicStoryId`必須化、projection済みEvidence Indexのみpromotion対象にする、sourceKey混入scanの追加検討 | 未着手 |
 | Phase 5: `evidence-index-promotion-first-reviewed-sample-retry` | Phase 1〜4完了後、実データ1 storyの初回昇格を再試行する | 未着手 |
 | Phase 6: `internal-review-evidence-packet-design` | 内部trace ID・mapping tableをInternal Review Evidence Packet側で扱う詳細設計 | 未着手 |
+| Phase 2.6: `evidence-index-public-episode-id-assignment` | 実データで未確定な`publicEpisodeId`の採番・割当運用を確定する（本PRでは自動補完を行わない） | 未着手 |
 
-**promotion再開（`knowledge/evidence/stories/`への実データcommit）は、少なくともPhase 2（projection実装）が完了するまで行わない。**
+**promotion再開（`knowledge/evidence/stories/`への実データcommit）は、少なくともPhase 2.5（Public-safe projection実装）およびPhase 3（renderer切替）が完了するまで行わない。** Public-safe projectionがvalidation/exposure scanを通過し`promotion-candidate`と判定されても、renderer側がまだ内部`evidenceId`中心のままであるため、実promotionは行わない。
 
 ---
 
@@ -418,6 +448,18 @@ evidenceRefs:
 - Internal Review Evidence Packet生成（mapping CSVの出力自体は実装したが、正式なInternal Review Evidence Packetとしての設計・保管場所確定は次PR候補`internal-review-evidence-packet-design`）
 - `schemas/evidence_index.schema.json`の変更（既存schemaのまま、追加フィールドなし）
 
+`evidence-index-public-id-public-safe-projection`（本PR）でも以下は行っていない:
+
+- 実Evidence Indexのcommit・`knowledge/evidence/stories/`への実データ昇格
+- `promote_evidence_index.py --execute`の実行、実promotion retry（次PR候補`evidence-index-promotion-first-reviewed-sample-retry`）
+- `agents/wiki_generator/renderer.py`/`agents/wiki_generator/paths.py`の変更（Evidence page見出し・anchor・Summary evidenceRefsリンクの`publicEvidenceId`中心切替は次PR候補`evidence-index-public-id-renderer-switch`）
+- `scripts/promote_evidence_index.py`/`scripts/check_evidence_index_promotion.py`/`scripts/build_evidence_index_candidates.py`の変更
+- `schemas/evidence_index.schema.json`の変更（既存schemaのまま、破壊的変更なし。`evidenceId`/`storyId`/`episodeId`のrequired解除は行っていない）
+- `schemas/story_summary.schema.json`の変更、Summary fixtureのmigration
+- `publicEpisodeId`の自動補完・推測（次PR候補`evidence-index-public-episode-id-assignment`）
+- `story_manifest.yaml`の変更
+- Internal Review Evidence Packet生成
+
 ---
 
 # 14. Open questions（未確定事項）
@@ -428,7 +470,7 @@ evidenceRefs:
 - `internalTrace`/mapping tableの生成方法（`build_evidence_index_candidates.py`の拡張か、別scriptか）
 - mapping tableの保管場所・アクセス制御（`workspace/review_packets/evidence/`が適切か、`internal-review-evidence-packet-design`との統合方法）
 - 既存の`evidenceId`（内部ID）を将来的に完全廃止するか、常に保持しつつPublic Evidence Indexでのみ非表示にするか
-- `check_evidence_index_promotion.py`のsourceKey混入scanをどう実装するか（`story_manifest.yaml`側の`sourceKey`一覧と突き合わせるか、パターンヒューリスティックにするか）
+- ~~`check_evidence_index_promotion.py`のsourceKey混入scanをどう実装するか~~ → **`feature/evidence-index-public-id-public-safe-projection`で部分的に対応**: `scripts/project_evidence_index_public_ids.py`の`--projection-mode public-safe`側で、入力entryの内部ID値（公開IDと異なり4文字以上のもの）に基づくヒューリスティックscanを実装した（§6.9）。ただし`check_evidence_index_promotion.py`自体は本PRでは変更していない（Non-goals）ため、`story_manifest.yaml`の`sourceKey`一覧との突き合わせ方式への発展や、promotion check側への統合は引き続き未確定
 - MAIN/RAID/OTHER/CHARACTERカテゴリでも同じ問題が起きるか（`Story_ID_Policy_Decision.md` §6の通り、EVENT/RAIDが優先対象、MAINは現行IDが既に短く意味を持つため影響が小さい可能性がある）
 - Public Evidence Indexのschema変更（`publicEvidenceId`必須化等）をいつrequired化するか、既存Internal運用（`full`/`review` policy）との互換性をどう保つか
 - `--policy full`/`review`（`stage_direction`含む全件出力）に対して`publicEvidenceId`を付与するか、Public promotion専用のprojectionにのみ付与するか（§6.6で「本文書では確定しない」とした点）

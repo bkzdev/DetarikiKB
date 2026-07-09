@@ -1,28 +1,35 @@
 #!/usr/bin/env python3
 """
 Project Evidence Index Public IDs
-Public Evidence Index候補に`publicEvidenceId`を生成・付与する
-"Compatible projection"（案A）scriptである
-（`feature/evidence-index-public-id-projection`、
-`docs/architecture/06_AI/Evidence_Index_Public_ID_Policy.md` §6/§12 Phase 2）。
+Public Evidence Index候補に`publicEvidenceId`を生成・付与するprojection
+scriptである（`feature/evidence-index-public-id-projection`、
+`feature/evidence-index-public-id-public-safe-projection`、
+`docs/architecture/06_AI/Evidence_Index_Public_ID_Policy.md` §6/§12
+Phase 2/Phase 2.5）。
 
-**Compatible projectionのみを実装する**（既存の内部ID
-`evidenceId`/`storyId`/`episodeId`/`sceneId`/`blockId`は一切削除しない、
-`publicEvidenceId`を追加するだけ）。内部IDを完全に取り除く
-"Public-safe projection"（案B、`evidence-index-public-id-public-safe-
-projection`）は本scriptの対象外。
+`--projection-mode`で2つのmodeを切り替える:
 
-**重要な安全方針**:
+- `compatible`（既定）: 既存の内部ID`evidenceId`/`storyId`/`episodeId`/
+  `sceneId`/`blockId`は一切削除しない。`publicEvidenceId`を追加するだけの
+  Compatible projection（案A）。migration/debugging/mapping確認用であり、
+  **Public promotion対象ではない**
+- `public-safe`: 内部IDを`publicEvidenceId`/`publicStoryId`/
+  `publicEpisodeId`へ置換・除去するPublic-safe projection（案B）。出力
+  ファイル名も`publicStoryId`ベースにする。promotion-candidateの判定は
+  行うが、本scriptは`promote_evidence_index.py --execute`を呼び出さない
+  （実promotionは別途行う）
+
+**重要な安全方針**（両modeで共通）:
 - `--output`/`--mapping-output`/`--report`はいずれも`knowledge/evidence/`
   配下を指定できない（安全確認で拒否、exit code 2）。すべてworkspace
   配下の一時出力を想定する
-- 本scriptの出力は**promotion対象ではない**（内部IDが残ったままの
-  Compatible projectionのため）。`promote_evidence_index.py --execute`
-  には使わないこと
 - `promote_evidence_index.py`の実行、`knowledge/evidence/stories/`への
   実copyは本scriptの責務外であり、一切行わない
 - `--input`ファイル自体は読み込みのみで変更しない（書き込み先は常に
   `--output`）
+- `--mapping-output`は内部ID⇔公開IDのmappingを常に含む
+  （public-safe modeでも同様）。Internal Review Evidence Packet候補データ
+  であり、**commit禁止**
 
 publicEvidenceId形式（`Evidence_Index_Public_ID_Policy.md` §6.4）:
     {publicEpisodeId}_{PREFIX}{sequence:04d}
@@ -38,14 +45,34 @@ publicEvidenceId形式（`Evidence_Index_Public_ID_Policy.md` §6.4）:
   そのまま採用、不一致ならblocking error（`--overwrite-public-ids`相当の
   上書きオプションは本PRでは実装しない）
 
+public-safe modeの方針（`Evidence_Index_Public_ID_Policy.md` §6.7.1）:
+- `evidenceId`/`storyId`/`episodeId`は、それぞれ`publicEvidenceId`/
+  `publicStoryId`/`publicEpisodeId`の値へ置換する（schema互換のため
+  required fieldとしては維持しつつ、値を公開向けIDにする）
+- `sceneId`/`blockId`/`referencedBy`/document-level`generatedFrom`は出力
+  しない（内部IDやextraction/summary内部参照を含みうるため）
+- `speaker`は`resolutionStatus: resolved`のentryのみ保持する
+- `publicEvidenceId`を持たないentry（`--policy`対象外のevidenceType、
+  既定では`stage_direction`等）はpublic-safe出力から除外する（schema上
+  `evidenceId`はrequiredかつpattern一致必須のため、値を持たないentryを
+  出力に含められない）
+- 出力ファイル名は`{publicStoryId}.yaml`。1 fileにつき1 publicStoryIdを
+  前提とし、document内で複数のpublicStoryIdが混在する場合や、複数の入力
+  ファイルが同じpublicStoryIdへ解決される場合はblocking errorにする
+- 出力文字列に対して内部ID (`storyId`/`episodeId`/`evidenceId`/`sceneId`/
+  `blockId`の値のうち、対応する公開IDと異なり一定長以上のもの) が残って
+  いないかをscanし、検出したらblocking errorにする
+- `publicEpisodeId`欠落は（compatible modeと同様）blocking error。
+  自動補完は行わない（次PR候補
+  `evidence-index-public-id-public-episode-id-assignment`）
+
 Non-goals（本scriptで行わないこと。詳細は
 `docs/architecture/06_AI/Evidence_Index_Public_ID_Policy.md` §13参照）:
-- 内部ID (`evidenceId`/`storyId`/`episodeId`/`sceneId`/`blockId`) の削除・
-  改名（Public-safe projection、案B、将来PR）
 - `knowledge/evidence/stories/`への実copy・commit
 - `promote_evidence_index.py --execute`の実行
 - rendererのEvidence page見出し・anchor・Summary evidenceRefsリンクの
   publicEvidenceId中心への切り替え
+- `publicEpisodeId`の自動補完・推測
 
 Usage:
     uv run python scripts/project_evidence_index_public_ids.py \\
@@ -53,13 +80,24 @@ Usage:
         --output workspace/evidence_index_dry_runs/public_id_projection \\
         --mapping-output workspace/evidence_index_dry_runs/public_id_map.csv \\
         --report workspace/evidence_index_dry_runs/public_id_report.md \\
+        --projection-mode compatible \\
+        --clean
+
+    uv run python scripts/project_evidence_index_public_ids.py \\
+        --input workspace/evidence_index_dry_runs/<run>/default/stories \\
+        --output workspace/evidence_index_dry_runs/public_safe/stories \\
+        --mapping-output workspace/evidence_index_dry_runs/public_safe/mapping.csv \\
+        --report workspace/evidence_index_dry_runs/public_safe/report.md \\
+        --projection-mode public-safe \\
         --clean
 
 Exit codes:
     0: projection成功（blocking issueなし）
     1: projection validation失敗（publicStoryId/publicEpisodeId欠落、
        既存publicEvidenceIdとの不一致、duplicate publicEvidenceId、
-       projected出力のschema検証失敗、--strict指定時のpolicy対象外type等）
+       projected出力のschema検証失敗、--strict指定時のpolicy対象外type、
+       public-safe mode時の複数publicStoryId混在・出力ファイル名衝突・
+       内部ID exposure検出等）
     2: --input/--schemaパスが見つからない、または--output/--mapping-output/
        --reportがknowledge/evidence/配下を指しているなどのconfig error
 """
@@ -110,6 +148,20 @@ EVIDENCE_TYPE_PREFIXES: dict[str, str] = {
 # (§安全方針。stories/以外のサブpathも念のため含めて拒否する)。
 _KNOWLEDGE_EVIDENCE_DIR = (_PROJECT_ROOT / "knowledge" / "evidence").resolve()
 
+PROJECTION_MODE_COMPATIBLE = "compatible"
+PROJECTION_MODE_PUBLIC_SAFE = "public-safe"
+PROJECTION_MODES = (PROJECTION_MODE_COMPATIBLE, PROJECTION_MODE_PUBLIC_SAFE)
+
+# public-safe modeのsourceKey由来ID exposure scanで対象にする内部IDの
+# 最小長。実データの内部ID（story/episode/evidence等）はいずれも十分長い
+# ため、短い汎用トークンの誤検出を避けるための閾値
+# (`Evidence_Index_Public_ID_Policy.md` §6.7.1)。
+MIN_FORBIDDEN_INTERNAL_ID_LENGTH = 4
+
+# public-safe modeでspeakerを保持してよい resolutionStatus
+# (§6.7.1、未解決/placeholder speakerは公開しない)。
+_PUBLIC_SAFE_SPEAKER_RESOLUTION_STATUS = "resolved"
+
 MAPPING_FIELDNAMES = [
     "storyId",
     "publicStoryId",
@@ -132,8 +184,10 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Public Evidence Index候補にpublicEvidenceIdを生成・付与する "
-            "Compatible projection (内部IDは削除しない)。出力はworkspace "
-            "配下のみを想定し、knowledge/evidence/配下への書き込みは拒否する"
+            "projection script。--projection-mode compatible (既定、内部ID "
+            "は削除しない) と public-safe (内部IDを公開IDへ置換・除去する) "
+            "を切り替えられる。出力はworkspace配下のみを想定し、"
+            "knowledge/evidence/配下への書き込みは拒否する"
         ),
     )
     parser.add_argument(
@@ -187,6 +241,17 @@ def parse_args() -> argparse.Namespace:
             "policy対象外のevidenceType (stage_direction等) を持つentryが"
             "入力に含まれている場合、blocking errorにする "
             "(既定では警告なしでpublicEvidenceIdを付与せず素通しする)"
+        ),
+    )
+    parser.add_argument(
+        "--projection-mode",
+        choices=PROJECTION_MODES,
+        default=PROJECTION_MODE_COMPATIBLE,
+        help=(
+            "projection mode (デフォルト: compatible。compatibleは既存の"
+            "内部IDを維持したままpublicEvidenceIdを追加するのみで"
+            "promotion対象ではない。public-safeは内部IDを公開IDへ置換・"
+            "除去し、出力ファイル名もpublicStoryIdベースにする)"
         ),
     )
     parser.add_argument(
@@ -459,6 +524,304 @@ def _write_mapping_csv(
 
 
 # ----------------------------------------------------------------
+# Public-safe projection (案B): field rewrite / filename policy /
+# internal ID exposure scan
+# ----------------------------------------------------------------
+
+
+def _check_public_story_id_consistency(
+    raw_documents: list[tuple[Path, dict[str, Any]]],
+) -> tuple[dict[Path, str | None], list[str]]:
+    """public-safe modeの出力ファイル名決定のため、document (file) ごとに
+    単一のpublicStoryIdへ解決できるかを確認する (1 file 1 publicStoryId方針)。
+
+    戻り値: (path -> 解決したpublicStoryId (欠落/複数混在時はNone), issues)。
+    """
+    resolved: dict[Path, str | None] = {}
+    issues: list[str] = []
+    for path, raw in raw_documents:
+        entries = raw.get("entries", []) or []
+        distinct = {
+            entry.get("publicStoryId")
+            for entry in entries
+            if entry.get("publicStoryId")
+        }
+        if len(distinct) > 1:
+            issues.append(
+                f"{path}: 複数のpublicStoryId {sorted(distinct)!r} が混在して"
+                "います (public-safe projectionは1 file 1 publicStoryId方針の"
+                "ため、blocking errorとして扱います)"
+            )
+            resolved[path] = None
+        elif len(distinct) == 1:
+            resolved[path] = next(iter(distinct))
+        else:
+            resolved[path] = None
+    return resolved, issues
+
+
+def _check_duplicate_target_filenames(
+    resolved_public_story_ids: dict[Path, str | None],
+) -> list[str]:
+    """複数の入力ファイルが同じpublicStoryId (= 同じ出力ファイル名) へ解決
+    される場合、出力の衝突としてblocking errorにする。"""
+    by_public_story_id: dict[str, list[Path]] = {}
+    for path, public_story_id in resolved_public_story_ids.items():
+        if public_story_id:
+            by_public_story_id.setdefault(public_story_id, []).append(path)
+    issues: list[str] = []
+    for public_story_id, paths in sorted(by_public_story_id.items()):
+        if len(paths) > 1:
+            source_list = sorted(str(p) for p in paths)
+            issues.append(
+                f"publicStoryId '{public_story_id}' が複数の入力ファイル "
+                f"{source_list!r} に混在しています "
+                "(public-safe projectionの出力ファイル名が衝突します)"
+            )
+    return issues
+
+
+def _to_public_safe_entry(entry: dict[str, Any]) -> dict[str, Any] | None:
+    """内部entryをpublic-safe entryへ変換する。
+
+    publicEvidenceId/publicStoryId/publicEpisodeIdのいずれかを持たない
+    entry (policy対象外のevidenceType、または欠落によりすでに別途
+    blocking issueとして記録済みのentry) はNoneを返し、呼び出し側で除外する。
+    """
+    public_evidence_id = entry.get("publicEvidenceId")
+    public_story_id = entry.get("publicStoryId")
+    public_episode_id = entry.get("publicEpisodeId")
+    if not public_evidence_id or not public_story_id or not public_episode_id:
+        return None
+
+    new_entry: dict[str, Any] = {
+        "evidenceId": public_evidence_id,
+        "evidenceType": entry.get("evidenceType"),
+        "storyId": public_story_id,
+        "episodeId": public_episode_id,
+        "publicEvidenceId": public_evidence_id,
+        "publicStoryId": public_story_id,
+        "publicEpisodeId": public_episode_id,
+        "visibility": {"public": True, "rawTextIncluded": False},
+    }
+
+    speaker = entry.get("speaker")
+    if (
+        isinstance(speaker, dict)
+        and speaker.get("resolutionStatus") == _PUBLIC_SAFE_SPEAKER_RESOLUTION_STATUS
+    ):
+        new_entry["speaker"] = speaker
+
+    related_entities = entry.get("relatedEntities")
+    if related_entities:
+        new_entry["relatedEntities"] = related_entities
+
+    notes = entry.get("notes")
+    if notes:
+        new_entry["notes"] = notes
+
+    return new_entry
+
+
+def _build_public_safe_documents(
+    raw_documents: list[tuple[Path, dict[str, Any]]],
+    resolved_public_story_ids: dict[Path, str | None],
+) -> tuple[dict[str, dict[str, Any]], dict[str, list[Path]], dict[str, int]]:
+    """public-safe出力directory向けに `{publicStoryId}.yaml` -> projected raw
+    dict のmappingを組み立てる。
+
+    戻り値: (target filename -> projected raw dict, target filename -> 由来
+    source paths一覧, counters (rewrittenIdFieldsCount/
+    removedInternalFieldsCount/excludedEntryCount))。
+    """
+    target_documents: dict[str, dict[str, Any]] = {}
+    target_sources: dict[str, list[Path]] = {}
+    rewritten_id_fields_count = 0
+    removed_internal_fields_count = 0
+    excluded_entry_count = 0
+
+    for path, raw in raw_documents:
+        public_story_id = resolved_public_story_ids.get(path)
+        if not public_story_id:
+            continue
+        target_filename = f"{public_story_id}.yaml"
+        target_sources.setdefault(target_filename, []).append(path)
+        target_doc = target_documents.setdefault(
+            target_filename,
+            {
+                "evidenceIndexVersion": raw.get("evidenceIndexVersion", 1),
+                "generatedFrom": None,
+                "entries": [],
+                "notes": raw.get("notes"),
+            },
+        )
+
+        if raw.get("generatedFrom"):
+            removed_internal_fields_count += 1
+
+        for entry in raw.get("entries", []) or []:
+            if (
+                entry.get("sceneId")
+                or entry.get("blockId")
+                or entry.get("referencedBy")
+            ):
+                removed_internal_fields_count += 1
+            new_entry = _to_public_safe_entry(entry)
+            if new_entry is None:
+                excluded_entry_count += 1
+                continue
+            rewritten_id_fields_count += 3
+            target_doc["entries"].append(new_entry)
+
+    counters = {
+        "rewrittenIdFieldsCount": rewritten_id_fields_count,
+        "removedInternalFieldsCount": removed_internal_fields_count,
+        "excludedEntryCount": excluded_entry_count,
+    }
+    return target_documents, target_sources, counters
+
+
+def _collect_forbidden_internal_ids(
+    flat_entries: list[tuple[Path, dict[str, Any]]],
+) -> frozenset[str]:
+    """public-safe modeのsourceKey由来ID exposure scan用に、除去すべき
+    内部ID値を収集する。
+
+    storyId/episodeId/evidenceId/sceneId/blockIdの値を集め、
+    publicStoryId/publicEpisodeId/publicEvidenceIdと一致する値は除外する
+    (偶然一致した値は安全)。さらに`MIN_FORBIDDEN_INTERNAL_ID_LENGTH`未満の
+    短い値は誤検出防止のため対象から除く。
+    """
+    internal_ids: set[str] = set()
+    public_ids: set[str] = set()
+    for _, entry in flat_entries:
+        for key in ("storyId", "episodeId", "evidenceId", "sceneId", "blockId"):
+            value = entry.get(key)
+            if isinstance(value, str) and value:
+                internal_ids.add(value)
+        for key in ("publicStoryId", "publicEpisodeId", "publicEvidenceId"):
+            value = entry.get(key)
+            if isinstance(value, str) and value:
+                public_ids.add(value)
+    return frozenset(
+        value
+        for value in internal_ids
+        if value not in public_ids and len(value) >= MIN_FORBIDDEN_INTERNAL_ID_LENGTH
+    )
+
+
+def _scan_text_for_forbidden_internal_ids(
+    text: str, forbidden_ids: frozenset[str]
+) -> dict[str, int]:
+    """textから内部ID文字列の出現回数を数える。戻り値: {internal_id: 出現回数}
+    (出現しなかったIDはキーに含めない)。"""
+    counts: dict[str, int] = {}
+    for internal_id in forbidden_ids:
+        occurrences = text.count(internal_id)
+        if occurrences:
+            counts[internal_id] = occurrences
+    return counts
+
+
+def _validate_documents_against_schema(
+    documents: dict[str, dict[str, Any]], schema: dict[str, Any]
+) -> list[str]:
+    issues: list[str] = []
+    for filename, raw in sorted(documents.items()):
+        errors = sorted(
+            Draft7Validator(schema).iter_errors(raw), key=lambda e: list(e.path)
+        )
+        issues.extend(
+            f"{filename} (public-safe projected): {list(e.path)}: {e.message}"
+            for e in errors
+        )
+    return issues
+
+
+def _write_public_safe_documents(
+    output_dir: Path, documents: dict[str, dict[str, Any]], *, clean: bool
+) -> list[str]:
+    if clean and output_dir.exists():
+        shutil.rmtree(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    written: list[str] = []
+    for filename, raw in sorted(documents.items()):
+        target = output_dir / filename
+        with open(target, "w", encoding="utf-8") as f:
+            yaml.safe_dump(raw, f, allow_unicode=True, sort_keys=False)
+        written.append(str(target))
+    return written
+
+
+def _scan_public_safe_documents_for_exposure(
+    target_documents: dict[str, dict[str, Any]], forbidden_ids: frozenset[str]
+) -> tuple[dict[str, int], list[str]]:
+    """target_documents (書き出し前のprojected raw dict) を直列化し、
+    内部ID exposureを検出する。戻り値: (internal_id -> 出現回数の合計, issues)。"""
+    exposure_counts: dict[str, int] = {}
+    issues: list[str] = []
+    for filename, raw in target_documents.items():
+        text = yaml.safe_dump(raw, allow_unicode=True, sort_keys=False)
+        for internal_id, count in _scan_text_for_forbidden_internal_ids(
+            text, forbidden_ids
+        ).items():
+            exposure_counts[internal_id] = exposure_counts.get(internal_id, 0) + count
+            issues.append(
+                f"{filename}: 内部ID '{internal_id}' がpublic-safe出力に "
+                f"{count}回残っています (internal ID exposure)"
+            )
+    return exposure_counts, issues
+
+
+def _run_public_safe_projection(
+    raw_documents: list[tuple[Path, dict[str, Any]]],
+    schema: dict[str, Any],
+    result: dict[str, Any],
+    *,
+    output_dir: Path,
+    clean: bool,
+) -> list[str]:
+    """public-safe projectionの追加チェック・field rewrite・書き出しを行い、
+    `result`を書き換える (in-place)。戻り値: 書き出したファイルパス一覧。"""
+    resolved_public_story_ids, consistency_issues = _check_public_story_id_consistency(
+        raw_documents
+    )
+    duplicate_filename_issues = _check_duplicate_target_filenames(
+        resolved_public_story_ids
+    )
+    target_documents, _target_sources, counters = _build_public_safe_documents(
+        raw_documents, resolved_public_story_ids
+    )
+    public_safe_schema_issues = _validate_documents_against_schema(
+        target_documents, schema
+    )
+
+    forbidden_ids = _collect_forbidden_internal_ids(_flatten_entries(raw_documents))
+    exposure_counts, exposure_issues = _scan_public_safe_documents_for_exposure(
+        target_documents, forbidden_ids
+    )
+
+    result["issues"].extend(
+        consistency_issues
+        + duplicate_filename_issues
+        + public_safe_schema_issues
+        + exposure_issues
+    )
+    result["passed"] = not result["issues"]
+    result.update(counters)
+    result["internalIdExposureCount"] = sum(exposure_counts.values())
+    result["internalIdExposureDetails"] = [
+        f"'{internal_id}': {count}回"
+        for internal_id, count in sorted(exposure_counts.items())
+    ]
+    result["promotionReadiness"] = (
+        "promotion-candidate" if result["passed"] else "not-promotion-ready"
+    )
+
+    return _write_public_safe_documents(output_dir, target_documents, clean=clean)
+
+
+# ----------------------------------------------------------------
 # Report building
 # ----------------------------------------------------------------
 
@@ -470,6 +833,7 @@ def _report_summary_lines(report: dict[str, Any]) -> list[str]:
         f"- Input: {report['input']}",
         f"- Output: {report['output']}",
         f"- Mapping output: {report['mappingOutput']}",
+        f"- Projection mode: {report['projectionMode']}",
         f"- Policy: {report['policy']}",
         f"- File count: {report['fileCount']}",
         f"- Story count: {report['storyCount']}",
@@ -517,11 +881,39 @@ def _report_issues_lines(report: dict[str, Any]) -> list[str]:
     return lines
 
 
+def _report_public_safe_lines(report: dict[str, Any]) -> list[str]:
+    lines = ["## Public-safe Projection", ""]
+    lines.append("- Output filename policy: publicStoryId-based ({publicStoryId}.yaml)")
+    lines.append(f"- Rewritten ID fields count: {report['rewrittenIdFieldsCount']}")
+    lines.append(
+        f"- Removed internal fields count: {report['removedInternalFieldsCount']}"
+    )
+    lines.append(
+        "- Excluded entry count (no publicEvidenceId, e.g. out-of-policy type): "
+        f"{report['excludedEntryCount']}"
+    )
+    lines.append(
+        f"- Internal ID exposure scan: {report['internalIdExposureCount']} "
+        "occurrence(s) across "
+        f"{len(report['internalIdExposureDetails'])} distinct internal ID(s)"
+    )
+    if report["internalIdExposureDetails"]:
+        for detail in report["internalIdExposureDetails"]:
+            lines.append(f"  - {detail}")
+    lines.append(f"- Promotion readiness: {report['promotionReadiness']}")
+    lines.append("")
+    return lines
+
+
 def _build_report_lines(report: dict[str, Any]) -> list[str]:
+    is_public_safe = report["projectionMode"] == PROJECTION_MODE_PUBLIC_SAFE
+
     lines: list[str] = []
     lines.extend(_report_summary_lines(report))
     lines.extend(_report_entries_by_type_lines(report))
     lines.extend(_report_projection_result_lines(report))
+    if is_public_safe:
+        lines.extend(_report_public_safe_lines(report))
     lines.extend(_report_issues_lines(report))
     lines.append("## Final Decision")
     lines.append("")
@@ -529,17 +921,32 @@ def _build_report_lines(report: dict[str, Any]) -> list[str]:
     lines.append("")
     lines.append("## Note")
     lines.append("")
-    lines.append(
-        "- This is a compatible projection only (Option A, "
-        "Evidence_Index_Public_ID_Policy.md §6.2). Internal IDs "
-        "(evidenceId/storyId/episodeId/sceneId/blockId) remain unchanged "
-        "in the output."
-    )
-    lines.append(
-        "- The output is NOT promotion-ready: it must not be used with "
-        "promote_evidence_index.py --execute, and must not be committed to "
-        "knowledge/evidence/stories/."
-    )
+    if is_public_safe:
+        lines.append(
+            "- This is a public-safe projection (Option B, "
+            "Evidence_Index_Public_ID_Policy.md §6.7.1). Internal IDs "
+            "(evidenceId/storyId/episodeId/sceneId/blockId) are rewritten to "
+            "public IDs or removed; the output filename is publicStoryId-based."
+        )
+        lines.append(
+            f"- Promotion readiness: {report['promotionReadiness']}. Even when "
+            "this projection passes validation and the internal ID exposure "
+            "scan, it must not be used with promote_evidence_index.py "
+            "--execute yet (renderer switch and Summary evidenceRefs "
+            "migration have not happened)."
+        )
+    else:
+        lines.append(
+            "- This is a compatible projection only (Option A, "
+            "Evidence_Index_Public_ID_Policy.md §6.2). Internal IDs "
+            "(evidenceId/storyId/episodeId/sceneId/blockId) remain unchanged "
+            "in the output."
+        )
+        lines.append(
+            "- The output is NOT promotion-ready: it must not be used with "
+            "promote_evidence_index.py --execute, and must not be committed to "
+            "knowledge/evidence/stories/."
+        )
     lines.append(
         "- The mapping output contains internal IDs alongside public IDs and "
         "must never be committed (Internal Review Evidence Packet candidate, "
@@ -553,7 +960,8 @@ def _print_summary(report: dict[str, Any], *, quiet: bool) -> None:
     if quiet:
         return
     print(
-        f"[projection] {report['fileCount']} ファイル、{report['entryCount']} entries "
+        f"[projection] mode={report['projectionMode']} "
+        f"{report['fileCount']} ファイル、{report['entryCount']} entries "
         f"(policy={report['policy']})"
     )
     print(
@@ -561,6 +969,12 @@ def _print_summary(report: dict[str, Any], *, quiet: bool) -> None:
         f"(generated={report['generatedCount']}, "
         f"existing_matched={report['existingMatchedCount']})"
     )
+    if report["projectionMode"] == PROJECTION_MODE_PUBLIC_SAFE:
+        print(
+            f"[projection] public-safe: excluded={report['excludedEntryCount']} "
+            f"internal_id_exposure={report['internalIdExposureCount']} "
+            f"promotion_readiness={report['promotionReadiness']}"
+        )
     if report["issues"]:
         print(f"[エラー] {len(report['issues'])}件のissueがあります:", file=sys.stderr)
         for issue in report["issues"]:
@@ -619,15 +1033,27 @@ def main() -> int:
         raw_documents, schema, policy_types=policy_types, strict=args.strict
     )
 
-    written_paths = _write_projected_documents(
-        output_dir, raw_documents, clean=args.clean
-    )
+    if args.projection_mode == PROJECTION_MODE_PUBLIC_SAFE:
+        written_paths = _run_public_safe_projection(
+            raw_documents,
+            schema,
+            result,
+            output_dir=output_dir,
+            clean=args.clean,
+        )
+    else:
+        result["promotionReadiness"] = "not-promotion-ready"
+        written_paths = _write_projected_documents(
+            output_dir, raw_documents, clean=args.clean
+        )
+
     _write_mapping_csv(mapping_output_path, raw_documents)
 
     report = {
         "input": str(input_path),
         "output": str(output_dir),
         "mappingOutput": str(mapping_output_path),
+        "projectionMode": args.projection_mode,
         "policy": args.policy,
         **result,
     }
