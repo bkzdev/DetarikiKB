@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://detariki-kb/schemas/public_id_registry.schema.json",
+  "title": "Public ID Registry",
+  "description": "公開してよいpublicStoryId/publicEpisodeIdのみを保持するレジストリ。sourceKey由来の内部storyId/episodeId、raw title、raw pathはこのschemaに一切含めない（additionalPropertiesがfalseのため構造的に混入不可能。docs/architecture/06_AI/Public_ID_Registry_Design.md参照）。story_manifest.yamlとは別ファイルであり、story_manifest.yaml自体はcommitしない運用のまま変更しない。",
+
+  "type": "object",
+  "required": ["registryVersion", "stories"],
+  "additionalProperties": false,
+
+  "properties": {
+    "registryVersion": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "本schemaのバージョン (整数)"
+    },
+    "stories": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/RegistryStory" },
+      "description": "公開済み/公開予定のstory一覧。空配列も有効"
+    }
+  },
+
+  "definitions": {
+    "RegistryStory": {
+      "type": "object",
+      "required": ["publicStoryId", "category", "episodes"],
+      "additionalProperties": false,
+      "properties": {
+        "publicStoryId": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$",
+          "description": "公開向けStory ID。sourceKey由来の内部storyIdは入れない"
+        },
+        "category": {
+          "type": "string",
+          "enum": ["main", "event", "raid", "other", "character"]
+        },
+        "episodes": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/RegistryEpisode" }
+        }
+      }
+    },
+
+    "RegistryEpisode": {
+      "type": "object",
+      "required": ["publicEpisodeId", "episodeOrder"],
+      "additionalProperties": false,
+      "properties": {
+        "publicEpisodeId": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$",
+          "description": "公開向けEpisode ID。sourceKey由来の内部episodeIdは入れない"
+        },
+        "episodeOrder": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "story内でのepisode順 (1始まり)"
+        }
+      }
+    }
+  }
+}

@@ -107,6 +107,13 @@ workspace/summary_drafts/
 # (review済みのみcommit) とは別物としてignoreする。
 workspace/evidence_index_dry_runs/
 
+# Public Episode ID assignment check output
+# (docs/architecture/06_AI/Public_ID_Registry_Design.md、
+# scripts/check_public_episode_ids.py、
+# feature/evidence-index-public-episode-id-assignment)。suggestion/reportは
+# 人間レビュー前のローカル専用データであり、commit対象外とする。
+workspace/public_episode_ids/
+
 # Secrets / logs
 .env
 .env.*
