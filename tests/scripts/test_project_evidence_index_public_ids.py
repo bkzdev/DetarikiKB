@@ -605,3 +605,492 @@ def test_missing_input_path_returns_exit_2(tmp_path):
         *_base_args(tmp_path, input_path=tmp_path / "does_not_exist.yaml")
     )
     assert result.returncode == 2
+
+
+# ----------------------------------------------------------------
+# --projection-mode public-safe: field rewrite
+# ----------------------------------------------------------------
+
+
+def _read_public_safe_document(output_dir: Path, filename: str) -> dict:
+    with open(output_dir / filename, encoding="utf-8") as f:
+        return yaml.safe_load(f)
+
+
+def test_public_safe_evidence_id_becomes_public_evidence_id(tmp_path):
+    entry = _entry(evidenceId="EVT_A_E01_DLG0001")
+    input_path = _write(tmp_path / "input.yaml", _document([entry]))
+    output_dir = tmp_path / "output"
+    result = _run_cli(
+        *_base_args(
+            tmp_path,
+            input_path=input_path,
+            output_dir=output_dir,
+            extra=["--projection-mode", "public-safe"],
+        )
+    )
+    assert result.returncode == 0, result.stderr
+    doc = _read_public_safe_document(output_dir, "PUB_TEST_A.yaml")
+    assert doc["entries"][0]["evidenceId"] == "PUB_TEST_A_E01_DLG0001"
+    assert doc["entries"][0]["publicEvidenceId"] == "PUB_TEST_A_E01_DLG0001"
+
+
+def test_public_safe_story_id_becomes_public_story_id(tmp_path):
+    entry = _entry()
+    input_path = _write(tmp_path / "input.yaml", _document([entry]))
+    output_dir = tmp_path / "output"
+    result = _run_cli(
+        *_base_args(
+            tmp_path,
+            input_path=input_path,
+            output_dir=output_dir,
+            extra=["--projection-mode", "public-safe"],
+        )
+    )
+    assert result.returncode == 0, result.stderr
+    doc = _read_public_safe_document(output_dir, "PUB_TEST_A.yaml")
+    assert doc["entries"][0]["storyId"] == "PUB_TEST_A"
+    assert doc["entries"][0]["publicStoryId"] == "PUB_TEST_A"
+
+
+def test_public_safe_episode_id_becomes_public_episode_id(tmp_path):
+    entry = _entry()
+    input_path = _write(tmp_path / "input.yaml", _document([entry]))
+    output_dir = tmp_path / "output"
+    result = _run_cli(
+        *_base_args(
+            tmp_path,
+            input_path=input_path,
+            output_dir=output_dir,
+            extra=["--projection-mode", "public-safe"],
+        )
+    )
+    assert result.returncode == 0, result.stderr
+    doc = _read_public_safe_document(output_dir, "PUB_TEST_A.yaml")
+    assert doc["entries"][0]["episodeId"] == "PUB_TEST_A_E01"
+    assert doc["entries"][0]["publicEpisodeId"] == "PUB_TEST_A_E01"
+
+
+def test_public_safe_scene_id_and_block_id_are_not_output(tmp_path):
+    entry = _entry(sceneId="EVT_TEST_A_E01_SC001", blockId="EVT_TEST_A_E01_DLG0001")
+    input_path = _write(tmp_path / "input.yaml", _document([entry]))
+    output_dir = tmp_path / "output"
+    result = _run_cli(
+        *_base_args(
+            tmp_path,
+            input_path=input_path,
+            output_dir=output_dir,
+            extra=["--projection-mode", "public-safe"],
+        )
+    )
+    assert result.returncode == 0, result.stderr
+    doc = _read_public_safe_document(output_dir, "PUB_TEST_A.yaml")
+    assert "sceneId" not in doc["entries"][0]
+    assert "blockId" not in doc["entries"][0]
+
+
+def test_public_safe_referenced_by_is_not_output(tmp_path):
+    entry = _entry(
+        referencedBy={"summaries": [{"storyId": "EVT_TEST_A", "summaryType": "story"}]}
+    )
+    input_path = _write(tmp_path / "input.yaml", _document([entry]))
+    output_dir = tmp_path / "output"
+    result = _run_cli(
+        *_base_args(
+            tmp_path,
+            input_path=input_path,
+            output_dir=output_dir,
+            extra=["--projection-mode", "public-safe"],
+        )
+    )
+    assert result.returncode == 0, result.stderr
+    doc = _read_public_safe_document(output_dir, "PUB_TEST_A.yaml")
+    assert "referencedBy" not in doc["entries"][0]
+
+
+def test_public_safe_generated_from_is_not_output(tmp_path):
+    input_path = _write(
+        tmp_path / "input.yaml",
+        _document(
+            generatedFrom={
+                "normalizedStoryRefs": [{"storyId": "EVT_TEST_A"}],
+                "extractionRefs": [],
+            }
+        ),
+    )
+    output_dir = tmp_path / "output"
+    result = _run_cli(
+        *_base_args(
+            tmp_path,
+            input_path=input_path,
+            output_dir=output_dir,
+            extra=["--projection-mode", "public-safe"],
+        )
+    )
+    assert result.returncode == 0, result.stderr
+    doc = _read_public_safe_document(output_dir, "PUB_TEST_A.yaml")
+    assert doc.get("generatedFrom") is None
+
+
+def test_public_safe_unresolved_speaker_is_dropped(tmp_path):
+    entry = _entry(
+        speaker={
+            "speakerId": None,
+            "displayName": "不明人物",
+            "resolutionStatus": "unresolved",
+        }
+    )
+    input_path = _write(tmp_path / "input.yaml", _document([entry]))
+    output_dir = tmp_path / "output"
+    result = _run_cli(
+        *_base_args(
+            tmp_path,
+            input_path=input_path,
+            output_dir=output_dir,
+            extra=["--projection-mode", "public-safe"],
+        )
+    )
+    assert result.returncode == 0, result.stderr
+    doc = _read_public_safe_document(output_dir, "PUB_TEST_A.yaml")
+    assert "speaker" not in doc["entries"][0]
+
+
+def test_public_safe_resolved_speaker_is_kept(tmp_path):
+    entry = _entry(
+        speaker={
+            "speakerId": "CHAR_ALICE",
+            "displayName": None,
+            "resolutionStatus": "resolved",
+        }
+    )
+    input_path = _write(tmp_path / "input.yaml", _document([entry]))
+    output_dir = tmp_path / "output"
+    result = _run_cli(
+        *_base_args(
+            tmp_path,
+            input_path=input_path,
+            output_dir=output_dir,
+            extra=["--projection-mode", "public-safe"],
+        )
+    )
+    assert result.returncode == 0, result.stderr
+    doc = _read_public_safe_document(output_dir, "PUB_TEST_A.yaml")
+    assert doc["entries"][0]["speaker"]["speakerId"] == "CHAR_ALICE"
+
+
+def test_public_safe_out_of_policy_entry_is_excluded_from_output(tmp_path):
+    entries = [
+        _entry(evidenceId="EVT_A_E01_DLG0001", evidenceType="dialogue"),
+        _entry(
+            evidenceId="EVT_A_E01_STAGE0001",
+            evidenceType="stage_direction",
+        ),
+    ]
+    input_path = _write(tmp_path / "input.yaml", _document(entries))
+    output_dir = tmp_path / "output"
+    result = _run_cli(
+        *_base_args(
+            tmp_path,
+            input_path=input_path,
+            output_dir=output_dir,
+            extra=["--projection-mode", "public-safe"],
+        )
+    )
+    assert result.returncode == 0, result.stderr
+    doc = _read_public_safe_document(output_dir, "PUB_TEST_A.yaml")
+    assert len(doc["entries"]) == 1
+    assert doc["entries"][0]["evidenceType"] == "dialogue"
+
+
+# ----------------------------------------------------------------
+# --projection-mode public-safe: filename policy
+# ----------------------------------------------------------------
+
+
+def test_public_safe_output_filename_is_public_story_id(tmp_path):
+    entry = _entry(storyId="EVT_TEST_A", publicStoryId="PUB_TEST_XYZ")
+    input_path = _write(tmp_path / "input.yaml", _document([entry]))
+    output_dir = tmp_path / "output"
+    result = _run_cli(
+        *_base_args(
+            tmp_path,
+            input_path=input_path,
+            output_dir=output_dir,
+            extra=["--projection-mode", "public-safe"],
+        )
+    )
+    assert result.returncode == 0, result.stderr
+    assert (output_dir / "PUB_TEST_XYZ.yaml").is_file()
+
+
+def test_public_safe_multiple_public_story_ids_in_one_file_fails(tmp_path):
+    entries = [
+        _entry(
+            evidenceId="EVT_A_E01_DLG0001",
+            storyId="EVT_A",
+            publicStoryId="PUB_A",
+            episodeId="EVT_A_E01",
+            publicEpisodeId="PUB_A_E01",
+        ),
+        _entry(
+            evidenceId="EVT_B_E01_DLG0001",
+            storyId="EVT_B",
+            publicStoryId="PUB_B",
+            episodeId="EVT_B_E01",
+            publicEpisodeId="PUB_B_E01",
+        ),
+    ]
+    input_path = _write(tmp_path / "input.yaml", _document(entries))
+    result = _run_cli(
+        *_base_args(
+            tmp_path,
+            input_path=input_path,
+            extra=["--projection-mode", "public-safe"],
+        )
+    )
+    assert result.returncode == 1, result.stdout
+    report_text = (tmp_path / "report.md").read_text(encoding="utf-8")
+    assert "複数のpublicStoryId" in report_text
+    assert "not-promotion-ready" in report_text
+
+
+def test_public_safe_duplicate_target_filename_across_files_fails(tmp_path):
+    input_dir = tmp_path / "input_dir"
+    input_dir.mkdir()
+    _write(
+        input_dir / "story_a.yaml",
+        _document(
+            [
+                _entry(
+                    evidenceId="EVT_A_E01_DLG0001",
+                    storyId="EVT_A",
+                    publicStoryId="PUB_SAME",
+                    episodeId="EVT_A_E01",
+                    publicEpisodeId="PUB_A_E01",
+                )
+            ]
+        ),
+    )
+    _write(
+        input_dir / "story_b.yaml",
+        _document(
+            [
+                _entry(
+                    evidenceId="EVT_B_E01_DLG0001",
+                    storyId="EVT_B",
+                    publicStoryId="PUB_SAME",
+                    episodeId="EVT_B_E01",
+                    publicEpisodeId="PUB_B_E01",
+                )
+            ]
+        ),
+    )
+    result = _run_cli(
+        *_base_args(
+            tmp_path,
+            input_path=input_dir,
+            extra=["--projection-mode", "public-safe"],
+        )
+    )
+    assert result.returncode == 1, result.stdout
+    report_text = (tmp_path / "report.md").read_text(encoding="utf-8")
+    assert "PUB_SAME" in report_text
+    assert "衝突" in report_text
+
+
+def test_public_safe_missing_public_episode_id_fails(tmp_path):
+    entry = _entry(publicEpisodeId=None)
+    input_path = _write(tmp_path / "input.yaml", _document([entry]))
+    result = _run_cli(
+        *_base_args(
+            tmp_path,
+            input_path=input_path,
+            extra=["--projection-mode", "public-safe"],
+        )
+    )
+    assert result.returncode == 1, result.stdout
+    report_text = (tmp_path / "report.md").read_text(encoding="utf-8")
+    assert "publicEpisodeId" in report_text
+    assert "not-promotion-ready" in report_text
+
+
+# ----------------------------------------------------------------
+# --projection-mode public-safe: internal ID exposure scan
+# ----------------------------------------------------------------
+
+
+def test_public_safe_internal_story_id_does_not_leak_into_output(tmp_path):
+    entry = _entry(
+        storyId="EVT_INTERNAL_SOURCEKEY_STORY",
+        publicStoryId="PUB_TEST_A",
+    )
+    input_path = _write(tmp_path / "input.yaml", _document([entry]))
+    output_dir = tmp_path / "output"
+    result = _run_cli(
+        *_base_args(
+            tmp_path,
+            input_path=input_path,
+            output_dir=output_dir,
+            extra=["--projection-mode", "public-safe"],
+        )
+    )
+    assert result.returncode == 0, result.stderr
+    output_text = (output_dir / "PUB_TEST_A.yaml").read_text(encoding="utf-8")
+    assert "EVT_INTERNAL_SOURCEKEY_STORY" not in output_text
+
+
+def test_public_safe_internal_evidence_id_does_not_leak_into_output(tmp_path):
+    entry = _entry(evidenceId="EVT_INTERNAL_SOURCEKEY_STORY_E01_DLG0001")
+    input_path = _write(tmp_path / "input.yaml", _document([entry]))
+    output_dir = tmp_path / "output"
+    result = _run_cli(
+        *_base_args(
+            tmp_path,
+            input_path=input_path,
+            output_dir=output_dir,
+            extra=["--projection-mode", "public-safe"],
+        )
+    )
+    assert result.returncode == 0, result.stderr
+    output_text = (output_dir / "PUB_TEST_A.yaml").read_text(encoding="utf-8")
+    assert "EVT_INTERNAL_SOURCEKEY_STORY_E01_DLG0001" not in output_text
+
+
+def test_public_safe_internal_episode_id_does_not_leak_into_output(tmp_path):
+    entry = _entry(episodeId="EVT_INTERNAL_SOURCEKEY_STORY_E01")
+    input_path = _write(tmp_path / "input.yaml", _document([entry]))
+    output_dir = tmp_path / "output"
+    result = _run_cli(
+        *_base_args(
+            tmp_path,
+            input_path=input_path,
+            output_dir=output_dir,
+            extra=["--projection-mode", "public-safe"],
+        )
+    )
+    assert result.returncode == 0, result.stderr
+    output_text = (output_dir / "PUB_TEST_A.yaml").read_text(encoding="utf-8")
+    assert "EVT_INTERNAL_SOURCEKEY_STORY_E01" not in output_text
+
+
+def test_public_safe_internal_id_leak_via_notes_is_blocked(tmp_path):
+    entry = _entry(
+        evidenceId="EVT_INTERNAL_SOURCEKEY_STORY_E01_DLG0001",
+        notes="internal ref: EVT_INTERNAL_SOURCEKEY_STORY_E01_DLG0001",
+    )
+    input_path = _write(tmp_path / "input.yaml", _document([entry]))
+    result = _run_cli(
+        *_base_args(
+            tmp_path,
+            input_path=input_path,
+            extra=["--projection-mode", "public-safe"],
+        )
+    )
+    assert result.returncode == 1, result.stdout
+    report_text = (tmp_path / "report.md").read_text(encoding="utf-8")
+    assert "internal ID exposure" in report_text
+    assert "not-promotion-ready" in report_text
+
+
+# ----------------------------------------------------------------
+# --projection-mode public-safe: mapping output / schema validation /
+# promotion readiness reporting
+# ----------------------------------------------------------------
+
+
+def test_public_safe_mapping_output_still_contains_internal_ids(tmp_path):
+    entry = _entry(evidenceId="EVT_A_E01_DLG0001", storyId="EVT_TEST_A")
+    input_path = _write(tmp_path / "input.yaml", _document([entry]))
+    mapping_output = tmp_path / "mapping.csv"
+    result = _run_cli(
+        *_base_args(
+            tmp_path,
+            input_path=input_path,
+            mapping_output=mapping_output,
+            extra=["--projection-mode", "public-safe"],
+        )
+    )
+    assert result.returncode == 0, result.stderr
+    with open(mapping_output, encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert rows[0]["storyId"] == "EVT_TEST_A"
+    assert rows[0]["evidenceId"] == "EVT_A_E01_DLG0001"
+
+
+def test_public_safe_output_validates_against_schema(tmp_path):
+    entries = [
+        _entry(evidenceId="EVT_A_E01_DLG0001", evidenceType="dialogue"),
+        _entry(
+            evidenceId="EVT_A_E01_STAGE0001",
+            evidenceType="stage_direction",
+        ),
+    ]
+    input_path = _write(tmp_path / "input.yaml", _document(entries))
+    output_dir = tmp_path / "output"
+    result = _run_cli(
+        *_base_args(
+            tmp_path,
+            input_path=input_path,
+            output_dir=output_dir,
+            extra=["--projection-mode", "public-safe"],
+        )
+    )
+    assert result.returncode == 0, result.stderr
+
+    import json
+
+    from jsonschema import Draft7Validator
+
+    schema_path = PROJECT_ROOT / "schemas" / "evidence_index.schema.json"
+    with open(schema_path, encoding="utf-8") as f:
+        schema = json.load(f)
+    with open(output_dir / "PUB_TEST_A.yaml", encoding="utf-8") as f:
+        projected = yaml.safe_load(f)
+    errors = list(Draft7Validator(schema).iter_errors(projected))
+    assert errors == []
+
+
+def test_public_safe_report_contains_promotion_readiness(tmp_path):
+    input_path = _write(tmp_path / "input.yaml", _document())
+    report_path = tmp_path / "report.md"
+    result = _run_cli(
+        *_base_args(
+            tmp_path,
+            input_path=input_path,
+            report=report_path,
+            extra=["--projection-mode", "public-safe"],
+        )
+    )
+    assert result.returncode == 0, result.stderr
+    text = report_path.read_text(encoding="utf-8")
+    assert "## Public-safe Projection" in text
+    assert "Promotion readiness: promotion-candidate" in text
+    assert "publicStoryId-based" in text
+
+
+def test_public_safe_report_not_promotion_ready_when_blocking_issue_present(tmp_path):
+    entry = _entry(publicEpisodeId=None)
+    input_path = _write(tmp_path / "input.yaml", _document([entry]))
+    result = _run_cli(
+        *_base_args(
+            tmp_path,
+            input_path=input_path,
+            extra=["--projection-mode", "public-safe"],
+        )
+    )
+    assert result.returncode == 1, result.stdout
+    report_text = (tmp_path / "report.md").read_text(encoding="utf-8")
+    assert "Promotion readiness: not-promotion-ready" in report_text
+
+
+def test_compatible_mode_is_default_projection_mode(tmp_path):
+    entry = _entry(evidenceId="EVT_A_E01_DLG0001")
+    input_path = _write(tmp_path / "input.yaml", _document([entry]))
+    output_dir = tmp_path / "output"
+    result = _run_cli(
+        *_base_args(tmp_path, input_path=input_path, output_dir=output_dir)
+    )
+    assert result.returncode == 0, result.stderr
+    entries = _read_output_entries(output_dir, "input.yaml")
+    assert entries[0]["evidenceId"] == "EVT_A_E01_DLG0001"
+    assert entries[0]["storyId"] == "EVT_TEST_A"

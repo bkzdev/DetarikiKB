@@ -200,6 +200,7 @@ PR #87で使用した匿名化済み実データサンプル（EVENTカテゴリ
 - `evidence-index-promotion-copy-script`: `check_evidence_index_promotion.py`がPASSした候補を`knowledge/evidence/stories/`へ実際にcopyする昇格script → **実装済み**（`scripts/promote_evidence_index.py`、`docs/runbooks/Evidence_Index_Promotion_Copy.md`参照。dry-run既定・`--execute`必須・実データcommitはまだ未実施）
 - `evidence-index-promotion-first-reviewed-sample`: 実データreviewed/approved Summary投入後にSummary evidenceRefs整合性チェックを再確認する
 - `internal-review-evidence-packet-design`: `stage_direction`等を含むInternal Review Evidence Packetの詳細設計
+- `evidence-index-public-id-public-safe-projection`（実装済み、`scripts/project_evidence_index_public_ids.py --projection-mode public-safe`）: 本checkは、内部ID中心のCompatible projection・公開ID中心のPublic-safe projectionのどちらの出力に対しても実行できる（schema/entry type policyは共通）。ただし本script自体はsourceKey由来ID混入の専用scanを持たない（それはprojection script側のinternal ID exposure scanが担う、`docs/architecture/06_AI/Evidence_Index_Public_ID_Policy.md` §6.9）。この統合（promotion check側でのsourceKey混入scan追加）は未着手のまま
 
 ---
 
@@ -209,8 +210,10 @@ PR #87で使用した匿名化済み実データサンプル（EVENTカテゴリ
 - `docs/runbooks/Evidence_Index_Promotion_Copy.md`（本checkをPASSした候補を`knowledge/evidence/stories/`へcopyする手順）
 - `docs/architecture/06_AI/Evidence_Index_Promotion_Policy.md`（promotion criteria/exclusion criteria/public entry type policy/candidate references方針）
 - `docs/architecture/06_AI/Evidence_Index_Design.md`（Evidence Indexの役割・データモデル・実装フェーズ）
+- `docs/architecture/06_AI/Evidence_Index_Public_ID_Policy.md`（Compatible/Public-safe projectionの違い、internal ID exposure scan方針）
 - `docs/templates/evidence_index_promotion_review_template.md`（human review記録テンプレート）
 - `scripts/check_evidence_index_promotion.py`（本手順のcheck script）
 - `scripts/promote_evidence_index.py`（promotion checkをPASSした候補のcopy script）
+- `scripts/project_evidence_index_public_ids.py`（Compatible/Public-safe projection script）
 - `scripts/validate_evidence_index.py`（schema/整合性検証CLI）
 - `TASKS.md`（次PR候補の追跡）
