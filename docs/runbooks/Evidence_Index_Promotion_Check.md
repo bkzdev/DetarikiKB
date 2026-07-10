@@ -211,9 +211,11 @@ PR #87で使用した匿名化済み実データサンプル（EVENTカテゴリ
 - `docs/architecture/06_AI/Evidence_Index_Promotion_Policy.md`（promotion criteria/exclusion criteria/public entry type policy/candidate references方針）
 - `docs/architecture/06_AI/Evidence_Index_Design.md`（Evidence Indexの役割・データモデル・実装フェーズ）
 - `docs/architecture/06_AI/Evidence_Index_Public_ID_Policy.md`（Compatible/Public-safe projectionの違い、internal ID exposure scan方針）
+- `docs/architecture/06_AI/Public_ID_Registry_Design.md`（`publicEpisodeId`未確定問題・Public ID Registry設計）
 - `docs/templates/evidence_index_promotion_review_template.md`（human review記録テンプレート）
 - `scripts/check_evidence_index_promotion.py`（本手順のcheck script）
 - `scripts/promote_evidence_index.py`（promotion checkをPASSした候補のcopy script）
 - `scripts/project_evidence_index_public_ids.py`（Compatible/Public-safe projection script）
+- `scripts/check_public_episode_ids.py`（publicEpisodeId未確定episodeの検出・割当候補提案script）
 - `scripts/validate_evidence_index.py`（schema/整合性検証CLI）
 - `TASKS.md`（次PR候補の追跡）
