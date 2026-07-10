@@ -260,6 +260,19 @@ EVT_YYYYMMDD_NNN_E01_MONO0001
 - 検出時の扱い: 1件でも検出すればblocking error（exit code 1）とし、reportに検出件数・該当内部ID一覧を記録する
 - **本scanはヒューリスティックであり、実sourceKeyの一覧と突き合わせる方式ではない**（`Evidence_Index_Public_ID_Policy.md` §14の未確定事項のまま）。将来的な精度向上は別PRで検討する
 
+## 6.10 Public ID Registry統合実装（`feature/evidence-index-public-id-registry-integration`で実施）
+
+`scripts/project_evidence_index_public_ids.py`に`--registry`/`--registry-schema`を追加し、`docs/architecture/06_AI/Public_ID_Registry_Design.md`で長期方針として採用したPublic ID Registryを実際にprojectionへ統合した。詳細は`Public_ID_Registry_Design.md` §6.3・§7.7を参照。
+
+- Registry lookupは`publicStoryId + episodeOrder`で行い、episodeOrderは`scripts/check_public_episode_ids.py`と同じ「内部episodeIdの出現順（1始まり）」ロジックを共有importで再利用する
+- 欠落`publicEpisodeId`はRegistryに該当があれば補完（entryへ直接書き込み）、無ければ引き続きblocking
+- 既存`publicEpisodeId`とRegistry値が矛盾する場合はblocking、Registryに該当が無い場合はwarning（PASSは維持）
+- Registry補完後に`publicEvidenceId`を生成するため、補完されたepisodeのentryも正しいprefixの`publicEvidenceId`を得る
+- compatible/public-safe両モードで同じRegistry補完ロジックを共有する
+- mapping CSVに`episodeOrder`/`publicEpisodeIdSource`/`registryMatched`/`registryConflict`/`registryPublicEpisodeId`列を追加、reportに`## Registry`/`## Warnings`sectionを追加した
+- 匿名化実データサンプルで、Episode 1（92 entries、input由来）+ Episode 2（95 entries、Registry補完）の**187 entries全件がPublic-safe projectionを通過**し、`validate_evidence_index.py`・`check_evidence_index_promotion.py`ともPASSすることを確認した（`docs/runbooks/Evidence_Index_Promotion_Copy.md` §13.6）
+- **実Registryへの実データ追加・renderer変更・実promotion retryはいずれも行っていない**
+
 ---
 
 # 7. internalTrace policy（内部trace情報の扱い方針）
@@ -398,8 +411,8 @@ evidenceRefs:
 | Phase 4: `promote_evidence_index.py`/`check_evidence_index_promotion.py`対応 | target filenameの`publicStoryId`必須化、projection済みEvidence Indexのみpromotion対象にする、sourceKey混入scanの追加検討 | 未着手 |
 | Phase 5: `evidence-index-promotion-first-reviewed-sample-retry` | Phase 1〜4完了後、実データ1 storyの初回昇格を再試行する | 未着手 |
 | Phase 6: `internal-review-evidence-packet-design` | 内部trace ID・mapping tableをInternal Review Evidence Packet側で扱う詳細設計 | 未着手 |
-| Phase 2.6: `evidence-index-public-episode-id-assignment`（本PR） | 未確定`publicEpisodeId`の検出・割当候補提案の設計・実装。`docs/architecture/06_AI/Public_ID_Registry_Design.md`（新設）で役割・採番方針・永続化場所（Public ID Registry）を設計し、`scripts/check_public_episode_ids.py`（assignment候補提案script、常に人間review必須）を実装した | **完了（本PR、実Registryへの実データ追加・projection scriptとの統合は未着手）** |
-| Phase 2.7: `evidence-index-public-id-registry-integration` | Public ID Registryを`project_evidence_index_public_ids.py`へ入力として渡し、欠落`publicEpisodeId`を参照・補完できるようにする | 未着手 |
+| Phase 2.6: `evidence-index-public-episode-id-assignment` | 未確定`publicEpisodeId`の検出・割当候補提案の設計・実装。`docs/architecture/06_AI/Public_ID_Registry_Design.md`（新設）で役割・採番方針・永続化場所（Public ID Registry）を設計し、`scripts/check_public_episode_ids.py`（assignment候補提案script、常に人間review必須）を実装した | 完了 |
+| Phase 2.7: `evidence-index-public-id-registry-integration`（本PR） | Public ID Registryを`project_evidence_index_public_ids.py`へ入力として渡し、欠落`publicEpisodeId`を参照・補完できるようにする | **完了（本PR）** |
 
 **promotion再開（`knowledge/evidence/stories/`への実データcommit）は、少なくともPhase 2.5（Public-safe projection実装）およびPhase 3（renderer切替）が完了するまで行わない。** Public-safe projectionがvalidation/exposure scanを通過し`promotion-candidate`と判定されても、renderer側がまだ内部`evidenceId`中心のままであるため、実promotionは行わない。
 
@@ -475,6 +488,18 @@ evidenceRefs:
 
 詳細は`docs/architecture/06_AI/Public_ID_Registry_Design.md`を参照。
 
+`evidence-index-public-id-registry-integration`（本PR）でも以下は行っていない:
+
+- 実Evidence Indexのcommit・`knowledge/evidence/stories/`への実データ昇格
+- `promote_evidence_index.py --execute`の実行、実promotion retry
+- `agents/wiki_generator/renderer.py`/`agents/wiki_generator/paths.py`の変更
+- `publicEpisodeId`の自動採番・自動本番反映（Registry補完は人間review済みRegistryの値を再利用するのみ）
+- `story_manifest.yaml`の実データ変更
+- 実Public ID Registryへの実データ追加
+- `scripts/promote_evidence_index.py`/`scripts/check_evidence_index_promotion.py`/`scripts/build_evidence_index_candidates.py`の変更
+- `schemas/evidence_index.schema.json`/`schemas/public_id_registry.schema.json`の破壊的変更
+- Internal Review Evidence Packet生成
+
 ---
 
 # 14. Open questions（未確定事項）
@@ -490,7 +515,8 @@ evidenceRefs:
 - Public Evidence Indexのschema変更（`publicEvidenceId`必須化等）をいつrequired化するか、既存Internal運用（`full`/`review` policy）との互換性をどう保つか
 - `--policy full`/`review`（`stage_direction`含む全件出力）に対して`publicEvidenceId`を付与するか、Public promotion専用のprojectionにのみ付与するか（§6.6で「本文書では確定しない」とした点）
 - `publicEvidenceId`の採番が、同一storyの複数回のdry-run生成間で安定するか（`build_evidence_index_candidates.py`の実行結果が決定的であることに依存する。現状の実装はBlockの出現順を保つため理論上は安定するが、実装PRで確認が必要）
-- ~~実データで`publicEpisodeId`が未確定のepisodeをどう検出・割当するか~~ → **`feature/evidence-index-public-episode-id-assignment`で設計・最小実装済み**: `docs/architecture/06_AI/Public_ID_Registry_Design.md`で役割・採番方針（`{publicStoryId}_E{episodeOrder:02d}`）・永続化場所（長期的にはPublic ID Registry、当面`story_manifest.yaml`が引き続きsource of truth）を整理し、`scripts/check_public_episode_ids.py`で割当候補の検出・提案（人間review必須）を実装した。実Registryへの実データ追加・`project_evidence_index_public_ids.py`との統合は未着手のまま（次PR候補`evidence-index-public-id-registry-integration`）
+- ~~実データで`publicEpisodeId`が未確定のepisodeをどう検出・割当するか~~ → **`feature/evidence-index-public-episode-id-assignment`で設計・最小実装済み**: `docs/architecture/06_AI/Public_ID_Registry_Design.md`で役割・採番方針（`{publicStoryId}_E{episodeOrder:02d}`）・永続化場所（長期的にはPublic ID Registry、当面`story_manifest.yaml`が引き続きsource of truth）を整理し、`scripts/check_public_episode_ids.py`で割当候補の検出・提案（人間review必須）を実装した
+- ~~`project_evidence_index_public_ids.py`とRegistryの本格統合~~ → **`feature/evidence-index-public-id-registry-integration`で実装済み**: `--registry`/`--registry-schema`を追加し、欠落`publicEpisodeId`をRegistryから補完（自動採番ではなく、人間review済みRegistry値の再利用のみ）できるようにした。実Registryへの実データ追加は引き続き未着手
 - `episodeOrder`の正式な根拠（`story_manifest.yaml`の`episodeNumber`との一致保証、episode追加・順序変更時のmigration policy）は`Public_ID_Registry_Design.md` §8で未確定のまま持ち越し
 
 ---
