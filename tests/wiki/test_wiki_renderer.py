@@ -2474,6 +2474,124 @@ def test_unresolved_evidence_ref_is_not_linked(synthetic_collection):
     assert "](.." not in section
 
 
+# ----------------------------------------------------------------
+# Summary evidenceRefs link text: publicEvidenceId優先
+# (feature/evidence-index-public-id-renderer-switch)
+# ----------------------------------------------------------------
+
+
+def test_evidence_ref_link_text_uses_public_evidence_id_when_present(
+    synthetic_collection,
+):
+    """Summaryのevidenceref文字列自体は内部evidenceId (`TEST_S01_C01_E01_
+    DLG0001`) のままでも、解決先entryにpublicEvidenceIdがあれば表示
+    テキスト・anchorはpublicEvidenceId優先に切り替わる。"""
+    summary_lookup = _summary_lookup(
+        _raw_summary_document(
+            storySummary={
+                "text": "合成Story Summary本文。",
+                "evidenceRefs": ["TEST_S01_C01_E01_DLG0001"],
+            }
+        )
+    )
+    evidence_lookup = _evidence_lookup(
+        _raw_evidence_document(
+            entries=[
+                _raw_evidence_entry(
+                    evidenceId="TEST_S01_C01_E01_DLG0001",
+                    publicEvidenceId="EVT_TEST_001_E01_DLG0001",
+                    storyId="TEST_S01_C01",
+                    publicStoryId="EVT_TEST_001",
+                )
+            ]
+        )
+    )
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page(
+        "TEST_S01_C01",
+        episodes,
+        synthetic_collection,
+        summary_lookup,
+        evidence_lookup,
+    )
+    section = _story_summary_section(page)
+    assert (
+        "Evidence refs: [`EVT_TEST_001_E01_DLG0001`]"
+        "(../evidence/EVT_TEST_001.md#evt_test_001_e01_dlg0001)" in section
+    )
+    assert "TEST_S01_C01_E01_DLG0001" not in section
+
+
+def test_evidence_ref_resolves_when_summary_ref_is_already_public_evidence_id(
+    synthetic_collection,
+):
+    """Summaryのevidenceref文字列がすでにpublicEvidenceId値そのもの
+    (Public-safe projection output style、evidenceId==publicEvidenceId)
+    でも解決・リンク化できる。"""
+    summary_lookup = _summary_lookup(
+        _raw_summary_document(
+            storySummary={
+                "text": "合成Story Summary本文。",
+                "evidenceRefs": ["EVT_TEST_001_E01_DLG0001"],
+            }
+        )
+    )
+    evidence_lookup = _evidence_lookup(
+        _raw_evidence_document(
+            entries=[
+                _raw_evidence_entry(
+                    evidenceId="EVT_TEST_001_E01_DLG0001",
+                    publicEvidenceId="EVT_TEST_001_E01_DLG0001",
+                    storyId="EVT_TEST_001",
+                    publicStoryId="EVT_TEST_001",
+                )
+            ]
+        )
+    )
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page(
+        "TEST_S01_C01",
+        episodes,
+        synthetic_collection,
+        summary_lookup,
+        evidence_lookup,
+    )
+    section = _story_summary_section(page)
+    assert (
+        "Evidence refs: [`EVT_TEST_001_E01_DLG0001`]"
+        "(../evidence/EVT_TEST_001.md#evt_test_001_e01_dlg0001)" in section
+    )
+
+
+def test_evidence_ref_still_resolves_by_internal_evidence_id_when_no_public_id(
+    synthetic_collection,
+):
+    """publicEvidenceIdが無いentryは、従来通り内部evidenceIdで解決し
+    リンク化する（後方互換のfallback）。"""
+    summary_lookup = _summary_lookup(
+        _raw_summary_document(
+            storySummary={
+                "text": "合成Story Summary本文。",
+                "evidenceRefs": ["TEST_S01_C01_E01_DLG0001"],
+            }
+        )
+    )
+    evidence_lookup = _evidence_lookup(_raw_evidence_document())
+    episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
+    page = render_story_page(
+        "TEST_S01_C01",
+        episodes,
+        synthetic_collection,
+        summary_lookup,
+        evidence_lookup,
+    )
+    section = _story_summary_section(page)
+    assert (
+        "Evidence refs: [`TEST_S01_C01_E01_DLG0001`]"
+        "(../evidence/TEST_S01_C01.md#test_s01_c01_e01_dlg0001)" in section
+    )
+
+
 def test_render_evidence_page_has_front_matter_and_title():
     document = parse_evidence_index_document(_raw_evidence_document())
     page = render_evidence_page("TEST_S01_C01", document.entries)
@@ -2495,6 +2613,68 @@ def test_render_evidence_page_title_uses_public_story_id_when_present():
     )
     page = render_evidence_page("TEST_S01_C01", document.entries)
     assert "# Evidence: EVT_TEST_PUBLIC_001" in page
+
+
+# ----------------------------------------------------------------
+# Evidence page entry heading / anchor: publicEvidenceId優先
+# (feature/evidence-index-public-id-renderer-switch)
+# ----------------------------------------------------------------
+
+
+def test_evidence_entry_heading_uses_public_evidence_id_when_present():
+    document = parse_evidence_index_document(
+        _raw_evidence_document(
+            entries=[
+                _raw_evidence_entry(
+                    evidenceId="INTERNAL_TEST_EVD_001",
+                    publicEvidenceId="EVT_TEST_001_E01_DLG0001",
+                )
+            ]
+        )
+    )
+    page = render_evidence_page("TEST_S01_C01", document.entries)
+    assert "### EVT_TEST_001_E01_DLG0001" in page
+    assert "### INTERNAL_TEST_EVD_001" not in page
+    assert "INTERNAL_TEST_EVD_001" not in page
+
+
+def test_evidence_entry_heading_falls_back_to_evidence_id_when_public_missing():
+    document = parse_evidence_index_document(
+        _raw_evidence_document(
+            entries=[_raw_evidence_entry(evidenceId="TEST_S01_C01_E01_DLG0001")]
+        )
+    )
+    page = render_evidence_page("TEST_S01_C01", document.entries)
+    assert "### TEST_S01_C01_E01_DLG0001" in page
+
+
+def test_evidence_page_public_safe_style_entry_does_not_expose_internal_ids(
+    synthetic_collection,
+):
+    """Public-safe projection output相当 (evidenceId/storyId/episodeIdの
+    値がpublicEvidenceId/publicStoryId/publicEpisodeIdと同一、sceneId/
+    blockIdなし) をrenderした場合、Evidence pageに内部IDが露出しない
+    ことを確認する。"""
+    evidence_lookup = _evidence_lookup(
+        _raw_evidence_document(
+            entries=[
+                _raw_evidence_entry(
+                    evidenceId="EVT_TEST_001_E01_DLG0001",
+                    publicEvidenceId="EVT_TEST_001_E01_DLG0001",
+                    storyId="EVT_TEST_001",
+                    publicStoryId="EVT_TEST_001",
+                    episodeId="EVT_TEST_001_E01",
+                    publicEpisodeId="EVT_TEST_001_E01",
+                    sceneId=None,
+                    blockId=None,
+                )
+            ]
+        )
+    )
+    pages = build_pages(synthetic_collection, evidence_index_lookup=evidence_lookup)
+    evidence_page = pages["evidence/EVT_TEST_001.md"]
+    assert "### EVT_TEST_001_E01_DLG0001" in evidence_page
+    assert "EVT_TEST_001" in evidence_page  # public IDs are expected to appear
 
 
 def test_evidence_page_is_generated_for_story_with_evidence(synthetic_collection):
@@ -2536,6 +2716,37 @@ def test_story_page_review_links_includes_evidence_link_when_available(
         "TEST_S01_C01", episodes, synthetic_collection, None, evidence_lookup
     )
     assert "- [Evidence index](../evidence/TEST_S01_C01.md)" in page
+
+
+def test_story_page_review_links_resolves_evidence_link_via_public_story_id(
+    synthetic_collection,
+):
+    """Public-safe projection output相当のEvidence Index (内部storyId自体が
+    publicStoryIdの値へ置換されている) を渡した場合でも、merged knowledge
+    collection側の`publicStoryId`経由でEvidence indexへのReview Linksが
+    解決できることを確認する (`resolve_story_evidence_entries`、
+    feature/evidence-index-public-id-renderer-switch)。story
+    `TEST_PUBLIC_ID_STORY`はfixture内で`publicStoryId: PUBLIC_TEST_STORY_001`
+    を持つ。"""
+    evidence_lookup = _evidence_lookup(
+        _raw_evidence_document(
+            entries=[
+                _raw_evidence_entry(
+                    evidenceId="PUBLIC_TEST_STORY_001_E01_DLG0001",
+                    publicEvidenceId="PUBLIC_TEST_STORY_001_E01_DLG0001",
+                    storyId="PUBLIC_TEST_STORY_001",
+                    publicStoryId="PUBLIC_TEST_STORY_001",
+                    episodeId="PUBLIC_TEST_STORY_001_E01",
+                    publicEpisodeId="PUBLIC_TEST_STORY_001_E01",
+                )
+            ]
+        )
+    )
+    episodes = _story_episodes(synthetic_collection, "TEST_PUBLIC_ID_STORY")
+    page = render_story_page(
+        "TEST_PUBLIC_ID_STORY", episodes, synthetic_collection, None, evidence_lookup
+    )
+    assert "- [Evidence index](../evidence/PUBLIC_TEST_STORY_001.md)" in page
 
 
 def test_story_page_review_links_no_evidence_link_when_story_has_no_evidence(

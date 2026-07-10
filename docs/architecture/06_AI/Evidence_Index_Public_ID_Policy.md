@@ -343,6 +343,20 @@ evidenceRefs:
 
 **本PRではrenderer/paths.pyの変更は行わない**（§13 Non-goals）。上記は実装PR（`evidence-index-public-id-projection`）のスコープとして記録する。
 
+## 9.3 実装状況（`feature/evidence-index-public-id-renderer-switch`で実施）
+
+§9.2で示した推奨方針のうち、Evidence page見出し・anchor・Summary `evidenceRefs`リンクの`publicEvidenceId`中心切替を実装した。
+
+- `agents/wiki_generator/evidence_index.py`に`display_evidence_id(entry)`（`publicEvidenceId`優先、無ければ`evidenceId`にfallback）・`build_public_evidence_id_index`（`publicEvidenceId -> EvidenceIndexEntry`索引、`build_evidence_id_index`と同じ「後勝ち」方針）・`resolve_evidence_entry(lookup, ref_id)`（`publicEvidenceId`索引→内部`evidenceId`索引の順でfallback解決）を追加した
+- `EvidenceIndexLookup`に`by_public_evidence_id`・`by_public_story_id`を追加し、`build_evidence_index_lookup`で組み立てるようにした
+- `agents/wiki_generator/renderer.py`の`_render_evidence_entry`見出し（`### {display_evidence_id(entry)}`）・`_format_evidence_ref_display`（`resolve_evidence_entry`で解決したentryの`display_evidence_id`をリンク表示テキスト・anchor双方に使う）を変更した。`_evidence_anchor`関数自体は変更していない（引数に渡す文字列がevidenceIdからdisplay idに変わっただけ）
+- Summary `evidenceRefs`の値が内部`evidenceId`のままでも、`publicEvidenceId`のままでも（Public-safe projection outputでは両者が同値になる）、`resolve_evidence_entry`が両方のケースを解決できる
+- **Evidence Index lookupの新たな課題を発見・修正**: Public-safe projection outputでは内部`storyId`自体が`publicStoryId`の値へ置換されるため、merged knowledge collection側が保持する内部`storyId`だけではStory pageの「Review Links → Evidence index」導線（`evidence_index_lookup.by_story_id[story_id]`）が引けなくなる。`resolve_story_evidence_entries(lookup, story_id, public_story_id)`（内部`storyId`で見つからなければ`publicStoryId`側の索引へfallback）を追加し、`render_story_page`側で使うようにした
+- `evidence_page_path`（`agents/wiki_generator/paths.py`）自体は変更していない。既に`publicStoryId`優先でファイル名を決定しており（§9.1で確認済み）、この方針で問題ないことを再確認した
+- `tests/wiki/test_evidence_index.py`・`tests/wiki/test_wiki_renderer.py`に合成テストを追加（見出し/anchor/リンクのpublicEvidenceId優先・fallback、`resolve_story_evidence_entries`のpublicStoryIdフォールバック含む）。既存テストは無変更のまま全PASSを確認した
+- 匿名化実データサンプル（Public-safe projection、187 entries）を`render_wiki.py --evidence-index`でrenderし、Evidence page（`evidence/{publicStoryId}.md`）の見出し・anchorが`publicEvidenceId`になり、内部`storyId`/`episodeId`/`sceneId`/`blockId`がEvidence page内に一切表示されないことを確認した（詳細は`docs/runbooks/Evidence_Index_Promotion_Copy.md` §13.7）
+- **renderer切替後も、実promotion再開・`promote_evidence_index.py --execute`の実行はまだ行わない**（renderer切替は実promotionの前提条件の1つに過ぎず、次はfirst reviewed sample retryまたはpromotion copy/policy調整）
+
 ---
 
 # 10. Schemaへの影響
@@ -407,12 +421,12 @@ evidenceRefs:
 | Phase 1: `evidence-index-public-id-schema-design`（本PR） | `publicEvidenceId`の形式・prefix mapping・採番方針の確定、`schemas/evidence_index.schema.json`へのoptional追加、loader対応 | **完了（本PR、schema/loaderの最小変更のみ）** |
 | Phase 2: `evidence-index-public-id-projection`（本PR） | Compatible projection（案A）の実装。`scripts/project_evidence_index_public_ids.py`で内部ID→公開IDのmapping生成、`publicEvidenceId`の実際の付与を行う（内部IDは削除しない） | **完了（本PR）** |
 | Phase 2.5: `evidence-index-public-id-public-safe-projection`（本PR） | Public-safe projection（案B）の実装。`scripts/project_evidence_index_public_ids.py`に`--projection-mode public-safe`を追加し、内部IDを公開ID中心へ置換・除去したPublic Evidence Index本体を生成する | **完了（本PR、§6.8/§6.9参照）** |
-| Phase 3: renderer/paths.py対応 | Evidence page見出し・anchor・Summary evidenceRefsリンクを`publicEvidenceId`中心に切り替え | 未着手 |
+| Phase 2.6: `evidence-index-public-episode-id-assignment` | 未確定`publicEpisodeId`の検出・割当候補提案の設計・実装。`docs/architecture/06_AI/Public_ID_Registry_Design.md`（新設）で役割・採番方針・永続化場所（Public ID Registry）を設計し、`scripts/check_public_episode_ids.py`（assignment候補提案script、常に人間review必須）を実装した | 完了 |
+| Phase 2.7: `evidence-index-public-id-registry-integration`（PR #97） | Public ID Registryを`project_evidence_index_public_ids.py`へ入力として渡し、欠落`publicEpisodeId`を参照・補完できるようにする | 完了 |
+| Phase 3: `evidence-index-public-id-renderer-switch`（本PR） | renderer/paths.py対応。Evidence page見出し・anchor・Summary evidenceRefsリンクを`publicEvidenceId`中心に切り替え | **完了（本PR、§9.3参照）** |
 | Phase 4: `promote_evidence_index.py`/`check_evidence_index_promotion.py`対応 | target filenameの`publicStoryId`必須化、projection済みEvidence Indexのみpromotion対象にする、sourceKey混入scanの追加検討 | 未着手 |
 | Phase 5: `evidence-index-promotion-first-reviewed-sample-retry` | Phase 1〜4完了後、実データ1 storyの初回昇格を再試行する | 未着手 |
 | Phase 6: `internal-review-evidence-packet-design` | 内部trace ID・mapping tableをInternal Review Evidence Packet側で扱う詳細設計 | 未着手 |
-| Phase 2.6: `evidence-index-public-episode-id-assignment` | 未確定`publicEpisodeId`の検出・割当候補提案の設計・実装。`docs/architecture/06_AI/Public_ID_Registry_Design.md`（新設）で役割・採番方針・永続化場所（Public ID Registry）を設計し、`scripts/check_public_episode_ids.py`（assignment候補提案script、常に人間review必須）を実装した | 完了 |
-| Phase 2.7: `evidence-index-public-id-registry-integration`（本PR） | Public ID Registryを`project_evidence_index_public_ids.py`へ入力として渡し、欠落`publicEpisodeId`を参照・補完できるようにする | **完了（本PR）** |
 
 **promotion再開（`knowledge/evidence/stories/`への実データcommit）は、少なくともPhase 2.5（Public-safe projection実装）およびPhase 3（renderer切替）が完了するまで行わない。** Public-safe projectionがvalidation/exposure scanを通過し`promotion-candidate`と判定されても、renderer側がまだ内部`evidenceId`中心のままであるため、実promotionは行わない。
 
@@ -488,7 +502,7 @@ evidenceRefs:
 
 詳細は`docs/architecture/06_AI/Public_ID_Registry_Design.md`を参照。
 
-`evidence-index-public-id-registry-integration`（本PR）でも以下は行っていない:
+`evidence-index-public-id-registry-integration`（PR #97）でも以下は行っていない:
 
 - 実Evidence Indexのcommit・`knowledge/evidence/stories/`への実データ昇格
 - `promote_evidence_index.py --execute`の実行、実promotion retry
@@ -498,6 +512,20 @@ evidenceRefs:
 - 実Public ID Registryへの実データ追加
 - `scripts/promote_evidence_index.py`/`scripts/check_evidence_index_promotion.py`/`scripts/build_evidence_index_candidates.py`の変更
 - `schemas/evidence_index.schema.json`/`schemas/public_id_registry.schema.json`の破壊的変更
+- Internal Review Evidence Packet生成
+
+`evidence-index-public-id-renderer-switch`（本PR）でも以下は行っていない:
+
+- 実Evidence Indexのcommit・`knowledge/evidence/stories/`への実データ昇格
+- 実Public ID Registryへの実データ追加
+- `promote_evidence_index.py --execute`の実行、実promotion retry
+- `scripts/promote_evidence_index.py`/`scripts/check_evidence_index_promotion.py`/`scripts/project_evidence_index_public_ids.py`本体の変更（`agents/wiki_generator/`側のみ変更）
+- Public ID Registry schema変更
+- `schemas/evidence_index.schema.json`の破壊的変更
+- `schemas/story_summary.schema.json`の変更、Summary fixtureの全体migration
+- `publicEpisodeId`の自動採番・自動本番反映
+- `story_manifest.yaml`の実データ変更
+- Episode page変更（Evidence page/Summary evidenceRefsのみが対象）
 - Internal Review Evidence Packet生成
 
 ---
@@ -518,6 +546,8 @@ evidenceRefs:
 - ~~実データで`publicEpisodeId`が未確定のepisodeをどう検出・割当するか~~ → **`feature/evidence-index-public-episode-id-assignment`で設計・最小実装済み**: `docs/architecture/06_AI/Public_ID_Registry_Design.md`で役割・採番方針（`{publicStoryId}_E{episodeOrder:02d}`）・永続化場所（長期的にはPublic ID Registry、当面`story_manifest.yaml`が引き続きsource of truth）を整理し、`scripts/check_public_episode_ids.py`で割当候補の検出・提案（人間review必須）を実装した
 - ~~`project_evidence_index_public_ids.py`とRegistryの本格統合~~ → **`feature/evidence-index-public-id-registry-integration`で実装済み**: `--registry`/`--registry-schema`を追加し、欠落`publicEpisodeId`をRegistryから補完（自動採番ではなく、人間review済みRegistry値の再利用のみ）できるようにした。実Registryへの実データ追加は引き続き未着手
 - `episodeOrder`の正式な根拠（`story_manifest.yaml`の`episodeNumber`との一致保証、episode追加・順序変更時のmigration policy）は`Public_ID_Registry_Design.md` §8で未確定のまま持ち越し
+- ~~Evidence page見出し・anchor・Summary evidenceRefsリンクの`publicEvidenceId`中心切替~~ → **`feature/evidence-index-public-id-renderer-switch`で実装済み**（§9.3参照）。`display_evidence_id`/`resolve_evidence_entry`/`resolve_story_evidence_entries`を追加し、Public-safe projection outputで内部ID非露出を確認した。renderer切替後もpromotion再開はまだ行っていない
+- merged knowledge collection側に`publicStoryId`が伝播していないstory（今回の匿名化実データdry-runのように、story_manifest.yamlのpublic ID割当が古いnormalize/merge実行より後になされたケース）では、Story pageのReview Links→Evidence indexリンクが解決できない場合がある。`resolve_story_evidence_entries`のfallback自体は合成テストで動作確認済みだが、実データでの再現・再normalize/mergeによる解消はこのPRのスコープ外（`story_manifest.yaml`の実データ変更はNon-goals）
 
 ---
 

@@ -320,6 +320,8 @@ notes: null
 
 **Evidence index renderer統合（`feature/evidence-index-renderer-integration`で実施）**: `scripts/render_wiki.py --evidence-index <path>`で読み込んだEvidence Indexを`renderer.py`の`_render_evidence_refs_line`へ渡すようにした。`evidenceRefs`中の各IDについて、Evidence Indexに該当`evidenceId`が存在すればStory別Evidence page（`evidence/{publicStoryId or storyId}.md`）の該当anchorへのMarkdownリンクとして表示し、存在しない場合は従来通りbacktickのID表示のまま（エラーにはしない、unresolved扱い）。Story Summary/Episode Summaryいずれも同じ挙動。`--evidence-index`未指定時は従来通りID表示のみで、本挙動は完全にopt-inである。
 
+**publicEvidenceId中心へのlink切替（`feature/evidence-index-public-id-renderer-switch`で実施）**: `evidenceRefs`の値が内部`evidenceId`・`publicEvidenceId`のどちらであっても解決できるよう、Evidence Index側に`resolve_evidence_entry`（`publicEvidenceId`索引優先、内部`evidenceId`索引にfallback）を実装した。解決できた場合のリンク表示テキスト・anchorは`display_evidence_id`（`publicEvidenceId`優先）を使う。これにより、§9冒頭で示した「将来`publicEvidenceId`を参照する方針」（`Evidence_Index_Public_ID_Policy.md` §8参照）は、既存のSummary fixture（内部`evidenceId`ベース）を書き換えなくても自然に移行できる。**Summary schema自体（`EvidenceRef`のpattern等）は変更していない**。
+
 ---
 
 # 10. Renderer integration plan（次PR以降の統合方針、本PRでは未実装）

@@ -274,6 +274,29 @@ stories:
 
 **この結果は、PR #96で見送った「Registry統合」を実装することで、実データでもPublic ID Registryを介した`publicEpisodeId`補完が正しく機能し、Public-safe projectionが1 story全entriesに対して通ることを実証している。** ただしこのworkspace仮Registryは実Registryではなく、`story_manifest.yaml`・実Public ID Registry・実Evidence Indexのいずれにも反映していない。次のステップはrenderer切替（`evidence-index-public-id-renderer-switch`）と、実データ1 storyの初回昇格再試行（`evidence-index-promotion-first-reviewed-sample-retry`）である。
 
+### 13.7 進捗（`feature/evidence-index-public-id-renderer-switch`、匿名化）
+
+§13.6で生成したPublic-safe projection output（187 entries、Registry補完込み）を`scripts/render_wiki.py --evidence-index`に渡し、renderer switch後の表示を確認した。`--input`には既存の匿名化実データmerged knowledge collection（同じstoryの過去dry-run成果物）を使用した。
+
+```powershell
+uv run python scripts/render_wiki.py `
+  --input <匿名化実データのmerged_knowledge_collection.json> `
+  --output workspace/wiki_preview/public_id_renderer_switch `
+  --evidence-index workspace/evidence_index_dry_runs/public_safe_projection_with_registry/default/stories `
+  --character-profiles knowledge/dictionaries/character_profiles.yaml `
+  --validate `
+  --clean
+```
+
+- render成功、Evidence pageは`evidence/EVT_260707_001.md`（`publicStoryId`ベースのファイル名）として生成された
+- Evidence page内の各entry見出しは`publicEvidenceId`（例: `### EVT_260707_001_E01_DLG0001`）になり、内部`evidenceId`は一切表示されないことを確認した
+- Evidence page内のScene ID/Block IDは、Public-safe projection outputにこれらのfieldが無いため「未登録」表示になる（想定どおり）
+- Evidence page・rendered Markdown全体に対して内部storyId・内部episodeId・内部evidenceId文字列を手動grepで確認したところ、いずれも検出されなかった
+- **新たに判明した問題**: このmerged knowledge collectionはEvidence Index側の`publicStoryId`割当（本PRシリーズで新たに確定したもの）より前に生成されたものであり、`publicStoryId`フィールドを持たない。そのため、Story pageの「Review Links → Evidence index」導線は、内部`storyId`だけでは解決できずリンクが表示されなかった。これを受けて`resolve_story_evidence_entries`（内部`storyId`→`publicStoryId`の順でfallback）を実装し、`publicStoryId`が伝播しているstoryであれば正しく解決できることを合成テストで確認した（`tests/wiki/test_wiki_renderer.py::test_story_page_review_links_resolves_evidence_link_via_public_story_id`）。実データでの再現・恒久的な解消には、`story_manifest.yaml`側の`publicStoryId`確定と再normalize/mergeが必要であり、本PRのスコープ外（Non-goals）とした
+- 出力（`workspace/wiki_preview/public_id_renderer_switch/`）はGit管理外（`.gitignore`保護）にのみ存在し、`knowledge/`・Gitへのcommitは一切行っていない
+
+**この結果は、renderer switchがEvidence page単体としては完全に機能する（内部ID非露出）ことを実データで裏付ける一方、Story page側の導線はEvidence Indexとmerged knowledge collectionの双方が同じ`publicStoryId`を持つ必要があるという前提条件を明らかにした。** 次のステップは実データ1 storyの初回昇格再試行（`evidence-index-promotion-first-reviewed-sample-retry`）である。
+
 ---
 
 # 14. 関連ドキュメント
@@ -289,4 +312,7 @@ stories:
 - `scripts/validate_evidence_index.py`（schema/整合性検証CLI）
 - `docs/architecture/06_AI/Public_ID_Registry_Design.md`（`publicEpisodeId`未確定問題の整理、Public ID Registry設計）
 - `scripts/check_public_episode_ids.py`（publicEpisodeId未確定episodeの検出・割当候補提案script）
+- `docs/architecture/07_Wiki/Wiki_Output_Design.md` §9.16（Evidence page renderer統合・publicEvidenceId中心へのrenderer切替）
+- `agents/wiki_generator/evidence_index.py`（`display_evidence_id`/`resolve_evidence_entry`/`resolve_story_evidence_entries`）
+- `agents/wiki_generator/renderer.py`（`render_evidence_page`、`_evidence_anchor`、`_format_evidence_ref_display`）
 - `TASKS.md`（次PR候補の追跡）

@@ -32,7 +32,10 @@ from agents.parser.character_profiles import Birthday, CharacterProfile, Reading
 from .evidence_index import (
     EvidenceIndexEntry,
     EvidenceIndexLookup,
+    display_evidence_id,
+    resolve_evidence_entry,
     resolve_group_public_story_id,
+    resolve_story_evidence_entries,
 )
 from .models import (
     ENTITY_KEY_TO_TYPE,
@@ -1238,13 +1241,15 @@ def _resolve_episode_summary_heading(
 _SUMMARY_MISSING_LABEL = "未生成"
 
 
-def _evidence_anchor(evidence_id: str) -> str:
-    """Evidence page内の見出し (`### {evidenceId}`) に対応するanchorを
-    組み立てる。MkDocs/Material (python-markdown標準のslugify) は見出しを
-    小文字化してanchorにするため、ここでも同じ変換 (小文字化のみ、
-    アンダースコアは維持) を行う (`Evidence_Index_Design.md` §9)。
+def _evidence_anchor(display_id: str) -> str:
+    """Evidence page内の見出し (`### {publicEvidenceId or evidenceId}`) に
+    対応するanchorを組み立てる。MkDocs/Material (python-markdown標準の
+    slugify) は見出しを小文字化してanchorにするため、ここでも同じ変換
+    (小文字化のみ、アンダースコアは維持) を行う (`Evidence_Index_Design.md`
+    §9、`feature/evidence-index-public-id-renderer-switch`で見出しの
+    表示IDを`publicEvidenceId`優先に切り替えた際もこの関数自体は不変)。
     """
-    return evidence_id.lower()
+    return display_id.lower()
 
 
 def _format_evidence_ref_display(
@@ -1252,21 +1257,26 @@ def _format_evidence_ref_display(
 ) -> str:
     """1件のevidenceRefを表示用に整形する。
 
-    `evidence_index_lookup`が指定されていて、かつ該当`evidenceId`が
+    `evidence_index_lookup`が指定されていて、かつ該当ID (`publicEvidenceId`
+    または内部`evidenceId`のいずれか、`resolve_evidence_entry`参照) が
     Evidence Indexに存在する場合は、そのEvidence pageの該当anchorへの
-    リンクにする。指定なし、または該当entryが見つからない場合は
-    unresolvedとして扱い、従来通りbacktick付きのID表示のままにする
+    リンクにする。リンクの表示テキスト・anchorはいずれも解決した
+    entryの`display_evidence_id`（`publicEvidenceId`優先、
+    `feature/evidence-index-public-id-renderer-switch`）を使う。
+    指定なし、または該当entryが見つからない場合はunresolvedとして扱い、
+    従来通りbacktick付きの入力ID表示のままにする
     (`Evidence_Index_Design.md` §9、unresolved evidenceRefをerrorには
     しない)。
     """
     if evidence_index_lookup is None:
         return f"`{evidence_id}`"
-    entry = evidence_index_lookup.by_evidence_id.get(evidence_id)
+    entry = resolve_evidence_entry(evidence_index_lookup, evidence_id)
     if entry is None:
         return f"`{evidence_id}`"
+    display_id = display_evidence_id(entry)
     path = evidence_page_path(entry.story_id, entry.public_story_id)
-    anchor = _evidence_anchor(evidence_id)
-    return f"[`{evidence_id}`](../{path}#{anchor})"
+    anchor = _evidence_anchor(display_id)
+    return f"[`{display_id}`](../{path}#{anchor})"
 
 
 def _render_evidence_refs_line(
@@ -1541,7 +1551,9 @@ def render_story_page(
 
     evidence_link = None
     if evidence_index_lookup is not None:
-        evidence_entries = evidence_index_lookup.by_story_id.get(story_id)
+        evidence_entries = resolve_story_evidence_entries(
+            evidence_index_lookup, story_id, public_story_id
+        )
         if evidence_entries:
             evidence_public_story_id = resolve_group_public_story_id(evidence_entries)
             evidence_path = evidence_page_path(story_id, evidence_public_story_id)
@@ -1603,7 +1615,7 @@ def _render_evidence_entry(entry: EvidenceIndexEntry) -> list[str]:
     evidence_index.py`のvalidatorで確認済み)、ここでも安全な項目のみを
     個別に選んで表示する (`Evidence_Index_Design.md` §5.1)。
     """
-    lines = [f"### {entry.evidence_id}", ""]
+    lines = [f"### {display_evidence_id(entry)}", ""]
     items = [
         ("Type", entry.evidence_type),
         ("Episode ID", _format_code(entry.episode_id)),
