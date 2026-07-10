@@ -1,0 +1,10 @@
+# additionalProperties: false のため、sourceKey風の余計なfieldを持つ
+# entryはschema検証で必ず失敗する (合成データのみ、実データ由来IDは含まない)。
+registryVersion: 1
+stories:
+  - publicStoryId: EVT_TEST_001
+    category: event
+    sourceKey: "not_allowed_internal_field"
+    episodes:
+      - publicEpisodeId: EVT_TEST_001_E01
+        episodeOrder: 1

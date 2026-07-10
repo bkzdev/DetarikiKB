@@ -206,7 +206,11 @@ def _load_registry(
     """Public ID Registryを読み込み、(publicStoryId, episodeOrder) ->
     publicEpisodeId のlookupを組み立てる。
 
-    戻り値: (lookup (schema検証失敗時はNone), エラーメッセージ一覧)。
+    schema検証に加え、registry全体でpublicEpisodeIdが重複していないかを
+    確認する（異なるepisodeが同じpublicEpisodeIdを指す設定ミスを防ぐ、
+    `docs/architecture/06_AI/Public_ID_Registry_Design.md` §6.5）。
+
+    戻り値: (lookup (schema検証・重複検証失敗時はNone), エラーメッセージ一覧)。
     """
     try:
         with open(path, encoding="utf-8") as f:
@@ -221,6 +225,7 @@ def _load_registry(
         return None, [f"{path}: {list(e.path)}: {e.message}" for e in errors]
 
     lookup: dict[tuple[str, int], str] = {}
+    seen_counts: dict[str, int] = {}
     for story in raw.get("stories", []) or []:
         public_story_id = story.get("publicStoryId")
         if not public_story_id:
@@ -228,8 +233,20 @@ def _load_registry(
         for episode in story.get("episodes", []) or []:
             order = episode.get("episodeOrder")
             public_episode_id = episode.get("publicEpisodeId")
+            if public_episode_id:
+                seen_counts[public_episode_id] = (
+                    seen_counts.get(public_episode_id, 0) + 1
+                )
             if order and public_episode_id:
                 lookup[(public_story_id, order)] = public_episode_id
+
+    duplicates = sorted(value for value, count in seen_counts.items() if count > 1)
+    if duplicates:
+        return None, [
+            f"{path}: registry内でpublicEpisodeId '{value}' が重複しています"
+            for value in duplicates
+        ]
+
     return lookup, []
 
 

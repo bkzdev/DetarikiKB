@@ -129,6 +129,11 @@ from check_evidence_index_promotion import (  # noqa: E402
     _collect_yaml_paths,
     _load_yaml_documents,
 )
+from check_public_episode_ids import (  # noqa: E402
+    DEFAULT_REGISTRY_SCHEMA_PATH,
+    _group_entries_by_internal_story,
+    _resolve_registry_lookup,
+)
 
 # `Evidence_Index_Public_ID_Policy.md` §6.5 evidenceType prefix mapping。
 EVIDENCE_TYPE_PREFIXES: dict[str, str] = {
@@ -172,6 +177,11 @@ MAPPING_FIELDNAMES = [
     "evidenceType",
     "sceneId",
     "blockId",
+    "episodeOrder",
+    "publicEpisodeIdSource",
+    "registryMatched",
+    "registryConflict",
+    "registryPublicEpisodeId",
 ]
 
 
@@ -241,6 +251,24 @@ def parse_args() -> argparse.Namespace:
             "policy対象外のevidenceType (stage_direction等) を持つentryが"
             "入力に含まれている場合、blocking errorにする "
             "(既定では警告なしでpublicEvidenceIdを付与せず素通しする)"
+        ),
+    )
+    parser.add_argument(
+        "--registry",
+        default=None,
+        help=(
+            "Public ID Registry YAMLのパス (任意、"
+            "scripts/check_public_episode_ids.pyと同じschema/lookup方針)。"
+            "指定すると、publicStoryId+episodeOrderで引けるentryについて、"
+            "欠落しているpublicEpisodeIdをRegistryの値で補完する"
+        ),
+    )
+    parser.add_argument(
+        "--registry-schema",
+        default=str(DEFAULT_REGISTRY_SCHEMA_PATH),
+        help=(
+            "public_id_registry.schema.jsonのパス "
+            f"(デフォルト: {DEFAULT_REGISTRY_SCHEMA_PATH})"
         ),
     )
     parser.add_argument(
@@ -510,17 +538,300 @@ def _write_projected_documents(
 
 
 def _write_mapping_csv(
-    mapping_output_path: Path, raw_documents: list[tuple[Path, dict[str, Any]]]
+    mapping_output_path: Path,
+    raw_documents: list[tuple[Path, dict[str, Any]]],
+    *,
+    meta_by_entry_id: dict[int, dict[str, Any]] | None = None,
 ) -> None:
+    meta_by_entry_id = meta_by_entry_id or {}
     mapping_output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(mapping_output_path, "w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=MAPPING_FIELDNAMES)
         writer.writeheader()
         for _, raw in raw_documents:
             for entry in raw.get("entries", []) or []:
-                writer.writerow(
-                    {key: entry.get(key, "") or "" for key in MAPPING_FIELDNAMES}
+                row = {key: entry.get(key, "") or "" for key in MAPPING_FIELDNAMES}
+                meta = meta_by_entry_id.get(id(entry), {})
+                episode_order = meta.get("episodeOrder")
+                row["episodeOrder"] = episode_order if episode_order is not None else ""
+                row["publicEpisodeIdSource"] = meta.get("source", "")
+                row["registryMatched"] = meta.get("source") == "registry"
+                row["registryConflict"] = bool(meta.get("registryConflict", False))
+                row["registryPublicEpisodeId"] = (
+                    meta.get("registryPublicEpisodeId") or ""
                 )
+                writer.writerow(row)
+
+
+# ----------------------------------------------------------------
+# Public ID Registry integration (`evidence-index-public-id-registry-
+# integration`、`docs/architecture/06_AI/Public_ID_Registry_Design.md`)
+# ----------------------------------------------------------------
+
+
+def _group_episode_entries_by_order(
+    entries: list[dict[str, Any]],
+) -> dict[int, list[dict[str, Any]]]:
+    """story group内のentryを、内部episodeIdの出現順(1始まり)でグルーピングする。"""
+    episode_order: dict[str, int] = {}
+    episode_entries: dict[int, list[dict[str, Any]]] = {}
+    for entry in entries:
+        episode_id = entry.get("episodeId")
+        if not episode_id:
+            continue
+        if episode_id not in episode_order:
+            episode_order[episode_id] = len(episode_order) + 1
+            episode_entries[episode_order[episode_id]] = []
+        episode_entries[episode_order[episode_id]].append(entry)
+    return episode_entries
+
+
+def _resolve_existing_public_episode_id(
+    *,
+    label: str,
+    order_number: int,
+    existing_value: str,
+    registry_value: str | None,
+    registry_lookup_given: bool,
+) -> dict[str, Any]:
+    """既存`publicEpisodeId`を持つepisodeについて、Registry値との整合性を
+    確認する。戻り値: {"issues": [...], "warnings": [...], "conflict": bool}。
+    """
+    conflict = bool(registry_value) and registry_value != existing_value
+    if conflict:
+        return {
+            "issues": [
+                f"{label}: episodeOrder {order_number} の既存publicEpisodeId "
+                f"'{existing_value}' がRegistry値 '{registry_value}' と"
+                "一致しません"
+            ],
+            "warnings": [],
+            "conflict": True,
+        }
+    if registry_lookup_given and not registry_value:
+        return {
+            "issues": [],
+            "warnings": [
+                f"{label}: episodeOrder {order_number} は既存publicEpisodeId "
+                f"'{existing_value}' を使用していますが、Registryには"
+                "対応するentryがありません"
+            ],
+            "conflict": False,
+        }
+    return {"issues": [], "warnings": [], "conflict": False}
+
+
+def _process_episode_group(
+    *,
+    label: str,
+    order_number: int,
+    group_entries: list[dict[str, Any]],
+    resolved_public_story_id: str | None,
+    registry_lookup: dict[tuple[str, int], str] | None,
+) -> dict[str, Any]:
+    """1 episode分のentry群について、Registry補完・conflict検出を行う
+    (entryはregistry補完時のみin-placeで更新する)。
+
+    戻り値: {"issues": [...], "warnings": [...], "completed": int,
+    "metaByEntryId": {...}}（このepisode分のみ）。
+    """
+    existing_values = {
+        entry.get("publicEpisodeId")
+        for entry in group_entries
+        if entry.get("publicEpisodeId")
+    }
+
+    if len(existing_values) > 1:
+        meta = {
+            id(entry): {
+                "source": "input",
+                "episodeOrder": order_number,
+                "registryPublicEpisodeId": None,
+                "registryConflict": False,
+            }
+            for entry in group_entries
+        }
+        return {
+            "issues": [
+                f"{label}: episodeOrder {order_number} に複数の異なる"
+                "publicEpisodeIdが混在しています (要review)"
+            ],
+            "warnings": [],
+            "completed": 0,
+            "metaByEntryId": meta,
+        }
+
+    existing_value = next(iter(existing_values)) if existing_values else None
+    registry_value = (
+        registry_lookup.get((resolved_public_story_id, order_number))
+        if registry_lookup is not None and resolved_public_story_id
+        else None
+    )
+
+    if existing_value:
+        resolution = _resolve_existing_public_episode_id(
+            label=label,
+            order_number=order_number,
+            existing_value=existing_value,
+            registry_value=registry_value,
+            registry_lookup_given=registry_lookup is not None,
+        )
+        meta = {
+            id(entry): {
+                "source": "input",
+                "episodeOrder": order_number,
+                "registryPublicEpisodeId": registry_value,
+                "registryConflict": resolution["conflict"],
+            }
+            for entry in group_entries
+        }
+        return {
+            "issues": resolution["issues"],
+            "warnings": resolution["warnings"],
+            "completed": 0,
+            "metaByEntryId": meta,
+        }
+
+    if registry_value:
+        for entry in group_entries:
+            entry["publicEpisodeId"] = registry_value
+        meta = {
+            id(entry): {
+                "source": "registry",
+                "episodeOrder": order_number,
+                "registryPublicEpisodeId": registry_value,
+                "registryConflict": False,
+            }
+            for entry in group_entries
+        }
+        return {
+            "issues": [],
+            "warnings": [],
+            "completed": len(group_entries),
+            "metaByEntryId": meta,
+        }
+
+    meta = {
+        id(entry): {
+            "source": "missing",
+            "episodeOrder": order_number,
+            "registryPublicEpisodeId": None,
+            "registryConflict": False,
+        }
+        for entry in group_entries
+    }
+    return {"issues": [], "warnings": [], "completed": 0, "metaByEntryId": meta}
+
+
+def _apply_registry_and_build_metadata(
+    raw_documents: list[tuple[Path, dict[str, Any]]],
+    registry_lookup: dict[tuple[str, int], str] | None,
+) -> dict[str, Any]:
+    """内部storyId単位でepisode grouping/orderを計算し
+    (`scripts/check_public_episode_ids.py`の`_group_entries_by_internal_story`
+    /`_analyze_story_entries`と同じ「内部episodeIdの出現順を1始まりの
+    episodeOrderとする」ロジックを踏襲)、`registry_lookup`が与えられていれば
+    欠落`publicEpisodeId`をentryへ補完する (in-place)。
+
+    Registry補完ルール（`Public_ID_Registry_Design.md` §6.4）:
+    - 既存`publicEpisodeId`がある場合: Registry値と一致すればそのまま、
+      不一致ならblocking issue、Registryに該当が無ければwarning
+    - 既存`publicEpisodeId`が無い場合: Registryに該当があれば補完、
+      無ければ何もしない（欠落のまま。`_check_missing_public_episode_id`側で
+      blockingとして報告される）
+    - 同一内部episodeIdに複数の異なる既存`publicEpisodeId`が混在する場合は
+      常にblocking issue（registry未指定でも検出する）
+
+    `registry_lookup`がNone (`--registry`未指定) でも、mapping/report用に
+    `source`（"input"/"missing"）と`episodeOrder`は常に計算する。
+
+    戻り値: {"issues": [...], "warnings": [...], "completedCount": int,
+    "metaByEntryId": {id(entry): {"source": ..., "episodeOrder": ...,
+    "registryPublicEpisodeId": ..., "registryConflict": ...}}}。
+    """
+    order, groups = _group_entries_by_internal_story(raw_documents)
+    issues: list[str] = []
+    warnings: list[str] = []
+    completed_count = 0
+    meta: dict[int, dict[str, Any]] = {}
+
+    for story_id in order:
+        entries = groups[story_id]
+        public_story_ids = {
+            entry.get("publicStoryId")
+            for entry in entries
+            if entry.get("publicStoryId")
+        }
+        resolved_public_story_id = (
+            next(iter(public_story_ids)) if len(public_story_ids) == 1 else None
+        )
+        label = (
+            f"publicStoryId={resolved_public_story_id}"
+            if resolved_public_story_id
+            else "publicStoryId未確定のstory"
+        )
+
+        episode_entries = _group_episode_entries_by_order(entries)
+        for order_number, group_entries in episode_entries.items():
+            episode_result = _process_episode_group(
+                label=label,
+                order_number=order_number,
+                group_entries=group_entries,
+                resolved_public_story_id=resolved_public_story_id,
+                registry_lookup=registry_lookup,
+            )
+            issues.extend(episode_result["issues"])
+            warnings.extend(episode_result["warnings"])
+            completed_count += episode_result["completed"]
+            meta.update(episode_result["metaByEntryId"])
+
+    return {
+        "issues": issues,
+        "warnings": warnings,
+        "completedCount": completed_count,
+        "metaByEntryId": meta,
+    }
+
+
+def _run_registry_step(
+    args: argparse.Namespace, raw_documents: list[tuple[Path, dict[str, Any]]]
+) -> tuple[dict[str, Any] | None, int | None]:
+    """`--registry`のlookup解決・補完・report用集計をまとめて行う。
+
+    `--registry`未指定でも、mapping/report用のepisode grouping/
+    source集計 ("input"/"missing") は常に行う。
+
+    戻り値: (registry_step, exit_code)。exit_codeが非Noneならmain()は
+    それをそのまま返す (registry_stepはこのときNone)。
+    """
+    registry_lookup, error_code = _resolve_registry_lookup(args)
+    if error_code is not None:
+        return None, error_code
+
+    completion = _apply_registry_and_build_metadata(raw_documents, registry_lookup)
+    meta_values = list(completion["metaByEntryId"].values())
+
+    report_fields = {
+        "registryPath": str(args.registry) if args.registry else None,
+        "registryStoriesCount": len({key[0] for key in (registry_lookup or {})}),
+        "registryEpisodesCount": len(registry_lookup or {}),
+        "registryCompletedCount": completion["completedCount"],
+        "entriesFromInputCount": sum(1 for m in meta_values if m["source"] == "input"),
+        "entriesFromRegistryCount": sum(
+            1 for m in meta_values if m["source"] == "registry"
+        ),
+        "entriesMissingAfterRegistryCount": sum(
+            1 for m in meta_values if m["source"] == "missing"
+        ),
+        "registryConflictCount": sum(1 for m in meta_values if m["registryConflict"]),
+    }
+
+    return {
+        "reportFields": report_fields,
+        "issues": completion["issues"],
+        "warnings": completion["warnings"],
+        "metaByEntryId": completion["metaByEntryId"],
+    }, None
 
 
 # ----------------------------------------------------------------
@@ -881,6 +1192,38 @@ def _report_issues_lines(report: dict[str, Any]) -> list[str]:
     return lines
 
 
+def _report_warnings_lines(report: dict[str, Any]) -> list[str]:
+    lines = ["## Warnings", ""]
+    if report["warnings"]:
+        for warning in report["warnings"]:
+            lines.append(f"- {warning}")
+    else:
+        lines.append("- (none)")
+    lines.append("")
+    return lines
+
+
+def _report_registry_lines(report: dict[str, Any]) -> list[str]:
+    lines = ["## Registry", ""]
+    lines.append(f"- Registry path: {report['registryPath'] or '(none)'}")
+    lines.append(f"- Registry stories count: {report['registryStoriesCount']}")
+    lines.append(f"- Registry episodes count: {report['registryEpisodesCount']}")
+    lines.append(
+        f"- Entries with publicEpisodeId from input: {report['entriesFromInputCount']}"
+    )
+    lines.append(
+        "- Entries with publicEpisodeId from registry: "
+        f"{report['entriesFromRegistryCount']}"
+    )
+    lines.append(
+        "- Missing publicEpisodeId after registry lookup: "
+        f"{report['entriesMissingAfterRegistryCount']}"
+    )
+    lines.append(f"- Registry conflicts: {report['registryConflictCount']}")
+    lines.append("")
+    return lines
+
+
 def _report_public_safe_lines(report: dict[str, Any]) -> list[str]:
     lines = ["## Public-safe Projection", ""]
     lines.append("- Output filename policy: publicStoryId-based ({publicStoryId}.yaml)")
@@ -912,9 +1255,11 @@ def _build_report_lines(report: dict[str, Any]) -> list[str]:
     lines.extend(_report_summary_lines(report))
     lines.extend(_report_entries_by_type_lines(report))
     lines.extend(_report_projection_result_lines(report))
+    lines.extend(_report_registry_lines(report))
     if is_public_safe:
         lines.extend(_report_public_safe_lines(report))
     lines.extend(_report_issues_lines(report))
+    lines.extend(_report_warnings_lines(report))
     lines.append("## Final Decision")
     lines.append("")
     lines.append(f"- {'PASS' if report['passed'] else 'FAIL'}")
@@ -952,6 +1297,14 @@ def _build_report_lines(report: dict[str, Any]) -> list[str]:
         "must never be committed (Internal Review Evidence Packet candidate, "
         "not yet implemented)."
     )
+    if report["registryPath"]:
+        lines.append(
+            "- Registry completion only reuses publicEpisodeId values that a "
+            "human has already reviewed and recorded in the Public ID Registry "
+            "(docs/architecture/06_AI/Public_ID_Registry_Design.md); this "
+            "script never invents new publicEpisodeId values from the registry "
+            "step."
+        )
     lines.append("")
     return lines
 
@@ -975,10 +1328,19 @@ def _print_summary(report: dict[str, Any], *, quiet: bool) -> None:
             f"internal_id_exposure={report['internalIdExposureCount']} "
             f"promotion_readiness={report['promotionReadiness']}"
         )
+    if report["registryPath"]:
+        print(
+            f"[projection] registry={report['registryPath']} "
+            f"completed={report['registryCompletedCount']} "
+            f"conflicts={report['registryConflictCount']} "
+            f"missing_after_registry={report['entriesMissingAfterRegistryCount']}"
+        )
     if report["issues"]:
         print(f"[エラー] {len(report['issues'])}件のissueがあります:", file=sys.stderr)
         for issue in report["issues"]:
             print(f"  - {issue}", file=sys.stderr)
+    for warning in report["warnings"]:
+        print(f"[警告] {warning}")
     print(f"[projection] 結果: {'PASS' if report['passed'] else 'FAIL'}")
 
 
@@ -987,15 +1349,19 @@ def _print_summary(report: dict[str, Any], *, quiet: bool) -> None:
 # ----------------------------------------------------------------
 
 
-def main() -> int:
-    args = parse_args()
-
+def _prepare_main_inputs(
+    args: argparse.Namespace,
+) -> tuple[dict[str, Any] | None, int | None]:
+    """schema読み込み・`--input`パス収集・出力先安全確認・`--input`の
+    schema検証をまとめて行う。戻り値: (context, exit_code)。エラー時は
+    contextがNone (エラーメッセージはこのヘルパー内で出力済み)。
+    """
     schema_path = Path(args.schema)
     if not schema_path.exists():
         print(
             f"[エラー] schemaファイルが見つかりません: {schema_path}", file=sys.stderr
         )
-        return 2
+        return None, 2
     with open(schema_path, encoding="utf-8") as f:
         schema = json.load(f)
 
@@ -1003,7 +1369,7 @@ def main() -> int:
     yaml_paths = _collect_yaml_paths(input_path)
     if yaml_paths is None:
         print(f"[エラー] --inputパスが見つかりません: {input_path}", file=sys.stderr)
-        return 2
+        return None, 2
 
     output_dir = Path(args.output)
     mapping_output_path = Path(args.mapping_output)
@@ -1019,19 +1385,50 @@ def main() -> int:
                 f"指定できません: {path}",
                 file=sys.stderr,
             )
-            return 2
+            return None, 2
 
     raw_documents, schema_errors = _load_yaml_documents(yaml_paths, schema)
     if schema_errors:
         print("[エラー] 入力のschema検証に失敗しました:", file=sys.stderr)
         for issue in schema_errors:
             print(f"  - {issue}", file=sys.stderr)
-        return 2
+        return None, 2
+
+    return {
+        "schema": schema,
+        "input_path": input_path,
+        "output_dir": output_dir,
+        "mapping_output_path": mapping_output_path,
+        "report_path": report_path,
+        "raw_documents": raw_documents,
+    }, None
+
+
+def main() -> int:
+    args = parse_args()
+
+    context, error_code = _prepare_main_inputs(args)
+    if error_code is not None:
+        return error_code
+
+    schema = context["schema"]
+    input_path = context["input_path"]
+    output_dir = context["output_dir"]
+    mapping_output_path = context["mapping_output_path"]
+    report_path = context["report_path"]
+    raw_documents = context["raw_documents"]
+
+    registry_step, registry_error_code = _run_registry_step(args, raw_documents)
+    if registry_error_code is not None:
+        return registry_error_code
 
     policy_types = POLICIES[args.policy]
     result = _project_documents(
         raw_documents, schema, policy_types=policy_types, strict=args.strict
     )
+    result["issues"] = registry_step["issues"] + result["issues"]
+    result["warnings"] = registry_step["warnings"]
+    result["passed"] = not result["issues"]
 
     if args.projection_mode == PROJECTION_MODE_PUBLIC_SAFE:
         written_paths = _run_public_safe_projection(
@@ -1047,7 +1444,11 @@ def main() -> int:
             output_dir, raw_documents, clean=args.clean
         )
 
-    _write_mapping_csv(mapping_output_path, raw_documents)
+    _write_mapping_csv(
+        mapping_output_path,
+        raw_documents,
+        meta_by_entry_id=registry_step["metaByEntryId"],
+    )
 
     report = {
         "input": str(input_path),
@@ -1055,6 +1456,7 @@ def main() -> int:
         "mappingOutput": str(mapping_output_path),
         "projectionMode": args.projection_mode,
         "policy": args.policy,
+        **registry_step["reportFields"],
         **result,
     }
 

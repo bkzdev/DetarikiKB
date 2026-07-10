@@ -1094,3 +1094,397 @@ def test_compatible_mode_is_default_projection_mode(tmp_path):
     entries = _read_output_entries(output_dir, "input.yaml")
     assert entries[0]["evidenceId"] == "EVT_A_E01_DLG0001"
     assert entries[0]["storyId"] == "EVT_TEST_A"
+
+
+# ----------------------------------------------------------------
+# --registry: Public ID Registry integration
+# ----------------------------------------------------------------
+
+
+def _write_registry(path: Path, stories: list[dict]) -> Path:
+    return _write(path, {"registryVersion": 1, "stories": stories})
+
+
+def _registry_story(public_story_id: str, episodes: list[dict], **overrides) -> dict:
+    story = {
+        "publicStoryId": public_story_id,
+        "category": "event",
+        "episodes": episodes,
+    }
+    story.update(overrides)
+    return story
+
+
+def _two_episode_entries(*, second_public_episode_id: str | None = None) -> list[dict]:
+    return [
+        _entry(evidenceId="EVT_TEST_A_E01_DLG0001"),
+        _entry(
+            evidenceId="EVT_TEST_A_E02_DLG0001",
+            episodeId="EVT_TEST_A_E02",
+            publicEpisodeId=second_public_episode_id,
+        ),
+    ]
+
+
+def test_registry_completes_missing_public_episode_id(tmp_path):
+    entries = _two_episode_entries(second_public_episode_id=None)
+    input_path = _write(tmp_path / "input.yaml", _document(entries))
+    registry_path = _write_registry(
+        tmp_path / "registry.yaml",
+        [
+            _registry_story(
+                "PUB_TEST_A",
+                [
+                    {"publicEpisodeId": "PUB_TEST_A_E01", "episodeOrder": 1},
+                    {"publicEpisodeId": "PUB_TEST_A_E02", "episodeOrder": 2},
+                ],
+            )
+        ],
+    )
+    output_dir = tmp_path / "output"
+    result = _run_cli(
+        *_base_args(tmp_path, input_path=input_path, output_dir=output_dir),
+        "--registry",
+        str(registry_path),
+    )
+    assert result.returncode == 0, result.stderr
+    entries_out = _read_output_entries(output_dir, "input.yaml")
+    assert entries_out[1]["publicEpisodeId"] == "PUB_TEST_A_E02"
+
+
+def test_registry_completion_generates_public_evidence_id_with_new_prefix(tmp_path):
+    entries = _two_episode_entries(second_public_episode_id=None)
+    input_path = _write(tmp_path / "input.yaml", _document(entries))
+    registry_path = _write_registry(
+        tmp_path / "registry.yaml",
+        [
+            _registry_story(
+                "PUB_TEST_A",
+                [
+                    {"publicEpisodeId": "PUB_TEST_A_E01", "episodeOrder": 1},
+                    {"publicEpisodeId": "PUB_TEST_A_E02", "episodeOrder": 2},
+                ],
+            )
+        ],
+    )
+    output_dir = tmp_path / "output"
+    result = _run_cli(
+        *_base_args(tmp_path, input_path=input_path, output_dir=output_dir),
+        "--registry",
+        str(registry_path),
+    )
+    assert result.returncode == 0, result.stderr
+    entries_out = _read_output_entries(output_dir, "input.yaml")
+    assert entries_out[1]["publicEvidenceId"] == "PUB_TEST_A_E02_DLG0001"
+
+
+def test_registry_completion_public_safe_mode_passes_schema_validation(tmp_path):
+    entries = _two_episode_entries(second_public_episode_id=None)
+    input_path = _write(tmp_path / "input.yaml", _document(entries))
+    registry_path = _write_registry(
+        tmp_path / "registry.yaml",
+        [
+            _registry_story(
+                "PUB_TEST_A",
+                [
+                    {"publicEpisodeId": "PUB_TEST_A_E01", "episodeOrder": 1},
+                    {"publicEpisodeId": "PUB_TEST_A_E02", "episodeOrder": 2},
+                ],
+            )
+        ],
+    )
+    output_dir = tmp_path / "output"
+    result = _run_cli(
+        *_base_args(
+            tmp_path,
+            input_path=input_path,
+            output_dir=output_dir,
+            extra=["--projection-mode", "public-safe"],
+        ),
+        "--registry",
+        str(registry_path),
+    )
+    assert result.returncode == 0, result.stderr
+
+    import json
+
+    from jsonschema import Draft7Validator
+
+    schema_path = PROJECT_ROOT / "schemas" / "evidence_index.schema.json"
+    with open(schema_path, encoding="utf-8") as f:
+        schema = json.load(f)
+    with open(output_dir / "PUB_TEST_A.yaml", encoding="utf-8") as f:
+        projected = yaml.safe_load(f)
+    errors = list(Draft7Validator(schema).iter_errors(projected))
+    assert errors == []
+    assert len(projected["entries"]) == 2
+
+
+def test_registry_completion_works_in_compatible_mode(tmp_path):
+    entries = _two_episode_entries(second_public_episode_id=None)
+    input_path = _write(tmp_path / "input.yaml", _document(entries))
+    registry_path = _write_registry(
+        tmp_path / "registry.yaml",
+        [
+            _registry_story(
+                "PUB_TEST_A",
+                [
+                    {"publicEpisodeId": "PUB_TEST_A_E01", "episodeOrder": 1},
+                    {"publicEpisodeId": "PUB_TEST_A_E02", "episodeOrder": 2},
+                ],
+            )
+        ],
+    )
+    output_dir = tmp_path / "output"
+    result = _run_cli(
+        *_base_args(
+            tmp_path,
+            input_path=input_path,
+            output_dir=output_dir,
+            extra=["--projection-mode", "compatible"],
+        ),
+        "--registry",
+        str(registry_path),
+    )
+    assert result.returncode == 0, result.stderr
+    entries_out = _read_output_entries(output_dir, "input.yaml")
+    assert entries_out[1]["episodeId"] == "EVT_TEST_A_E02"
+    assert entries_out[1]["publicEpisodeId"] == "PUB_TEST_A_E02"
+    report_text = (tmp_path / "report.md").read_text(encoding="utf-8")
+    assert "NOT promotion-ready" in report_text
+
+
+def test_registry_mismatch_with_existing_public_episode_id_fails(tmp_path):
+    entries = _two_episode_entries(second_public_episode_id="PUB_TEST_A_E02")
+    input_path = _write(tmp_path / "input.yaml", _document(entries))
+    registry_path = _write_registry(
+        tmp_path / "registry.yaml",
+        [
+            _registry_story(
+                "PUB_TEST_A",
+                [
+                    {"publicEpisodeId": "PUB_TEST_A_E01", "episodeOrder": 1},
+                    {"publicEpisodeId": "PUB_TEST_A_E02_DIFFERENT", "episodeOrder": 2},
+                ],
+            )
+        ],
+    )
+    result = _run_cli(
+        *_base_args(tmp_path, input_path=input_path),
+        "--registry",
+        str(registry_path),
+    )
+    assert result.returncode == 1, result.stdout
+    report_text = (tmp_path / "report.md").read_text(encoding="utf-8")
+    assert "一致しません" in report_text
+    assert "Registry conflicts: 1" in report_text
+
+
+def test_missing_public_episode_id_not_in_registry_still_fails(tmp_path):
+    entries = _two_episode_entries(second_public_episode_id=None)
+    input_path = _write(tmp_path / "input.yaml", _document(entries))
+    registry_path = _write_registry(
+        tmp_path / "registry.yaml",
+        [
+            _registry_story(
+                "PUB_TEST_A",
+                [{"publicEpisodeId": "PUB_TEST_A_E01", "episodeOrder": 1}],
+            )
+        ],
+    )
+    result = _run_cli(
+        *_base_args(tmp_path, input_path=input_path),
+        "--registry",
+        str(registry_path),
+    )
+    assert result.returncode == 1, result.stdout
+    report_text = (tmp_path / "report.md").read_text(encoding="utf-8")
+    assert "Missing publicEpisodeId count: 1" in report_text
+    assert "Entries with publicEpisodeId from registry: 0" in report_text
+
+
+def test_invalid_registry_schema_returns_exit_2(tmp_path):
+    registry_path = tmp_path / "registry.yaml"
+    with open(registry_path, "w", encoding="utf-8") as f:
+        yaml.safe_dump({"registryVersion": 1, "stories": [{"invalidField": True}]}, f)
+    input_path = _write(tmp_path / "input.yaml", _document())
+    result = _run_cli(
+        *_base_args(tmp_path, input_path=input_path),
+        "--registry",
+        str(registry_path),
+    )
+    assert result.returncode == 2, result.stdout
+
+
+def test_registry_with_source_key_like_extra_field_fails_schema(tmp_path):
+    registry_path = tmp_path / "registry.yaml"
+    with open(registry_path, "w", encoding="utf-8") as f:
+        yaml.safe_dump(
+            {
+                "registryVersion": 1,
+                "stories": [
+                    {
+                        "publicStoryId": "PUB_TEST_A",
+                        "category": "event",
+                        "sourceKey": "not_allowed",
+                        "episodes": [
+                            {"publicEpisodeId": "PUB_TEST_A_E01", "episodeOrder": 1}
+                        ],
+                    }
+                ],
+            },
+            f,
+        )
+    input_path = _write(tmp_path / "input.yaml", _document())
+    result = _run_cli(
+        *_base_args(tmp_path, input_path=input_path),
+        "--registry",
+        str(registry_path),
+    )
+    assert result.returncode == 2, result.stdout
+
+
+def test_duplicate_public_episode_id_within_registry_fails(tmp_path):
+    registry_path = _write_registry(
+        tmp_path / "registry.yaml",
+        [
+            _registry_story(
+                "PUB_TEST_A",
+                [
+                    {"publicEpisodeId": "PUB_TEST_A_E01", "episodeOrder": 1},
+                    {"publicEpisodeId": "PUB_TEST_A_E01", "episodeOrder": 2},
+                ],
+            )
+        ],
+    )
+    input_path = _write(tmp_path / "input.yaml", _document())
+    result = _run_cli(
+        *_base_args(tmp_path, input_path=input_path),
+        "--registry",
+        str(registry_path),
+    )
+    assert result.returncode == 2, result.stdout
+
+
+def test_mapping_output_shows_registry_source(tmp_path):
+    entries = _two_episode_entries(second_public_episode_id=None)
+    input_path = _write(tmp_path / "input.yaml", _document(entries))
+    registry_path = _write_registry(
+        tmp_path / "registry.yaml",
+        [
+            _registry_story(
+                "PUB_TEST_A",
+                [
+                    {"publicEpisodeId": "PUB_TEST_A_E01", "episodeOrder": 1},
+                    {"publicEpisodeId": "PUB_TEST_A_E02", "episodeOrder": 2},
+                ],
+            )
+        ],
+    )
+    mapping_output = tmp_path / "mapping.csv"
+    result = _run_cli(
+        *_base_args(tmp_path, input_path=input_path, mapping_output=mapping_output),
+        "--registry",
+        str(registry_path),
+    )
+    assert result.returncode == 0, result.stderr
+    with open(mapping_output, encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    assert rows[0]["publicEpisodeIdSource"] == "input"
+    assert rows[1]["publicEpisodeIdSource"] == "registry"
+    assert rows[1]["registryMatched"] == "True"
+    assert rows[1]["registryPublicEpisodeId"] == "PUB_TEST_A_E02"
+
+
+def test_report_contains_registry_summary(tmp_path):
+    entries = _two_episode_entries(second_public_episode_id=None)
+    input_path = _write(tmp_path / "input.yaml", _document(entries))
+    registry_path = _write_registry(
+        tmp_path / "registry.yaml",
+        [
+            _registry_story(
+                "PUB_TEST_A",
+                [
+                    {"publicEpisodeId": "PUB_TEST_A_E01", "episodeOrder": 1},
+                    {"publicEpisodeId": "PUB_TEST_A_E02", "episodeOrder": 2},
+                ],
+            )
+        ],
+    )
+    result = _run_cli(
+        *_base_args(tmp_path, input_path=input_path),
+        "--registry",
+        str(registry_path),
+    )
+    assert result.returncode == 0, result.stderr
+    report_text = (tmp_path / "report.md").read_text(encoding="utf-8")
+    assert "## Registry" in report_text
+    assert "Registry stories count: 1" in report_text
+    assert "Registry episodes count: 2" in report_text
+    assert "Entries with publicEpisodeId from registry: 1" in report_text
+
+
+def test_existing_public_episode_id_matching_registry_passes(tmp_path):
+    entries = _two_episode_entries(second_public_episode_id="PUB_TEST_A_E02")
+    input_path = _write(tmp_path / "input.yaml", _document(entries))
+    registry_path = _write_registry(
+        tmp_path / "registry.yaml",
+        [
+            _registry_story(
+                "PUB_TEST_A",
+                [
+                    {"publicEpisodeId": "PUB_TEST_A_E01", "episodeOrder": 1},
+                    {"publicEpisodeId": "PUB_TEST_A_E02", "episodeOrder": 2},
+                ],
+            )
+        ],
+    )
+    result = _run_cli(
+        *_base_args(tmp_path, input_path=input_path),
+        "--registry",
+        str(registry_path),
+    )
+    assert result.returncode == 0, result.stderr
+    report_text = (tmp_path / "report.md").read_text(encoding="utf-8")
+    assert "Registry conflicts: 0" in report_text
+
+
+def test_existing_public_episode_id_missing_from_registry_warns_but_passes(tmp_path):
+    entries = _two_episode_entries(second_public_episode_id="PUB_TEST_A_E02")
+    input_path = _write(tmp_path / "input.yaml", _document(entries))
+    registry_path = _write_registry(
+        tmp_path / "registry.yaml",
+        [
+            _registry_story(
+                "PUB_TEST_A", [{"publicEpisodeId": "PUB_TEST_A_E02", "episodeOrder": 2}]
+            )
+        ],
+    )
+    result = _run_cli(
+        *_base_args(tmp_path, input_path=input_path),
+        "--registry",
+        str(registry_path),
+    )
+    assert result.returncode == 0, result.stderr
+    report_text = (tmp_path / "report.md").read_text(encoding="utf-8")
+    assert "Registryには" in report_text
+    assert "## Warnings" in report_text
+    assert "(none)" not in report_text.split("## Warnings")[1].split("##")[0]
+
+
+def test_missing_registry_path_returns_exit_2(tmp_path):
+    input_path = _write(tmp_path / "input.yaml", _document())
+    result = _run_cli(
+        *_base_args(tmp_path, input_path=input_path),
+        "--registry",
+        str(tmp_path / "does_not_exist.yaml"),
+    )
+    assert result.returncode == 2, result.stdout
+
+
+def test_no_registry_still_reports_registry_section_as_unused(tmp_path):
+    input_path = _write(tmp_path / "input.yaml", _document())
+    result = _run_cli(*_base_args(tmp_path, input_path=input_path))
+    assert result.returncode == 0, result.stderr
+    report_text = (tmp_path / "report.md").read_text(encoding="utf-8")
+    assert "Registry path: (none)" in report_text

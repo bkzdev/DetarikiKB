@@ -141,12 +141,27 @@ schema自体が`additionalProperties: false`を全階層で指定しているた
 - `scripts/check_public_episode_ids.py`（assignment候補提案script、§7）
 - `tests/scripts/test_check_public_episode_ids.py`（16件）
 
-## 6.2 実装しなかったもの
+## 6.2 実装しなかったもの（`evidence-index-public-episode-id-assignment`時点）
 
 - 実Registryファイルへの実データ追加（`knowledge/public_ids/`は本PRでは作成しない。作成する場合も`.gitkeep`のみに留める運用を次PR以降で検討する）
 - `scripts/project_evidence_index_public_ids.py`本体の変更（`--projection-mode public-safe`の`publicEpisodeId`欠落blocking挙動はPR #95のまま維持する）
 - Registryを`project_evidence_index_public_ids.py`の入力として直接使う統合（次PR候補`evidence-index-public-id-registry-integration`、§9）
 - `story_manifest.yaml`の実データ変更・自動生成
+
+## 6.3 Registry統合実装（`feature/evidence-index-public-id-registry-integration`で実施）
+
+6.2で次PR候補としていたRegistry統合を実装した。`scripts/project_evidence_index_public_ids.py`に`--registry`/`--registry-schema`を追加し、`scripts/check_public_episode_ids.py`の`_resolve_registry_lookup`/`_group_entries_by_internal_story`をそのままimportして再利用することで、Registry schema検証・episode grouping/orderロジックの両script間の一貫性を保証した（§11参照）。
+
+- 入力entryのepisodeOrder（内部episodeIdの出現順、1始まり）を常に計算し、`publicStoryId + episodeOrder`でRegistryを引く。episodeOrderを安全に決定できない場合（`publicStoryId`が複数混在・欠落）はRegistry補完を試みず、既存のmissing publicStoryIdチェックにblockingとして委ねる
+- 既存`publicEpisodeId`がある場合: Registry値と一致すればそのまま、不一致ならblocking、Registryに該当が無ければwarning（PASSは維持）
+- 既存`publicEpisodeId`が無い場合: Registryに該当があれば補完（entryを直接書き換え）、無ければ引き続きblocking（自動採番はしない）
+- Registry補完後に`publicEvidenceId`を生成するため、補完されたepisodeのentryは新しい`publicEpisodeId`をprefixにした`publicEvidenceId`を得る（例: `EVT_260707_001_E02_DLG0001`）
+- compatible modeでもRegistry補完は同様に働く（内部IDは維持したまま`publicEpisodeId`のみ補完し、`publicEvidenceId`を生成する）
+- mapping CSVに`episodeOrder`/`publicEpisodeIdSource`（input/registry/missing）/`registryMatched`/`registryConflict`/`registryPublicEpisodeId`列を追加した（Registry未使用時も`source`はinput/missingとして常に記録する）
+- reportに`## Registry`section（Registry path/stories count/episodes count/entries from input・registry/missing after lookup/conflicts）を追加し、`## Warnings`sectionも新設した
+- `scripts/check_public_episode_ids.py`の`_load_registry`にRegistry内`publicEpisodeId`重複検出を追加した（両scriptで共有するため、`project_evidence_index_public_ids.py`側にも同じ保護が及ぶ）
+- 匿名化実データサンプル（1 story・187 entries）で、Episode 1（92 entries、input由来）+ Episode 2（95 entries、Registry補完）の**全187 entriesがPublic-safe projectionを通過**し、`validate_evidence_index.py`・`check_evidence_index_promotion.py`ともPASS、internal ID exposureは0件であることを確認した（`docs/runbooks/Evidence_Index_Promotion_Copy.md` §13.6）
+- **実Registryへの実データ追加・実Evidence Indexのcommit・renderer変更・実promotion retryはいずれも行っていない**（次候補`evidence-index-public-id-renderer-switch`/`evidence-index-promotion-first-reviewed-sample-retry`）
 
 ---
 
@@ -198,8 +213,12 @@ suggestions:
 - scriptは候補を提案するだけであり、実際の永続化（`story_manifest.yaml`への書き込み、Public ID Registryへの追加）は**常に人間レビュー後**に行う
 - 推測結果を自動で本番反映しない（`reviewRequired: true`固定）
 - `episodeOrder`の根拠（「入力entriesの出現順から推定した1始まりの連番」であり、正式なepisode順の保証ではない）を`reason`に明記する
-- `publicEpisodeId`の衝突（同一値が複数episodeに割り当てられている）はduplicate errorとして必ず検出する
+- `publicEpisodeId`の衝突（同一値が複数episodeに割り当てられている）はduplicate errorとして必ず検出する（registry内の重複は`_load_registry`のロードステップでも検出する、§6.3）
 - 一度publishされた`publicEpisodeId`は変更しない（§2）。`--registry`併用時は、Registryに既存の割当がある場合はその値をそのまま再提案し、勝手に別の値へ採番し直さない
+
+## 7.7 project_evidence_index_public_ids.pyとの整合（§6.3で実装済み）
+
+`scripts/project_evidence_index_public_ids.py`も同じ`--registry`/`--registry-schema`引数・同じRegistry schema・同じepisode grouping/orderロジック（`_group_entries_by_internal_story`をimportして共有）を使う。missing detection・duplicate publicEpisodeId detection・sourceKey/internal IDをreportに出さない方針は両script間で一致させた。suggestion format（`check_public_episode_ids.py`）とmapping/report format（`project_evidence_index_public_ids.py`）は責務が異なるため別形式のまま（前者は「未確定episodeへの候補提案」、後者は「実際にentryへ適用した結果の記録」）。
 
 ---
 
@@ -208,12 +227,14 @@ suggestions:
 - `episodeOrder`の正式な根拠をどう確定するか（本scriptは「入力entriesの出現順」というヒューリスティックのみを使う。`story_manifest.yaml`の`episodeNumber`と必ず一致する保証はまだ無い）
 - episode追加・既存episode順序変更が起きた場合のmigration policy（`publicEpisodeId`の安定性原則との両立）
 - Public ID Registryの実ファイル配置・commitタイミング（`knowledge/public_ids/`を新設するか、既存`knowledge/`配下の別位置にするか）
-- `project_evidence_index_public_ids.py`とRegistryの本格統合方法（`evidence-index-public-id-registry-integration`、§9）
+- ~~`project_evidence_index_public_ids.py`とRegistryの本格統合方法~~ → **`feature/evidence-index-public-id-registry-integration`で実装済み**（§6.3・§7.7参照）。ただし実Registryファイルの配置・commitタイミング自体は引き続き未確定
 - Registry自体の更新運用（人間が直接編集するか、`story_manifest.yaml`から半自動生成するcopy scriptを用意するか）
 
 ---
 
-# 9. Non-goals（本PRで行わないこと）
+# 9. Non-goals
+
+`evidence-index-public-episode-id-assignment`時点でのNon-goals:
 
 - 実Evidence Indexのcommit・`knowledge/evidence/stories/`への実データ昇格
 - `promote_evidence_index.py --execute`の実行、実promotion retry
@@ -221,16 +242,21 @@ suggestions:
 - `publicEpisodeId`の自動補完・本番反映
 - `story_manifest.yaml`の実データ変更
 - 実Public ID Registryへの実データ追加
-- `scripts/project_evidence_index_public_ids.py`/`scripts/promote_evidence_index.py`/`scripts/check_evidence_index_promotion.py`/`scripts/build_evidence_index_candidates.py`の変更
+- `scripts/project_evidence_index_public_ids.py`/`scripts/promote_evidence_index.py`/`scripts/check_evidence_index_promotion.py`/`scripts/build_evidence_index_candidates.py`の変更 → **`project_evidence_index_public_ids.py`は`feature/evidence-index-public-id-registry-integration`で`--registry`統合のために変更済み**（§6.3参照、`promote_evidence_index.py`/`check_evidence_index_promotion.py`/`build_evidence_index_candidates.py`は引き続き無変更）
 - `schemas/evidence_index.schema.json`の破壊的変更
 - Internal Review Evidence Packet生成
 
-後続PR候補（`evidence-index-public-id-registry-integration`）:
+`feature/evidence-index-public-id-registry-integration`（本PR）でも以下は行っていない:
 
-- Public ID Registryを`project_evidence_index_public_ids.py`へ入力として渡す
-- 欠落`publicEpisodeId`をRegistryから補う（自動反映ではなく、projection時の参照のみ）
-- 補えない場合は引き続きblocking
-- mapping reportにregistry sourceを記録する
+- 実Evidence Indexのcommit・`knowledge/evidence/stories/`への実データ昇格
+- `promote_evidence_index.py --execute`の実行、実promotion retry
+- renderer/paths.pyの変更（Evidence page見出し・anchor・Summary evidenceRefsリンクの切替）
+- `publicEpisodeId`の自動採番・自動本番反映（Registry補完は常に人間review済みRegistryの値を再利用するのみ）
+- `story_manifest.yaml`の実データ変更
+- 実Public ID Registryへの実データ追加（`workspace/public_episode_ids/sample_registry.yaml`は匿名化workspace限定、commit禁止）
+- `scripts/promote_evidence_index.py`/`scripts/check_evidence_index_promotion.py`/`scripts/build_evidence_index_candidates.py`の変更（`check_public_episode_ids.py`の`_load_registry`にRegistry内重複検出を追加したのみ）
+- `schemas/evidence_index.schema.json`/`schemas/public_id_registry.schema.json`の破壊的変更
+- Internal Review Evidence Packet生成
 
 ---
 
@@ -242,7 +268,8 @@ suggestions:
 - `docs/architecture/05_Parser/Story_ID_Policy_Decision.md`（`publicStoryId`/`publicEpisodeId`のfield naming採用決定、§7）
 - `docs/architecture/05_Parser/Story_Manifest_Design.md`（`story_manifest.yaml`の`publicStoryId`/`publicEpisodeId`実装、§13.2）
 - `docs/architecture/05_Parser/Identifier_Specification.md`（§2.1安定性原則）
-- `docs/runbooks/Evidence_Index_Promotion_Copy.md`（§13.4 Public-safe projection実データdry-run結果）
-- `scripts/check_public_episode_ids.py`（本PRで追加したassignment候補提案script）
+- `docs/runbooks/Evidence_Index_Promotion_Copy.md`（§13.4 Public-safe projection実データdry-run結果、§13.6 Registry統合実データdry-run結果）
+- `scripts/check_public_episode_ids.py`（assignment候補提案script、Registry loader共有元）
+- `scripts/project_evidence_index_public_ids.py`（`--registry`統合先のprojection script）
 - `schemas/public_id_registry.schema.json`（本PRで追加したPublic ID Registry schema）
 - `TASKS.md`（次PR候補の追跡）

@@ -1,0 +1,14 @@
+registryVersion: 1
+stories:
+  - publicStoryId: EVT_TEST_001
+    category: event
+    episodes:
+      - publicEpisodeId: EVT_TEST_001_E01
+        episodeOrder: 1
+      - publicEpisodeId: EVT_TEST_001_E02
+        episodeOrder: 2
+  - publicStoryId: EVT_TEST_002
+    category: event
+    episodes:
+      - publicEpisodeId: EVT_TEST_002_E01
+        episodeOrder: 1
