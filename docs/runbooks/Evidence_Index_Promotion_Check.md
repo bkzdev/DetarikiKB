@@ -202,6 +202,7 @@ PR #87で使用した匿名化済み実データサンプル（EVENTカテゴリ
 - `internal-review-evidence-packet-design`: `stage_direction`等を含むInternal Review Evidence Packetの詳細設計
 - `evidence-index-public-id-public-safe-projection`（実装済み、`scripts/project_evidence_index_public_ids.py --projection-mode public-safe`）: 本checkは、内部ID中心のCompatible projection・公開ID中心のPublic-safe projectionのどちらの出力に対しても実行できる（schema/entry type policyは共通）。ただし本script自体はsourceKey由来ID混入の専用scanを持たない（それはprojection script側のinternal ID exposure scanが担う、`docs/architecture/06_AI/Evidence_Index_Public_ID_Policy.md` §6.9）。この統合（promotion check側でのsourceKey混入scan追加）は未着手のまま
 - `evidence-index-public-id-registry-integration`（実装済み、`scripts/project_evidence_index_public_ids.py --registry`）: Public ID Registryで補完されたPublic-safe projection出力に対しても、本checkは無変更のまま実行できる（Registry補完はprojection script側の責務であり、本checkはprojectionの最終出力を検証するのみ）
+- `evidence-index-public-id-renderer-switch`（実装済み、Evidence page見出し・anchor・Summary evidenceRefsリンクの`publicEvidenceId`中心切替）: 本checkはrenderer出力そのものは検証しない（Evidence Index YAML入力のみを検証する）ため無変更。renderer switch後もpromotion再開の前提条件は`docs/architecture/06_AI/Evidence_Index_Promotion_Policy.md` §5.1を参照
 
 ---
 

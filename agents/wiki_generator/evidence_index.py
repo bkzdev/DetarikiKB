@@ -336,6 +336,38 @@ def build_evidence_id_index(
     return index
 
 
+def build_public_evidence_id_index(
+    collection: EvidenceIndexCollection,
+) -> dict[str, EvidenceIndexEntry]:
+    """publicEvidenceId -> EvidenceIndexEntry の索引を組み立てる
+    (`publicEvidenceId`が設定されているentryのみ、
+    `feature/evidence-index-public-id-renderer-switch`)。
+
+    複数documentにまたがって重複するpublicEvidenceIdがある場合、後勝ちと
+    する（`build_evidence_id_index`と同じ方針。projection script
+    (`scripts/project_evidence_index_public_ids.py`) 側では重複を
+    blocking errorとして検出済みのため、renderer側はここでも安全に
+    フォールバックできるよう単純化する）。
+    """
+    index: dict[str, EvidenceIndexEntry] = {}
+    for document in collection.documents:
+        for entry in document.entries:
+            if entry.public_evidence_id:
+                index[entry.public_evidence_id] = entry
+    return index
+
+
+def display_evidence_id(entry: EvidenceIndexEntry) -> str:
+    """Wiki表示用のevidence IDを解決する。
+
+    `publicEvidenceId`があれば優先し、無ければ既存互換のため
+    `evidenceId`にfallbackする (`Evidence_Index_Public_ID_Policy.md`の
+    renderer switch方針)。Evidence page見出し・anchor・Summary
+    evidenceRefsリンクの表示テキストはすべてこの関数の戻り値を使う。
+    """
+    return entry.public_evidence_id or entry.evidence_id
+
+
 def group_entries_by_story(
     collection: EvidenceIndexCollection,
 ) -> dict[str, list[EvidenceIndexEntry]]:
@@ -392,10 +424,28 @@ def group_entries_by_public_episode(
 class EvidenceIndexLookup:
     """renderer統合で使う索引一式をまとめたコンテナ
     (`agents.wiki_generator.story_summaries.StorySummaryLookup`と同じ
-    パターン、feature/evidence-index-renderer-integration)。"""
+    パターン、feature/evidence-index-renderer-integration)。
+
+    `by_public_evidence_id`は`feature/evidence-index-public-id-renderer-
+    switch`で追加した。Summary `evidenceRefs`は内部`evidenceId`・
+    `publicEvidenceId`のどちらを参照していても`resolve_evidence_entry`
+    経由で解決できる。
+
+    `by_public_story_id`も同PRで追加した。Public-safe projection output
+    では内部`storyId`自体が`publicStoryId`の値へ置換されているため、
+    merged knowledge collection側が保持する内部`storyId`だけでは
+    `by_story_id`が引けなくなる。Story pageのReview Links（Evidence index
+    への導線）は、`by_story_id`で見つからない場合にこの索引へfallback
+    することで、Public-safe/Compatible projectionのどちらの入力でも
+    正しく解決できるようにする。
+    """
 
     by_evidence_id: dict[str, EvidenceIndexEntry] = field(default_factory=dict)
+    by_public_evidence_id: dict[str, EvidenceIndexEntry] = field(default_factory=dict)
     by_story_id: dict[str, list[EvidenceIndexEntry]] = field(default_factory=dict)
+    by_public_story_id: dict[str, list[EvidenceIndexEntry]] = field(
+        default_factory=dict
+    )
 
 
 def build_evidence_index_lookup(
@@ -404,8 +454,46 @@ def build_evidence_index_lookup(
     """`EvidenceIndexCollection`から`EvidenceIndexLookup`を組み立てる。"""
     return EvidenceIndexLookup(
         by_evidence_id=build_evidence_id_index(collection),
+        by_public_evidence_id=build_public_evidence_id_index(collection),
         by_story_id=group_entries_by_story(collection),
+        by_public_story_id=group_entries_by_public_story(collection),
     )
+
+
+def resolve_story_evidence_entries(
+    lookup: EvidenceIndexLookup, story_id: str, public_story_id: str | None
+) -> list[EvidenceIndexEntry] | None:
+    """merged knowledge collection側の`storyId`/`publicStoryId`から、対応する
+    Evidence Index entry群を解決する。
+
+    まず内部`storyId`で`by_story_id`を引き、見つからなければ
+    `public_story_id`が分かっている場合のみ`by_public_story_id`へ
+    フォールバックする（Public-safe projection outputでは内部`storyId`が
+    `publicStoryId`の値へ置換されているため、内部IDのみでは解決できない）。
+    どちらでも見つからなければNone。
+    """
+    entries = lookup.by_story_id.get(story_id)
+    if entries:
+        return entries
+    if public_story_id:
+        return lookup.by_public_story_id.get(public_story_id)
+    return None
+
+
+def resolve_evidence_entry(
+    lookup: EvidenceIndexLookup, ref_id: str
+) -> EvidenceIndexEntry | None:
+    """Summary `evidenceRefs`等が参照する1件のID文字列から、対応する
+    `EvidenceIndexEntry`を解決する。
+
+    `publicEvidenceId`側を先に引き、無ければ内部`evidenceId`側にも
+    フォールバックする（Public-safe projection outputでは`evidenceId`
+    自体が`publicEvidenceId`と同じ値になるため両者は自然に一致するが、
+    Compatible projection outputや旧来の内部`evidenceId`ベースの
+    evidenceRefsもこのfallbackで引き続き解決できる）。どちらにも
+    存在しなければNone (unresolved、呼び出し側でerrorにしない)。
+    """
+    return lookup.by_public_evidence_id.get(ref_id) or lookup.by_evidence_id.get(ref_id)
 
 
 def resolve_group_public_story_id(entries: list[EvidenceIndexEntry]) -> str | None:

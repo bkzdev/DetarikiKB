@@ -25,6 +25,8 @@ from agents.wiki_generator.evidence_index import (
     Visibility,
     build_evidence_id_index,
     build_evidence_index_lookup,
+    build_public_evidence_id_index,
+    display_evidence_id,
     group_entries_by_episode,
     group_entries_by_public_episode,
     group_entries_by_public_story,
@@ -32,7 +34,9 @@ from agents.wiki_generator.evidence_index import (
     load_evidence_index,
     load_evidence_indexes,
     parse_evidence_index_document,
+    resolve_evidence_entry,
     resolve_group_public_story_id,
+    resolve_story_evidence_entries,
     validate_evidence_index_collection,
     validate_evidence_index_document,
 )
@@ -456,3 +460,159 @@ def test_resolve_group_public_story_id_returns_none_when_all_blank():
 
 def test_resolve_group_public_story_id_empty_list_returns_none():
     assert resolve_group_public_story_id([]) is None
+
+
+# ----------------------------------------------------------------
+# display_evidence_id / build_public_evidence_id_index /
+# resolve_evidence_entry (feature/evidence-index-public-id-renderer-switch)
+# ----------------------------------------------------------------
+
+
+def test_display_evidence_id_prefers_public_evidence_id():
+    entry = _entry(
+        evidence_id="INTERNAL_TEST_EVD_001",
+        public_evidence_id="EVT_TEST_001_E01_DLG0001",
+    )
+    assert display_evidence_id(entry) == "EVT_TEST_001_E01_DLG0001"
+
+
+def test_display_evidence_id_falls_back_to_evidence_id_when_public_missing():
+    entry = _entry(evidence_id="INTERNAL_TEST_EVD_001", public_evidence_id=None)
+    assert display_evidence_id(entry) == "INTERNAL_TEST_EVD_001"
+
+
+def test_build_public_evidence_id_index_only_includes_entries_with_public_id():
+    collection = EvidenceIndexCollection(
+        documents=[
+            _document(
+                entries=[
+                    _entry(
+                        evidence_id="EVT_TEST_A_E01_DLG0001",
+                        public_evidence_id="PUB_TEST_A_E01_DLG0001",
+                    ),
+                    _entry(
+                        evidence_id="EVT_TEST_A_E01_DLG0002", public_evidence_id=None
+                    ),
+                ]
+            )
+        ]
+    )
+    index = build_public_evidence_id_index(collection)
+    assert "PUB_TEST_A_E01_DLG0001" in index
+    assert len(index) == 1
+
+
+def test_resolve_evidence_entry_finds_by_public_evidence_id():
+    collection = EvidenceIndexCollection(
+        documents=[
+            _document(
+                entries=[
+                    _entry(
+                        evidence_id="INTERNAL_TEST_EVD_001",
+                        public_evidence_id="EVT_TEST_001_E01_DLG0001",
+                    )
+                ]
+            )
+        ]
+    )
+    lookup = build_evidence_index_lookup(collection)
+    entry = resolve_evidence_entry(lookup, "EVT_TEST_001_E01_DLG0001")
+    assert entry is not None
+    assert entry.evidence_id == "INTERNAL_TEST_EVD_001"
+
+
+def test_resolve_evidence_entry_falls_back_to_internal_evidence_id():
+    collection = EvidenceIndexCollection(
+        documents=[
+            _document(
+                entries=[
+                    _entry(evidence_id="INTERNAL_TEST_EVD_001", public_evidence_id=None)
+                ]
+            )
+        ]
+    )
+    lookup = build_evidence_index_lookup(collection)
+    entry = resolve_evidence_entry(lookup, "INTERNAL_TEST_EVD_001")
+    assert entry is not None
+    assert entry.evidence_id == "INTERNAL_TEST_EVD_001"
+
+
+def test_resolve_evidence_entry_returns_none_when_unresolved():
+    collection = EvidenceIndexCollection(documents=[_document(entries=[_entry()])])
+    lookup = build_evidence_index_lookup(collection)
+    assert resolve_evidence_entry(lookup, "NOT_IN_INDEX") is None
+
+
+def test_public_evidence_id_index_duplicate_last_wins():
+    """複数documentにまたがって重複するpublicEvidenceIdがある場合、
+    build_evidence_id_indexと同じ「後勝ち」方針にする(重複自体は
+    projection script側でblocking済みだが、renderer側でも安全に扱う)。"""
+    collection = EvidenceIndexCollection(
+        documents=[
+            _document(
+                entries=[
+                    _entry(
+                        evidence_id="INTERNAL_TEST_EVD_001",
+                        public_evidence_id="PUB_DUP_001",
+                    )
+                ]
+            ),
+            _document(
+                entries=[
+                    _entry(
+                        evidence_id="INTERNAL_TEST_EVD_002",
+                        public_evidence_id="PUB_DUP_001",
+                    )
+                ]
+            ),
+        ]
+    )
+    index = build_public_evidence_id_index(collection)
+    assert index["PUB_DUP_001"].evidence_id == "INTERNAL_TEST_EVD_002"
+
+
+# ----------------------------------------------------------------
+# resolve_story_evidence_entries (feature/evidence-index-public-id-
+# renderer-switch)
+# ----------------------------------------------------------------
+
+
+def test_resolve_story_evidence_entries_matches_by_internal_story_id():
+    collection = EvidenceIndexCollection(
+        documents=[_document(entries=[_entry(story_id="EVT_TEST_A")])]
+    )
+    lookup = build_evidence_index_lookup(collection)
+    entries = resolve_story_evidence_entries(lookup, "EVT_TEST_A", None)
+    assert entries is not None
+    assert len(entries) == 1
+
+
+def test_resolve_story_evidence_entries_falls_back_to_public_story_id():
+    """Public-safe projection output相当 (内部storyIdがpublicStoryIdの値へ
+    置換されている) では、呼び出し側の内部storyIdでは一致しないため
+    publicStoryId経由で解決する。"""
+    collection = EvidenceIndexCollection(
+        documents=[
+            _document(
+                entries=[_entry(story_id="PUB_TEST_A", public_story_id="PUB_TEST_A")]
+            )
+        ]
+    )
+    lookup = build_evidence_index_lookup(collection)
+    entries = resolve_story_evidence_entries(
+        lookup, "INTERNAL_TEST_STORY", "PUB_TEST_A"
+    )
+    assert entries is not None
+    assert len(entries) == 1
+
+
+def test_resolve_story_evidence_entries_returns_none_when_unresolved():
+    collection = EvidenceIndexCollection(
+        documents=[_document(entries=[_entry(story_id="EVT_TEST_A")])]
+    )
+    lookup = build_evidence_index_lookup(collection)
+    assert resolve_story_evidence_entries(lookup, "NOT_A_STORY", None) is None
+    assert (
+        resolve_story_evidence_entries(lookup, "NOT_A_STORY", "ALSO_NOT_A_STORY")
+        is None
+    )
