@@ -232,6 +232,14 @@ suggestions:
 
 ---
 
+# 8.5 実Registryへの実データ追加（`feature/evidence-index-promotion-first-reviewed-sample-retry`で実施）
+
+長期方針として採用した候補B（Public ID Registry）を、初めて実データで実行した。`knowledge/public_ids/story_public_ids.yaml`として、1 story分（匿名化表記`EVT_260707_001`、event category、episode 2件）のRegistry entryを正式commitした。内容は§5.2のサンプルと同一（`publicStoryId`/`category`/`episodes[].publicEpisodeId`/`episodeOrder`のみ）で、sourceKey由来の内部ID・raw title・raw pathは一切含まない（schema `additionalProperties: false`により構造的に保証）。
+
+この実Registryを`project_evidence_index_public_ids.py --registry`に指定し、Public-safe projectionでEpisode 2（95 entries）の`publicEpisodeId`を正しく補完できることを確認した（187 entries全件PASS、詳細は`docs/runbooks/Evidence_Index_Promotion_Copy.md` §13.8）。`scripts/check_public_episode_ids.py`はRegistryをsuggestion用途にのみ使う設計のため、入力候補自体にEpisode 2の`publicEpisodeId`が無い状態ではexit code 1（missing）のままだが、提案値が正式Registry entryと一致することを確認した（この挙動は仕様通りであり、`check_public_episode_ids.py`側の変更は行っていない）。
+
+---
+
 # 9. Non-goals
 
 `evidence-index-public-episode-id-assignment`時点でのNon-goals:
@@ -256,6 +264,19 @@ suggestions:
 - 実Public ID Registryへの実データ追加（`workspace/public_episode_ids/sample_registry.yaml`は匿名化workspace限定、commit禁止）
 - `scripts/promote_evidence_index.py`/`scripts/check_evidence_index_promotion.py`/`scripts/build_evidence_index_candidates.py`の変更（`check_public_episode_ids.py`の`_load_registry`にRegistry内重複検出を追加したのみ）
 - `schemas/evidence_index.schema.json`/`schemas/public_id_registry.schema.json`の破壊的変更
+- Internal Review Evidence Packet生成
+
+`feature/evidence-index-promotion-first-reviewed-sample-retry`（本PR）で以下を実施した:
+
+- `knowledge/public_ids/story_public_ids.yaml`への実Registry entry追加（1 story・episode 2件のみ、§8.5参照）
+- 上記Registryを使ったPublic-safe projection・promotion checkの再実行、`knowledge/evidence/stories/EVT_260707_001.yaml`への実Evidence Index昇格（`promote_evidence_index.py --execute`）
+
+本PRでも以下は行っていない:
+
+- 複数story分のRegistry追加・batch promotion
+- `scripts/project_evidence_index_public_ids.py`/`scripts/check_public_episode_ids.py`/`scripts/promote_evidence_index.py`/`scripts/check_evidence_index_promotion.py`本体の変更
+- `schemas/evidence_index.schema.json`/`schemas/public_id_registry.schema.json`の変更
+- `story_manifest.yaml`の実データ変更・再normalize/merge
 - Internal Review Evidence Packet生成
 
 ---

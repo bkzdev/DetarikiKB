@@ -297,6 +297,23 @@ uv run python scripts/render_wiki.py `
 
 **この結果は、renderer switchがEvidence page単体としては完全に機能する（内部ID非露出）ことを実データで裏付ける一方、Story page側の導線はEvidence Indexとmerged knowledge collectionの双方が同じ`publicStoryId`を持つ必要があるという前提条件を明らかにした。** 次のステップは実データ1 storyの初回昇格再試行（`evidence-index-promotion-first-reviewed-sample-retry`）である。
 
+### 13.8 進捗（`feature/evidence-index-promotion-first-reviewed-sample-retry`、匿名化。実データEvidence Indexの初回commit）
+
+§13.1〜§13.7で整備したPublic-safe projection・Public ID Registry統合・renderer switchが出揃った状態で、実データ1 storyの初回昇格を再試行した。
+
+1. **Public ID Registry実データcommit**: `knowledge/public_ids/story_public_ids.yaml`に、1 story分（匿名化表記`publicStoryId: EVT_260707_001`、`category: event`、episode 2件）のPublic ID Registry entryを正式commitした。内容は§13.6のworkspace限定サンプルRegistryと同一で、sourceKey由来の内部ID・実タイトル・raw pathは一切含まない（schema `additionalProperties: false`により構造的に保証）。
+2. **Registry check**: `scripts/check_public_episode_ids.py --registry knowledge/public_ids/story_public_ids.yaml`を実行したところ、入力候補自体（Episode 2）はまだ`publicEpisodeId`を持たないためexit code 1（missing）のままだったが、suggestionが正式Registry entry（`EVT_260707_001_E02`）と完全一致することを確認した。**これは想定どおりの挙動である**: `check_public_episode_ids.py`はRegistryを「既存登録値の再利用によるsuggestion」にのみ使い、入力candidateへの書き込みは行わない設計（§7.6・`Public_ID_Registry_Design.md` §6.3）のため、実際の`publicEpisodeId`補完は次のprojectionステップで行われる。
+3. **Public-safe projection（実Registry使用）**: `project_evidence_index_public_ids.py --projection-mode public-safe --registry knowledge/public_ids/story_public_ids.yaml`を実行し、Episode 1（92 entries、input由来）+ Episode 2（95 entries、実Registry補完）の**187 entries全件がPublic-safe projectionを通過**した（`generated=187`・`internal_id_exposure=0`・`promotion_readiness=promotion-candidate`）。
+4. **validation/promotion check**: `validate_evidence_index.py`・`check_evidence_index_promotion.py`（`--story-summaries`あり/なし両方）はいずれもPASSした。
+5. **render確認**: `render_wiki.py --evidence-index`でEvidence page（`evidence/EVT_260707_001.md`）をrenderし、`mkdocs build --strict`も成功した。Evidence page全体（187 entries）をgrepで内部ID・raw text禁止文字列scanし、いずれも検出されないことを確認した。
+6. **human review**: `docs/templates/evidence_index_promotion_review_template.md`を元にreview note（`workspace/evidence_index_dry_runs/first_reviewed_sample_retry/review_note.md`、非commit）を作成し、上記結果を踏まえてDecisionを`Approved for promotion`とした。
+7. **promote dry-run→execute**: `promote_evidence_index.py`のdry-runでplanned copy 1件（`knowledge/evidence/stories/EVT_260707_001.yaml`）を確認した後、`--execute`を実行し、**`knowledge/evidence/stories/EVT_260707_001.yaml`1件のみが正しくcopyされたことを確認した**（`git status --short`でも1件のみの追加を確認）。
+8. **copy後の再確認**: `validate_evidence_index.py --input knowledge/evidence/stories`・`check_evidence_index_promotion.py --input knowledge/evidence/stories`をいずれもPASSで再確認し、`render_wiki.py --evidence-index knowledge/evidence/stories`のEvidence page・`mkdocs build --strict`のHTML出力に対しても内部ID・raw text露出が無いことを再度grepで確認した。
+
+**新たに確認された既知の制約**: merged knowledge collection側にEpisode 2の`publicStoryId`/`publicEpisodeId`が伝播していないため（§13.7で判明した制約と同一原因）、Story page/Character page（いずれもworkspace限定のpreviewのみ、`knowledge/`にはcommitしない）に内部storyId/episodeId断片が現れることを再確認した。**ただし今回commitしたEvidence Index YAML自体・そのEvidence pageには内部ID非露出を確認済みであり、この制約は今回のpromotion対象に影響しない。** 根本解決には`story_manifest.yaml`側の`publicStoryId`確定・再normalize/mergeが必要であり、本PRのNon-goals。
+
+**この結果は、`evidence-index-promotion-first-reviewed-sample`（PR #91）で発見されたsourceKey由来ID問題が、Public-safe projection + Public ID Registry統合 + renderer switchの組み合わせによって実データでも解消され、`knowledge/evidence/stories/`への実データ昇格が安全に行えることを実証している。** 対象は1 storyのみに限定し、複数story・batch promotionは行っていない。
+
 ---
 
 # 14. 関連ドキュメント

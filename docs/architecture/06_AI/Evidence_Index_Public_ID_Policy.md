@@ -424,11 +424,11 @@ evidenceRefs:
 | Phase 2.6: `evidence-index-public-episode-id-assignment` | 未確定`publicEpisodeId`の検出・割当候補提案の設計・実装。`docs/architecture/06_AI/Public_ID_Registry_Design.md`（新設）で役割・採番方針・永続化場所（Public ID Registry）を設計し、`scripts/check_public_episode_ids.py`（assignment候補提案script、常に人間review必須）を実装した | 完了 |
 | Phase 2.7: `evidence-index-public-id-registry-integration`（PR #97） | Public ID Registryを`project_evidence_index_public_ids.py`へ入力として渡し、欠落`publicEpisodeId`を参照・補完できるようにする | 完了 |
 | Phase 3: `evidence-index-public-id-renderer-switch`（本PR） | renderer/paths.py対応。Evidence page見出し・anchor・Summary evidenceRefsリンクを`publicEvidenceId`中心に切り替え | **完了（本PR、§9.3参照）** |
-| Phase 4: `promote_evidence_index.py`/`check_evidence_index_promotion.py`対応 | target filenameの`publicStoryId`必須化、projection済みEvidence Indexのみpromotion対象にする、sourceKey混入scanの追加検討 | 未着手 |
-| Phase 5: `evidence-index-promotion-first-reviewed-sample-retry` | Phase 1〜4完了後、実データ1 storyの初回昇格を再試行する | 未着手 |
+| Phase 4: `promote_evidence_index.py`/`check_evidence_index_promotion.py`対応 | target filenameの`publicStoryId`必須化、projection済みEvidence Indexのみpromotion対象にする、sourceKey混入scanの追加検討 | 未着手（§11.1の通り、Public-safe projection出力は`storyId`の値自体が`publicStoryId`に置換されるため、`promote_evidence_index.py`を変更しなくても正しい`{publicStoryId}.yaml`が生成されることをPhase 5で確認済み） |
+| Phase 5: `evidence-index-promotion-first-reviewed-sample-retry` | Phase 1〜4完了後、実データ1 storyの初回昇格を再試行する | **完了（実Public ID Registry entry・実Evidence Index 1件を`knowledge/evidence/stories/`へ追加済み）** |
 | Phase 6: `internal-review-evidence-packet-design` | 内部trace ID・mapping tableをInternal Review Evidence Packet側で扱う詳細設計 | 未着手 |
 
-**promotion再開（`knowledge/evidence/stories/`への実データcommit）は、少なくともPhase 2.5（Public-safe projection実装）およびPhase 3（renderer切替）が完了するまで行わない。** Public-safe projectionがvalidation/exposure scanを通過し`promotion-candidate`と判定されても、renderer側がまだ内部`evidenceId`中心のままであるため、実promotionは行わない。
+**promotion再開（`knowledge/evidence/stories/`への実データcommit）は、少なくともPhase 2.5（Public-safe projection実装）およびPhase 3（renderer切替）が完了するまで行わない。** Public-safe projectionがvalidation/exposure scanを通過し`promotion-candidate`と判定されても、renderer側がまだ内部`evidenceId`中心のままであるため、実promotionは行わない。**Phase 3完了後、Phase 5（本PR）でこの条件を満たした実データ1 storyのpromotionを実施した。**
 
 ---
 
@@ -526,6 +526,20 @@ evidenceRefs:
 - `publicEpisodeId`の自動採番・自動本番反映
 - `story_manifest.yaml`の実データ変更
 - Episode page変更（Evidence page/Summary evidenceRefsのみが対象）
+- Internal Review Evidence Packet生成
+
+`evidence-index-promotion-first-reviewed-sample-retry`（本PR）で以下を実施した:
+
+- `knowledge/public_ids/story_public_ids.yaml`への実Public ID Registry entry追加（1 story分のみ）
+- 実データ1 story（187 entries、匿名化表記）の`knowledge/evidence/stories/{publicStoryId}.yaml`への初回昇格（`promote_evidence_index.py --execute`）
+
+本PRでも以下は行っていない:
+
+- 複数story分のEvidence Index/Registry追加、batch promotion
+- `scripts/promote_evidence_index.py`/`scripts/check_evidence_index_promotion.py`/`scripts/project_evidence_index_public_ids.py`/`scripts/check_public_episode_ids.py`本体の変更
+- `agents/wiki_generator/renderer.py`/`agents/wiki_generator/paths.py`の変更
+- Public ID Registry/Evidence Index schema変更
+- `story_manifest.yaml`の実データ変更・再normalize/merge
 - Internal Review Evidence Packet生成
 
 ---
