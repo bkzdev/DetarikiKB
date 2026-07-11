@@ -1,0 +1,9 @@
+registryVersion: 1
+stories:
+  - publicStoryId: EVT_260707_001
+    category: event
+    episodes:
+      - publicEpisodeId: EVT_260707_001_E01
+        episodeOrder: 1
+      - publicEpisodeId: EVT_260707_001_E02
+        episodeOrder: 2

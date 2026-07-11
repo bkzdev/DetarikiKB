@@ -1,0 +1,2414 @@
+evidenceIndexVersion: 1
+generatedFrom: null
+entries:
+- evidenceId: EVT_260707_001_E01_NAR0001
+  evidenceType: narration
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_NAR0001
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_NAR0002
+  evidenceType: narration
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_NAR0002
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0001
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0001
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E01_DLG0002
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0002
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E01_DLG0003
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0003
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_NAR0003
+  evidenceType: narration
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_NAR0003
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0004
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0004
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0005
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0005
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E01_DLG0006
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0006
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E01_NAR0004
+  evidenceType: narration
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_NAR0004
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0007
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0007
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0008
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0008
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E01_DLG0009
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0009
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0010
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0010
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E01_DLG0011
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0011
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E01_DLG0012
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0012
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0013
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0013
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E01_DLG0014
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0014
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0015
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0015
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E01_DLG0016
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0016
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0017
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0017
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0018
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0018
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E01_DLG0019
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0019
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E01_DLG0020
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0020
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0021
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0021
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E01_NAR0005
+  evidenceType: narration
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_NAR0005
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0022
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0022
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E01_DLG0023
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0023
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_NAR0006
+  evidenceType: narration
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_NAR0006
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0024
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0024
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0025
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0025
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0026
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0026
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_217_EVE_NEMOPHILA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_217_EVE_NEMOPHILA
+- evidenceId: EVT_260707_001_E01_DLG0027
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0027
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0028
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0028
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0029
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0029
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0030
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0030
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_NAR0007
+  evidenceType: narration
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_NAR0007
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0031
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0031
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_MONO0001
+  evidenceType: monologue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_MONO0001
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0032
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0032
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E01_MONO0002
+  evidenceType: monologue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_MONO0002
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0033
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0033
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0034
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0034
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_217_EVE_NEMOPHILA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_217_EVE_NEMOPHILA
+- evidenceId: EVT_260707_001_E01_DLG0035
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0035
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0036
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0036
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0037
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0037
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E01_DLG0038
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0038
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E01_DLG0039
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0039
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E01_DLG0040
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0040
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0041
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0041
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0042
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0042
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0043
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0043
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0044
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0044
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0045
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0045
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E01_MONO0003
+  evidenceType: monologue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_MONO0003
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_UNK0001
+  evidenceType: unknown
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_UNK0001
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0046
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0046
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E01_DLG0047
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0047
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E01_DLG0048
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0048
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0049
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0049
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E01_DLG0050
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0050
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0051
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0051
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E01_NAR0008
+  evidenceType: narration
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_NAR0008
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0052
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0052
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0053
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0053
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E01_DLG0054
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0054
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_217_EVE_NEMOPHILA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_217_EVE_NEMOPHILA
+- evidenceId: EVT_260707_001_E01_DLG0055
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0055
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0056
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0056
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_217_EVE_NEMOPHILA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_217_EVE_NEMOPHILA
+- evidenceId: EVT_260707_001_E01_DLG0057
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0057
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_217_EVE_NEMOPHILA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_217_EVE_NEMOPHILA
+- evidenceId: EVT_260707_001_E01_DLG0058
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0058
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_217_EVE_NEMOPHILA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_217_EVE_NEMOPHILA
+- evidenceId: EVT_260707_001_E01_DLG0059
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0059
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_217_EVE_NEMOPHILA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_217_EVE_NEMOPHILA
+- evidenceId: EVT_260707_001_E01_DLG0060
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0060
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0061
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0061
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_217_EVE_NEMOPHILA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_217_EVE_NEMOPHILA
+- evidenceId: EVT_260707_001_E01_DLG0062
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0062
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0063
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0063
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_217_EVE_NEMOPHILA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_217_EVE_NEMOPHILA
+- evidenceId: EVT_260707_001_E01_DLG0064
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0064
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_NAR0009
+  evidenceType: narration
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_NAR0009
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_NAR0010
+  evidenceType: narration
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_NAR0010
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0065
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0065
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0066
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0066
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E01_DLG0067
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0067
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0068
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0068
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E01_DLG0069
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0069
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_217_EVE_NEMOPHILA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_217_EVE_NEMOPHILA
+- evidenceId: EVT_260707_001_E01_DLG0070
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0070
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E01_DLG0071
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0071
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_217_EVE_NEMOPHILA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_217_EVE_NEMOPHILA
+- evidenceId: EVT_260707_001_E01_DLG0072
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0072
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_217_EVE_NEMOPHILA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_217_EVE_NEMOPHILA
+- evidenceId: EVT_260707_001_E01_DLG0073
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0073
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0074
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0074
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E01_DLG0075
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0075
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_DLG0076
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_DLG0076
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_NAR0011
+  evidenceType: narration
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_NAR0011
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E01_NAR0012
+  evidenceType: narration
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E01
+  publicEvidenceId: EVT_260707_001_E01_NAR0012
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_UNK0001
+  evidenceType: unknown
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_UNK0001
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_NAR0001
+  evidenceType: narration
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_NAR0001
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0001
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0001
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0002
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0002
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E02_DLG0003
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0003
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0004
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0004
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E02_DLG0005
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0005
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0006
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0006
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E02_DLG0007
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0007
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0008
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0008
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_217_EVE_NEMOPHILA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_217_EVE_NEMOPHILA
+- evidenceId: EVT_260707_001_E02_DLG0009
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0009
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E02_DLG0010
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0010
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0011
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0011
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E02_DLG0012
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0012
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0013
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0013
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_217_EVE_NEMOPHILA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_217_EVE_NEMOPHILA
+- evidenceId: EVT_260707_001_E02_DLG0014
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0014
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0015
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0015
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E02_DLG0016
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0016
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0017
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0017
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E02_DLG0018
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0018
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E02_NAR0002
+  evidenceType: narration
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_NAR0002
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0019
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0019
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0020
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0020
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_MONO0001
+  evidenceType: monologue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_MONO0001
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E02_DLG0021
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0021
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_NAR0003
+  evidenceType: narration
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_NAR0003
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0022
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0022
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_NAR0004
+  evidenceType: narration
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_NAR0004
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0023
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0023
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0024
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0024
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E02_DLG0025
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0025
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E02_DLG0026
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0026
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E02_DLG0027
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0027
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E02_DLG0028
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0028
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_NAR0005
+  evidenceType: narration
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_NAR0005
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_NAR0006
+  evidenceType: narration
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_NAR0006
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0029
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0029
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0030
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0030
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_NAR0007
+  evidenceType: narration
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_NAR0007
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0031
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0031
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0032
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0032
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0033
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0033
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E02_DLG0034
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0034
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E02_DLG0035
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0035
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E02_DLG0036
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0036
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E02_DLG0037
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0037
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E02_DLG0038
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0038
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E02_DLG0039
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0039
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E02_DLG0040
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0040
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E02_DLG0041
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0041
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E02_NAR0008
+  evidenceType: narration
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_NAR0008
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_NAR0009
+  evidenceType: narration
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_NAR0009
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0042
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0042
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_217_EVE_NEMOPHILA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_217_EVE_NEMOPHILA
+- evidenceId: EVT_260707_001_E02_DLG0043
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0043
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E02_DLG0044
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0044
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_217_EVE_NEMOPHILA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_217_EVE_NEMOPHILA
+- evidenceId: EVT_260707_001_E02_DLG0045
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0045
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E02_DLG0046
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0046
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0047
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0047
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E02_DLG0048
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0048
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_217_EVE_NEMOPHILA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_217_EVE_NEMOPHILA
+- evidenceId: EVT_260707_001_E02_DLG0049
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0049
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_MONO0002
+  evidenceType: monologue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_MONO0002
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E02_MONO0003
+  evidenceType: monologue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_MONO0003
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E02_DLG0050
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0050
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0051
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0051
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0052
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0052
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_NAR0010
+  evidenceType: narration
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_NAR0010
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_NAR0011
+  evidenceType: narration
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_NAR0011
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0053
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0053
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0054
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0054
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E02_DLG0055
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0055
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_217_EVE_NEMOPHILA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_217_EVE_NEMOPHILA
+- evidenceId: EVT_260707_001_E02_DLG0056
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0056
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0057
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0057
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0058
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0058
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0059
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0059
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0060
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0060
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0061
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0061
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0062
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0062
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0063
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0063
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0064
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0064
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0065
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0065
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: EVT_260707_001_E02_DLG0066
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0066
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0067
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0067
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0068
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0068
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0069
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0069
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0070
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0070
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0071
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0071
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0072
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0072
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0073
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0073
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_217_EVE_NEMOPHILA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_217_EVE_NEMOPHILA
+- evidenceId: EVT_260707_001_E02_DLG0074
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0074
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_NAR0012
+  evidenceType: narration
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_NAR0012
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_DLG0075
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0075
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_217_EVE_NEMOPHILA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_217_EVE_NEMOPHILA
+- evidenceId: EVT_260707_001_E02_DLG0076
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0076
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_217_EVE_NEMOPHILA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_217_EVE_NEMOPHILA
+- evidenceId: EVT_260707_001_E02_DLG0077
+  evidenceType: dialogue
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_DLG0077
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_NAR0013
+  evidenceType: narration
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_NAR0013
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: EVT_260707_001_E02_NAR0014
+  evidenceType: narration
+  storyId: EVT_260707_001
+  episodeId: EVT_260707_001_E02
+  publicEvidenceId: EVT_260707_001_E02_NAR0014
+  publicStoryId: EVT_260707_001
+  publicEpisodeId: EVT_260707_001_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+notes: Generated by scripts/build_evidence_index_candidates.py (dry-run candidate,
+  not human-reviewed).
