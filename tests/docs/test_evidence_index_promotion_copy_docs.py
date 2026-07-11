@@ -197,3 +197,52 @@ def test_tasks_md_does_not_contain_real_data_hints():
     content = TASKS_PATH.read_text(encoding="utf-8")
     for forbidden in ("CAMI3RD", "260425", "C:\\Users", "D:\\Dev"):
         assert forbidden not in content
+
+
+# ----------------------------------------------------------------
+# feature/evidence-index-promotion-first-sample-visual-review
+# ----------------------------------------------------------------
+
+
+def test_promotion_copy_runbook_states_visual_review_result():
+    content = _read_runbook()
+    assert (
+        "### 13.9 進捗（`feature/evidence-index-promotion-first-sample-visual-review`"
+        in content
+    )
+    section = content.split(
+        "### 13.9 進捗（`feature/evidence-index-promotion-first-sample-visual-review`",
+        1,
+    )[1].split("# 14. 関連ドキュメント", 1)[0]
+    assert "実装変更を一切行っていない" in section
+    assert "publicEvidenceId" in section
+    assert "187" in section
+
+
+def test_promotion_policy_states_visual_review_result():
+    content = PROMOTION_POLICY_PATH.read_text(encoding="utf-8")
+    assert (
+        "実施結果（`feature/evidence-index-promotion-first-sample-visual-review`で実施）"
+        in content
+    )
+    section = content.split(
+        "実施結果（`feature/evidence-index-promotion-first-sample-visual-review`で実施）",
+        1,
+    )[1].split("---", 1)[0]
+    assert "実装変更は行っていない" in section
+
+
+def test_tasks_md_lists_visual_review_next_candidates():
+    content = TASKS_PATH.read_text(encoding="utf-8")
+    assert "evidence-index-promotion-batch-policy" in content
+    assert "internal-review-evidence-packet-design" in content
+
+
+def test_promotion_policy_visual_review_does_not_contain_real_data_hints():
+    content = PROMOTION_POLICY_PATH.read_text(encoding="utf-8")
+    section = content.split(
+        "実施結果（`feature/evidence-index-promotion-first-sample-visual-review`で実施）",
+        1,
+    )[1].split("---", 1)[0]
+    for forbidden in ("CAMI3RD", "260425", "C:\\Users", "D:\\Dev"):
+        assert forbidden not in section
