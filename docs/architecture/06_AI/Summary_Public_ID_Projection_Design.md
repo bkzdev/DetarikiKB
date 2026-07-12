@@ -354,7 +354,15 @@ synthetic "entries" list:
 |---|---|
 | `summary-public-id-projection-design`（本PR） | 完了。本文書として設計を確定した |
 | `summary-public-id-schema-implementation` | スキップ可能（§8の結論により、`schemas/story_summary.schema.json`の変更は不要と判明したため、このフェーズ自体が不要になった。`Story_Summary_Generation_Plan.md` §9の該当行にも本PRでその旨を追記する） |
-| `summary-generation-public-safe-projection` | 本文書の設計（§4〜§9）を実装するフェーズ。`scripts/project_story_summary_public_ids.py`（新規script）を実装し、Compatible→Public-safeの2段階projectionを実現する。Evidence Indexの`evidence-index-public-id-projection`＋`evidence-index-public-id-public-safe-projection`に相当する内容を1フェーズに統合する（Story Summary側はEvidence Indexほど段階を細分化する必要性が低いと判断: publicEvidenceId自動採番のような複雑な連番ロジックが無く、公開IDは既にRegistry側で確定済みの値を参照するだけであるため） |
+| `summary-generation-public-safe-projection` | **完了。** 本文書の設計（§4〜§9）を`scripts/project_story_summary_public_ids.py`（新規script）として実装し、Compatible→Public-safeの2段階projectionを実現した。Evidence Indexの`evidence-index-public-id-projection`＋`evidence-index-public-id-public-safe-projection`に相当する内容を1フェーズに統合した（Story Summary側はEvidence Indexほど段階を細分化する必要性が低いと判断: publicEvidenceId自動採番のような複雑な連番ロジックが無く、公開IDは既にRegistry側で確定済みの値を参照するだけであるため）。実装時に確定した、本文書の記述との差分3点は§10.1に記録した |
+
+## 10.1 実装時に確定した、本文書の記述との差分
+
+`summary-generation-public-safe-projection`実装時に、本文書の記述に内部矛盾または曖昧さがあった3箇所について、いずれも設計の趣旨を保った上で以下のとおり確定した（`scripts/project_story_summary_public_ids.py`のモジュールdocstringにも同内容を記載）。
+
+1. **`publicStoryId`のRegistry補完**: §5のfield rewrite tableは`publicStoryId`（compatible mode）を「Registry補完があれば書き込む」としているが、§7.3は「Registry構造上`publicStoryId`自体をキーにstoryを逆引きする仕組みは提供されない」と明記しており、両者は矛盾していた。実装は、より詳細で結論が明確な§7.3を正とし、`publicStoryId`のRegistry補完は行わない（欠落時は常にblocking、§4.3項目1）
+2. **compatible modeの出力ファイル名**: §5は`{output_dir}/{storyId}.yaml`と表記しつつ、同じ行の括弧書きで「入力ファイル名を維持」としており、両者は通常一致するが厳密には別の規則である。実装は後者（`project_evidence_index_public_ids.py`のcompatible modeと同じ、入力ファイル名`path.name`をそのまま使う）を採用した
+3. **`--mapping-output`のCSV行仕様（§4.5.1）**: 「1 episode 1行（story-level summaryのみのdocumentは1 story 1行を追加）」という記述を、文字通り「`episodeSummaries`が空でStory Summaryのみ存在するdocument」の場合に限定してstory行を1行追加する仕様として実装した。`episodeSummaries`が非空のdocumentでは、Story Summary自体のevidenceRefs変換統計はmapping CSVの行としては出力されない（reportの`## Evidence Refs Conversion`sectionには常に集計される）
 
 ---
 
