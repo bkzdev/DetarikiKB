@@ -312,3 +312,82 @@ def test_tasks_md_does_not_contain_dry_run_source_hints():
     content = TASKS_PATH.read_text(encoding="utf-8")
     for forbidden in ("260624", "260504", "CAB-csl"):
         assert forbidden not in content
+
+
+# ----------------------------------------------------------------
+# feature/evidence-index-batch-candidate-selection-policy
+# ----------------------------------------------------------------
+
+SELECTION_CRITERIA_HEADING = "## 4.3 Candidate selection criteria（候補storyの選定基準"
+
+
+def _selection_criteria_section() -> str:
+    content = _read_doc()
+    return content.split(SELECTION_CRITERIA_HEADING, 1)[1].split(
+        "# 5. Registry entry review条件", 1
+    )[0]
+
+
+def test_batch_policy_doc_has_selection_criteria_section():
+    content = _read_doc()
+    assert SELECTION_CRITERIA_HEADING in content
+
+
+def test_batch_policy_doc_states_selection_thresholds():
+    section = _selection_criteria_section()
+    assert "unknown比率" in section
+    assert "10%" in section
+    assert "30%" in section
+    assert "70%" in section
+    assert "600" in section
+
+
+def test_batch_policy_doc_states_selection_classification_labels():
+    section = _selection_criteria_section()
+    for label in ("promotion-candidate", "parser-improvement-wait", "excluded"):
+        assert label in section
+
+
+def test_batch_policy_doc_states_parser_compatibility_handling():
+    section = _selection_criteria_section()
+    for value in ("compatible", "warning", "needs_update", "blocked"):
+        assert value in section
+
+
+def test_batch_policy_doc_states_real_batch_promotion_prerequisites():
+    section = _selection_criteria_section()
+    assert "real batch promotionへ進むための最低条件" in section
+    assert "Story page" in section
+    assert "最大3 story" in section
+
+
+def test_batch_policy_doc_states_roadmap():
+    section = _selection_criteria_section()
+    assert "script-command-dictionary-expansion-batch-001" in section
+    assert "story-manifest-public-story-id-real-data-assignment" in section
+    assert "evidence-index-promotion-second-batch-dry-run" in section
+    assert "evidence-index-promotion-first-real-batch" in section
+
+
+def test_batch_policy_doc_states_pr102_classification():
+    section = _selection_criteria_section()
+    assert "parser-improvement-wait" in section
+    assert "PR #102" in section
+
+
+def test_batch_policy_doc_selection_criteria_does_not_contain_real_data_hints():
+    section = _selection_criteria_section()
+    for forbidden in REAL_DATA_HINTS + ("260624", "260504", "CAB-csl"):
+        assert forbidden not in section
+
+
+def test_promotion_policy_references_selection_criteria():
+    content = PROMOTION_POLICY_PATH.read_text(encoding="utf-8")
+    assert "evidence-index-batch-candidate-selection-policy" in content
+    assert "Evidence_Index_Batch_Promotion_Policy.md" in content
+
+
+def test_tasks_md_lists_script_command_dictionary_next_candidate():
+    content = TASKS_PATH.read_text(encoding="utf-8")
+    assert "script-command-dictionary-expansion-batch-001" in content
+    assert "evidence-index-promotion-second-batch-dry-run" in content
