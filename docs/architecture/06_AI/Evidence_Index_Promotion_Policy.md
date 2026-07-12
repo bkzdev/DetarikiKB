@@ -111,7 +111,7 @@ candidate referencesがdefault profileで159件から155件に減少したのは
 | `monologue` | 公開対象 |
 | `narration` | 公開対象 |
 | `choice` | 公開対象 |
-| `unknown` | 公開対象（件数が少ない場合のみ。件数が多い場合はreview対象とし、個別に判断する） |
+| `unknown` | 公開対象（件数が少ない場合のみ。件数が多い場合はreview対象とし、個別に判断する。**具体的な閾値は`evidence-index-batch-candidate-selection-policy`で確定した`docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md` §4.3を参照**（unknown比率10%以下: 候補可、10%超〜30%以下: 保留、30%超: 除外）） |
 
 ## 4.2 初期公開対象から除外・保留
 
@@ -308,7 +308,8 @@ Story Summary / Episode Summaryの`evidenceRefs`は引き続きPublic Evidence I
 | Phase 14.5: `evidence-index-promotion-first-sample-visual-review`（PR #100） | PR #99で昇格した1 storyについて、Wiki表示・導線・内部ID非露出・raw text非露出を最終確認する | 完了（実装変更なし） |
 | Phase 15: `internal-review-evidence-packet-design` | `stage_direction`等を含むInternal Review Evidence Packetの詳細設計 | 未着手 |
 | Phase 16: `evidence-index-promotion-batch-policy`（PR #101） | 複数storyへ広げる前のbatch promotion運用方針（batch size・Registry review条件・promotion前後チェックリスト・visual review・failed story/rollback・PR分割方針）を設計する | 完了（`docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md`新設、実装変更なし） |
-| Phase 17: `evidence-index-promotion-first-batch-dry-run`（本PR） | Phase 16のbatch policyに基づき、2〜3 storyを対象にworkspace限定でbatch dry-runを実施する | **完了（本PR、tooling観点はPASS。選定storyの見直しが必要と判明、実commitなし）** |
+| Phase 17: `evidence-index-promotion-first-batch-dry-run`（PR #102） | Phase 16のbatch policyに基づき、2〜3 storyを対象にworkspace限定でbatch dry-runを実施する | 完了（tooling観点はPASS。選定storyの見直しが必要と判明、実commitなし） |
+| Phase 18: `evidence-index-batch-candidate-selection-policy`（本PR） | Phase 17で判明した品質問題を受け、promotion候補storyの機械的選定基準（unknown比率等の閾値・3分類・real batch promotion前提条件）を確定する | **完了（本PR、`docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md` §4.3新設、実装変更なし）** |
 
 **実装状況（`feature/evidence-index-generation-filtering`で実施）**: `scripts/build_evidence_index_candidates.py`に`--public-profile default|full|review`（デフォルト`default`）・`--include-types`・`--exclude-types`を追加した。default profileは`stage_direction`を除外し、PR #85と同じ匿名化サンプルで再実行したところentry数は1793件→187件（`dialogue`153・`narration`26・`monologue`6・`unknown`2）に縮小、`--public-profile full`では1793件（PR #85相当）を再現できることを確認した。filterで除外されたentryは`skippedBlockCount`ではなく`filteredEntryCount`/`filteredByTypeCounts`/`filteredReasonCounts`として区別してreportに記録する。`referencedBy.candidates`はfilterで出力対象になったentryにのみ付与し、同サンプルでcandidate references付与件数は159件から155件に減少した。`validate_evidence_index.py`・`render_wiki.py --evidence-index`・source text exposure checkいずれも問題なし。**promotion script実装・Evidence page renderer変更・Internal Review Evidence Packet生成・実Evidence Indexのcommitは行っていない**（次候補`evidence-index-promotion-policy-implementation`/`internal-review-evidence-packet-design`）。
 
@@ -341,6 +342,8 @@ Story Summary / Episode Summaryの`evidenceRefs`は引き続きPublic Evidence I
 **設計方針決定（`feature/evidence-index-promotion-batch-policy`で実施）**: PR #99・#100で1 storyのpromotion・visual reviewが実証されたことを踏まえ、複数storyへ広げる前のbatch promotion運用方針を`docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md`（新設）にまとめた。段階的batch size方針（Phase 2: dry-run最大3 story → Phase 3: 初回実batch最大3 story → Phase 4: 通常small batch最大5 story → Phase 5: 大規模batchは明示的承認まで許可しない）、Registry entry review条件（8項目のチェックリスト）、story単位のpromotion前チェックリスト・batch単位のpromotion後チェックリスト、visual review方針（初回batchでは全story必須）、failed story handling（初回batchでは1件でもfailureがあればbatch全体を停止、失敗理由9分類）、rollback方針（1 story 1 fileの削除で対応、ただし一度公開した`publicStoryId`/`publicEpisodeId`は再利用しない、Git履歴混入防止は事前のexposure checkが本筋）、PR分割方針（初回batchは案C: dry-run PR→実promotion PRの2段階）を整理した。次PR候補`evidence-index-promotion-first-batch-dry-run`のスコープ（やること/やらないこと）も明記した。**本PRでは実装変更・実Evidence Index/Registry entryの追加・batch promotion実行はいずれも行っていない**（設計・runbook・docs testsのみ、次候補`evidence-index-promotion-first-batch-dry-run`/`internal-review-evidence-packet-design`/`story-summary-generation-planning`/`public-publishing-platform-evaluation`）。
 
 **実施結果（`feature/evidence-index-promotion-first-batch-dry-run`で実施）**: 上記batch policyのPhase 2に基づき、2 story（匿名化、合計2039 entries）を対象にworkspace限定でbatch dry-runを実施した。**実Registry entry・実Evidence Indexのcommitはいずれも行っていない。** Registry候補作成・`check_public_episode_ids.py`・Public-safe projection（`generated=2039`・`internal_id_exposure=0`・`promotion_readiness=promotion-candidate`）・`validate_evidence_index.py`・`check_evidence_index_promotion.py`（Summary込み）・extraction/merge・`render_wiki.py --evidence-index`・`mkdocs build --strict`・visual review・internal/source ID exposure checkのすべてをPASSで完走し、**tooling自体には問題が無いことを実証した**。一方、選定した2 storyは`parserCompatibility: warning`状態で`unknown`比率が約90%と高く、`Evidence_Index_Promotion_Policy.md` §4.1の方針に照らしreal promotion対象としては非推奨と判断した。また、`story_manifest.yaml`のpublicStoryId割当を経ていない新規storyではStory pageの「Review Links → Evidence index」導線がデフォルトで機能しないことも判明した。**Failed story count 0・excluded story count 0**（機械的failureは無い）。詳細は`docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md` §4.2、`docs/runbooks/Evidence_Index_Promotion_Copy.md` §13.11を参照。**本PRでも実装変更・実データcommit・batch promotion実行はいずれも行っていない**（次候補`evidence-index-promotion-first-real-batch`〔story候補見直し後〕/`story-manifest-public-story-id-real-data-assignment`/`internal-review-evidence-packet-design`）。
+
+**設計方針決定（`feature/evidence-index-batch-candidate-selection-policy`で実施）**: 上記で判明した「機械的checkは全PASSでも品質の低いstoryが素通りする」問題に対応するため、promotion候補storyの選定基準を`docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md` §4.3に確定した。判定指標（unknown比率・意味のあるentry比率・parserCompatibility・entry数）とその閾値（unknown比率10%以下候補可/10%超〜30%以下保留/30%超除外、意味あるentry比率70%以上候補可、entry数600以下候補可）、3分類ラベル（`promotion-candidate`/`parser-improvement-wait`/`excluded`）、判定手順、記録様式を定義した。PR #102の2 storyを`parser-improvement-wait`に分類し、real batch promotionへ進むための最低条件（selection基準PASS＋Story page導線動作確認済み＋Registry review済み＋既存チェックリストPASS＋最大3 story）を明文化した。ロードマップ（script command辞書拡充→story_manifest publicStoryId確定→second batch dry-run→first real batch）も記録した。**本PRでは実装変更・selection基準のcheck script組み込み・実データcommitはいずれも行っていない**（設計のみ、次候補`script-command-dictionary-expansion-batch-001`）。
 
 ---
 
@@ -386,7 +389,9 @@ Story Summary / Episode Summaryの`evidenceRefs`は引き続きPublic Evidence I
 
 `feature/evidence-index-promotion-batch-policy`（PR #101）でも以下は行っていない: 複数story分のEvidence Index/Registry entryのcommit、batch promotionの実行、batch promotion scriptの実装、自動昇格、`scripts/promote_evidence_index.py`/`scripts/check_evidence_index_promotion.py`/`scripts/project_evidence_index_public_ids.py`/`scripts/check_public_episode_ids.py`本体の変更、`agents/wiki_generator/renderer.py`/`agents/wiki_generator/paths.py`の変更、Evidence Index/Public ID Registry/Summary schemaの変更、Internal Review Evidence Packet生成。
 
-`feature/evidence-index-promotion-first-batch-dry-run`（本PR）でも以下は行っていない: 複数story分のEvidence Index/Registry entryのcommit（`knowledge/public_ids/story_public_ids.yaml`・`knowledge/evidence/stories/`は無変更）、`promote_evidence_index.py --execute`の実行、実batch promotion、batch promotion scriptの実装、`scripts/promote_evidence_index.py`/`scripts/check_evidence_index_promotion.py`/`scripts/project_evidence_index_public_ids.py`/`scripts/check_public_episode_ids.py`本体の変更、`agents/wiki_generator/renderer.py`/`agents/wiki_generator/paths.py`の変更、Evidence Index/Public ID Registry/Summary schemaの変更、Internal Review Evidence Packet生成。
+`feature/evidence-index-promotion-first-batch-dry-run`（PR #102）でも以下は行っていない: 複数story分のEvidence Index/Registry entryのcommit（`knowledge/public_ids/story_public_ids.yaml`・`knowledge/evidence/stories/`は無変更）、`promote_evidence_index.py --execute`の実行、実batch promotion、batch promotion scriptの実装、`scripts/promote_evidence_index.py`/`scripts/check_evidence_index_promotion.py`/`scripts/project_evidence_index_public_ids.py`/`scripts/check_public_episode_ids.py`本体の変更、`agents/wiki_generator/renderer.py`/`agents/wiki_generator/paths.py`の変更、Evidence Index/Public ID Registry/Summary schemaの変更、Internal Review Evidence Packet生成。
+
+`feature/evidence-index-batch-candidate-selection-policy`（本PR）でも以下は行っていない: selection基準の`check_evidence_index_promotion.py`等への実装、`config/script_commands.yaml`/`agents/parser/parser.py`の変更、`story_manifest.yaml`の実データ変更・再normalize/merge、second batch dry-run・real batch promotionの実行、複数story分のEvidence Index/Registry entryのcommit。
 
 ---
 
@@ -394,7 +399,7 @@ Story Summary / Episode Summaryの`evidenceRefs`は引き続きPublic Evidence I
 
 - Story別Evidence pageのentry数しきい値を具体的な数値で確定するか（§8.2、実データ複数storyサンプルが揃ってから再検討）
 - Summary `evidenceRefs`が`stage_direction`を指す場合の一律ルール（§10、例外許容 vs Summary根拠再選択のどちらを既定にするか）
-- `unknown`型entryの件数が多い場合の具体的な除外基準（§4.1、「件数が少ない場合のみ」の閾値）
+- ~~`unknown`型entryの件数が多い場合の具体的な除外基準（§4.1、「件数が少ない場合のみ」の閾値）~~ → **`evidence-index-batch-candidate-selection-policy`で確定済み**（`docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md` §4.3、unknown比率10%/30%の2段階閾値）
 - promotion承認者（誰が最終承認するか）の運用ルール（`TASKS.md` Next「evidence-index-promotion-policy」参照）
 - Scene/Episode/Story単位の粗い粒度entryを将来追加する場合、Public/Internal振り分けをどうするか
 - `speaker_label`型entryを将来追加する場合の公開方針
