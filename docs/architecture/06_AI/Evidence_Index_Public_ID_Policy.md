@@ -323,6 +323,8 @@ evidenceRefs:
 - 既存fixtureの更新は本PRでは行わず、`evidence-index-public-id-projection`実装時に合わせて行う
 - migrationが必要になる実データSummaryはまだ存在しない（`knowledge/summaries/stories/`は`.gitkeep`のみ）ため、影響は限定的
 
+**実装レベルの詳細化（`summary-public-id-projection-design`で実施）**: 上記の推奨方針を、Summary側projection script（`scripts/project_story_summary_public_ids.py`、新設予定）の具体的な変換仕様として`docs/architecture/06_AI/Summary_Public_ID_Projection_Design.md` §6に落とし込んだ。Evidence Index public-safe projectionの`--mapping-output`CSVをそのまま`--evidence-mapping`として入力し、内部blockId参照を`publicEvidenceId`参照へ変換する。該当storyがEvidence Index未昇格の場合は`evidenceRefs`を空にして昇格可とし、reportにwarningとして記録する。
+
 ---
 
 # 9. Renderer / pathへの影響
@@ -575,6 +577,7 @@ evidenceRefs:
 - `docs/architecture/05_Parser/Story_Manifest_Design.md`（`publicStoryId`/`publicEpisodeId`のschema実装、§13.2）
 - `docs/architecture/05_Parser/Identifier_Specification.md`（既存ID体系の定義、§2.1安定性原則、§8 Evidence ID）
 - `docs/architecture/06_AI/Story_Summary_Design.md`（Summary `evidenceRefs`のschema、§8で影響を整理）
+- `docs/architecture/06_AI/Summary_Public_ID_Projection_Design.md`（§8の推奨方針を実装レベルまで詳細化した設計、Summary側projection scriptのCLI仕様・field変換表・evidenceRefs変換仕様・Registry共有設計）
 - `docs/architecture/07_Wiki/Wiki_Output_Design.md` §14（URL/slug方針、`publicStoryId`/`publicEpisodeId`のrenderer反映状況）
 - `agents/wiki_generator/paths.py`（`evidence_page_path`、`resolve_story_path_id`）
 - `agents/wiki_generator/renderer.py`（`render_evidence_page`、`_evidence_anchor`、`_evidence_ref_link`）

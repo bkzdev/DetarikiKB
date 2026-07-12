@@ -260,8 +260,8 @@ Evidence Indexの`Evidence_Index_Batch_Promotion_Policy.md` §9（Failed story h
 |---|---|---|
 | `story-summary-generation-planning`（本PR） | 本文書の作成。公開ID問題への対応方針・パイプライン段階設計・prompt設計方針・provider抽象配置・品質ゲート整理・実装フェーズ分割 | LLM呼び出し・prompt・provider実装、schema変更の実施、実要約生成、fixture migration |
 | `summary-generation-skeleton` | `agents/summarizer/`パッケージの新設（`__init__.py`のみ、または最小限のdataclass定義）。実際のLLM呼び出しは含めない。§7の配置方針に基づく最小限の骨格のみ | LLM呼び出し本体・provider実装 |
-| `summary-public-id-projection-design` | §4.3の提案を実装レベルで詳細化する設計PR（schema変更案の確定、projection scriptの入出力仕様確定）。Evidence Indexの`evidence-index-public-id-schema-design`相当 | schema実装、projection実装 |
-| `summary-public-id-schema-implementation` | `schemas/story_summary.schema.json`への必要最小限の変更実装（optionalフィールドの追加等、破壊的変更なし） | projection実装、renderer変更 |
+| `summary-public-id-projection-design` | §4.3の提案を実装レベルで詳細化する設計PR（schema変更案の確定、projection scriptの入出力仕様確定）。Evidence Indexの`evidence-index-public-id-schema-design`相当。**完了**（`docs/architecture/06_AI/Summary_Public_ID_Projection_Design.md`として確定。projection scriptを独立scriptとして`scripts/project_story_summary_public_ids.py`に新設する方針、CLI引数・exit code・blocking条件・field変換表・evidenceRefs変換仕様・Registry共有設計（`check_public_episode_ids.py`の`_resolve_registry_lookup`/`_group_entries_by_internal_story`を再利用）を確定した） | schema実装、projection実装 |
+| `summary-public-id-schema-implementation` | `schemas/story_summary.schema.json`への必要最小限の変更実装（optionalフィールドの追加等、破壊的変更なし）。**`summary-public-id-projection-design`の結論によりスキップ可能**（`Summary_Public_ID_Projection_Design.md` §8で、既存schemaの構造（required/optional/pattern）を一切変更せずcompatible/public-safe両projection modeを実現できることを確認した） | projection実装、renderer変更 |
 | `summary-generation-public-safe-projection` | Evidence Indexの`project_evidence_index_public_ids.py`に相当する、Summary用public-safe projection scriptの実装（Compatible→Public-safeの2段階） | LLM呼び出し実装、実データprojection実行 |
 | `summary-generation-provider-implementation`（ユーザー明示指示後） | Ollama provider呼び出し本体の実装。**`AI_CONTEXT.md` §4方針により、ユーザーの明示的指示があるまで着手しない** | 外部provider実装（opt-in部分は別フェーズ） |
 | `summary-generation-prompt-implementation`（ユーザー明示指示後） | Episode Summary生成prompt・hallucination対策の後処理実装 | Story Summary合成ロジック（次フェーズ） |
@@ -290,8 +290,8 @@ Evidence Indexの`Evidence_Index_Batch_Promotion_Policy.md` §9（Failed story h
 # 11. Open questions（未確定事項）
 
 - provider抽象を`agents/summarizer/`固有にするか、`agents/extractor/`と共有する共通レイヤーにするか（§7.2）
-- Summary用public-safe projectionを、Evidence Indexと同じ`project_evidence_index_public_ids.py`を拡張して対応するか、独立した新規scriptにするか（Evidence Index自身も`build_evidence_index_candidates.py`拡張ではなく独立scriptとして`project_evidence_index_public_ids.py`を新設した前例があり、同様に独立script化する可能性が高いが、本PRでは確定しない）
-- `evidenceRefs`のEvidence Index mapping CSVへの依存を、Summary側のprojection scriptがどう読み込むか（同じCSVを共有するか、Summary側でも独自にmapping生成が必要か）
+- ~~Summary用public-safe projectionを、Evidence Indexと同じ`project_evidence_index_public_ids.py`を拡張して対応するか、独立した新規scriptにするか~~ → **`summary-public-id-projection-design`で確定**: `scripts/project_story_summary_public_ids.py`という独立scriptとして新設する方針を確定した（Evidence Indexの文書構造との違いを踏まえた判断、`Summary_Public_ID_Projection_Design.md` §4参照）
+- ~~`evidenceRefs`のEvidence Index mapping CSVへの依存を、Summary側のprojection scriptがどう読み込むか~~ → **`summary-public-id-projection-design`で確定**: Evidence Index public-safe projectionの`--mapping-output`CSVをそのまま`--evidence-mapping`として入力し、Summary側で独自のmapping生成は行わない方針を確定した（`Summary_Public_ID_Projection_Design.md` §6参照）
 - 長文verbatim引用検出の具体的な閾値・アルゴリズム（§6.3）
 - Episode Summary複数版（改訂履歴）を持たせるかどうか（`Story_Summary_Design.md` §14で既に未確定のまま持ち越されている論点、AI生成が始まると再生成のたびに複数版が必要になる可能性があるため、本PRでも未確定のまま据え置く）
 - Story Summary合成（Episode Summary群→Story Summary）の具体的なロジック（単純な要約結合か、再度LLMに要約させるか）
@@ -301,6 +301,7 @@ Evidence Indexの`Evidence_Index_Batch_Promotion_Policy.md` §9（Failed story h
 
 # 12. 参照
 
+- `docs/architecture/06_AI/Summary_Public_ID_Projection_Design.md`（本文書§4.3の提案を実装レベルまで詳細化した設計PR。projection scriptのCLI仕様・field変換表・evidenceRefs変換仕様・Registry共有設計・schema変更不要の結論を確定）
 - `docs/architecture/06_AI/Story_Summary_Design.md`（Summaryのデータモデル・保存場所・status/review workflow・renderer統合の既存設計、本文書はその「AI要約生成パイプライン」部分を具体化する）
 - `docs/architecture/06_AI/Evidence_Index_Public_ID_Policy.md`（本文書§4が踏襲する内部ID/公開ID分離方針・publicEvidenceId方針・Public-safe projection方針）
 - `docs/architecture/06_AI/Public_ID_Registry_Design.md`（本文書§4.3.4が共有する既存Public ID Registry設計）
