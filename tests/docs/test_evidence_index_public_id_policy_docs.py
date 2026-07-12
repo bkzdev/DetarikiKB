@@ -57,7 +57,14 @@ REQUIRED_SECTIONS = (
     "# 15. 参照",
 )
 
-REAL_DATA_HINTS = ("CAMI3RD", "260425", "260707", "C:\\Users", "D:\\Dev")
+REAL_DATA_HINTS = (
+    "CAMI3RD",
+    "260425",
+    "260707",
+    "260712",
+    "C:\\Users",
+    "D:\\Dev",
+)
 
 
 def _read_doc() -> str:
