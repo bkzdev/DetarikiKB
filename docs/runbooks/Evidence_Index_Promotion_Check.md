@@ -205,6 +205,7 @@ PR #87で使用した匿名化済み実データサンプル（EVENTカテゴリ
 - `evidence-index-public-id-renderer-switch`（実装済み、Evidence page見出し・anchor・Summary evidenceRefsリンクの`publicEvidenceId`中心切替）: 本checkはrenderer出力そのものは検証しない（Evidence Index YAML入力のみを検証する）ため無変更。renderer switch後もpromotion再開の前提条件は`docs/architecture/06_AI/Evidence_Index_Promotion_Policy.md` §5.1を参照
 - `evidence-index-promotion-first-reviewed-sample-retry`（実施済み）: `knowledge/public_ids/story_public_ids.yaml`への実Registry entry追加を経て、`knowledge/evidence/stories/EVT_260707_001.yaml`（1 story・187 entries、匿名化表記）への初回実データ昇格を実施した。`check_evidence_index_promotion.py`自体は本PRでも無変更のまま使用した（`--input knowledge/evidence/stories`に対する実行もPASS）。詳細は`docs/runbooks/Evidence_Index_Promotion_Copy.md` §13.8を参照
 - `evidence-index-promotion-first-sample-visual-review`（実施済み）: 昇格済み1 storyについて`check_evidence_index_promotion.py --input knowledge/evidence/stories`（`--story-summaries`込み）を再実行しPASSを再確認した。本script自体は無変更。詳細は`docs/runbooks/Evidence_Index_Promotion_Copy.md` §13.9を参照
+- `evidence-index-promotion-batch-policy`（実施済み、設計のみ）: 複数storyへ広げる際のbatch promotion運用方針を`docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md`（新設）に整理した。story単位のpromotion前チェックリストは、本checkの実行（`--story-summaries`込み）を含めて既存手順をそのまま踏襲する。本script自体の変更はない。詳細は`docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md` §6を参照
 
 ---
 
@@ -222,4 +223,5 @@ PR #87で使用した匿名化済み実データサンプル（EVENTカテゴリ
 - `scripts/project_evidence_index_public_ids.py`（Compatible/Public-safe projection script）
 - `scripts/check_public_episode_ids.py`（publicEpisodeId未確定episodeの検出・割当候補提案script）
 - `scripts/validate_evidence_index.py`（schema/整合性検証CLI）
+- `docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md`（複数storyへ広げる際のbatch size・Registry review条件・promotion前後チェックリスト・visual review・failed story/rollback・PR分割方針）
 - `TASKS.md`（次PR候補の追跡）

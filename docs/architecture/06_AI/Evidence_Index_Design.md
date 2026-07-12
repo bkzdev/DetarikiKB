@@ -278,7 +278,8 @@ evidence/{publicEpisodeId or episodeId}.md#EVT_SAMPLE_E01_DLG0001
 | Phase 4.16: `evidence-index-public-id-registry-integration`（PR #97） | Public ID Registryを`project_evidence_index_public_ids.py`へ統合し、欠落`publicEpisodeId`をRegistryから補完できるようにする | 完了（実Registry投入・renderer切替・実promotion再開は未着手） |
 | Phase 4.17: `evidence-index-public-id-renderer-switch`（PR #98） | Evidence page見出し・anchor・Summary evidenceRefsリンクを`publicEvidenceId`中心に切り替える | 完了（実Registry投入・実promotion再開は未着手） |
 | Phase 4.18: `evidence-index-promotion-first-reviewed-sample-retry`（PR #99） | 実Public ID Registry entry追加、実データ1 storyの初回昇格を再試行する | 完了（実Evidence Index 1件を`knowledge/evidence/stories/`へ昇格済み） |
-| Phase 4.19: `evidence-index-promotion-first-sample-visual-review`（本PR） | 昇格済み1 storyについてWiki表示・導線・内部ID/raw text非露出を最終確認する | **完了（本PR、実装変更なし）** |
+| Phase 4.19: `evidence-index-promotion-first-sample-visual-review`（PR #100） | 昇格済み1 storyについてWiki表示・導線・内部ID/raw text非露出を最終確認する | 完了（実装変更なし） |
+| Phase 4.20: `evidence-index-promotion-batch-policy`（本PR） | 複数storyへ広げる前のbatch promotion運用方針を設計する | **完了（本PR、`docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md`新設）** |
 | Phase 5: Internal review packets | raw textや詳細contextを含むreview packetをworkspace配下に生成（commit禁止）、public wikiとは分離 | 未着手 |
 
 **実装状況（`feature/evidence-index-schema-implementation`で実施）**: `schemas/evidence_index.schema.json`（§13データモデル案をそのまま実装。`evidenceType`10種enum・`visibility.rawTextIncluded`を`const: false`で固定）、`agents/wiki_generator/evidence_index.py`（loader/validator、`build_evidence_id_index`/`group_entries_by_story`/`group_entries_by_public_story`/`group_entries_by_episode`/`group_entries_by_public_episode`等のhelper）、`scripts/validate_evidence_index.py`（schema検証・duplicate evidenceId検出・raw text禁止文字列検出・`visibility.public`/`rawTextIncluded`検証）、`docs/templates/evidence_index_template.yaml`、合成fixture（`tests/fixtures/evidence_index/`）を追加した。保存場所は`knowledge/evidence/stories/`を採用し`.gitkeep`のみで実データ未投入。
@@ -312,6 +313,8 @@ evidence/{publicEpisodeId or episodeId}.md#EVT_SAMPLE_E01_DLG0001
 **実施結果（`feature/evidence-index-promotion-first-reviewed-sample-retry`で実施）**: **`knowledge/evidence/stories/`が.gitkeepのみの状態を脱し、初めて実データ由来のEvidence Index 1件（`EVT_260707_001.yaml`、匿名化表記、1 story・2 episodes・187 entries）が追加された。** `knowledge/public_ids/story_public_ids.yaml`に対応する1 story分のPublic ID Registry entryを正式commitし、これを使ったPublic-safe projection・promotion check・renderer確認・human review・`promote_evidence_index.py --execute`をすべて実施した。詳細は`docs/runbooks/Evidence_Index_Promotion_Copy.md` §13.8、`docs/architecture/06_AI/Evidence_Index_Promotion_Policy.md` §13を参照。**複数story分の追加・batch promotion・script本体の変更はいずれも行っていない**。
 
 **実施結果（`feature/evidence-index-promotion-first-sample-visual-review`で実施）**: 上記で追加された実Evidence Index 1件について、Wiki表示として公開して問題ないかを最終確認した。**実装変更は行っていない。** `validate_evidence_index.py`・`check_evidence_index_promotion.py`（Story Summary整合性込み）を`knowledge/evidence/stories`に対して再実行しPASS、`render_wiki.py --evidence-index knowledge/evidence/stories`でEvidence pageを再renderし、187 entries全件の見出しが`publicEvidenceId`形式・`stage_direction`が0件であることを確認した。Story pageの「Review Links → Evidence index」リンクが`publicStoryId`ベースで正しく解決されることも実データで確認した。Evidence Index YAML・Evidence page本体に内部ID・raw text露出が無いことをgrep・目視で確認し、`mkdocs build --strict`も成功した。詳細は`docs/runbooks/Evidence_Index_Promotion_Copy.md` §13.9を参照。**新規Evidence Index追加・batch promotionはいずれも行っていない**。
+
+**設計方針決定（`feature/evidence-index-promotion-batch-policy`で実施）**: 1 storyのpromotion・visual reviewが実証されたことを踏まえ、複数storyへ広げる際のbatch promotion運用方針を`docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md`（新設）に整理した。段階的batch size方針・Registry entry review条件・promotion前後チェックリスト・visual review方針・failed story handling・rollback方針・PR分割方針を定義し、次PR候補`evidence-index-promotion-first-batch-dry-run`のスコープを明記した。**本PRでは実装変更・実Evidence Index/Registry entryの追加・batch promotion実行はいずれも行っていない**（設計のみ）。
 
 ---
 
@@ -457,4 +460,5 @@ entries:
 - `docs/runbooks/Evidence_Index_Promotion_Check.md`（`scripts/check_evidence_index_promotion.py`によるpromotion check手順）
 - `docs/runbooks/Evidence_Index_Promotion_Copy.md`（`scripts/promote_evidence_index.py`によるpromotion checkをPASSした候補のcopy手順）
 - `docs/architecture/06_AI/Evidence_Index_Public_ID_Policy.md`（内部trace ID/公開ID分離方針、保存場所`{storyId}.yaml`をどう扱うかの設計）
+- `docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md`（複数storyへ広げる際のbatch size・Registry review条件・promotion前後チェックリスト・visual review・failed story/rollback・PR分割方針）
 - `TASKS.md`（次PR候補の追跡）

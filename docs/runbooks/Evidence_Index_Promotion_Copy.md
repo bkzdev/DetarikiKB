@@ -330,6 +330,23 @@ uv run python scripts/render_wiki.py `
 
 **この結果は、PR #99で初めて昇格したPublic Evidence Indexが、Wiki表示として安全に公開できる状態にあることを実証している。** 対象は1 storyのみ、実装変更・新規Evidence Index追加・batch promotionはいずれも行っていない。次は`evidence-index-promotion-batch-policy`（複数story昇格の運用方針検討）または`internal-review-evidence-packet-design`。
 
+### 13.10 進捗（`feature/evidence-index-promotion-batch-policy`、設計のみ）
+
+§13.8・§13.9で1 storyのpromotion・visual reviewが実証されたことを踏まえ、複数storyへ広げる前のbatch promotion運用方針を`docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md`（新設）に整理した。**本PRでは実装変更・実Evidence Index/Registry entryの追加・batch promotion実行はいずれも行っていない。**
+
+概要:
+
+- batch size方針: Phase 2（dry-run、最大3 story）→ Phase 3（初回実batch、最大3 story）→ Phase 4（通常small batch、最大5 story）→ Phase 5（大規模batch、明示的承認まで許可しない）
+- Registry entry review条件: sourceKey非由来・`{publicStoryId}_E{episodeOrder:02d}`形式・duplicate無し・`check_public_episode_ids.py`整合確認済み等、8項目
+- story単位のpromotion前チェックリスト・batch単位のpromotion後チェックリストを新設（本Runbook §13.8/§13.9の手順をbatch向けに一般化したもの）
+- visual review方針: 初回batch（dry-run・実batchとも）は全story必須、通常small batchはspot check
+- failed story handling: 初回batchは1件でもfailureがあればbatch全体を停止、失敗理由を9分類（Registry missing/conflict、publicEpisodeId missing、projection/validation/promotion check/exposure/render/visual review failure）
+- rollback方針: 1 story 1 fileの削除で対応、ただし一度公開した`publicStoryId`/`publicEpisodeId`は再利用しない。Git履歴混入防止は事前のexposure checkが本筋
+- PR分割方針: 初回batchは案C（dry-run PR→実promotion PRの2段階）
+- 次PR候補`evidence-index-promotion-first-batch-dry-run`のスコープ（2〜3 storyのworkspace限定dry-run確認、実commitなし）を明記した
+
+詳細は`docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md`を参照。次は`evidence-index-promotion-first-batch-dry-run`。
+
 ---
 
 # 14. 関連ドキュメント
@@ -348,4 +365,5 @@ uv run python scripts/render_wiki.py `
 - `docs/architecture/07_Wiki/Wiki_Output_Design.md` §9.16（Evidence page renderer統合・publicEvidenceId中心へのrenderer切替）
 - `agents/wiki_generator/evidence_index.py`（`display_evidence_id`/`resolve_evidence_entry`/`resolve_story_evidence_entries`）
 - `agents/wiki_generator/renderer.py`（`render_evidence_page`、`_evidence_anchor`、`_format_evidence_ref_display`）
+- `docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md`（複数storyへ広げる際のbatch size・Registry review条件・promotion前後チェックリスト・visual review・failed story/rollback・PR分割方針）
 - `TASKS.md`（次PR候補の追跡）
