@@ -409,6 +409,7 @@ notes: null
 # 15. 参照
 
 - `docs/architecture/06_AI/Story_Summary_Generation_Plan.md`（AI要約生成パイプラインの実装計画。Summary fileの公開ID問題へのEvidence Index方式踏襲・パイプライン段階設計・prompt設計方針・provider抽象配置・品質ゲート・実装フェーズ分割）
+- `docs/architecture/06_AI/Summary_Public_ID_Projection_Design.md`（`Story_Summary_Generation_Plan.md` §4.3の提案を実装レベルまで詳細化した設計。projection script `scripts/project_story_summary_public_ids.py`（新設予定）のCLI仕様・field変換表・evidenceRefs変換仕様・Registry共有設計・schema変更不要の結論）
 - `docs/architecture/07_Wiki/Story_Page_Design.md`（Story page設計、§8 Summary placement）
 - `docs/architecture/06_AI/Evidence_Index_Design.md`（evidenceRefsの将来リンク先となるEvidence indexの設計）
 - `docs/architecture/06_AI/Evidence_Index_Promotion_Policy.md`（Summary evidenceRefsが指すEvidence entryのPublic promotion優先方針、`stage_direction`を指す場合の扱い）
