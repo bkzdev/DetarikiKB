@@ -69,7 +69,7 @@ raw DEC配置とDKB正規ID体系（storyId/episodeId）は`story_manifest.yaml`
 - 不明情報を破棄する
 - IDにタイトルを含める
 - APIキーをリポジトリに書く
-- `agents/extractor/`のLLM呼び出し本体・provider連携実装は、ユーザーの明示的な指示があるまで着手しない
+- `agents/extractor/`のLLM呼び出し本体・provider連携実装は、ユーザーの明示的な指示があるまで着手しない（**`agents/summarizer/`系のLLM provider実装は、ユーザーが2026-07-13に明示的に解禁済み**。`agents/summarizer/provider.py`のOllama provider実装（`summary-generation-provider-implementation`）参照。`agents/extractor/`は引き続き未解禁のまま）
 - 名前一致だけでcharacterId/canonicalIdを自動確定する
 - DEC本文からtitle/subtitleを推測して埋める
 
