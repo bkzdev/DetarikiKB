@@ -314,6 +314,22 @@ uv run python scripts/render_wiki.py `
 
 **この結果は、`evidence-index-promotion-first-reviewed-sample`（PR #91）で発見されたsourceKey由来ID問題が、Public-safe projection + Public ID Registry統合 + renderer switchの組み合わせによって実データでも解消され、`knowledge/evidence/stories/`への実データ昇格が安全に行えることを実証している。** 対象は1 storyのみに限定し、複数story・batch promotionは行っていない。
 
+### 13.9 進捗（`feature/evidence-index-promotion-first-sample-visual-review`、匿名化。昇格済み1 storyの最終目視確認）
+
+§13.8で`knowledge/evidence/stories/EVT_260707_001.yaml`へ昇格した1 storyについて、Wiki表示として公開して問題ないかを最終確認した。**本PRでは実装変更を一切行っていない。**
+
+1. **Registry確認**: `knowledge/public_ids/story_public_ids.yaml`が`registryVersion: 1`・1 story分（`publicStoryId`/`category`/`episodes[].publicEpisodeId`/`episodeOrder`のみ）で構成され、`publicEpisodeId`が`{publicStoryId}_E01`/`{publicStoryId}_E02`形式・`episodeOrder`が1/2であることを確認した。sourceKey由来ID・raw title・raw path・URL・local pathはいずれも含まれない。
+2. **Evidence Index YAML確認**: `knowledge/evidence/stories/EVT_260707_001.yaml`をPythonスクリプトで機械的に検証し、187 entries全件で`evidenceId == publicEvidenceId`・`storyId == publicStoryId`・`episodeId == publicEpisodeId`が成立し、`sceneId`/`blockId`/`referencedBy`が0件、`visibility.public: true`・`visibility.rawTextIncluded: false`が全entryで成立することを確認した。entries by typeは`dialogue`153・`monologue`6・`narration`26・`unknown`2（`choice`/`stage_direction`は0件）。
+3. **再validation**: `validate_evidence_index.py --input knowledge/evidence/stories`・`check_evidence_index_promotion.py --input knowledge/evidence/stories`（`--story-summaries`あり/なし両方）をいずれも再実行しPASSを確認した（Summary未登録のため`Checked documents: 0`）。
+4. **render確認**: `render_wiki.py --evidence-index knowledge/evidence/stories`でEvidence page（`evidence/EVT_260707_001.md`）を再renderし、187件の見出しがすべて`publicEvidenceId`形式（例: `### EVT_260707_001_E01_DLG0001`）であること、`stage_direction`が0件であることを確認した。
+5. **Story page導線確認**: Story pageの「Review Links」sectionに`[Evidence index](../evidence/EVT_260707_001.md)`が正しく生成され、`publicStoryId`ベースのEvidence pageへ実際に解決されることを実データで確認した（`resolve_story_evidence_entries`のfallbackが実際に機能していることの実証）。Summary未登録のため`evidenceRefs`リンクの実データ確認はできなかった（合成テストで確認済みのまま）。
+6. **mkdocs build --strict**: local previewで成功（broken linkなし）。
+7. **internal/source exposure check**: committed Registry・committed Evidence Index YAML・rendered Evidence page（Markdown/HTML）のいずれにも、sourceKey由来ID・`.dec`・`@ChTalk`系コマンド・`$num`・local absolute path・`<script`（DEC由来の意味ではなくMkDocs Materialのフレームワーク標準JSタグのみ検出、raw content露出ではないことを確認）が含まれないことをgrepで確認した。
+
+**新たに再確認された既知の制約**: merged knowledge collection側にEpisode 2の`publicStoryId`/`publicEpisodeId`が伝播していないため、Story page（workspace限定previewのみ）のサイト全体ナビゲーションに内部storyId断片が現れることを再確認した（PR #98/#99で判明済みの制約と同一）。**ただしこれはEvidence Index YAML自体・Evidence page本体には影響しない**（§7参照）。根本解決には`story_manifest.yaml`側の`publicStoryId`確定・再normalize/mergeが必要であり、本PRのNon-goals。
+
+**この結果は、PR #99で初めて昇格したPublic Evidence Indexが、Wiki表示として安全に公開できる状態にあることを実証している。** 対象は1 storyのみ、実装変更・新規Evidence Index追加・batch promotionはいずれも行っていない。次は`evidence-index-promotion-batch-policy`（複数story昇格の運用方針検討）または`internal-review-evidence-packet-design`。
+
 ---
 
 # 14. 関連ドキュメント
