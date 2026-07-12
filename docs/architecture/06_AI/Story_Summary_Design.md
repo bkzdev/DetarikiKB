@@ -370,8 +370,8 @@ notes: null
 | `story-summary-evidence-display` | Story pageのStory/Episode Summary本文下にevidenceRefsをIDのみ短く表示（`_render_evidence_refs_line`） | 完了 |
 | `story-summary-evidence-index-design` | Evidence index本体の設計（`Evidence_Index_Design.md`） | 完了 |
 | `evidence-index-schema-implementation` | Evidence indexのschema/loader/validator実装 | 完了 |
-| `evidence-index-renderer-integration` | Story別Evidence page生成、evidenceRefsのEvidence indexへのリンク化 | **完了（本PR）** |
-| 将来 `story-summary-generation-planning` | AI要約生成パイプライン（LLM provider/prompt実装）の着手時期・方式検討 | 未着手 |
+| `evidence-index-renderer-integration` | Story別Evidence page生成、evidenceRefsのEvidence indexへのリンク化 | 完了 |
+| `story-summary-generation-planning` | AI要約生成パイプライン（LLM provider/prompt実装）の着手時期・方式検討。実装計画は`docs/architecture/06_AI/Story_Summary_Generation_Plan.md`として確定した（§15参照） | **完了（設計のみ、本PR）** |
 | 将来 | Episode pageへのSummary/evidenceRefs表示可否判断、実データでの表示確認（manual review） | 未着手 |
 
 ---
@@ -408,6 +408,7 @@ notes: null
 
 # 15. 参照
 
+- `docs/architecture/06_AI/Story_Summary_Generation_Plan.md`（AI要約生成パイプラインの実装計画。Summary fileの公開ID問題へのEvidence Index方式踏襲・パイプライン段階設計・prompt設計方針・provider抽象配置・品質ゲート・実装フェーズ分割）
 - `docs/architecture/07_Wiki/Story_Page_Design.md`（Story page設計、§8 Summary placement）
 - `docs/architecture/06_AI/Evidence_Index_Design.md`（evidenceRefsの将来リンク先となるEvidence indexの設計）
 - `docs/architecture/06_AI/Evidence_Index_Promotion_Policy.md`（Summary evidenceRefsが指すEvidence entryのPublic promotion優先方針、`stage_direction`を指す場合の扱い）
