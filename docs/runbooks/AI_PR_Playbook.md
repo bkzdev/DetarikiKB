@@ -117,7 +117,7 @@ uv run mkdocs build --strict
 
 ## 7.1 実データ・生成物
 
-- 実`.dec`（`data/raw/**/*.dec`、`tests/fixtures/parser/CAB-csl_script_*.dec`等）
+- 実`.dec`（`data/raw/**/*.dec`、および実データ由来ファイル名パターンに一致するtests/fixtures混入分。具体的なパターンは`.gitignore`を正とする）
 - 実データ由来の`story_manifest.yaml`
 - 実Normalized Story JSON（`data/normalized/**/*.json`）
 - 実extraction/merged collection JSON（`data/extracted/**/*.json`等）

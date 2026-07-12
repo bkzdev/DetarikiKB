@@ -103,7 +103,7 @@
 ### Publishing
 
 - **public publishing workflow**: GitHub Pages / Cloudflare Pages等への公開ワークフローを設計・実装する（`Wiki_Output_Design.md` §16 Non-goals）
-- **public-publishing-platform-evaluation**（Next参照。現時点ではMkDocs Materialから移行しない、Known Issues参照）
+- **public-publishing-platform-evaluation**: MkDocs Material継続/別テーマ評価の着手時期を検討する（現時点ではMkDocs Materialから移行しない、Known Issues参照。Evidence Index batch関連の優先度繰り上げに伴いNextからBacklogへ移動）
 
 ### Quality / Refactor
 

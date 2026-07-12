@@ -28,12 +28,14 @@ REQUIRED_SECTIONS = (
     "# 10. 関連ドキュメント",
 )
 
-REAL_DATA_HINTS = ("CAMI3RD", "260425", "260707", "260624", "260504")
-# 注: "CAB-csl" は.gitignoreの既存パターン
-# (tests/fixtures/parser/CAB-csl_script_*.dec) 自体を汎用的な
-# ワイルドカードとして参照するために許容する。特定の実イベント名・実日付
-# ではなく、命名規則そのものを示すglobパターンであり、.gitignore/既存docs
-# にも同じ形で記載されている（実データの具体的なインスタンスではない）。
+REAL_DATA_HINTS = (
+    "CAMI3RD",
+    "260425",
+    "260707",
+    "260624",
+    "260504",
+    "CAB-csl",
+)
 
 
 def _read_doc() -> str:
