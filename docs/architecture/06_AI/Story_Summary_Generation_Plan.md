@@ -216,12 +216,12 @@ Evidence Indexの`Evidence_Index_Batch_Promotion_Policy.md` §9（Failed story h
 - `agents/extractor/`には、LLM呼び出し本体はまだ実装されていない。`agents/extractor/models.py`の`ExtractionProvenance`相当のdataclassに`model_provider`/`model_name`/`prompt_version`という**文字列フィールドのみ**が存在し、既定値は`extraction_method: "rule_based"`（LLM呼び出し前提のフィールドを持つが、実際のprovider抽象クラス・API呼び出しロジックは未実装）
 - devcontainer側にはOllamaサービスが既設（`docker-compose.yml`の`ollama`サービス・`OLLAMA_HOST`環境変数）。ローカルLLM運用の基盤自体は用意済み
 
-## 7.2 配置方針（提案）
+## 7.2 配置方針（確定）
 
-- **`agents/summarizer/`を新設する**（本PRでは新設しない、実装フェーズ`summary-generation-skeleton`相当のPRで新設する提案とする）。Story/Episode Summary生成は、Extraction（Stage A candidate抽出）とは責務が異なる独立したパイプラインであるため、`agents/extractor/`に混在させない
-- provider抽象（Ollama呼び出しクライアント、opt-in外部providerの切替インターフェース）は、`agents/extractor/`が将来LLM呼び出しを実装する際にも同じ抽象を必要とする可能性が高い。**共有providerレイヤーを設けるか、summarizer固有に実装するかは、実際にどちらかのLLM呼び出し実装に着手するPRで判断する**（本PRでは確定しない、§11 Open questions）
-- 共有する場合の候補配置: `agents/common/llm_provider.py`のような両者から参照可能な共通モジュール（案のみ、本PRでは新設しない）
-- いずれの場合も、外部provider（API系）はopt-in、ローカルLLM（Ollama）がデフォルトという方針（`TASKS.md` Rules）は共通で適用する
+- **`agents/summarizer/`を新設する**（`summary-generation-skeleton`で新設済み）。Story/Episode Summary生成は、Extraction（Stage A candidate抽出）とは責務が異なる独立したパイプラインであるため、`agents/extractor/`に混在させない
+- **provider抽象の配置は`summary-generation-provider-implementation`で確定した**: ユーザーが2026-07-13にsummarizer系のLLM provider実装を明示的に解禁したことを受け、`agents/common/`のような共有レイヤーは新設せず、**`agents/summarizer/provider.py`にsummarizer固有として実装した**（`SummaryLLMProvider`/`OllamaProvider`/`LLMCompletion`/`LLMProviderError`）。`agents/extractor/`のLLM呼び出しは引き続き未解禁のままであり（`AI_CONTEXT.md` §4）、共有レイヤーへの昇格が必要かどうかは、実際に`agents/extractor/`側のLLM呼び出しが解禁されるPRで再判断する（§11 Open questionsを解消）
+- 共有レイヤーへ昇格する場合の候補配置は引き続き`agents/common/llm_provider.py`のような両者から参照可能な共通モジュールを想定するが、現時点では新設しない
+- いずれの場合も、外部provider（API系）はopt-in、ローカルLLM（Ollama）がデフォルトという方針（`TASKS.md` Rules）は共通で適用する。`summary-generation-provider-implementation`で実装した`OllamaProvider`はAPIキー・認証を扱わないローカルOllama専用実装であり、外部provider実装は引き続き将来PRのスコープ
 
 ---
 
@@ -263,7 +263,7 @@ Evidence Indexの`Evidence_Index_Batch_Promotion_Policy.md` §9（Failed story h
 | `summary-public-id-projection-design` | §4.3の提案を実装レベルで詳細化する設計PR（schema変更案の確定、projection scriptの入出力仕様確定）。Evidence Indexの`evidence-index-public-id-schema-design`相当。**完了**（`docs/architecture/06_AI/Summary_Public_ID_Projection_Design.md`として確定。projection scriptを独立scriptとして`scripts/project_story_summary_public_ids.py`に新設する方針、CLI引数・exit code・blocking条件・field変換表・evidenceRefs変換仕様・Registry共有設計（`check_public_episode_ids.py`の`_resolve_registry_lookup`/`_group_entries_by_internal_story`を再利用）を確定した） | schema実装、projection実装 |
 | `summary-public-id-schema-implementation` | `schemas/story_summary.schema.json`への必要最小限の変更実装（optionalフィールドの追加等、破壊的変更なし）。**`summary-public-id-projection-design`の結論によりスキップ可能**（`Summary_Public_ID_Projection_Design.md` §8で、既存schemaの構造（required/optional/pattern）を一切変更せずcompatible/public-safe両projection modeを実現できることを確認した） | projection実装、renderer変更 |
 | `summary-generation-public-safe-projection` | Evidence Indexの`project_evidence_index_public_ids.py`に相当する、Summary用public-safe projection scriptの実装（Compatible→Public-safeの2段階） | LLM呼び出し実装、実データprojection実行 |
-| `summary-generation-provider-implementation`（ユーザー明示指示後） | Ollama provider呼び出し本体の実装。**`AI_CONTEXT.md` §4方針により、ユーザーの明示的指示があるまで着手しない** | 外部provider実装（opt-in部分は別フェーズ） |
+| `summary-generation-provider-implementation` | **完了**（ユーザーが2026-07-13にsummarizer系のLLM provider実装を明示的に解禁したことを受けて実装。`AI_CONTEXT.md` §4）。Ollama provider呼び出し本体（`agents/summarizer/provider.py`、`POST {host}/api/generate`・`stream: false`固定、`urllib.request`のみ使用・新規ランタイム依存無し、HTTP transportはconstructor injection可能）を実装した | prompt実装・要約生成ロジック（次フェーズ）、外部provider実装（opt-in部分は別フェーズ）、実Ollama呼び出し・実データSummary生成 |
 | `summary-generation-prompt-implementation`（ユーザー明示指示後） | Episode Summary生成prompt・hallucination対策の後処理実装 | Story Summary合成ロジック（次フェーズ） |
 | `summary-generation-story-synthesis`（ユーザー明示指示後） | Episode Summary群からStory Summaryを合成するロジック実装 | - |
 | `summary-generation-quality-gate` | §8の機械的検証（evidenceRefs実在性・禁止文字列scan・verbatim引用検出）を実装するCLI（`check_evidence_index_promotion.py`類似のgatekeeper） | 自動promotion実行 |
@@ -289,7 +289,7 @@ Evidence Indexの`Evidence_Index_Batch_Promotion_Policy.md` §9（Failed story h
 
 # 11. Open questions（未確定事項）
 
-- provider抽象を`agents/summarizer/`固有にするか、`agents/extractor/`と共有する共通レイヤーにするか（§7.2）
+- ~~provider抽象を`agents/summarizer/`固有にするか、`agents/extractor/`と共有する共通レイヤーにするか（§7.2）~~ → **`summary-generation-provider-implementation`で確定**: `agents/summarizer/provider.py`にsummarizer固有として実装し、`agents/common/`共有レイヤーは新設しないことを確定した。`agents/extractor/`側のLLM呼び出しが解禁されるタイミングで、共通レイヤーへの昇格要否を再判断する（§7.2参照）
 - ~~Summary用public-safe projectionを、Evidence Indexと同じ`project_evidence_index_public_ids.py`を拡張して対応するか、独立した新規scriptにするか~~ → **`summary-public-id-projection-design`で確定**: `scripts/project_story_summary_public_ids.py`という独立scriptとして新設する方針を確定した（Evidence Indexの文書構造との違いを踏まえた判断、`Summary_Public_ID_Projection_Design.md` §4参照）
 - ~~`evidenceRefs`のEvidence Index mapping CSVへの依存を、Summary側のprojection scriptがどう読み込むか~~ → **`summary-public-id-projection-design`で確定**: Evidence Index public-safe projectionの`--mapping-output`CSVをそのまま`--evidence-mapping`として入力し、Summary側で独自のmapping生成は行わない方針を確定した（`Summary_Public_ID_Projection_Design.md` §6参照）
 - 長文verbatim引用検出の具体的な閾値・アルゴリズム（§6.3）
