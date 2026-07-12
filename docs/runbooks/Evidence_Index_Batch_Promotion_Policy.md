@@ -156,6 +156,42 @@ batch dry-run report（workspace限定、非commit）に以下のmatrixを記録
 - `config/script_commands.yaml`・`agents/parser/parser.py`の変更（次PR`script-command-dictionary-expansion-batch-001`）
 - `story_manifest.yaml`の実データ変更・再normalize/merge・second batch dry-run・real batch promotionの実行
 
+## 4.4 `script-command-dictionary-expansion-batch-001`の効果測定結果（匿名化）
+
+§4.3.7ロードマップ手順1を実施した結果を記録する。**実装はコマンド辞書拡張のみ**（`config/script_commands.yaml`・`agents/parser/parser.py`の対応マップに1コマンド追加、tokenizer.pyの変更は不要だった。追加コマンドは`@`始まりのため既存の分類ロジックでcommand tokenとして扱われ、`KEYWORD_TOKENS`への追加は不要）。
+
+**重要な判明事項**: §4.2で参照したローカルNormalized Story JSON（2 story）は、本PR着手時点で調査したところ、`config/script_commands.yaml`・`agents/parser/parser.py`のstage_direction辞書が過去のPR（演出コマンド37種・7種追加、`unknown`比率90%が観測された時点より前にmerge済み）を反映する前に生成されたstaleなローカル生成物であり、再normalize未実施のまま残っていたことが判明した。そのため、§4.2で観測された「unknown比率約90%」は、その時点で既にmainへmerge済みだった辞書拡張が反映されていない状態の数値だった。
+
+本PRでは、まず現行mainブランチのparser（本PR着手前、辞書拡張済み）で該当2 storyを再normalizeし直したところ、`unknown`比率は既に約1%まで下がっていた（stale local生成物とmain時点の実際の状態には大きな乖離があった）。その上で残っていた`unknown`コマンド1種を本PRで追加登録し、`unknown`比率を0%まで下げた。
+
+### 4.4.1 before/after matrix（`build_evidence_index_candidates.py --public-profile default`のfilter後、匿名化workspace ID）
+
+| Story（匿名） | 区分 | total | unknown数 | unknown比率 | 意味あるentry比率 | parserCompat | entry数判定 | 分類 |
+|---|---|---|---|---|---|---|---|---|
+| Story A（event category） | before（本PR着手前のmain、stale local生成物ではなく再normalize後の実測） | 99 | 1 | 約1.0% | 約99.0% | warning | 候補可（600以下） | promotion-candidate |
+| Story A（event category） | after（本PR、追加登録コマンド1件反映後） | 98 | 0 | 0% | 100% | warning | 候補可（600以下） | promotion-candidate |
+| Story B（raid category） | before（本PR着手前のmain、stale local生成物ではなく再normalize後の実測） | 108 | 1 | 約0.9% | 約99.1% | warning | 候補可（600以下） | promotion-candidate |
+| Story B（raid category） | after（本PR、追加登録コマンド1件反映後） | 107 | 0 | 0% | 100% | warning | 候補可（600以下） | promotion-candidate |
+
+（表内の`before`はいずれも「本PRの変更を含まないmain時点のparser」で再normalizeし直した実測値であり、§4.2記載の約90%はstale local生成物由来の数値のため参考値として区別する）
+
+### 4.4.2 追加コマンドの内訳
+
+- 追加数: **1コマンド**（`config/script_commands.yaml`のstage_direction・`agents/parser/parser.py`の`DIRECTION_TYPE_MAP`双方に追加、direction_type: character_display）
+- 分類根拠: `@`始まりでキャラクター表示スロットへプレースホルダーモデルを割り当てる演出コマンドと判断し、既存の`@ScenarioCos`系・`costume`/`@ChColor2`系と同様にstage_direction（character_display）へ分類した。dialogue系への分類が妥当と判断できる根拠は無かった
+- 残したunknown: なし（対象2 storyのfilter後`unknown`は本PR適用後に0件）。他のローカル生成物（character/main/other category、計4 story分）についても同じ手順で再normalizeし直し、本PR着手前の時点で`unknown`が0件であることを確認済み（stale local生成物のみに大量の`unknown`が記録されていた）
+
+### 4.4.3 目標達成状況
+
+対象2 storyとも、§4.3.1のunknown比率10%以下の基準を**達成した**（0%）。意味あるentry比率も70%以上を満たし、entry数も600件以下のため、両storyとも`promotion-candidate`に再分類される（§4.3.5でPR #102時点は`parser-improvement-wait`としていたが、辞書拡張とstale生成物の解消により本PR時点では`promotion-candidate`へ更新する）。
+
+### 4.4.4 本PRでは実装しないこと
+
+- `story_manifest.yaml`の実データ変更・再normalize/merge本体の実行（`story-manifest-public-story-id-real-data-assignment`のスコープ）
+- second batch dry-run・real batch promotionの実行
+- selection基準の自動check実装（`evidence-index-promotion-batch-tooling`）
+- 再normalize出力・効果測定結果ファイル自体のcommit（本節の匿名化統計のみを記録した）
+
 ---
 
 # 5. Registry entry review条件

@@ -110,6 +110,9 @@ DIRECTION_TYPE_MAP: dict[str, str] = {
     "@ChEyeOff": "character_display",
     "@VisibleS": "character_display",
     "@FadeOutBlack": "screen",
+    # script-command-dictionary-expansion-batch-001 dry-run で見つかった
+    # 演出コマンド (config/script_commands.yaml の stage_direction と対で追加)。
+    "@ChBlueMan/BlueMan2": "character_display",
 }
 
 # 表記ゆれ → 正規化

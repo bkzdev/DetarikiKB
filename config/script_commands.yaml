@@ -132,6 +132,9 @@ stage_direction:
   - "@ChEyeOff"            # キャラ視線オフ
   - "@VisibleS"            # 表示 (バリエーション)
   - "@FadeOutBlack"        # 画面フェードアウト (黒)
+  # script-command-dictionary-expansion-batch-001 dry-run で見つかった
+  # 演出コマンド。agents/parser/parser.py の DIRECTION_TYPE_MAP と対で追加。
+  - "@ChBlueMan/BlueMan2"  # プレースホルダーキャラクターモデル割り当て
 
 # ----------------------------------------------------------------
 # ignored: 無視する行・コマンド
