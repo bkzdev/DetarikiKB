@@ -43,7 +43,7 @@ Path: `docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md`
 |---|---|---|---|
 | Phase 1: `evidence-index-promotion-first-reviewed-sample-retry` / `-first-sample-visual-review` | 初回1 storyのpromotion・Wiki表示最終確認 | 1 | 完了（PR #99・#100） |
 | Phase 2: `evidence-index-promotion-first-batch-dry-run`（本PR） | 複数story分のRegistry候補・Public-safe projection・validation・render・visual reviewをworkspace限定でdry-run確認する（実commitなし） | 最大3（2 storyで実施） | **完了（本PR、tooling観点はPASS。ただし選定した2 storyは`unknown`比率が高くreal promotion対象としては非推奨、§4.2参照）** |
-| Phase 3: 初回実batch promotion | Phase 2のdry-runで問題が無かったstoryのみ、実際に`knowledge/public_ids/story_public_ids.yaml`・`knowledge/evidence/stories/`へ追加する | 最大3 | 未着手（Phase 2で使用した2 storyはそのまま昇格しない。story候補の再選定が必要、§4.2） |
+| Phase 3: 初回実batch promotion | Phase 2のdry-runで問題が無かったstoryのみ、実際に`knowledge/public_ids/story_public_ids.yaml`・`knowledge/evidence/stories/`へ追加する | 最大3 | 未着手（`story-manifest-public-story-id-real-data-assignment`のsecond batch dry-run、§4.5でtooling・Story page導線ともPASSを確認済み。次PR`evidence-index-promotion-first-real-batch`で着手） |
 | Phase 4: 通常small batch | 運用が安定した後の通常運用 | 最大5 | 未着手（Phase 3完了・実績蓄積後） |
 | Phase 5: 大規模batch | 5 storyを超える一括投入 | **明示的な承認があるまで許可しない** | 許可なし |
 
@@ -191,6 +191,56 @@ batch dry-run report（workspace限定、非commit）に以下のmatrixを記録
 - second batch dry-run・real batch promotionの実行
 - selection基準の自動check実装（`evidence-index-promotion-batch-tooling`）
 - 再normalize出力・効果測定結果ファイル自体のcommit（本節の匿名化統計のみを記録した）
+
+## 4.5 `story-manifest-public-story-id-real-data-assignment`実施結果（ロードマップ手順2+3統合実施、匿名化）
+
+§4.3.7ロードマップ手順2（`publicStoryId`/`publicEpisodeId`確定→再normalize/merge→Story page導線の動作確認）と手順3（second batch dry-run）を1 PRで統合実施した結果を記録する。
+
+### 4.5.1 実施内容
+
+対象は§4.4と同じ2 story（匿名化Story A=event category・Story B=raid category）。人間確定済みの`{publicStoryId}`（Story A/Story B それぞれ1件ずつ、`{publicEpisodeId}`はepisodeOrder 1固定）を、ローカルworkspace限定のstory_manifest.yaml相当ファイル（commit対象外）へ設定し、`scripts/normalize_story.py --manifest ... --raw-root ... --manifest-strict`で両storyを再normalizeした。両storyとも`raw_path`一致で`manifestMatched`、`parserCompatibility: warning`・`unknownCommands: 0`のまま変化なし（`script-command-dictionary-expansion-batch-001`の辞書拡張はmain反映済みのため再確認のみ）。
+
+再normalize後のNormalized Story JSONの`metadata.publicStoryId`/`episodes[].metadata.publicEpisodeId`から、workspace限定のextraction→merge（`scripts/extract_story.py`・`scripts/merge_extractions.py`）を経て、merged knowledge collectionの`sourceDocuments[].publicStoryId`/`publicEpisodeId`まで正しく伝播することを確認した。
+
+### 4.5.2 Story page → Evidence index導線の解消実証（本PRの核心）
+
+§4.2で判明していた「`story_manifest.yaml`のpublicStoryId未割当だとStory pageの「Review Links → Evidence index」リンクが生成されない」問題を、実データで解消実証した。手順3のPublic-safe projection（`{publicStoryId}`ベース）済みEvidence Indexと、手順2で`publicStoryId`が伝播したmerged knowledge collectionを組み合わせて`render_wiki.py --evidence-index`でrenderしたところ、**両storyのStory pageに`Review Links → Evidence index`リンクが生成され、`{publicStoryId}`ベースのEvidence pageへ正しく解決されることを確認した**。
+
+解決経路も特定した: Public-safe projection後、Evidence Index entry側の`storyId`フィールドは`{publicStoryId}`の値へ書き換えられるため、merged collection側の内部`storyId`をキーにした一次索引（`by_story_id`）は一致しない。`evidence-index-public-id-renderer-switch`（PR #98）で追加した`resolve_story_evidence_entries`のfallback（`by_public_story_id`、merged collection側`sourceDocuments[].publicStoryId`をキーに使う）が実際に機能することで解決している。このfallback経路は、PR #98時点では合成テストでのみ確認されており、本PRが実データでの初回確認となる。`mkdocs build --strict`も成功した。
+
+### 4.5.3 second batch dry-run 判定matrix（§4.3.4様式）
+
+| Story（匿名） | total | unknown比率 | 意味あるentry比率 | parserCompat | entry数判定 | 分類 |
+|---|---|---|---|---|---|---|
+| Story A（event category） | 98 | 0% | 100% | warning | 候補可（600以下） | promotion-candidate |
+| Story B（raid category） | 107 | 0% | 100% | warning | 候補可（600以下） | promotion-candidate |
+
+§4.4の「after」値と一致する（本PRではparserへの変更を行っていないため一致は想定どおり）。Registry候補作成（`check_public_episode_ids.py --registry`: assigned=2/missing=0）・Public-safe projection（205 entries、`internal_id_exposure=0`・`promotion_readiness=promotion-candidate`）・`validate_evidence_index.py`・`check_evidence_index_promotion.py`（Summary込み）はいずれもPASS。**Failed story count: 0、excluded story count: 0。**
+
+### 4.5.4 Visual review / exposure check結果
+
+§8の確認項目を両story分実施し、すべてクリアした（Evidence page見出しが`publicEvidenceId`形式・pathが`{publicStoryId}`ベース・`stage_direction`非表示・raw text/raw command非表示・internal ID非表示・speaker/relatedEntities/referencedBy表示が安全・Story page導線が正しく解決）。Evidence page本体・Public-safe projection出力に対するgrep+目視のinternal ID/raw text露出checkもクリア（0件）。
+
+Character page/Story page/Episode pageに内部`storyId`/`episodeId`/`evidenceId`断片が表示される既知の制約（PR #98/#100で確認済み、workspace限定previewのみ、Evidence Index promotion対象外の別rendererの既存挙動）を再確認したが、これはEvidence page/Evidence Index本体には影響しない。
+
+### 4.5.5 判定: real batch promotionへ進めるか
+
+§4.3.6の最低条件のうち、本PRのスコープ内で確認可能な項目はすべて満たした:
+
+- 対象storyすべてが`promotion-candidate`判定（§4.5.3）
+- `publicStoryId`/`publicEpisodeId`確定済みmanifestでの再normalize/merge済みmerged collectionで、Story page → Evidence index導線が実際に機能することをdry-runで確認済み（§4.5.2、本PRで新たに実証）
+- Public-safe projection・validation・promotion check・render・exposure check・全story visual reviewがPASS（§4.5.3・§4.5.4）
+
+残る条件（Public ID Registry entryの人間review・`promote_evidence_index.py --execute`の実行）は、`evidence-index-promotion-first-real-batch`のスコープとして意図的に本PRでは実施していない（§4.5.6）。
+
+**結論: tooling・導線とも実データで問題が無いことを実証した。`evidence-index-promotion-first-real-batch`へ進める状態と判定する。**
+
+### 4.5.6 本PRでは実装しないこと
+
+- Public ID Registry実データentry（`knowledge/public_ids/story_public_ids.yaml`）・実Evidence Index（`knowledge/evidence/stories/`）のcommit
+- `promote_evidence_index.py`のdry-run・`--execute`いずれの実行も行っていない
+- `agents/`・`scripts/`配下の実装変更（伝播チェーンに問題は見つからなかったため変更不要と判断した）
+- ローカルmanifest・Registry候補・projection output・merged collection・batch dry-run report自体のcommit（すべてworkspace限定）
 
 ---
 

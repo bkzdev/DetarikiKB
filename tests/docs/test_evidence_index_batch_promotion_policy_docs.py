@@ -54,7 +54,14 @@ REQUIRED_SECTIONS = (
     "# 14. 関連ドキュメント",
 )
 
-REAL_DATA_HINTS = ("CAMI3RD", "260425", "260707", "C:\\Users", "D:\\Dev")
+REAL_DATA_HINTS = (
+    "CAMI3RD",
+    "260425",
+    "260707",
+    "260712",
+    "C:\\Users",
+    "D:\\Dev",
+)
 
 
 def _read_doc() -> str:
@@ -391,3 +398,81 @@ def test_tasks_md_lists_script_command_dictionary_next_candidate():
     content = TASKS_PATH.read_text(encoding="utf-8")
     assert "script-command-dictionary-expansion-batch-001" in content
     assert "evidence-index-promotion-second-batch-dry-run" in content
+
+
+# ----------------------------------------------------------------
+# feature/story-manifest-public-story-id-real-data-assignment
+# ----------------------------------------------------------------
+
+SECOND_BATCH_DRY_RUN_HEADING = (
+    "## 4.5 `story-manifest-public-story-id-real-data-assignment`実施結果"
+)
+
+
+def _second_batch_dry_run_section() -> str:
+    content = _read_doc()
+    return content.split(SECOND_BATCH_DRY_RUN_HEADING, 1)[1].split(
+        "# 5. Registry entry review条件", 1
+    )[0]
+
+
+def test_batch_policy_doc_has_second_batch_dry_run_section():
+    content = _read_doc()
+    assert SECOND_BATCH_DRY_RUN_HEADING in content
+
+
+def test_batch_policy_doc_states_second_batch_dry_run_roadmap_steps():
+    section = _second_batch_dry_run_section()
+    assert "ロードマップ手順2" in section
+    assert "手順3" in section
+    assert "{publicStoryId}" in section
+    assert "{publicEpisodeId}" in section
+
+
+def test_batch_policy_doc_states_story_page_linkage_resolved():
+    section = _second_batch_dry_run_section()
+    assert "Review Links" in section
+    assert "Evidence index" in section
+    assert "resolve_story_evidence_entries" in section
+    assert "by_public_story_id" in section
+    assert "evidence-index-public-id-renderer-switch" in section
+
+
+def test_batch_policy_doc_states_second_batch_dry_run_matrix():
+    section = _second_batch_dry_run_section()
+    assert "promotion-candidate" in section
+    assert "warning" in section
+    assert "0%" in section
+    assert "Failed story count: 0" in section
+    assert "excluded story count: 0" in section
+
+
+def test_batch_policy_doc_states_ready_for_first_real_batch():
+    section = _second_batch_dry_run_section()
+    assert "evidence-index-promotion-first-real-batch" in section
+    assert "進める状態と判定" in section
+
+
+def test_batch_policy_doc_second_batch_dry_run_states_non_goals():
+    section = _second_batch_dry_run_section()
+    assert "promote_evidence_index.py" in section
+    assert "--execute" in section
+    assert "commit" in section.lower()
+
+
+def test_batch_policy_doc_second_batch_dry_run_does_not_contain_real_data_hints():
+    section = _second_batch_dry_run_section()
+    for forbidden in REAL_DATA_HINTS + ("260624", "260504", "CAB-csl"):
+        assert forbidden not in section
+
+
+def test_tasks_md_lists_first_real_batch_next_candidate():
+    content = TASKS_PATH.read_text(encoding="utf-8")
+    assert "evidence-index-promotion-first-real-batch" in content
+    assert "story-manifest-public-story-id-real-data-assignment" in content
+
+
+def test_tasks_md_second_batch_dry_run_does_not_contain_real_data_hints():
+    content = TASKS_PATH.read_text(encoding="utf-8")
+    for forbidden in REAL_DATA_HINTS + ("260624", "260504", "CAB-csl"):
+        assert forbidden not in content
