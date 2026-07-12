@@ -1,0 +1,37 @@
+# Synthetic story summary fixture for
+# tests/scripts/test_project_story_summary_public_ids.py.
+# publicStoryIdはあるが、episodeSummaries[1]のpublicEpisodeIdが未確定の
+# ケース (projectionのblocking条件2を確認するため)。schemaとしては有効。
+
+schemaVersion: "0.1.0"
+documentType: "story_summary"
+storyId: "SUM_TEST_PROJ_MISSING_EPISODE"
+publicStoryId: "PUB_TEST_MISSING_EPISODE"
+language: "ja"
+generationStatus: "generated"
+storySummary: null
+episodeSummaries:
+  - episodeId: "SUM_TEST_PROJ_MISSING_EPISODE_E01"
+    publicEpisodeId: "PUB_TEST_MISSING_EPISODE_E01"
+    episodeNumber: 1
+    text: "合成テスト用のEpisode Summaryです (episode 1、確定済み)。"
+    confidence: 0.6
+    evidenceRefs: []
+  - episodeId: "SUM_TEST_PROJ_MISSING_EPISODE_E02"
+    publicEpisodeId: null
+    episodeNumber: 2
+    text: "合成テスト用のEpisode Summaryです (episode 2、publicEpisodeId未確定)。"
+    confidence: 0.5
+    evidenceRefs: []
+source:
+  sourceType: "ai_generated"
+  model: "synthetic_test_model"
+  promptVersion: "test_v0.1"
+  generatedAt: "2026-07-08T00:00:00Z"
+  inputRefs: []
+review:
+  status: "reviewed"
+  reviewer: "synthetic_reviewer"
+  reviewedAt: "2026-07-08"
+  notes: null
+notes: null

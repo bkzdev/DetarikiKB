@@ -1,0 +1,30 @@
+# Synthetic story summary fixture for
+# tests/scripts/test_project_story_summary_public_ids.py.
+# episodeSummariesが空でStory Summaryのみ存在するケース (mapping CSVの
+# story-level行、および§4.5.1の「story-level summaryのみのdocument」を
+# 確認するため)。
+
+schemaVersion: "0.1.0"
+documentType: "story_summary"
+storyId: "SUM_TEST_PROJ_STORY_ONLY"
+publicStoryId: "PUB_TEST_PROJ_STORY_ONLY"
+language: "ja"
+generationStatus: "generated"
+storySummary:
+  text: "合成テスト用のStory Summaryです (episodeSummariesはまだ無い)。"
+  confidence: 0.5
+  evidenceRefs:
+    - "SUM_TEST_PROJ_STORY_ONLY_E01_DLG0001"
+episodeSummaries: []
+source:
+  sourceType: "ai_generated"
+  model: "synthetic_test_model"
+  promptVersion: "test_v0.1"
+  generatedAt: "2026-07-08T00:00:00Z"
+  inputRefs: []
+review:
+  status: "reviewed"
+  reviewer: "synthetic_reviewer"
+  reviewedAt: "2026-07-08"
+  notes: null
+notes: null

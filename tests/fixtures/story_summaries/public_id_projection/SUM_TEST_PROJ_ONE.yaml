@@ -1,0 +1,44 @@
+# Synthetic story summary fixture for
+# tests/scripts/test_project_story_summary_public_ids.py.
+# 完全な合成データのみ (実イベント名・実キャラ名・実あらすじ・実sourceKeyは
+# 含まない)。publicStoryId/publicEpisodeIdとも設定済みの "happy path" 例。
+
+schemaVersion: "0.1.0"
+documentType: "story_summary"
+storyId: "SUM_TEST_PROJ_ONE"
+publicStoryId: "PUB_TEST_PROJ_ONE"
+language: "ja"
+generationStatus: "generated"
+storySummary:
+  text: "合成テスト用のStory Summaryです (projection dry-run用)。"
+  confidence: 0.7
+  evidenceRefs:
+    - "SUM_TEST_PROJ_ONE_E01_DLG0001"
+episodeSummaries:
+  - episodeId: "SUM_TEST_PROJ_ONE_E01"
+    publicEpisodeId: "PUB_TEST_PROJ_ONE_E01"
+    episodeNumber: 1
+    text: "合成テスト用のEpisode Summaryです (episode 1)。"
+    confidence: 0.6
+    evidenceRefs:
+      - "SUM_TEST_PROJ_ONE_E01_DLG0001"
+  - episodeId: "SUM_TEST_PROJ_ONE_E02"
+    publicEpisodeId: "PUB_TEST_PROJ_ONE_E02"
+    episodeNumber: 2
+    text: "合成テスト用のEpisode Summaryです (episode 2)。"
+    confidence: 0.5
+    evidenceRefs: []
+source:
+  sourceType: "ai_generated"
+  model: "synthetic_test_model"
+  promptVersion: "test_v0.1"
+  generatedAt: "2026-07-08T00:00:00Z"
+  inputRefs:
+    - "SUM_TEST_PROJ_ONE_E01"
+    - "SUM_TEST_PROJ_ONE_E02"
+review:
+  status: "reviewed"
+  reviewer: "synthetic_reviewer"
+  reviewedAt: "2026-07-08"
+  notes: null
+notes: null

@@ -1,0 +1,30 @@
+# Synthetic story summary fixture for
+# tests/scripts/test_project_story_summary_public_ids.py.
+# 完全な合成データのみ。directory input / multi-file dry-runの2件目として使う。
+
+schemaVersion: "0.1.0"
+documentType: "story_summary"
+storyId: "SUM_TEST_PROJ_TWO"
+publicStoryId: "PUB_TEST_PROJ_TWO"
+language: "ja"
+generationStatus: "generated"
+storySummary: null
+episodeSummaries:
+  - episodeId: "SUM_TEST_PROJ_TWO_E01"
+    publicEpisodeId: "PUB_TEST_PROJ_TWO_E01"
+    episodeNumber: 1
+    text: "合成テスト用のEpisode Summaryです (story two, episode 1)。"
+    confidence: null
+    evidenceRefs: []
+source:
+  sourceType: "manual"
+  model: null
+  promptVersion: null
+  generatedAt: null
+  inputRefs: []
+review:
+  status: "approved"
+  reviewer: "synthetic_reviewer"
+  reviewedAt: "2026-07-08"
+  notes: null
+notes: null
