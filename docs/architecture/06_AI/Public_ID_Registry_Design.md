@@ -266,14 +266,26 @@ suggestions:
 - `schemas/evidence_index.schema.json`/`schemas/public_id_registry.schema.json`の破壊的変更
 - Internal Review Evidence Packet生成
 
-`feature/evidence-index-promotion-first-reviewed-sample-retry`（本PR）で以下を実施した:
+`feature/evidence-index-promotion-first-reviewed-sample-retry`（PR #99）で以下を実施した:
 
 - `knowledge/public_ids/story_public_ids.yaml`への実Registry entry追加（1 story・episode 2件のみ、§8.5参照）
 - 上記Registryを使ったPublic-safe projection・promotion checkの再実行、`knowledge/evidence/stories/EVT_260707_001.yaml`への実Evidence Index昇格（`promote_evidence_index.py --execute`）
 
-本PRでも以下は行っていない:
+同PRでも以下は行っていない:
 
 - 複数story分のRegistry追加・batch promotion
+- `scripts/project_evidence_index_public_ids.py`/`scripts/check_public_episode_ids.py`/`scripts/promote_evidence_index.py`/`scripts/check_evidence_index_promotion.py`本体の変更
+- `schemas/evidence_index.schema.json`/`schemas/public_id_registry.schema.json`の変更
+- `story_manifest.yaml`の実データ変更・再normalize/merge
+- Internal Review Evidence Packet生成
+
+`feature/evidence-index-promotion-batch-policy`（本PR、設計のみ）で以下を実施した:
+
+- 複数storyへ広げる際のbatch promotion運用方針を`docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md`（新設）に整理した。同runbook §5に、本文書§5.3・§6.5等の既存方針を踏まえたRegistry entry review条件（8項目）を定義した
+
+本PRでも以下は行っていない:
+
+- 複数story分のRegistry追加・batch promotion実行
 - `scripts/project_evidence_index_public_ids.py`/`scripts/check_public_episode_ids.py`/`scripts/promote_evidence_index.py`/`scripts/check_evidence_index_promotion.py`本体の変更
 - `schemas/evidence_index.schema.json`/`schemas/public_id_registry.schema.json`の変更
 - `story_manifest.yaml`の実データ変更・再normalize/merge
@@ -293,4 +305,5 @@ suggestions:
 - `scripts/check_public_episode_ids.py`（assignment候補提案script、Registry loader共有元）
 - `scripts/project_evidence_index_public_ids.py`（`--registry`統合先のprojection script）
 - `schemas/public_id_registry.schema.json`（本PRで追加したPublic ID Registry schema）
+- `docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md`（複数storyへ広げる際のbatch size・Registry review条件・promotion前後チェックリスト・visual review・failed story/rollback・PR分割方針）
 - `TASKS.md`（次PR候補の追跡）
