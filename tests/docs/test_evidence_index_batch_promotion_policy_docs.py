@@ -302,9 +302,10 @@ def test_promotion_copy_runbook_states_batch_dry_run_result():
 
 def test_promotion_copy_runbook_batch_dry_run_does_not_contain_real_data_hints():
     content = PROMOTION_COPY_RUNBOOK_PATH.read_text(encoding="utf-8")
-    section = content.split("### 13.11 進捗", 1)[1].split("# 14. 関連ドキュメント", 1)[
-        0
-    ]
+    # §13.12以降は本PR（evidence-index-promotion-first-real-batch）の実施記録で、
+    # 具体的なpublicStoryId値（260712）を書いてよいセクションのため、§13.11の
+    # 終端は次見出し（§13.12）までとし、§13.12を巻き込まないようにする。
+    section = content.split("### 13.11 進捗", 1)[1].split("### 13.12 進捗", 1)[0]
     for forbidden in REAL_DATA_HINTS + ("260624", "260504", "CAB-csl"):
         assert forbidden not in section
 
@@ -473,6 +474,103 @@ def test_tasks_md_lists_first_real_batch_next_candidate():
 
 
 def test_tasks_md_second_batch_dry_run_does_not_contain_real_data_hints():
+    content = TASKS_PATH.read_text(encoding="utf-8")
+    for forbidden in REAL_DATA_HINTS + ("260624", "260504", "CAB-csl"):
+        assert forbidden not in content
+
+
+# ----------------------------------------------------------------
+# feature/evidence-index-promotion-first-real-batch
+# ----------------------------------------------------------------
+
+FIRST_REAL_BATCH_HEADING = "## 4.6 `evidence-index-promotion-first-real-batch`実施結果"
+
+
+def _first_real_batch_section() -> str:
+    content = _read_doc()
+    return content.split(FIRST_REAL_BATCH_HEADING, 1)[1].split(
+        "# 5. Registry entry review条件", 1
+    )[0]
+
+
+def test_batch_policy_doc_has_first_real_batch_section():
+    content = _read_doc()
+    assert FIRST_REAL_BATCH_HEADING in content
+
+
+def test_batch_policy_doc_states_first_real_batch_registry_review():
+    section = _first_real_batch_section()
+    assert "publicStoryId" in section
+    assert "publicEpisodeId" in section
+    assert "check_public_episode_ids.py" in section
+    assert "8項目" in section
+
+
+def test_batch_policy_doc_states_first_real_batch_pre_checklist_results():
+    section = _first_real_batch_section()
+    for script in (
+        "check_public_episode_ids.py",
+        "project_evidence_index_public_ids.py",
+        "validate_evidence_index.py",
+        "check_evidence_index_promotion.py",
+        "render_wiki.py",
+        "promote_evidence_index.py",
+    ):
+        assert script in section
+    assert "205 entries" in section
+    assert "internal_id_exposure=0" in section
+    assert "Approved for promotion" in section
+
+
+def test_batch_policy_doc_states_first_real_batch_execute_result():
+    section = _first_real_batch_section()
+    assert "--execute" in section
+    assert "2ファイル" in section or "2件" in section
+    assert "git status" in section
+
+
+def test_batch_policy_doc_states_first_real_batch_post_checklist_results():
+    section = _first_real_batch_section()
+    assert "392 entries" in section
+    assert "mkdocs build --strict" in section
+
+
+def test_batch_policy_doc_states_first_real_batch_conclusion():
+    section = _first_real_batch_section()
+    assert "Failed story count: 0" in section
+    assert "Phase 3を完了とする" in section
+
+
+def test_batch_policy_doc_first_real_batch_states_non_goals():
+    section = _first_real_batch_section()
+    assert "3 story目以降の追加" in section
+    assert "既存の昇格済みstory" in section
+
+
+def test_batch_policy_doc_first_real_batch_does_not_contain_real_data_hints():
+    section = _first_real_batch_section()
+    for forbidden in REAL_DATA_HINTS + ("260624", "260504", "CAB-csl"):
+        assert forbidden not in section
+
+
+def test_batch_policy_doc_phase3_marked_complete():
+    content = _read_doc()
+    section = content.split("# 4. Batch size policy", 1)[1].split(
+        "# 5. Registry entry review条件", 1
+    )[0]
+    assert "Phase 3" in section
+    assert "完了" in section
+    assert "evidence-index-promotion-first-real-batch" in section
+
+
+def test_tasks_md_lists_first_real_batch_current_focus():
+    content = TASKS_PATH.read_text(encoding="utf-8")
+    assert "evidence-index-promotion-first-real-batch" in content
+    assert "evidence-index-promotion-batch-tooling" in content
+    assert "internal-review-evidence-packet-design" in content
+
+
+def test_tasks_md_first_real_batch_does_not_contain_real_data_hints():
     content = TASKS_PATH.read_text(encoding="utf-8")
     for forbidden in REAL_DATA_HINTS + ("260624", "260504", "CAB-csl"):
         assert forbidden not in content

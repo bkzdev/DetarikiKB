@@ -281,7 +281,10 @@ evidence/{publicEpisodeId or episodeId}.md#EVT_SAMPLE_E01_DLG0001
 | Phase 4.19: `evidence-index-promotion-first-sample-visual-review`（PR #100） | 昇格済み1 storyについてWiki表示・導線・内部ID/raw text非露出を最終確認する | 完了（実装変更なし） |
 | Phase 4.20: `evidence-index-promotion-batch-policy`（PR #101） | 複数storyへ広げる前のbatch promotion運用方針を設計する | 完了（`docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md`新設） |
 | Phase 4.21: `evidence-index-promotion-first-batch-dry-run`（PR #102） | 2〜3 storyを対象にworkspace限定でbatch dry-runを実施する | 完了（tooling観点PASS、実commitなし） |
-| Phase 4.22: `evidence-index-batch-candidate-selection-policy`（本PR） | promotion候補storyの機械的選定基準（unknown比率等の閾値・3分類・real batch promotion前提条件）を確定する | **完了（本PR、`docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md` §4.3新設）** |
+| Phase 4.22: `evidence-index-batch-candidate-selection-policy`（PR #103） | promotion候補storyの機械的選定基準（unknown比率等の閾値・3分類・real batch promotion前提条件）を確定する | 完了（`docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md` §4.3新設） |
+| Phase 4.23: `script-command-dictionary-expansion-batch-001`（PR #104） | 対象2 storyのunknown比率を下げるparser command辞書拡充 | 完了 |
+| Phase 4.24: `story-manifest-public-story-id-real-data-assignment`（PR #105） | 対象2 storyの`publicStoryId`/`publicEpisodeId`確定→再normalize/merge→Story page導線動作確認、second batch dry-run | 完了（tooling・導線ともPASS、実commitなし） |
+| Phase 4.25: `evidence-index-promotion-first-real-batch`（本PR） | Phase 3初回実batch promotion。2 story分のPublic ID Registry実データentry追加＋`knowledge/evidence/stories/`への実昇格 | **完了（本PR、2 story昇格）** |
 | Phase 5: Internal review packets | raw textや詳細contextを含むreview packetをworkspace配下に生成（commit禁止）、public wikiとは分離 | 未着手 |
 
 **実装状況（`feature/evidence-index-schema-implementation`で実施）**: `schemas/evidence_index.schema.json`（§13データモデル案をそのまま実装。`evidenceType`10種enum・`visibility.rawTextIncluded`を`const: false`で固定）、`agents/wiki_generator/evidence_index.py`（loader/validator、`build_evidence_id_index`/`group_entries_by_story`/`group_entries_by_public_story`/`group_entries_by_episode`/`group_entries_by_public_episode`等のhelper）、`scripts/validate_evidence_index.py`（schema検証・duplicate evidenceId検出・raw text禁止文字列検出・`visibility.public`/`rawTextIncluded`検証）、`docs/templates/evidence_index_template.yaml`、合成fixture（`tests/fixtures/evidence_index/`）を追加した。保存場所は`knowledge/evidence/stories/`を採用し`.gitkeep`のみで実データ未投入。
@@ -321,6 +324,12 @@ evidence/{publicEpisodeId or episodeId}.md#EVT_SAMPLE_E01_DLG0001
 **実施結果（`feature/evidence-index-promotion-first-batch-dry-run`で実施）**: 上記batch policyのPhase 2に基づき、2 story（合計2039 entries）を対象にworkspace限定でbatch dry-runを実施した。Registry候補作成からrender・visual review・exposure checkまでの全工程がPASSし、**tooling自体には問題が無いことを実証した**が、選定storyの`unknown`比率が高いこと・`story_manifest.yaml`未割当の新規storyではStory page導線が機能しないことの2点が新たに判明し、この2 storyでのreal batch promotionは推奨しないと判断した。**実Registry entry・実Evidence Indexのcommitはいずれも行っていない。** 詳細は`docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md` §4.2を参照。
 
 **設計方針決定（`feature/evidence-index-batch-candidate-selection-policy`で実施）**: 上記で判明した品質問題を受け、promotion候補storyの機械的選定基準を`docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md` §4.3に確定した（unknown比率等の閾値・3分類ラベル・判定手順・real batch promotion前提条件・ロードマップ）。**本PRでは実装変更は行っていない**（設計のみ）。
+
+**実装状況（`feature/script-command-dictionary-expansion-batch-001`で実施）**: 対象2 storyのunknown比率を下げるため、`config/script_commands.yaml`・`agents/parser/parser.py`の`DIRECTION_TYPE_MAP`に演出コマンド1種を追加した。staleなローカル生成物由来の誤った約90%という数値を訂正し、対象2 storyのunknown比率を0%まで低減した。詳細は`docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md` §4.4を参照。
+
+**実施結果（`feature/story-manifest-public-story-id-real-data-assignment`で実施）**: 対象2 storyの`publicStoryId`/`publicEpisodeId`をローカルworkspace限定manifest経由で確定し、再normalize/merge後にStory pageの「Review Links → Evidence index」導線が実データで機能することを実証した（`resolve_story_evidence_entries`fallbackの初回実データ確認）。second batch dry-runで両storyとも`promotion-candidate`判定・PASSを確認した。詳細は`docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md` §4.5を参照。**Registry実データentry・実Evidence Indexのcommitはいずれも行っていない**。
+
+**実施結果（`feature/evidence-index-promotion-first-real-batch`で実施）**: 上記でPASSした2 storyについて、初回実batch promotion（Phase 3）を実施した。`knowledge/public_ids/story_public_ids.yaml`に2 story分のRegistry entryを追加し（既存1 story分は無変更）、正式Registryを用いたPublic-safe projection（2 story・205 entries、`internal_id_exposure=0`）・validation/promotion check・render・exposure checkをすべてPASSで完走した。human review note（Decision: `Approved for promotion`）を作成した上で`promote_evidence_index.py --execute`を実行し、**`knowledge/evidence/stories/EVT_260712_001.yaml`・`RAID_260712_001.yaml`の2件のみを正しくcopyした**（既存1 story分には触れていない）。copy後、既存分を含む全3ファイル（392 entries）の再検証・再render・exposure checkもすべてPASSした。詳細は`docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md` §4.6・`docs/runbooks/Evidence_Index_Promotion_Copy.md` §13.12を参照。**3 story目以降の追加・batch promotion scriptの実装はいずれも行っていない**（次候補`internal-review-evidence-packet-design`/`evidence-index-promotion-batch-tooling`）。
 
 ---
 

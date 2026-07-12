@@ -246,3 +246,40 @@ def test_promotion_policy_visual_review_does_not_contain_real_data_hints():
     )[1].split("---", 1)[0]
     for forbidden in ("CAMI3RD", "260425", "C:\\Users", "D:\\Dev"):
         assert forbidden not in section
+
+
+# ----------------------------------------------------------------
+# feature/evidence-index-promotion-first-real-batch
+# ----------------------------------------------------------------
+
+
+def test_promotion_copy_runbook_has_first_real_batch_result():
+    content = _read_runbook()
+    assert (
+        "### 13.12 進捗（`feature/evidence-index-promotion-first-real-batch`" in content
+    )
+    section = content.split(
+        "### 13.12 進捗（`feature/evidence-index-promotion-first-real-batch`", 1
+    )[1].split("# 14. 関連ドキュメント", 1)[0]
+    assert "205 entries" in section
+    assert "internal_id_exposure=0" in section
+    assert "392 entries" in section
+    assert "Approved for promotion" in section
+
+
+def test_promotion_copy_runbook_first_real_batch_states_execute_result():
+    content = _read_runbook()
+    section = content.split(
+        "### 13.12 進捗（`feature/evidence-index-promotion-first-real-batch`", 1
+    )[1].split("# 14. 関連ドキュメント", 1)[0]
+    assert "--execute" in section
+    assert "git status" in section
+    assert "2件のみが正しくcopyされた" in section
+
+
+def test_promotion_copy_runbook_first_real_batch_states_non_goals():
+    content = _read_runbook()
+    section = content.split(
+        "### 13.12 進捗（`feature/evidence-index-promotion-first-real-batch`", 1
+    )[1].split("# 14. 関連ドキュメント", 1)[0]
+    assert "3 story目以降の追加" in section

@@ -369,6 +369,23 @@ uv run python scripts/render_wiki.py `
 
 **Final decision: batch dry-run PASS（tooling観点）。ただしこの2 storyでのfirst real batch promotionは推奨しない。** 次のアクションは、(1) `unknown`比率が低い別のstory候補を選び直す、または`config/script_commands.yaml`のコマンド辞書を拡充してから再度dry-runする、(2) real batch promotion対象storyの`story_manifest.yaml` publicStoryId確定＋再normalize/merge手順を明確にする（`story-manifest-public-story-id-real-data-assignment`と関連）。**Registry/projection/validation/promotion check/render/exposure checkのtooling自体には追加修正が不要**であることを確認した。実Registry entry・実Evidence Index・workspace生成物（Registry候補・projection output・mapping・各種report・batch dry-run report）はいずれもcommitしていない。
 
+### 13.12 進捗（`feature/evidence-index-promotion-first-real-batch`、初回実batch promotion実施結果）
+
+`docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md` §4.5のsecond batch dry-runでtooling・Story page導線ともPASSを確認済みだった2 story（`publicStoryId: EVT_260712_001`〔event category〕・`publicStoryId: RAID_260712_001`〔raid category〕、いずれもepisode 1件・episodeOrder 1）について、ユーザーの事前明示承認に基づき、初回実batch promotion（Phase 3）を実施した。
+
+1. **Registry entry追加**: `knowledge/public_ids/story_public_ids.yaml`に2 story分のentryを追加した（既存の昇格済み1 story分のentryは無変更）。§5の8項目レビュー条件をすべて確認した。
+2. **Registry check**: `scripts/check_public_episode_ids.py --registry knowledge/public_ids/story_public_ids.yaml`はassigned=2・missing=0でPASSした。
+3. **Public-safe projection（正式Registry使用）**: `project_evidence_index_public_ids.py --projection-mode public-safe --registry knowledge/public_ids/story_public_ids.yaml`を実行し、**2 story・205 entries（98 + 107）全件がPublic-safe projectionを通過**した（`generated=205`・`internal_id_exposure=0`・`promotion_readiness=promotion-candidate`）。
+4. **validation/promotion check**: `validate_evidence_index.py`・`check_evidence_index_promotion.py`（`--story-summaries`あり/なし両方）はいずれもPASSした。
+5. **render確認**: `render_wiki.py --evidence-index`でEvidence page 2件（`evidence/EVT_260712_001.md`・`evidence/RAID_260712_001.md`）をrenderし、`mkdocs build --strict`も成功した。両storyのStory page「Review Links → Evidence index」導線が`{publicStoryId}`ベースのEvidence pageへ正しく解決されることを確認した。Evidence page記事本体をgrepで内部ID・raw text禁止文字列scanし、いずれも検出されないことを確認した。
+6. **human review**: `docs/templates/evidence_index_promotion_review_template.md`を元にreview note（workspace限定、非commit）を作成し、Decisionを`Approved for promotion`とした。Notesにユーザーが本batch（2 story・実データcommit）を事前に明示承認済みである旨を記録した。
+7. **promote dry-run→execute**: `promote_evidence_index.py`のdry-runでplanned copy 2件（`{publicStoryId}.yaml`ベースのファイル名）を確認した後、`--execute`を実行し、**`knowledge/evidence/stories/EVT_260712_001.yaml`・`knowledge/evidence/stories/RAID_260712_001.yaml`の2件のみが正しくcopyされたことを確認した**（`git status --short`でも新規2件のみの追加を確認、既存の昇格済み1 storyのファイルには触れていない）。
+8. **copy後の再検証（既存1 story含む全3ファイル）**: `validate_evidence_index.py --input knowledge/evidence/stories`（3 files・392 entries）・`check_evidence_index_promotion.py --input knowledge/evidence/stories`（`--story-summaries`あり/なし両方）をいずれもPASSで再確認し、`render_wiki.py --evidence-index knowledge/evidence/stories`で3件のEvidence pageすべてを再renderし、記事本体・`mkdocs build --strict`のHTML出力に対しても内部ID・raw text露出が無いことを再度grepで確認した。
+
+**新たに再確認された既知の制約**: mkdocs build後のHTML全体のグローバルナビゲーション部分に、merged knowledge collection側へ`publicStoryId`が未伝播な既存story分の内部episodeId断片が現れることを再確認した（PR #98/#100/#105で判明済みの制約と同一原因、Story/Episode pageの既存挙動）。**Evidence page記事本体・committed Evidence Index YAML自体には内部ID非露出を確認済みであり、この制約は今回のpromotion対象に影響しない。**
+
+**この結果は、`Evidence_Index_Batch_Promotion_Policy.md`で設計したPhase 3（初回実batch promotion、最大3 story）が、実データ2 storyに対して安全に実行できることを実証している。** 対象は2 storyに限定し、3 story目以降の追加・batch promotion scriptの実装・既存の昇格済みstory/Registry entryの変更はいずれも行っていない。詳細は`docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md` §4.6を参照。
+
 ---
 
 # 14. 関連ドキュメント

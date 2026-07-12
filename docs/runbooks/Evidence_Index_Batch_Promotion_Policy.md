@@ -43,7 +43,7 @@ Path: `docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md`
 |---|---|---|---|
 | Phase 1: `evidence-index-promotion-first-reviewed-sample-retry` / `-first-sample-visual-review` | 初回1 storyのpromotion・Wiki表示最終確認 | 1 | 完了（PR #99・#100） |
 | Phase 2: `evidence-index-promotion-first-batch-dry-run`（本PR） | 複数story分のRegistry候補・Public-safe projection・validation・render・visual reviewをworkspace限定でdry-run確認する（実commitなし） | 最大3（2 storyで実施） | **完了（本PR、tooling観点はPASS。ただし選定した2 storyは`unknown`比率が高くreal promotion対象としては非推奨、§4.2参照）** |
-| Phase 3: 初回実batch promotion | Phase 2のdry-runで問題が無かったstoryのみ、実際に`knowledge/public_ids/story_public_ids.yaml`・`knowledge/evidence/stories/`へ追加する | 最大3 | 未着手（`story-manifest-public-story-id-real-data-assignment`のsecond batch dry-run、§4.5でtooling・Story page導線ともPASSを確認済み。次PR`evidence-index-promotion-first-real-batch`で着手） |
+| Phase 3: 初回実batch promotion | Phase 2のdry-runで問題が無かったstoryのみ、実際に`knowledge/public_ids/story_public_ids.yaml`・`knowledge/evidence/stories/`へ追加する | 最大3 | **完了（`evidence-index-promotion-first-real-batch`、2 story昇格。§4.6参照）** |
 | Phase 4: 通常small batch | 運用が安定した後の通常運用 | 最大5 | 未着手（Phase 3完了・実績蓄積後） |
 | Phase 5: 大規模batch | 5 storyを超える一括投入 | **明示的な承認があるまで許可しない** | 許可なし |
 
@@ -241,6 +241,78 @@ Character page/Story page/Episode pageに内部`storyId`/`episodeId`/`evidenceId
 - `promote_evidence_index.py`のdry-run・`--execute`いずれの実行も行っていない
 - `agents/`・`scripts/`配下の実装変更（伝播チェーンに問題は見つからなかったため変更不要と判断した）
 - ローカルmanifest・Registry候補・projection output・merged collection・batch dry-run report自体のcommit（すべてworkspace限定）
+
+## 4.6 `evidence-index-promotion-first-real-batch`実施結果（Phase 3、初回実batch promotion）
+
+§4.5で`promotion-candidate`判定・Story page導線動作確認済みだった2 story（`{publicStoryId}`表記、event category 1件・raid category 1件）について、**Public ID Registry実データentryの追加と`knowledge/evidence/stories/`への実Evidence Index昇格を実施した**。ユーザーが2 story一括・実データcommitを事前に明示承認した上での実施である。
+
+### 4.6.1 Registry entry追加とreview条件確認
+
+`knowledge/public_ids/story_public_ids.yaml`に2 story分のentry（`publicStoryId`/`category`/`episodes[].publicEpisodeId`/`episodeOrder`のみ）を追加した。既存1 story分のentryは無変更のまま維持した。§5の8項目レビュー条件をすべて確認した:
+
+- sourceKey非由来のpublicStoryId: 確認済み（両storyともsourceKeyとは無関係な採番形式）
+- `{publicStoryId}_E{episodeOrder:02d}`形式のpublicEpisodeId: 確認済み
+- episodeOrderがstory内表示順(1始まり)と一致: 確認済み（両storyともepisode 1件のみ、episodeOrder=1）
+- entry内にsourceKey・internal ID・raw title・raw path非含有: schema `additionalProperties: false`による構造的保証＋目視確認済み
+- Registry内duplicate publicStoryId無し: 確認済み
+- Registry内duplicate publicEpisodeId無し: 確認済み
+- 追加対象entryの人間レビュー完了: 完了（ユーザー事前承認済み）
+- `check_public_episode_ids.py --registry`との整合確認: `assigned=2 missing=0`でPASS
+
+### 4.6.2 Promotion前チェックリスト（§6）実施結果
+
+正式Registry（`knowledge/public_ids/story_public_ids.yaml`）を用いて、§4.5のsecond batch dry-runで生成済みだったworkspace限定候補（`workspace/evidence_index_dry_runs/second_batch_dry_run/candidates/stories/`、非commit）に対し、以下を再実行した。
+
+| チェック項目 | 結果 |
+|---|---|
+| `check_public_episode_ids.py --registry`（正式Registry） | PASS（assigned=2, missing=0） |
+| `project_evidence_index_public_ids.py --projection-mode public-safe --registry`（正式Registry） | PASS（2 story・205 entries、`internal_id_exposure=0`・`promotion_readiness=promotion-candidate`、Registry補完0件・conflict 0件、Episode publicEpisodeIdは入力側に既に確定済みだったため） |
+| `validate_evidence_index.py` | PASS（2 files・205 entries） |
+| `check_evidence_index_promotion.py`（`--policy public-default`） | PASS |
+| `check_evidence_index_promotion.py --story-summaries`（Summary込み） | PASS（`knowledge/summaries/stories/`は実データ未登録のためChecked documents: 0） |
+| `render_wiki.py --evidence-index`（merged collectionはsecond batch dry-run workspace生成物を再利用） | 成功。Evidence page 2件・Story page 2件を含む18ファイル生成 |
+| Story page → Evidence index導線 | 両storyで`[Evidence index](../evidence/{publicStoryId}.md)`が正しく解決されることを確認 |
+| internal/source ID exposure check（projection output・rendered Markdown） | クリア（内部storyId/episodeId・raw source filename・`.dec`/`@ChTalk`/`@Scenario`/`$num`等いずれも0件） |
+| `mkdocs build --strict` | 成功（0 warnings/errors） |
+| human review note | 作成済み（workspace限定、非commit）。Decision: `Approved for promotion`、Notesにユーザー事前承認済みである旨を記載 |
+| `promote_evidence_index.py`（dry-run） | PASS。planned copy 2件（`{publicStoryId}.yaml`ベースのファイル名であることを確認） |
+
+### 4.6.3 Promote execute
+
+`promote_evidence_index.py --execute`を実行し、`knowledge/evidence/stories/`へ2ファイルのみがcopyされたことを確認した。`git status --short`でも、`knowledge/public_ids/story_public_ids.yaml`の変更1件（既存entry維持＋2 story分追加）と`knowledge/evidence/stories/`への新規2ファイルのみであることを確認した（既存の昇格済み1 storyのファイルには一切触れていない）。
+
+### 4.6.4 Promotion後チェックリスト（§7、batch単位）実施結果
+
+copy後、既存の昇格済み1 storyを含む**全3ファイル**に対して再検証した。
+
+| チェック項目 | 結果 |
+|---|---|
+| `validate_evidence_index.py --input knowledge/evidence/stories` | PASS（3 files・392 entries） |
+| `check_evidence_index_promotion.py --input knowledge/evidence/stories` | PASS |
+| `check_evidence_index_promotion.py --input knowledge/evidence/stories --story-summaries` | PASS |
+| `render_wiki.py --evidence-index knowledge/evidence/stories` | 成功。既存1件を含む3件のEvidence pageすべてを再生成 |
+| 新規追加分Evidence pageのspot check | 両storyともEvidence page見出しが`publicEvidenceId`形式、`stage_direction`0件、raw text/raw command/internal ID非表示を確認 |
+| Story page → Evidence page導線（新規追加分） | 両storyで正しく解決されることを確認 |
+| internal/source ID exposure check | committed YAML 3ファイル・再render後のMarkdown/HTML（記事本体）いずれもクリア |
+| `mkdocs build --strict` | 成功 |
+| `git status --short` | 意図しない追加・変更無し |
+
+**既知の制約の再確認**: mkdocs build後のHTML全体（グローバルナビゲーション部分）には、merged knowledge collection側に`publicStoryId`が未伝播な既存story分の内部episodeId断片が表示される（PR #98/#100/#105で判明済みの制約、Story/Episode page navigationの既存挙動であり、Evidence Index/Evidence page本体のコンテンツには影響しない。Evidence page記事本体・committed Evidence Index YAMLはいずれもクリーンであることを確認済み）。
+
+### 4.6.5 結論
+
+- Failed story count: 0
+- 2 story（`{publicStoryId}`表記2件）とも`knowledge/evidence/stories/`への実データ昇格を完了した
+- 既存の昇格済み1 storyには一切影響なし（rollback不要）
+- **`docs/architecture/06_AI/Evidence_Index_Batch_Promotion_Policy.md` Phase 3を完了とする**（§4参照）
+
+### 4.6.6 本PRでは実装しないこと
+
+- 3 story目以降の追加
+- 既存の昇格済みstory・Registry entryの変更
+- batch promotion scriptの実装（本PRも既存scriptの手動連続実行のみ）
+- `agents/`・`scripts/`配下の実装変更
+- story_manifest実データ・review note・projection output・mapping・report類のcommit（すべてworkspace限定）
 
 ---
 
