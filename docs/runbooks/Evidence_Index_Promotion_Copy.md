@@ -347,6 +347,28 @@ uv run python scripts/render_wiki.py `
 
 詳細は`docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md`を参照。次は`evidence-index-promotion-first-batch-dry-run`。
 
+### 13.11 進捗（`feature/evidence-index-promotion-first-batch-dry-run`、匿名化。初回batch dry-run実施結果）
+
+`docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md`のPhase 2に基づき、2 story（匿名化workspace ID、event category 1件・raid category 1件、合計2039 entries）を対象にworkspace限定でbatch dry-runを実施した。**実Registry entry・実Evidence Indexのcommitはいずれも行っていない。**
+
+1. **workspace Registry候補作成**: `workspace/public_episode_ids/first_batch_dry_run_registry.yaml`（2 story分、commit禁止）を作成した
+2. **Registry check**: `check_public_episode_ids.py --registry`を実行し、入力candidate自体はpublicEpisodeId未設定のため想定どおりexit code 1（missing=2）だったが、suggestionがworkspace Registry候補と完全一致することを確認した
+3. **Public-safe projection**: `project_evidence_index_public_ids.py --projection-mode public-safe --registry`を実行し、**2 story・2039 entries全件がPublic-safe projectionを通過**した（`generated=2039`・`internal_id_exposure=0`・`promotion_readiness=promotion-candidate`、Registry補完2039件・conflict 0件）
+4. **validation/promotion check**: `validate_evidence_index.py`・`check_evidence_index_promotion.py`（Summary込み）をいずれも実行しPASSした
+5. **render確認**: workspace限定でextraction（`extract_story.py`）→merge（`merge_extractions.py`）→`render_wiki.py --evidence-index`を実行し成功、Evidence page 2件（948/1091 entries）を生成した
+6. **visual review**: 2 storyともEvidence page見出しが`publicEvidenceId`形式、`stage_direction`0件、raw text/raw command/internal ID非表示を確認した
+7. **internal/source exposure check**: workspace Registry候補・projection output・promotion check report・rendered Evidence page（Markdown/HTML）のいずれにも内部ID・raw text露出が無いことを確認した
+8. **mkdocs build --strict**: 成功
+
+**新たに判明した問題が2点あった。**
+
+- **問題1（story選定）**: 選定した2 storyはいずれも`parserCompatibility: warning`状態で、filter後のentry構成が`unknown`約90%（1834/2039件）と極端に偏っていた。機械的checkはすべてPASSしたが、`Evidence_Index_Promotion_Policy.md` §4.1の方針（`unknown`は件数が少ない場合のみ公開対象）に照らし、この2 storyをそのままreal batch promotion対象にすることは推奨しないと判断した
+- **問題2（Story page導線）**: 今回の2 storyは`story_manifest.yaml`によるpublicStoryId割当を経ていないため、Story pageの「Review Links → Evidence index」リンクが生成されなかった。PR #99の1 storyでは偶然publicStoryId伝播済みだったため機能していたが、**真に新規のstoryではこの導線はデフォルトで機能しない**ことが今回のdry-runで明らかになった
+
+**Failed story count: 0、excluded story count: 0**（機械的なblocking failureは0件。上記2点はいずれも運用上の課題であり、tooling自体の欠陥ではない）。
+
+**Final decision: batch dry-run PASS（tooling観点）。ただしこの2 storyでのfirst real batch promotionは推奨しない。** 次のアクションは、(1) `unknown`比率が低い別のstory候補を選び直す、または`config/script_commands.yaml`のコマンド辞書を拡充してから再度dry-runする、(2) real batch promotion対象storyの`story_manifest.yaml` publicStoryId確定＋再normalize/merge手順を明確にする（`story-manifest-public-story-id-real-data-assignment`と関連）。**Registry/projection/validation/promotion check/render/exposure checkのtooling自体には追加修正が不要**であることを確認した。実Registry entry・実Evidence Index・workspace生成物（Registry候補・projection output・mapping・各種report・batch dry-run report）はいずれもcommitしていない。
+
 ---
 
 # 14. 関連ドキュメント
