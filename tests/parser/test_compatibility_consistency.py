@@ -138,6 +138,17 @@ fa 3
     assert embedded["newSpeechCommands"] == set()
 
 
+def test_dict_expansion_batch_001_command_not_unknown_on_either_path(tmp_path):
+    """script-command-dictionary-expansion-batch-001 dry-runで見つかった
+    @ChBlueMan/BlueMan2が、どちらの経路でもunknownCommandsに現れないこと。"""
+    script = """@ChBlueMan/BlueMan2 0 1 22
+"""
+    standalone, embedded = _run_both_paths(tmp_path, script)
+
+    assert standalone["unknownCommands"] == set()
+    assert embedded["unknownCommands"] == set()
+
+
 def test_talk_camera_commands_not_misdetected_as_speech(tmp_path):
     """@TalkCamera3/@TalkCamera4はPR #30で既知コマンド化されているため、
     どちらの経路でも新規会話コマンド候補として誤検出されないこと。"""

@@ -408,6 +408,24 @@ fa 3
     assert scene.blocks[6].direction_type == "screen"
 
 
+def test_dict_expansion_batch_001_command_becomes_stage_direction():
+    """script-command-dictionary-expansion-batch-001 dry-runで見つかった
+    @ChBlueMan/BlueMan2が、unknownではなくstage_direction(character_display)
+    として分類されることを確認する。"""
+    script = """@ChBlueMan/BlueMan2 0 1 22
+"""
+    parser = StoryParser(preserve_stage_directions=True)
+    result = parser.parse_text(script)
+    scene = result.episodes[0].scenes[0]
+
+    assert len(scene.blocks) == 1
+    block = scene.blocks[0]
+    assert block.block_type == "stage_direction"
+    assert block.raw_command == "@ChBlueMan/BlueMan2"
+    assert block.direction_type == "character_display"
+    assert block.command_args == ["0", "1", "22"]
+
+
 def test_dialogue_count_unaffected_by_branch_choice_dry_run_commands(char_dict):
     """costume/fa/@TalkPosR等がセリフの間に挟まっても、dialogue/monologueの
     数・本文・evidence用の行番号が変わらないことを確認する。"""
