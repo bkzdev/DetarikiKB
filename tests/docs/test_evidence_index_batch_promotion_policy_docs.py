@@ -242,3 +242,73 @@ def test_tasks_md_does_not_contain_real_data_hints():
     content = TASKS_PATH.read_text(encoding="utf-8")
     for forbidden in ("CAMI3RD", "260425", "260707", "C:\\Users", "D:\\Dev"):
         assert forbidden not in content
+
+
+# ----------------------------------------------------------------
+# feature/evidence-index-promotion-first-batch-dry-run
+# ----------------------------------------------------------------
+
+DRY_RUN_RESULT_HEADING = "## 4.2 Phase 2 dry-run実施結果"
+
+
+def test_batch_policy_doc_states_dry_run_result():
+    content = _read_doc()
+    assert DRY_RUN_RESULT_HEADING in content
+    section = content.split(DRY_RUN_RESULT_HEADING, 1)[1].split("---", 1)[0]
+    assert "tooling観点はすべてPASS" in section
+    assert "internal_id_exposure=0" in section
+    assert "推奨しない" in section
+
+
+def test_batch_policy_doc_dry_run_result_states_findings():
+    content = _read_doc()
+    section = content.split(DRY_RUN_RESULT_HEADING, 1)[1].split("---", 1)[0]
+    assert "unknown" in section
+    assert "Story page" in section
+    assert "Failed story count: 0" in section
+
+
+def test_batch_policy_doc_dry_run_result_does_not_contain_real_data_hints():
+    content = _read_doc()
+    section = content.split(DRY_RUN_RESULT_HEADING, 1)[1].split("---", 1)[0]
+    for forbidden in REAL_DATA_HINTS + ("260624", "260504", "CAB-csl"):
+        assert forbidden not in section
+
+
+def test_batch_policy_doc_states_scope_already_executed():
+    content = _read_doc()
+    section = content.split(
+        "# 12. `evidence-index-promotion-first-batch-dry-run`のスコープ", 1
+    )[1].split("# 13. Non-goals", 1)[0]
+    assert "実施済み" in section
+
+
+def test_promotion_copy_runbook_states_batch_dry_run_result():
+    content = PROMOTION_COPY_RUNBOOK_PATH.read_text(encoding="utf-8")
+    assert "### 13.11 進捗" in content
+    section = content.split("### 13.11 進捗", 1)[1].split("# 14. 関連ドキュメント", 1)[
+        0
+    ]
+    assert "実Registry entry・実Evidence Indexのcommitはいずれも行っていない" in section
+    assert "Failed story count: 0" in section
+
+
+def test_promotion_copy_runbook_batch_dry_run_does_not_contain_real_data_hints():
+    content = PROMOTION_COPY_RUNBOOK_PATH.read_text(encoding="utf-8")
+    section = content.split("### 13.11 進捗", 1)[1].split("# 14. 関連ドキュメント", 1)[
+        0
+    ]
+    for forbidden in REAL_DATA_HINTS + ("260624", "260504", "CAB-csl"):
+        assert forbidden not in section
+
+
+def test_tasks_md_lists_batch_tooling_and_manifest_next_candidates():
+    content = TASKS_PATH.read_text(encoding="utf-8")
+    assert "evidence-index-promotion-batch-tooling" in content
+    assert "story-manifest-public-story-id-real-data-assignment" in content
+
+
+def test_tasks_md_does_not_contain_dry_run_source_hints():
+    content = TASKS_PATH.read_text(encoding="utf-8")
+    for forbidden in ("260624", "260504", "CAB-csl"):
+        assert forbidden not in content

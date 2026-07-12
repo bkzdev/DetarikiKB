@@ -279,7 +279,8 @@ evidence/{publicEpisodeId or episodeId}.md#EVT_SAMPLE_E01_DLG0001
 | Phase 4.17: `evidence-index-public-id-renderer-switch`（PR #98） | Evidence page見出し・anchor・Summary evidenceRefsリンクを`publicEvidenceId`中心に切り替える | 完了（実Registry投入・実promotion再開は未着手） |
 | Phase 4.18: `evidence-index-promotion-first-reviewed-sample-retry`（PR #99） | 実Public ID Registry entry追加、実データ1 storyの初回昇格を再試行する | 完了（実Evidence Index 1件を`knowledge/evidence/stories/`へ昇格済み） |
 | Phase 4.19: `evidence-index-promotion-first-sample-visual-review`（PR #100） | 昇格済み1 storyについてWiki表示・導線・内部ID/raw text非露出を最終確認する | 完了（実装変更なし） |
-| Phase 4.20: `evidence-index-promotion-batch-policy`（本PR） | 複数storyへ広げる前のbatch promotion運用方針を設計する | **完了（本PR、`docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md`新設）** |
+| Phase 4.20: `evidence-index-promotion-batch-policy`（PR #101） | 複数storyへ広げる前のbatch promotion運用方針を設計する | 完了（`docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md`新設） |
+| Phase 4.21: `evidence-index-promotion-first-batch-dry-run`（本PR） | 2〜3 storyを対象にworkspace限定でbatch dry-runを実施する | **完了（本PR、tooling観点PASS、実commitなし）** |
 | Phase 5: Internal review packets | raw textや詳細contextを含むreview packetをworkspace配下に生成（commit禁止）、public wikiとは分離 | 未着手 |
 
 **実装状況（`feature/evidence-index-schema-implementation`で実施）**: `schemas/evidence_index.schema.json`（§13データモデル案をそのまま実装。`evidenceType`10種enum・`visibility.rawTextIncluded`を`const: false`で固定）、`agents/wiki_generator/evidence_index.py`（loader/validator、`build_evidence_id_index`/`group_entries_by_story`/`group_entries_by_public_story`/`group_entries_by_episode`/`group_entries_by_public_episode`等のhelper）、`scripts/validate_evidence_index.py`（schema検証・duplicate evidenceId検出・raw text禁止文字列検出・`visibility.public`/`rawTextIncluded`検証）、`docs/templates/evidence_index_template.yaml`、合成fixture（`tests/fixtures/evidence_index/`）を追加した。保存場所は`knowledge/evidence/stories/`を採用し`.gitkeep`のみで実データ未投入。
@@ -315,6 +316,8 @@ evidence/{publicEpisodeId or episodeId}.md#EVT_SAMPLE_E01_DLG0001
 **実施結果（`feature/evidence-index-promotion-first-sample-visual-review`で実施）**: 上記で追加された実Evidence Index 1件について、Wiki表示として公開して問題ないかを最終確認した。**実装変更は行っていない。** `validate_evidence_index.py`・`check_evidence_index_promotion.py`（Story Summary整合性込み）を`knowledge/evidence/stories`に対して再実行しPASS、`render_wiki.py --evidence-index knowledge/evidence/stories`でEvidence pageを再renderし、187 entries全件の見出しが`publicEvidenceId`形式・`stage_direction`が0件であることを確認した。Story pageの「Review Links → Evidence index」リンクが`publicStoryId`ベースで正しく解決されることも実データで確認した。Evidence Index YAML・Evidence page本体に内部ID・raw text露出が無いことをgrep・目視で確認し、`mkdocs build --strict`も成功した。詳細は`docs/runbooks/Evidence_Index_Promotion_Copy.md` §13.9を参照。**新規Evidence Index追加・batch promotionはいずれも行っていない**。
 
 **設計方針決定（`feature/evidence-index-promotion-batch-policy`で実施）**: 1 storyのpromotion・visual reviewが実証されたことを踏まえ、複数storyへ広げる際のbatch promotion運用方針を`docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md`（新設）に整理した。段階的batch size方針・Registry entry review条件・promotion前後チェックリスト・visual review方針・failed story handling・rollback方針・PR分割方針を定義し、次PR候補`evidence-index-promotion-first-batch-dry-run`のスコープを明記した。**本PRでは実装変更・実Evidence Index/Registry entryの追加・batch promotion実行はいずれも行っていない**（設計のみ）。
+
+**実施結果（`feature/evidence-index-promotion-first-batch-dry-run`で実施）**: 上記batch policyのPhase 2に基づき、2 story（合計2039 entries）を対象にworkspace限定でbatch dry-runを実施した。Registry候補作成からrender・visual review・exposure checkまでの全工程がPASSし、**tooling自体には問題が無いことを実証した**が、選定storyの`unknown`比率が高いこと・`story_manifest.yaml`未割当の新規storyではStory page導線が機能しないことの2点が新たに判明し、この2 storyでのreal batch promotionは推奨しないと判断した。**実Registry entry・実Evidence Indexのcommitはいずれも行っていない。** 詳細は`docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md` §4.2を参照。
 
 ---
 
