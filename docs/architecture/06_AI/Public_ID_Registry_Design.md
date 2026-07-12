@@ -238,6 +238,12 @@ suggestions:
 
 この実Registryを`project_evidence_index_public_ids.py --registry`に指定し、Public-safe projectionでEpisode 2（95 entries）の`publicEpisodeId`を正しく補完できることを確認した（187 entries全件PASS、詳細は`docs/runbooks/Evidence_Index_Promotion_Copy.md` §13.8）。`scripts/check_public_episode_ids.py`はRegistryをsuggestion用途にのみ使う設計のため、入力候補自体にEpisode 2の`publicEpisodeId`が無い状態ではexit code 1（missing）のままだが、提案値が正式Registry entryと一致することを確認した（この挙動は仕様通りであり、`check_public_episode_ids.py`側の変更は行っていない）。
 
+## 8.6 複数story分のRegistry entry追加（`feature/evidence-index-promotion-first-real-batch`で実施）
+
+初回実batch promotion（`docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md` Phase 3）として、`knowledge/public_ids/story_public_ids.yaml`に2 story分（`{publicStoryId}`表記、event category 1件・raid category 1件、いずれもepisode 1件・episodeOrder 1）のRegistry entryを追加した。既存1 story分のentry（§8.5）は無変更のまま維持し、Registry内でのduplicate `publicStoryId`/`publicEpisodeId`は発生しなかった。
+
+正式Registry（3 story分）を`check_public_episode_ids.py --registry`・`project_evidence_index_public_ids.py --registry`双方に指定し、新規2 story・205 entries全件がPublic-safe projectionを通過することを確認した（`internal_id_exposure=0`）。既存1 story分のprojectionには影響が無いことも、copy後の全3ファイル（392 entries）再検証で確認した。詳細は`docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md` §4.6・`docs/runbooks/Evidence_Index_Promotion_Copy.md` §13.12を参照。**Registryの複数story同時追加が既存entryに影響しないこと、`check_public_episode_ids.py`/`project_evidence_index_public_ids.py`いずれも複数story・複数episodeのRegistryを問題なく処理できることを実データで確認した**（script本体の変更はいずれも行っていない）。
+
 ---
 
 # 9. Non-goals
@@ -290,6 +296,19 @@ suggestions:
 - `schemas/evidence_index.schema.json`/`schemas/public_id_registry.schema.json`の変更
 - `story_manifest.yaml`の実データ変更・再normalize/merge
 - Internal Review Evidence Packet生成
+
+`feature/evidence-index-promotion-first-real-batch`（本PR）で以下を実施した:
+
+- `knowledge/public_ids/story_public_ids.yaml`への複数story分（2 story）のRegistry entry追加（§8.6参照）
+- 上記Registryを使ったPublic-safe projection・promotion checkの再実行、`knowledge/evidence/stories/`への2 story分の実Evidence Index昇格（`promote_evidence_index.py --execute`）
+
+本PRでも以下は行っていない:
+
+- 3 story目以降の追加、既存の昇格済みstory・Registry entryの変更
+- `scripts/project_evidence_index_public_ids.py`/`scripts/check_public_episode_ids.py`/`scripts/promote_evidence_index.py`/`scripts/check_evidence_index_promotion.py`本体の変更
+- `schemas/evidence_index.schema.json`/`schemas/public_id_registry.schema.json`の変更
+- `story_manifest.yaml`の実データ変更・再normalize/merge
+- batch promotion scriptの実装、Internal Review Evidence Packet生成
 
 ---
 
