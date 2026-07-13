@@ -998,5 +998,275 @@ def test_write_drafts_blocks_duplicate_output_path_defense(
     assert list(output_dir.glob("*.yaml")) == [output_dir / "EVT_DUP.yaml"]
 
 
+# ----------------------------------------------------------------
+# (4) episodeNumberのrenumber
+#
+# Phase 1 parserは1ファイル1 episodeで、各episodeの`episodeNumber`を常に
+# `1`として出力する。そのためstoryId単位マージ後、複数episodeを持つ
+# storyでは`episodeNumber`が全episode共通で`1`のまま重複していた
+# (`summary-generation-poc`のPoC実施中に発見された2件目のバグ、
+# `summary-generation-episode-renumbering`で修正)。
+# ----------------------------------------------------------------
+
+
+def test_generate_renumbers_duplicate_episode_numbers_after_merge(
+    module: ModuleType, tmp_path: Path
+):
+    # Phase 1 parserの実挙動を再現: 各episodeファイルのepisodeNumberは常に1。
+    story_id = "EVT_DUP_NUM"
+    ep1_id = f"{story_id}_E01"
+    ep2_id = f"{story_id}_E02"
+    input_dir = tmp_path / "inputs"
+    _write_json(
+        input_dir / "ep1.json",
+        _document(
+            story_id,
+            [
+                _episode(
+                    ep1_id,
+                    [
+                        _dialogue_block(
+                            f"{ep1_id}_DLG0001", "Speaker A", "第1話の台詞。"
+                        )
+                    ],
+                    episode_number=1,
+                )
+            ],
+        ),
+    )
+    _write_json(
+        input_dir / "ep2.json",
+        _document(
+            story_id,
+            [
+                _episode(
+                    ep2_id,
+                    [
+                        _dialogue_block(
+                            f"{ep2_id}_DLG0001", "Speaker B", "第2話の台詞。"
+                        )
+                    ],
+                    episode_number=1,
+                )
+            ],
+        ),
+    )
+    output_dir = tmp_path / "drafts"
+    report_path = tmp_path / "report.md"
+    fake_provider = _FakeProvider(
+        [
+            _json_response("第1話のあらすじ。", [f"{ep1_id}_DLG0001"]),
+            _json_response("第2話のあらすじ。", [f"{ep2_id}_DLG0001"]),
+            json.dumps({"text": "story全体のあらすじ。"}, ensure_ascii=False),
+        ]
+    )
+
+    exit_code = module.main(
+        [
+            "--input",
+            str(input_dir),
+            "--output",
+            str(output_dir),
+            "--model",
+            "unused-model",
+            "--report",
+            str(report_path),
+        ],
+        provider_factory=lambda args: fake_provider,
+    )
+
+    assert exit_code == 0
+    draft_path = output_dir / f"{story_id}.yaml"
+    with open(draft_path, encoding="utf-8") as f:
+        document = yaml.safe_load(f)
+    assert _validate_schema(document) == []
+    # 重複していたepisodeNumber (1, 1) がソート済み順に1, 2へrenumberされる。
+    assert document["episodeSummaries"][0]["episodeId"] == ep1_id
+    assert document["episodeSummaries"][0]["episodeNumber"] == 1
+    assert document["episodeSummaries"][1]["episodeId"] == ep2_id
+    assert document["episodeSummaries"][1]["episodeNumber"] == 2
+
+    # story合成promptのラベルにもrenumber後の値が反映される (重複した
+    # [Episode 1]が2つ現れることはない)。
+    story_prompt = fake_provider.calls[-1]["prompt"]
+    assert "[Episode 1] 第1話のあらすじ。" in story_prompt
+    assert "[Episode 2] 第2話のあらすじ。" in story_prompt
+
+    report_text = report_path.read_text(encoding="utf-8")
+    assert "Episode numbers renumbered (story count): 1" in report_text
+    assert story_id in report_text
+    assert "Episode numbers renumbered:" in report_text
+
+
+def test_generate_renumbers_when_episode_number_none_mixed_with_int(
+    module: ModuleType, tmp_path: Path
+):
+    story_id = "EVT_NONE_MIX_NUM"
+    ep_a = f"{story_id}_E01"
+    ep_b = f"{story_id}_E02"
+    input_dir = tmp_path / "inputs"
+    _write_json(
+        input_dir / "a.json",
+        _document(
+            story_id,
+            [
+                _episode(
+                    ep_a,
+                    [_dialogue_block(f"{ep_a}_DLG0001", "Speaker A", "第1話の台詞。")],
+                    episode_number=1,
+                )
+            ],
+        ),
+    )
+    _write_json(
+        input_dir / "b.json",
+        _document(
+            story_id,
+            [
+                _episode(
+                    ep_b,
+                    [_dialogue_block(f"{ep_b}_DLG0001", "Speaker B", "第2話の台詞。")],
+                    episode_number=None,
+                )
+            ],
+        ),
+    )
+    output_dir = tmp_path / "drafts"
+    report_path = tmp_path / "report.md"
+    fake_provider = _FakeProvider(
+        [
+            _json_response("第1話のあらすじ。", [f"{ep_a}_DLG0001"]),
+            _json_response("第2話のあらすじ。", [f"{ep_b}_DLG0001"]),
+            json.dumps({"text": "story全体のあらすじ。"}, ensure_ascii=False),
+        ]
+    )
+
+    exit_code = module.main(
+        [
+            "--input",
+            str(input_dir),
+            "--output",
+            str(output_dir),
+            "--model",
+            "unused-model",
+            "--report",
+            str(report_path),
+        ],
+        provider_factory=lambda args: fake_provider,
+    )
+
+    assert exit_code == 0
+    draft_path = output_dir / f"{story_id}.yaml"
+    with open(draft_path, encoding="utf-8") as f:
+        document = yaml.safe_load(f)
+    assert _validate_schema(document) == []
+    # episodeNumber=1のepisodeがtier0で先頭、Noneのepisodeはtier1(episodeId
+    # fallback)へ回る。None混在のため一意な昇順とは判定されずrenumberされる。
+    assert document["episodeSummaries"][0]["episodeId"] == ep_a
+    assert document["episodeSummaries"][0]["episodeNumber"] == 1
+    assert document["episodeSummaries"][1]["episodeId"] == ep_b
+    assert document["episodeSummaries"][1]["episodeNumber"] == 2
+
+    report_text = report_path.read_text(encoding="utf-8")
+    assert "Episode numbers renumbered (story count): 1" in report_text
+
+
+def test_generate_keeps_existing_unique_ascending_episode_numbers_with_gaps(
+    module: ModuleType, tmp_path: Path
+):
+    # manifest由来などで既に一意な昇順 (飛び番を含む) の場合は、正しい
+    # metadataを上書きせずそのまま維持する (renumberしない)。
+    story_id = "EVT_GAP_NUM"
+    ep1_id = f"{story_id}_E02"
+    ep2_id = f"{story_id}_E05"
+    ep3_id = f"{story_id}_E09"
+    input_dir = tmp_path / "inputs"
+    _write_json(
+        input_dir / "ep1.json",
+        _document(
+            story_id,
+            [
+                _episode(
+                    ep1_id,
+                    [
+                        _dialogue_block(
+                            f"{ep1_id}_DLG0001", "Speaker A", "第2話の台詞。"
+                        )
+                    ],
+                    episode_number=2,
+                )
+            ],
+        ),
+    )
+    _write_json(
+        input_dir / "ep2.json",
+        _document(
+            story_id,
+            [
+                _episode(
+                    ep2_id,
+                    [
+                        _dialogue_block(
+                            f"{ep2_id}_DLG0001", "Speaker B", "第5話の台詞。"
+                        )
+                    ],
+                    episode_number=5,
+                )
+            ],
+        ),
+    )
+    _write_json(
+        input_dir / "ep3.json",
+        _document(
+            story_id,
+            [
+                _episode(
+                    ep3_id,
+                    [
+                        _dialogue_block(
+                            f"{ep3_id}_DLG0001", "Speaker C", "第9話の台詞。"
+                        )
+                    ],
+                    episode_number=9,
+                )
+            ],
+        ),
+    )
+    output_dir = tmp_path / "drafts"
+    report_path = tmp_path / "report.md"
+    fake_provider = _FakeProvider(
+        [
+            _json_response("第2話のあらすじ。", [f"{ep1_id}_DLG0001"]),
+            _json_response("第5話のあらすじ。", [f"{ep2_id}_DLG0001"]),
+            _json_response("第9話のあらすじ。", [f"{ep3_id}_DLG0001"]),
+            json.dumps({"text": "story全体のあらすじ。"}, ensure_ascii=False),
+        ]
+    )
+
+    exit_code = module.main(
+        [
+            "--input",
+            str(input_dir),
+            "--output",
+            str(output_dir),
+            "--model",
+            "unused-model",
+            "--report",
+            str(report_path),
+        ],
+        provider_factory=lambda args: fake_provider,
+    )
+
+    assert exit_code == 0
+    draft_path = output_dir / f"{story_id}.yaml"
+    with open(draft_path, encoding="utf-8") as f:
+        document = yaml.safe_load(f)
+    assert _validate_schema(document) == []
+    assert [e["episodeNumber"] for e in document["episodeSummaries"]] == [2, 5, 9]
+
+    report_text = report_path.read_text(encoding="utf-8")
+    assert "Episode numbers renumbered" not in report_text
+
+
 if __name__ == "__main__":
     pytest.main([__file__])
