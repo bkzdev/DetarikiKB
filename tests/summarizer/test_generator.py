@@ -1,7 +1,8 @@
 """
 tests/summarizer/test_generator.py
 agents/summarizer/generator.py (Episode Summary生成: 入力抽出 -> LLM呼び出し
--> hallucination対策の後処理 -> draft組み立て) のテスト。
+-> hallucination対策の後処理 -> draft組み立て、およびStory Summary合成) の
+テスト。
 
 実Ollamaへのネットワーク呼び出しは一切行わない。すべてfake providerで
 検証する。合成fixtureのみを使う (実イベント名・実キャラ名・実あらすじ・
@@ -20,7 +21,9 @@ from agents.summarizer.generator import (
     DEFAULT_VERBATIM_THRESHOLD,
     generate_episode_summary,
     generate_story_summary_draft,
+    synthesize_story_summary,
 )
+from agents.summarizer.models import EpisodeSummaryDraft
 from agents.summarizer.prompt import PROMPT_VERSION
 from agents.summarizer.provider import (
     LLMCompletion,
@@ -464,12 +467,17 @@ def test_generate_story_summary_draft_end_to_end_is_schema_valid():
         ]
     )
 
-    result = generate_story_summary_draft(document, provider=provider)
+    # synthesize_story=False: story合成自体を無効化し、episode draft組み立て
+    # のみを検証する (story合成のend-to-end検証は(6)/(7)節を参照)。
+    result = generate_story_summary_draft(
+        document, provider=provider, synthesize_story=False
+    )
 
     assert result.story_id == "EVT_SYNTHETIC_SAMPLE"
     assert result.draft.public_story_id == "PUB_EVT_SYNTHETIC_SAMPLE"
     assert len(result.draft.episode_summaries) == 2
     assert result.draft.story_text is None
+    assert result.story_synthesis is None
 
     document_dict = result.to_document_dict()
     assert document_dict["storySummary"] is None
@@ -494,7 +502,9 @@ def test_generate_story_summary_draft_partial_failure_kept_out_of_episode_summar
         [_json_response("episode1のあらすじ。", ["EVT_SYNTHETIC_SAMPLE_E01_DLG0001"])]
     )
 
-    result = generate_story_summary_draft(document, provider=provider)
+    result = generate_story_summary_draft(
+        document, provider=provider, synthesize_story=False
+    )
 
     assert len(result.draft.episode_summaries) == 1
     assert result.draft.episode_summaries[0].episode_id == "EVT_SYNTHETIC_SAMPLE_E01"
@@ -513,7 +523,9 @@ def test_generate_story_summary_draft_provenance_prompt_version_and_input_refs()
         [_json_response("あらすじ。", ["EVT_SYNTHETIC_SAMPLE_E01_DLG0001"])]
     )
 
-    result = generate_story_summary_draft(document, provider=provider)
+    result = generate_story_summary_draft(
+        document, provider=provider, synthesize_story=False
+    )
 
     assert result.provenance.prompt_version == PROMPT_VERSION == "episode-summary-v1"
     assert result.provenance.generated_at is not None
@@ -530,7 +542,9 @@ def test_generate_story_summary_draft_all_episodes_failed_has_no_model_provenanc
     )
     provider = FakeProvider([])
 
-    result = generate_story_summary_draft(document, provider=provider)
+    result = generate_story_summary_draft(
+        document, provider=provider, synthesize_story=False
+    )
 
     assert result.draft.episode_summaries == []
     assert result.provenance.model_provider is None
@@ -544,11 +558,257 @@ def test_generate_story_summary_draft_no_episodes_is_schema_valid():
     document = _document("EVT_SYNTHETIC_SAMPLE", [])
     provider = FakeProvider([])
 
-    result = generate_story_summary_draft(document, provider=provider)
+    result = generate_story_summary_draft(
+        document, provider=provider, synthesize_story=False
+    )
 
     assert result.draft.episode_summaries == []
     assert result.has_issues is False
     document_dict = result.to_document_dict()
+    assert _validate(document_dict) == []
+
+
+# ----------------------------------------------------------------
+# (6) synthesize_story_summary: story合成ロジック単体
+# ----------------------------------------------------------------
+
+
+def _story_json_response(text: str) -> str:
+    return json.dumps({"text": text}, ensure_ascii=False)
+
+
+def test_synthesize_story_summary_orders_input_by_episode_number():
+    draft_ep2 = EpisodeSummaryDraft(
+        episode_id="EVT_SYNTHETIC_SAMPLE_E02", text="episode2の要約", episode_number=2
+    )
+    draft_ep1 = EpisodeSummaryDraft(
+        episode_id="EVT_SYNTHETIC_SAMPLE_E01", text="episode1の要約", episode_number=1
+    )
+    provider = FakeProvider([_story_json_response("story全体のあらすじ")])
+
+    # 呼び出し側が episode_number 降順で渡しても、prompt内ではepisodeNumber
+    # 昇順に並べ替えられることを確認する。
+    result = synthesize_story_summary([draft_ep2, draft_ep1], provider=provider)
+
+    assert result.story_text == "story全体のあらすじ"
+    prompt = provider.calls[0]["prompt"]
+    assert prompt.index("[Episode 1] episode1の要約") < prompt.index(
+        "[Episode 2] episode2の要約"
+    )
+    assert provider.calls[0]["system"] is not None
+    assert provider.calls[0]["format_json"] is True
+
+
+def test_synthesize_story_summary_evidence_refs_union_dedup_and_stable_order():
+    draft_ep2 = EpisodeSummaryDraft(
+        episode_id="EVT_SYNTHETIC_SAMPLE_E02",
+        text="episode2の要約",
+        evidence_refs=["EVT_E02_DLG0001", "EVT_E01_DLG0001"],
+        episode_number=2,
+    )
+    draft_ep1 = EpisodeSummaryDraft(
+        episode_id="EVT_SYNTHETIC_SAMPLE_E01",
+        text="episode1の要約",
+        evidence_refs=["EVT_E01_DLG0001", "EVT_E01_DLG0002"],
+        episode_number=1,
+    )
+    provider = FakeProvider([_story_json_response("story全体のあらすじ")])
+
+    result = synthesize_story_summary([draft_ep2, draft_ep1], provider=provider)
+
+    # episodeNumber順(E01->E02) -> episode内出現順で、重複("EVT_E01_DLG0001")
+    # は初出のみ残す。
+    assert result.evidence_refs == [
+        "EVT_E01_DLG0001",
+        "EVT_E01_DLG0002",
+        "EVT_E02_DLG0001",
+    ]
+
+
+def test_synthesize_story_summary_no_episode_drafts_is_blocking_and_skips_llm():
+    provider = FakeProvider([])
+
+    result = synthesize_story_summary([], provider=provider)
+
+    assert result.story_text is None
+    assert result.skipped is True
+    assert result.evidence_refs == []
+    assert len(result.issues) == 1
+    assert result.issues[0].code == "no-episode-summaries"
+    assert result.issues[0].blocking is True
+    assert provider.calls == []
+
+
+def test_synthesize_story_summary_input_too_long_is_blocking_and_skips_llm():
+    draft = EpisodeSummaryDraft(
+        episode_id="EVT_SYNTHETIC_SAMPLE_E01",
+        text="十分に長い合成episode要約テキストです。" * 3,
+        episode_number=1,
+    )
+    provider = FakeProvider([])
+
+    result = synthesize_story_summary(
+        [draft], provider=provider, max_input_characters=5
+    )
+
+    assert result.story_text is None
+    assert result.issues[0].code == "input-too-long"
+    assert result.issues[0].blocking is True
+    assert provider.calls == []
+
+
+def test_synthesize_story_summary_llm_provider_error_is_blocking():
+    draft = EpisodeSummaryDraft(
+        episode_id="EVT_SYNTHETIC_SAMPLE_E01", text="episode要約", episode_number=1
+    )
+    provider = FakeProvider([LLMProviderError("connection failed")])
+
+    result = synthesize_story_summary([draft], provider=provider)
+
+    assert result.story_text is None
+    assert result.issues[0].code == "llm-provider-error"
+    assert result.issues[0].blocking is True
+
+
+def test_synthesize_story_summary_response_not_json_is_blocking():
+    draft = EpisodeSummaryDraft(
+        episode_id="EVT_SYNTHETIC_SAMPLE_E01", text="episode要約", episode_number=1
+    )
+    provider = FakeProvider(["not a json response {"])
+
+    result = synthesize_story_summary([draft], provider=provider)
+
+    assert result.story_text is None
+    assert result.issues[0].code == "response-not-json"
+    assert result.issues[0].blocking is True
+
+
+def test_synthesize_story_summary_missing_text_key_is_blocking():
+    draft = EpisodeSummaryDraft(
+        episode_id="EVT_SYNTHETIC_SAMPLE_E01", text="episode要約", episode_number=1
+    )
+    provider = FakeProvider([json.dumps({"notText": "oops"})])
+
+    result = synthesize_story_summary([draft], provider=provider)
+
+    assert result.story_text is None
+    assert result.issues[0].code == "missing-text-key"
+    assert result.issues[0].blocking is True
+
+
+def test_synthesize_story_summary_blank_text_value_is_blocking():
+    draft = EpisodeSummaryDraft(
+        episode_id="EVT_SYNTHETIC_SAMPLE_E01", text="episode要約", episode_number=1
+    )
+    provider = FakeProvider([json.dumps({"text": "   "})])
+
+    result = synthesize_story_summary([draft], provider=provider)
+
+    assert result.story_text is None
+    assert result.issues[0].code == "missing-text-key"
+    assert result.issues[0].blocking is True
+
+
+def test_synthesize_story_summary_forbidden_text_pattern_is_nonblocking_issue():
+    draft = EpisodeSummaryDraft(
+        episode_id="EVT_SYNTHETIC_SAMPLE_E01", text="episode要約", episode_number=1
+    )
+    provider = FakeProvider(
+        [_story_json_response("story全体のあらすじに$num1という禁止文字列が混入。")]
+    )
+
+    result = synthesize_story_summary([draft], provider=provider)
+
+    assert result.story_text is not None
+    codes = [issue.code for issue in result.issues]
+    assert "forbidden-text-pattern" in codes
+    assert all(not issue.blocking for issue in result.issues)
+
+
+def test_synthesize_story_summary_continues_with_episode_issues_flag():
+    draft = EpisodeSummaryDraft(
+        episode_id="EVT_SYNTHETIC_SAMPLE_E01", text="episode要約", episode_number=1
+    )
+    provider = FakeProvider([_story_json_response("story全体のあらすじ")])
+
+    result = synthesize_story_summary(
+        [draft],
+        provider=provider,
+        episodes_with_issues=["EVT_SYNTHETIC_SAMPLE_E01"],
+    )
+
+    # issueを持つepisodeがあっても合成自体は行う (skipしない)。
+    assert result.story_text == "story全体のあらすじ"
+    codes = [issue.code for issue in result.issues]
+    assert "source-episode-has-issues" in codes
+    matching = [i for i in result.issues if i.code == "source-episode-has-issues"]
+    assert matching[0].blocking is False
+
+
+# ----------------------------------------------------------------
+# (7) generate_story_summary_draft + story synthesis: end-to-end
+# ----------------------------------------------------------------
+
+
+def test_generate_story_summary_draft_with_synthesis_end_to_end_is_schema_valid():
+    document = _document(
+        "EVT_SYNTHETIC_SAMPLE",
+        [
+            _sample_episode("EVT_SYNTHETIC_SAMPLE_E01"),
+            _sample_episode("EVT_SYNTHETIC_SAMPLE_E02"),
+        ],
+    )
+    provider = FakeProvider(
+        [
+            _json_response(
+                "episode1のあらすじ。", ["EVT_SYNTHETIC_SAMPLE_E01_DLG0001"]
+            ),
+            _json_response(
+                "episode2のあらすじ。", ["EVT_SYNTHETIC_SAMPLE_E02_DLG0001"]
+            ),
+            _story_json_response("story全体を通したあらすじ。"),
+        ]
+    )
+
+    # synthesize_storyは既定でTrue (引数省略)。
+    result = generate_story_summary_draft(document, provider=provider)
+
+    assert result.story_synthesis is not None
+    assert result.story_synthesis.story_text == "story全体を通したあらすじ。"
+    assert result.draft.story_text == "story全体を通したあらすじ。"
+    assert result.draft.story_evidence_refs == [
+        "EVT_SYNTHETIC_SAMPLE_E01_DLG0001",
+        "EVT_SYNTHETIC_SAMPLE_E02_DLG0001",
+    ]
+
+    document_dict = result.to_document_dict()
+    assert document_dict["storySummary"]["text"] == "story全体を通したあらすじ。"
+    assert document_dict["storySummary"]["evidenceRefs"] == [
+        "EVT_SYNTHETIC_SAMPLE_E01_DLG0001",
+        "EVT_SYNTHETIC_SAMPLE_E02_DLG0001",
+    ]
+    assert (
+        document_dict["source"]["promptVersion"]
+        == "episode-summary-v1,story-summary-v1"
+    )
+    assert _validate(document_dict) == []
+
+
+def test_generate_story_summary_draft_no_story_synthesis_flag_keeps_story_summary_null():  # noqa: E501
+    document = _document("EVT_SYNTHETIC_SAMPLE", [_sample_episode()])
+    provider = FakeProvider(
+        [_json_response("episode1のあらすじ。", ["EVT_SYNTHETIC_SAMPLE_E01_DLG0001"])]
+    )
+
+    result = generate_story_summary_draft(
+        document, provider=provider, synthesize_story=False
+    )
+
+    assert result.story_synthesis is None
+    assert result.draft.story_text is None
+    document_dict = result.to_document_dict()
+    assert document_dict["storySummary"] is None
+    assert document_dict["source"]["promptVersion"] == "episode-summary-v1"
     assert _validate(document_dict) == []
 
 

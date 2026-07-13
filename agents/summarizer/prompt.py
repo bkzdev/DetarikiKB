@@ -1,8 +1,9 @@
 """
 DKB Summarizer - Prompt
-Episode Summary生成promptの構築
+Episode Summary生成prompt、およびStory Summary合成promptの構築
 (docs/architecture/06_AI/Story_Summary_Generation_Plan.md §6 / §9
- `summary-generation-prompt-implementation`)。
+ `summary-generation-prompt-implementation` / `summary-generation-story-
+ synthesis`)。
 
 ユーザーが2026-07-13にsummarizer系のprompt実装を明示的に解禁したことを受けて
 実装する（`AI_CONTEXT.md` §4。`agents/extractor/`は引き続き未解禁のまま）。
@@ -27,6 +28,23 @@ Episode Summary生成promptの構築
   `DEFAULT_MAX_INPUT_CHARACTERS`を超える場合は、
   `agents/summarizer/generator.py`側でissueを立てて生成をskipする
   （このモジュール自体は文字数チェックを行わない、上限値の定義のみ）
+
+Story Summary合成（`summary-generation-story-synthesis`、Plan §11で確定）:
+- 合成方式はLLM再要約とする。生成済みEpisode Summary群のtext
+  (episodeNumber順) を入力とし、story全体の簡潔なあらすじを再度LLMに
+  生成させる（`format_json=True`、出力は`{"text": "..."}`のみ。story-level
+  textにblockId引用は求めない）
+- story-level evidenceRefsはLLM出力からではなく、
+  `agents/summarizer/generator.py`側でepisode-level evidenceRefsの
+  重複排除unionとして機械的に決める (監査可能性を保ちつつLLM引用の
+  不確実性を避ける、Plan §11)
+- system promptはepisode用と同じ制約 (明示された事実のみ・考察禁止・
+  JSON出力のみ) を、入力がepisode summary群であることに合わせて言い換えた
+  `STORY_SUMMARY_SYSTEM_PROMPT`を別途定義する
+- 長文episodeと同じ安全弁として、入力Episode Summary群の合計文字数が
+  `DEFAULT_MAX_INPUT_CHARACTERS`を超える場合は
+  `agents/summarizer/generator.py`側で合成をskipする (このモジュールは
+  文字数チェックを行わない)
 """
 
 from __future__ import annotations
@@ -188,4 +206,89 @@ def build_episode_summary_prompt(blocks: list[ExtractedBlock]) -> str:
         "\n"
         "evidenceRefsには、textの根拠として引用した実在のblockId（上記"
         "episode本文中に現れるblockIdのみ）を重複なく列挙してください。"
+    )
+
+
+# ----------------------------------------------------------------
+# Story Summary合成 (Episode Summary群 -> Story Summary、Plan §11)
+# ----------------------------------------------------------------
+
+# story合成promptの指示文言・出力formatを変更した場合はこの値も更新する
+# (draft.source.promptVersionへ、episode用PROMPT_VERSIONと併せて格納される)。
+STORY_SUMMARY_PROMPT_VERSION = "story-summary-v1"
+
+STORY_SUMMARY_SYSTEM_PROMPT = (
+    "あなたはゲームシナリオのepisodeごとのあらすじ (Episode Summary) の"
+    "集まりから、story全体を通した簡潔なあらすじを作成するアシスタントです。"
+    "考察・推測・伏線解釈・キャラクター関係の推測・fan theoryは一切書かず、"
+    "入力に明記された内容のみを要約してください。"
+    "出力は指示されたJSON形式のみとし、それ以外の文章は一切出力しないで"
+    "ください。"
+)
+
+
+@dataclass(frozen=True)
+class EpisodeSummaryInput:
+    """story合成prompt入力用の1 episode分のEpisode Summaryテキスト表現。
+
+    `agents/summarizer/models.py`の`EpisodeSummaryDraft`から
+    `episode_number`/`text`のみを取り出した軽量表現 (このモジュールを
+    modelsに依存させないための分離)。
+    """
+
+    episode_number: int | None
+    text: str
+
+
+def format_episode_summary_line(item: EpisodeSummaryInput) -> str:
+    """`[Episode {episodeNumber}] {text}` 形式相当のテキスト表現を返す。
+
+    episodeNumberが無い場合は`?`を用いる (実運用では常に埋まっている想定だが、
+    欠落時も入力自体は落とさない)。
+    """
+    number_label = item.episode_number if item.episode_number is not None else "?"
+    return f"[Episode {number_label}] {item.text}"
+
+
+def render_episode_summaries_text(items: list[EpisodeSummaryInput]) -> str:
+    """抽出済みEpisode Summary入力一覧を、prompt埋め込み用の複数行テキストへ
+    変換する。呼び出し側 (`agents/summarizer/generator.py`) が渡す順序で
+    そのまま整形する (episodeNumber順への並び替えは呼び出し側の責務)。"""
+    return "\n".join(format_episode_summary_line(item) for item in items)
+
+
+def build_story_summary_prompt(items: list[EpisodeSummaryInput]) -> str:
+    """Story Summary合成用のuser prompt本文を組み立てる (Plan §11)。
+
+    - 各episodeのEpisode Summary textを`items`が渡す順序 (episodeNumber順を
+      想定、呼び出し側が保証する) のまま埋め込む
+    - story-level textにblockId引用は求めない (evidenceRefsは
+      `agents/summarizer/generator.py`側で機械的に決めるため)
+    - 出力は`{"text": "..."}`形式のJSONのみとする
+
+    呼び出し側が空リストで呼ぶことは想定しない (Episode Summaryが1件も
+    無い場合は合成自体をskipする設計、`generator.py`の責務)。
+    """
+    summaries_text = render_episode_summaries_text(items)
+    return (
+        "以下は、あるstoryを構成する各episodeのあらすじ (Episode Summary) "
+        "です。各行は `[Episode 番号] あらすじ本文` の形式で、episodeNumber順に"
+        "並んでいます。\n"
+        "\n"
+        "--- episode summary一覧 (episodeNumber順) ---\n"
+        f"{summaries_text}\n"
+        "--- episode summary一覧ここまで ---\n"
+        "\n"
+        "この内容から、story全体を通した明示された事実のみに基づく簡潔な"
+        "あらすじを日本語で作成してください。以下のルールを厳守してください。\n"
+        "\n"
+        "1. 各episodeのあらすじに明記された内容のみを使い、story全体の"
+        "流れが分かるようにまとめてください。考察・推測・伏線解釈・"
+        "キャラクター関係の推測・fan theoryは一切書かないでください。\n"
+        "2. 個々のepisodeのあらすじ本文を長文でそのまま引用しないで"
+        "ください。\n"
+        "3. 出力は次のJSON形式のみとし、それ以外の説明文・前置き・"
+        "Markdown装飾は一切出力しないでください。\n"
+        "\n"
+        '{"text": "story全体のあらすじ本文"}\n'
     )
