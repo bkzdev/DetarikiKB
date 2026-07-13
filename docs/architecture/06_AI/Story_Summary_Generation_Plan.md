@@ -171,7 +171,7 @@ Evidence Indexのbatch promotion運用（`Evidence_Index_Batch_Promotion_Policy.
 | Stage | 内容 | 対象規模 | 前提条件 |
 |---|---|---|---|
 | **Stage 0: PoC** | 昇格済み3 storyのうち1 story（Evidence Index昇格済み＝evidenceRefs変換可能なもの）を選び、ローカルLLM（Ollama）でEpisode Summary→Story Summary生成を試行する。人間reviewを経て、`workspace/summary_drafts/`での生成確認、または最小限の初回commit（1 story）まで | 1 story | 本文書の実装フェーズ（§9）がPoCに必要な最小実装まで完了していること。ユーザーの明示的なLLM呼び出し着手指示（`AI_CONTEXT.md` §4） |
-| **Stage 1: small batch** | 複数story（Evidence Index batch promotion policyと同じ最大3〜5 story目安）で生成→review→projection→限定commitを行う | 最大3〜5 story | Stage 0での問題（hallucination傾向、prompt調整要否、public ID projectionの実運用確認）が解消済み |
+| **Stage 1: small batch** | 複数story（Evidence Index batch promotion policyと同じ最大3〜5 story目安）で生成→review→projection→限定commitを行う。**初回small batch（2 story）実施済み**（`summary-generation-small-batch-001`、`promote_story_summaries.py --execute`の初回実運用。人間レビューで情報源の取り違え・未解決話者プレースホルダー混入を検出し人手修正した） | 最大3〜5 story | Stage 0での問題（hallucination傾向、prompt調整要否、public ID projectionの実運用確認）が解消済み |
 | **Stage 2: 通常運用** | 昇格済みstory全体を対象にした継続的な生成運用。CI組み込み・自動化の要否は別途検討（`evidence-index-promotion-batch-tooling`と同様、機械的checkの拡充は別PR） | 段階的拡大 | Stage 1で品質・運用フローが安定していることを人間が確認済み |
 
 Evidence Indexの`Evidence_Index_Batch_Promotion_Policy.md` §9（Failed story handling）・§10（Rollback policy）と同様の考え方を、Story Summary側でも将来採用することを想定する（詳細設計は各Stageの実装PRに委ねる、本PRでは確定しない）。

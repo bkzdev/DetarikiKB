@@ -1,0 +1,40 @@
+schemaVersion: 0.1.0
+documentType: story_summary
+storyId: RAID_260712_001
+publicStoryId: RAID_260712_001
+language: ja
+generationStatus: generated
+storySummary:
+  text: 班長と連絡がつかず、エミットは端末の電源が入っていないことに苛立つ。園乃とカラーもリグラスの呼びかけに応答しないが、使用人からの連絡で二人が公園にいることが判明する。公園ではジャマー出現の混乱の中で避難誘導が始まり、弱気になっていた園乃は同行者にたしなめられながら、ジャマーと向き合おうとする。
+  confidence: null
+  evidenceRefs:
+  - RAID_260712_001_E01_DLG0050
+  - RAID_260712_001_E01_DLG0052
+  - RAID_260712_001_E01_DLG0054
+  - RAID_260712_001_E01_DLG0061
+  - RAID_260712_001_E01_NAR0020
+  - RAID_260712_001_E01_DLG0072
+episodeSummaries:
+- episodeId: RAID_260712_001_E01
+  publicEpisodeId: RAID_260712_001_E01
+  episodeNumber: 1
+  text: 班長と連絡がつかず、エミットは端末の電源が入っていないことに苛立つ。園乃とカラーもリグラスの呼びかけに応答しないが、使用人からの連絡で二人が公園にいることが判明する。公園ではジャマー出現の混乱の中で避難誘導が始まり、弱気になっていた園乃は同行者にたしなめられながら、ジャマーと向き合おうとする。
+  confidence: null
+  evidenceRefs:
+  - RAID_260712_001_E01_DLG0050
+  - RAID_260712_001_E01_DLG0052
+  - RAID_260712_001_E01_DLG0054
+  - RAID_260712_001_E01_DLG0061
+  - RAID_260712_001_E01_NAR0020
+  - RAID_260712_001_E01_DLG0072
+source:
+  sourceType: ai_generated
+  model: ollama/qwen2.5:14b-instruct
+  promptVersion: episode-summary-v1,story-summary-v1
+  generatedAt: '2026-07-13T05:40:05Z'
+review:
+  status: approved
+  reviewer: bkzdev
+  reviewedAt: '2026-07-13'
+  notes: Stage 1人間レビュー。情報源の取り違え（連絡経路の歪曲）・未解決話者プレースホルダーの人物名としての混入・ニュアンス誤りを原文blockの確認に基づき人手修正した。
+notes: AI生成後にレビュー担当者が本文とevidenceRefsを修正した（sourceはai_generatedのまま）。
