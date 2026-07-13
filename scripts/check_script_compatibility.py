@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""
+r"""
 Script Compatibility Checker
 DKB Parser Phase 1 - Script_Compatibility_Check.md 準拠
 
@@ -16,6 +16,21 @@ Usage:
     # キャラクター辞書指定
     python scripts/check_script_compatibility.py data/raw/ \
         --characters reference/parser/characters_reference.json
+
+    # ファイル名フィルタ (本編系scriptのみを対象にする例)
+    # 未指定時は従来どおり data/raw/ 配下の全 .dec/.txt を走査する。
+    # 注意: 正規表現が "-" で始まる場合、argparseに別オプションと誤認されない
+    # よう "--include-name-pattern=<regex>" の "=" 付き形式で指定すること。
+    python scripts/check_script_compatibility.py data/raw/ \
+        --include-name-pattern="-episode\d+\.dec$" \
+        --include-name-pattern="-episode_EX\d+\.dec$" \
+        --include-name-pattern="-main\d+(_tutorial\d*)?(\s*#\d+)?\.dec$" \
+        --include-name-pattern="-Surprise_\d+\.dec$"
+
+    # 除外パターンとの併用 (includeの後に適用される)
+    python scripts/check_script_compatibility.py data/raw/ \
+        --include-name-pattern="-episode\d+\.dec$" \
+        --exclude-name-pattern="_debug"
 
 Output:
     data/reports/script_compatibility_report.json
@@ -148,16 +163,93 @@ def get_speech_commands(config: dict[str, Any]) -> set[str]:
 # ----------------------------------------------------------------
 
 
+class NameFilterSummary:
+    """ファイル名フィルタ (--include-name-pattern/--exclude-name-pattern)
+    適用結果のサマリー。未指定時 (フィルタなし) は生成されない。
+    """
+
+    def __init__(
+        self,
+        include_patterns: list[str],
+        exclude_patterns: list[str],
+        total_scanned: int,
+        collected_count: int,
+    ) -> None:
+        self.include_patterns = include_patterns
+        self.exclude_patterns = exclude_patterns
+        self.total_scanned = total_scanned
+        self.collected_count = collected_count
+        self.excluded_count = total_scanned - collected_count
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "includePatterns": self.include_patterns,
+            "excludePatterns": self.exclude_patterns,
+            "totalScanned": self.total_scanned,
+            "collectedCount": self.collected_count,
+            "excludedCount": self.excluded_count,
+        }
+
+
+def compile_name_patterns(
+    pattern_strings: list[str] | None,
+) -> list[re.Pattern[str]]:
+    """パターン文字列のリストをコンパイル済み正規表現のリストへ変換する。
+
+    不正な正規表現があった場合は re.error をそのまま送出する
+    (呼び出し側でconfig errorとして扱い、exit code 2にする)。
+    """
+    if not pattern_strings:
+        return []
+    return [re.compile(p) for p in pattern_strings]
+
+
 def collect_files(
-    target: Path, extensions: tuple[str, ...] = (".dec", ".txt")
-) -> list[Path]:
-    """ディレクトリまたは単一ファイルから対象ファイルを収集する"""
+    target: Path,
+    extensions: tuple[str, ...] = (".dec", ".txt"),
+    include_patterns: list[re.Pattern[str]] | None = None,
+    exclude_patterns: list[re.Pattern[str]] | None = None,
+) -> tuple[list[Path], "NameFilterSummary | None"]:
+    """ディレクトリまたは単一ファイルから対象ファイルを収集する。
+
+    include_patterns/exclude_patternsはファイル名 (basename、フルパスではない)
+    に対して re.search で判定する。
+    - include_patterns: いずれか1つ以上にマッチするファイルのみを対象とする
+      (複数指定はOR条件)。
+    - exclude_patterns: いずれか1つでもマッチするファイルを除外する。
+      include適用後に適用される。
+    include_patterns/exclude_patternsのいずれも指定されない (Noneまたは空)
+    場合は、従来どおり全件を走査し、戻り値の NameFilterSummary は None になる
+    (後方互換: 既存の挙動・exit code・レポート形式は不変)。
+    """
     if target.is_file():
-        return [target]
-    files: list[Path] = []
-    for ext in extensions:
-        files.extend(target.rglob(f"*{ext}"))
-    return sorted(files)
+        candidates = [target]
+    else:
+        candidates = []
+        for ext in extensions:
+            candidates.extend(target.rglob(f"*{ext}"))
+        candidates = sorted(candidates)
+
+    if not include_patterns and not exclude_patterns:
+        return candidates, None
+
+    total_scanned = len(candidates)
+    collected: list[Path] = []
+    for file_path in candidates:
+        name = file_path.name
+        if include_patterns and not any(p.search(name) for p in include_patterns):
+            continue
+        if exclude_patterns and any(p.search(name) for p in exclude_patterns):
+            continue
+        collected.append(file_path)
+
+    summary = NameFilterSummary(
+        include_patterns=[p.pattern for p in (include_patterns or [])],
+        exclude_patterns=[p.pattern for p in (exclude_patterns or [])],
+        total_scanned=total_scanned,
+        collected_count=len(collected),
+    )
+    return collected, summary
 
 
 # ----------------------------------------------------------------
@@ -563,8 +655,14 @@ def _determine_compatibility(result: FileCompatibilityResult) -> str:
 def build_json_report(
     target_files: list[Path],
     results: list[FileCompatibilityResult],
+    name_filter_summary: "NameFilterSummary | None" = None,
 ) -> dict[str, Any]:
-    """JSON レポートを構築する"""
+    """JSON レポートを構築する。
+
+    name_filter_summaryは--include-name-pattern/--exclude-name-pattern
+    適用時のみ渡される。渡された場合のみ summary.nameFilter を追加する
+    (既存フィールドは変更しない)。
+    """
     # 全体ステータス決定
     STATUS_ORDER = ["compatible", "warning", "needs_update", "blocked"]
     overall_status = "compatible"
@@ -624,6 +722,8 @@ def build_json_report(
         },
         "files": file_reports,
     }
+    if name_filter_summary is not None:
+        report["summary"]["nameFilter"] = name_filter_summary.to_dict()
     return report
 
 
@@ -649,6 +749,23 @@ def _build_summary_section(report: dict[str, Any]) -> list[str]:
     lines.append(f"| 未登録キャラクターID | {summary['unknownCharacterIdCount']} |")
     lines.append(f"| 制御文字除去件数 | {summary['controlCharsRemoved']} |")
     lines.append("")
+
+    name_filter = summary.get("nameFilter")
+    if name_filter:
+        lines.append("### ファイル名フィルタ")
+        lines.append("")
+        lines.append("| 項目 | 値 |")
+        lines.append("|---|---|")
+        lines.append(f"| 走査対象数 | {name_filter['totalScanned']} |")
+        lines.append(f"| 収集対象数 | {name_filter['collectedCount']} |")
+        lines.append(f"| フィルタで除外された数 | {name_filter['excludedCount']} |")
+        if name_filter["includePatterns"]:
+            include_str = ", ".join(f"`{p}`" for p in name_filter["includePatterns"])
+            lines.append(f"| 適用パターン (include) | {include_str} |")
+        if name_filter["excludePatterns"]:
+            exclude_str = ", ".join(f"`{p}`" for p in name_filter["excludePatterns"])
+            lines.append(f"| 適用パターン (exclude) | {exclude_str} |")
+        lines.append("")
     return lines
 
 
@@ -841,6 +958,33 @@ def parse_args() -> argparse.Namespace:
         help=f"キャラクター辞書JSONのパス (デフォルト: {DEFAULT_CHARACTERS_PATH})",
     )
     parser.add_argument(
+        "--include-name-pattern",
+        action="append",
+        metavar="REGEX",
+        help=(
+            "対象ファイルをファイル名 (basename) の正規表現 (re.search) で絞り込む。"
+            "複数指定可、いずれかにマッチするファイルのみ対象とする"
+            "(OR条件)。未指定時は従来どおり全件走査する。"
+            "本編系ファイル名の例: "
+            r'"-episode\d+\.dec$", "-episode_EX\d+\.dec$", '
+            r'"-main\d+(_tutorial\d*)?(\s*#\d+)?\.dec$", "-Surprise_\d+\.dec$"'
+            " (正規表現が'-'で始まる場合は"
+            "--include-name-pattern=<regex> の'='付き形式で指定すること)"
+        ),
+    )
+    parser.add_argument(
+        "--exclude-name-pattern",
+        action="append",
+        metavar="REGEX",
+        help=(
+            "ファイル名 (basename) の正規表現 (re.search) にマッチするファイルを"
+            "対象から除外する。複数指定可 (OR条件)。"
+            "--include-name-patternの絞り込み後に適用される。"
+            " (正規表現が'-'で始まる場合は"
+            "--exclude-name-pattern=<regex> の'='付き形式で指定すること)"
+        ),
+    )
+    parser.add_argument(
         "--no-md",
         action="store_true",
         help="Markdownレポートを出力しない",
@@ -932,6 +1076,15 @@ def _print_summary(
     print(f"[DKB] 新規会話コマンド候補: {summary['newSpeechCommandCount']}")
     print(f"[DKB] 未登録キャラクターID: {summary['unknownCharacterIdCount']}")
     print(f"[DKB] 制御文字除去件数: {summary['controlCharsRemoved']}")
+
+    name_filter = summary.get("nameFilter")
+    if name_filter:
+        print(
+            f"[DKB] ファイル名フィルタ: 走査対象数={name_filter['totalScanned']} "
+            f"収集対象数={name_filter['collectedCount']} "
+            f"除外数={name_filter['excludedCount']}"
+        )
+
     print(f"[DKB] JSON レポート: {json_path}")
     if md_path is not None:
         print(f"[DKB] MD レポート:   {md_path}")
@@ -947,6 +1100,17 @@ def main() -> int:
         print(f"[エラー] 対象が見つかりません: {target}", file=sys.stderr)
         return 1
 
+    try:
+        include_patterns = compile_name_patterns(args.include_name_pattern)
+        exclude_patterns = compile_name_patterns(args.exclude_name_pattern)
+    except re.error as e:
+        print(
+            "[エラー] 不正な正規表現です "
+            f"(--include-name-pattern/--exclude-name-pattern): {e}",
+            file=sys.stderr,
+        )
+        return 2
+
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -960,7 +1124,9 @@ def main() -> int:
         print(f"[DKB] 既知コマンド数: {len(known_commands)}")
         print(f"[DKB] 登録キャラクター数: {len(char_map)}")
 
-    files = collect_files(target)
+    files, name_filter_summary = collect_files(
+        target, include_patterns=include_patterns, exclude_patterns=exclude_patterns
+    )
     if not files:
         print(f"[警告] 対象ファイルが見つかりませんでした: {target}", file=sys.stderr)
         return 1
@@ -978,7 +1144,7 @@ def main() -> int:
         args.quiet,
     )
 
-    json_report = build_json_report(files, results)
+    json_report = build_json_report(files, results, name_filter_summary)
     md_report = build_markdown_report(json_report)
     json_path, md_path = _write_reports(
         json_report, md_report, output_dir, not args.no_md

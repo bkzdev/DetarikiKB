@@ -687,6 +687,67 @@ data/reports/script_compatibility_report.md
 
 ---
 
+## 19.1 ファイル名フィルタ (`--include-name-pattern` / `--exclude-name-pattern`)
+
+`data/raw/` 配下には、本編・イベント等のストーリー本文scriptに加えて、
+H_scene/camera/finish/spine/VR等の演出専用scriptも大量に混在する場合がある。
+デフォルトの走査 (`rglob`) はこれらを区別しないため、本編系scriptのみを
+対象に互換性チェックを行いたい場合、ファイル名 (basename) ベースの正規表現
+フィルタを指定できる。
+
+```bash
+python scripts/check_script_compatibility.py data/raw/ \
+    --include-name-pattern="-episode\d+\.dec$" \
+    --include-name-pattern="-episode_EX\d+\.dec$" \
+    --include-name-pattern="-main\d+(_tutorial\d*)?(\s*#\d+)?\.dec$" \
+    --include-name-pattern="-Surprise_\d+\.dec$"
+```
+
+仕様:
+
+- `--include-name-pattern <regex>`: 複数指定可。指定されたパターンの
+  いずれか1つにでもマッチするファイルのみを対象にする (OR条件)。
+- `--exclude-name-pattern <regex>`: 複数指定可。指定されたパターンの
+  いずれかにマッチするファイルを対象から除外する。`--include-name-pattern`
+  による絞り込みの**後**に適用される。
+- マッチ対象はファイル名 (basename) のみ (フルパスやディレクトリ名は対象外)。
+  判定は `re.search` (部分一致)。
+- どちらも未指定の場合は、従来どおり対象ディレクトリ配下の `.dec`/`.txt`
+  を全件走査する (後方互換。既存の挙動・exit code・レポート形式は不変)。
+- 不正な正規表現を指定した場合は config error として exit code `2` を返す。
+- 正規表現が `-` で始まる場合、argparseが値を別オプションと誤認しないよう
+  `--include-name-pattern=<regex>` のように `=` 付きの形式で指定すること
+  (上記の例を参照)。
+
+本編系ファイル名の参考パターン例:
+
+| パターン | 想定される対象 |
+|---|---|
+| `-episode\d+\.dec$` | 本編エピソード |
+| `-episode_EX\d+\.dec$` | 本編EXエピソード |
+| `-main\d+(_tutorial\d*)?(\s*#\d+)?\.dec$` | メインストーリー (チュートリアル・話数付きを含む) |
+| `-Surprise_\d+\.dec$` | サプライズ系ストーリー |
+
+フィルタ適用時のみ、レポート (JSON/コンソール出力) に収集対象数・
+フィルタで除外された数・適用パターンのサマリーが追加される
+(未適用時は既存のレポート形式のまま変更されない)。JSON出力例:
+
+```json
+{
+  "summary": {
+    "nameFilter": {
+      "includePatterns": ["-episode\\d+\\.dec$"],
+      "excludePatterns": [],
+      "totalScanned": 4307,
+      "collectedCount": 2300,
+      "excludedCount": 2007
+    }
+  }
+}
+```
+
+---
+
 # 20. CI連携
 
 GitHub Actionsで、新しいRaw Scriptが追加されたときに互換性チェックを実行する。
