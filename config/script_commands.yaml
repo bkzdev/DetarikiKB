@@ -32,6 +32,14 @@ speaker_assignment:
 variable_assignment:
   - "$num"    # $numX = character_id
   - "$value"  # $valueX = character_id
+  # script-command-dictionary-expansion-batch-002: 値が character_id(数字)ではなくモーションクリップ名や$state()呼び出しになっている$numX/$valueXの個別インデックス。standalone checker(scripts/check_script_compatibility.py)の既知コマンド集合は完全一致で判定するため、出現した番号を個別登録する。実parser (agents/parser/parser.py)は正規表現ベースで既に汎用対応済みのため変更不要。
+  - "$num0"
+  - "$num9"
+  - "$value0"
+  - "$value1"
+  - "$value2"
+  - "$value3"
+  - "$value6"
 
 # ----------------------------------------------------------------
 # choice: 分岐・選択肢系
@@ -135,6 +143,109 @@ stage_direction:
   # script-command-dictionary-expansion-batch-001 dry-run で見つかった
   # 演出コマンド。agents/parser/parser.py の DIRECTION_TYPE_MAP と対で追加。
   - "@ChBlueMan/BlueMan2"  # プレースホルダーキャラクターモデル割り当て
+  # script-command-dictionary-expansion-batch-002: 実データ全量scan(本編系2,301件)で見つかったunique172種のうち、演出コマンド84種。agents/parser/parser.py の DIRECTION_TYPE_MAP と対で追加。
+  # --- ChEye2/ChEye 系 (character_display) ---
+  - "@ChEye2Off"                # キャラ視線2 オフ
+  - "@ChEye2Right"              # キャラ視線2 右
+  - "@ChEye2Left"               # キャラ視線2 左
+  - "@ChEye2RightLow"           # キャラ視線2 右下
+  - "@ChEye2LeftLow"            # キャラ視線2 左下
+  - "@ChEye2LeftHigh"           # キャラ視線2 左上
+  - "@ChEye2RightHigh"          # キャラ視線2 右上
+  - "@ChEye2Low"                # キャラ視線2 下
+  - "@ChEye2High"               # キャラ視線2 上
+  - "@ChEyeHigh"                # キャラ視線 上 (既存@ChEyeOffの姉妹コマンド)
+  - "@ChEyeLow"                 # キャラ視線 下 (既存@ChEyeOffの姉妹コマンド)
+  # --- ChHead 系 (character_display) ---
+  - "@ChHeadOff"                # キャラ頭部方向オフ
+  - "@ChHeadRight"              # キャラ頭部方向 右
+  - "@ChHeadLeft"               # キャラ頭部方向 左
+  - "@ChHeadRightLow"           # キャラ頭部方向 右下
+  - "@ChHeadLeftLow"            # キャラ頭部方向 左下
+  - "@ChHeadHigh"               # キャラ頭部方向 上
+  - "@ChHeadLow"                # キャラ頭部方向 下
+  - "@ChHeadLeftHigh"           # キャラ頭部方向 左上
+  - "@ChHeadRightHigh"          # キャラ頭部方向 右上
+  # --- motion 系 ---
+  - "@MotionWaitU"              # モーション待機 (バリエーションU)
+  - "@MotionWaitS"              # モーション待機 (バリエーションS)
+  - "@SynchroMotion"            # モーション同期
+  - "@ChBlueMan/SynchroMotion"  # モーション同期 (BlueManプレースホルダーモデル)
+  - "@MotionCache"              # モーションキャッシュ
+  # --- TalkPos 系 (ui) ---
+  - "@TalkPosRR"                # 会話位置 右端 (バリエーション)
+  - "@TalkPosLL"                # 会話位置 左端 (バリエーション)
+  - "@TalkPosZoomLori"          # 会話位置ズーム (バリエーション)
+  - "@TalkPosZoom"              # 会話位置ズーム
+  - "@TalkPosLori"              # 会話位置 (バリエーション)
+  # --- ChChara (character_display) ---
+  - "@ChChara"                  # キャラクター選択/表示
+  # --- ChTere 系 (character_display) ---
+  - "@ChTere2"                  # キャラ照れ表情2
+  - "@ChTere1"                  # キャラ照れ表情1
+  - "@ChTereOff"                # キャラ照れ表情オフ
+  - "@ChTere3"                  # キャラ照れ表情3
+  # --- Bg_ 系 (background) ---
+  - "@Bg_Default"               # 背景 (デフォルト)
+  - "@Bg_SunsetLight"           # 背景 (夕焼け・明)
+  - "@Bg_NightCity"             # 背景 (夜の街)
+  - "@Bg_Night"                 # 背景 (夜)
+  - "@Bg_Dark"                  # 背景 (暗)
+  - "@Bg_Sunset"                # 背景 (夕焼け)
+  - "@Bg/43"                    # 背景 (アセットID指定)
+  # --- ChColor (character_display) ---
+  - "@ChColor"                  # キャラクター色調
+  # --- ChangePos 系 (character_display) ---
+  - "@ChangePos"                # キャラクター位置変更
+  - "@ChangePosL"               # キャラクター位置変更 (左)
+  - "@ChangePosR"               # キャラクター位置変更 (右)
+  - "@ChangeWait"               # 位置変更待機
+  # --- Fade/screen 系 ---
+  - "@FadeIn"                   # 画面フェードイン
+  - "@FadeOut"                  # 画面フェードアウト
+  - "@TalkFadeOut"              # 会話フェードアウト
+  - "@BlackOut"                 # 画面暗転
+  # --- LookPos 系 (camera) ---
+  - "@LookPos"                  # カメラ注視位置
+  - "@LookPosOff"               # カメラ注視位置オフ
+  # --- PostProcess 系 (screen) ---
+  - "@PostProcess"              # ポストプロセス演出
+  - "@PostProcessGrain"         # ポストプロセス (フィルムグレイン)
+  - "@PostProcessGrainOff"      # ポストプロセス (フィルムグレイン) オフ
+  # --- Timeline 系 (system) ---
+  - "@Timeline/Play"            # タイムライン再生
+  - "@Timeline/LoadW"           # タイムライン読み込み (待機あり)
+  - "@Timeline/Load"            # タイムライン読み込み
+  - "@Timeline/Stop"            # タイムライン停止
+  - "@Timeline/PlayChange"      # タイムライン再生切り替え
+  # --- Image 系 (system) ---
+  - "@ImageLoad"                # 画像読み込み
+  - "@ImageWhite"               # 画像 (白フェード演出)
+  # --- TalkCamera 系 (camera) ---
+  - "@TalkCamera5"              # 会話カメラ (バリエーション5)
+  - "@TalkCamera"               # 会話カメラ
+  - "@TalkCamera2"              # 会話カメラ (バリエーション2)
+  - "@TalkCameraZoom"           # 会話カメラズーム
+  # --- misc camera/system/character_display ---
+  - "@Shadow"                   # キャラクター影表示
+  - "@CameraNoise"              # カメラノイズ演出
+  - "@H_Window"                 # ウィンドウ演出
+  - "@Towel_Reset"              # オブジェクトリセット (タオル等)
+  - "@ScaleReset"               # スケールリセット
+  - "@ChUniqEye"                # キャラ固有視線演出
+  - "@ChUniqEyeOff"             # キャラ固有視線演出オフ
+  - "@ChUruuruOn"               # キャラ目のうるうる演出オン
+  - "@ChUruuruOff"              # キャラ目のうるうる演出オフ
+  # --- BlueMan 系 (character_display) ---
+  - "@BlueMan"                  # プレースホルダーキャラクターモデル割り当て
+  - "@BlueMan_Boy"              # プレースホルダーキャラクターモデル割り当て (少年)
+  - "@ChBlueMan/BlueMan"        # プレースホルダーキャラクターモデル割り当て (既存@ChBlueMan/BlueMan2とは別)
+  # --- speech-command-likeだが安全側でstage_direction化 ---
+  - "@ChTalkSoundOffmono"       # 会話系コマンドの表記ゆれに見えるが、speechブランチ拡張はPRスコープ外のためstage_directionとして安全側分類 (config/script_commands.yaml参照)
+  - "@ChTalkSoundoff"           # 同上 (speechコマンド表記ゆれの安全側分類)
+  - "@ChTalkmono"               # 同上 (speechコマンド表記ゆれの安全側分類)
+  - "@ChTalkname"               # 同上 (speechコマンド表記ゆれの安全側分類)
+  - "@Chtalkname"               # 同上 (speechコマンド表記ゆれの安全側分類)
 
 # ----------------------------------------------------------------
 # ignored: 無視する行・コマンド
@@ -153,6 +264,102 @@ case_variants:
   "@ChCharaEyeoff": "@ChCharaEyeOff"
   "@Smartphoneoff": "@SmartphoneOff"
   "@SmartphoneOff": "@SmartphoneOff"
+  # script-command-dictionary-expansion-batch-002: 実データ全量scanで見つかった表記ゆれ80種 (agents/parser/parser.py の CASE_VARIANTS_MAP と対で追加)。
+  "$vaule0": "$value0"  # 実データのtypo ("value" -> "vaule")
+  # ChEye2 系 表記ゆれ
+  "@CHEye2Off": "@ChEye2Off"
+  "@CHEye2Right": "@ChEye2Right"
+  "@ChEYe2Right": "@ChEye2Right"
+  "@ChEye2OFf": "@ChEye2Off"
+  "@ChEye2off": "@ChEye2Off"
+  "@cheye2Left": "@ChEye2Left"
+  "@cheye2LeftLow": "@ChEye2LeftLow"
+  "@cheye2Off": "@ChEye2Off"
+  "@cheye2RightLow": "@ChEye2RightLow"
+  "@cheye2left": "@ChEye2Left"
+  "@cheye2leftLow": "@ChEye2LeftLow"
+  "@cheye2off": "@ChEye2Off"
+  "@cheye2right": "@ChEye2Right"
+  # ChHead 系 表記ゆれ
+  "@ChHeadOFF": "@ChHeadOff"
+  "@ChHeadoff": "@ChHeadOff"
+  "@ChHeadRIght": "@ChHeadRight"
+  "@ChheadLeft": "@ChHeadLeft"
+  "@ChheadOff": "@ChHeadOff"
+  "@ChheadRight": "@ChHeadRight"
+  "@Chheadoff": "@ChHeadOff"
+  "@chheadOff": "@ChHeadOff"
+  "@chheadleft": "@ChHeadLeft"
+  "@chheadleftLow": "@ChHeadLeftLow"
+  "@chheadleftlow": "@ChHeadLeftLow"
+  "@chheadlow": "@ChHeadLow"
+  "@chheadoff": "@ChHeadOff"
+  "@chheadright": "@ChHeadRight"
+  "@chheadrighthigh": "@ChHeadRightHigh"
+  "@chheadrightlow": "@ChHeadRightLow"
+  # motion 系 表記ゆれ (既存@MotionWait/@MotionReset)
+  "@motionwait": "@MotionWait"
+  "@Motionwait": "@MotionWait"
+  "@MotioNWait": "@MotionWait"
+  "@motionreset": "@MotionReset"
+  "@motionReset": "@MotionReset"
+  # facelow 表記ゆれ (既存@FaceLow)
+  "@facelow": "@FaceLow"
+  "@Facelow": "@FaceLow"
+  "@faceLow": "@FaceLow"
+  # visible 表記ゆれ (既存@Visible/@VisibleOff)
+  "@visible": "@Visible"
+  "@visibleoff": "@VisibleOff"
+  "@visibleOff": "@VisibleOff"
+  "@visibleOFF": "@VisibleOff"
+  "@VisibleOFF": "@VisibleOff"
+  "@VisibleOFf": "@VisibleOff"
+  # TalkPos 系 表記ゆれ
+  "@talkpos": "@TalkPos"
+  "@talkposL": "@TalkPosL"
+  "@talkposR": "@TalkPosR"
+  "@talkposLL": "@TalkPosLL"
+  "@talkposRR": "@TalkPosRR"
+  "@talkposLLL": "@TalkPosLLL"
+  "@talkposRRR": "@TalkPosRRR"
+  "@TalKPos": "@TalkPos"
+  # ChCamera 系 表記ゆれ (既存@ChCamera/@ChCameraOff)
+  "@chcamera": "@ChCamera"
+  "@chCamera": "@ChCamera"
+  "@Chcamera": "@ChCamera"
+  "@chcameraoff": "@ChCameraOff"
+  "@chCameraoff": "@ChCameraOff"
+  "@chcameraOff": "@ChCameraOff"
+  "@ChCameraOFF": "@ChCameraOff"
+  "@ChcameraOff": "@ChCameraOff"
+  "@Chcameraoff": "@ChCameraOff"
+  "@chCameraOff": "@ChCameraOff"
+  "@ChcameraOFF": "@ChCameraOff"
+  # ChChara 表記ゆれ
+  "@chChara": "@ChChara"
+  "@chchara": "@ChChara"
+  # ChTere 系 表記ゆれ
+  "@chtere2": "@ChTere2"
+  "@chtereoff": "@ChTereOff"
+  # Bg_ 系 表記ゆれ
+  "@bg_nightcity": "@Bg_NightCity"
+  "@Bg_night": "@Bg_Night"
+  "@bg_sunset": "@Bg_Sunset"
+  # ChColor2 系 表記ゆれ (既存@ChColor2/@ChColor2off)
+  "@ChColor2Off": "@ChColor2off"
+  "@chcolor2": "@ChColor2"
+  "@chcolor2off": "@ChColor2off"
+  "@Chcolor2": "@ChColor2"
+  # Fade系 表記ゆれ (既存@TalkFadeIn/@FadeOutBlack)
+  "@talkfadein": "@TalkFadeIn"
+  "@fadeoutblack": "@FadeOutBlack"
+  # TalkCamera 系 表記ゆれ (既存@TalkCamera3/@TalkCamera4 + 本PR新設@TalkCamera5)
+  "@talkcamera3": "@TalkCamera3"
+  "@talkcamera5": "@TalkCamera5"
+  "@talkcamera4": "@TalkCamera4"
+  "@Talkcamera4": "@TalkCamera4"
+  # isloading 表記ゆれ (既存@IsLoading)
+  "@isloading": "@IsLoading"
 
 # ----------------------------------------------------------------
 # new_speech_detection_hints: 新規会話コマンド候補の検出ヒント
