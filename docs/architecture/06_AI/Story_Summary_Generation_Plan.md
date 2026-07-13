@@ -302,6 +302,7 @@ Evidence Indexの`Evidence_Index_Batch_Promotion_Policy.md` §9（Failed story h
 # 12. 参照
 
 - `docs/architecture/06_AI/Summary_Public_ID_Projection_Design.md`（本文書§4.3の提案を実装レベルまで詳細化した設計PR。projection scriptのCLI仕様・field変換表・evidenceRefs変換仕様・Registry共有設計・schema変更不要の結論を確定）
+- `docs/runbooks/Story_Summary_Generation_Runbook.md`（PoC（Stage 0）で確立した生成〜昇格の全8ステップ実行手順、CLIコマンド例、人間レビューチェックリスト、生成物のcommit可否表、既知の制約）
 - `docs/architecture/06_AI/Story_Summary_Design.md`（Summaryのデータモデル・保存場所・status/review workflow・renderer統合の既存設計、本文書はその「AI要約生成パイプライン」部分を具体化する）
 - `docs/architecture/06_AI/Evidence_Index_Public_ID_Policy.md`（本文書§4が踏襲する内部ID/公開ID分離方針・publicEvidenceId方針・Public-safe projection方針）
 - `docs/architecture/06_AI/Public_ID_Registry_Design.md`（本文書§4.3.4が共有する既存Public ID Registry設計）
