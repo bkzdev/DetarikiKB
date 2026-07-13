@@ -2,9 +2,11 @@
 """
 Generate Story Summaries
 Normalized Story JSON（`schemas/story.schema.json`）から、Episode Summary
+draft、および（既定で）Episode Summary群から合成したStory Summaryを含む
 draft（`schemas/story_summary.schema.json`準拠）をworkspace限定で生成する
-CLI（`docs/architecture/06_AI/Story_Summary_Generation_Plan.md` §6・§9
-`summary-generation-prompt-implementation`）。
+CLI（`docs/architecture/06_AI/Story_Summary_Generation_Plan.md` §6・§9・§11
+`summary-generation-prompt-implementation` / `summary-generation-story-
+synthesis`）。
 
 ユーザーが2026-07-13にsummarizer系のLLM provider/prompt実装を明示的に
 解禁したことを受けて実装する（`AI_CONTEXT.md` §4。`agents/extractor/`は
@@ -15,20 +17,24 @@ CLI（`docs/architecture/06_AI/Story_Summary_Generation_Plan.md` §6・§9
   **本PR作業中は実行しない**（テストはすべて合成fixture + fake providerで
   検証する。実Ollama呼び出し・実データSummary生成・実データでのCLI実行は
   いずれもNon-goals）
-- Story Summary合成（Episode Summary群 -> Story Summary）はまだ実装して
-  いないため、出力draftの`storySummary`は常に`null`のままである
-  （次PR`summary-generation-story-synthesis`のスコープ）
+- Story Summary合成（Episode Summary群 -> Story Summary、Plan §11）は
+  既定で有効。生成済みEpisode Summary群のtext（episodeNumber順）を再度
+  LLMに要約させ、story-level evidenceRefsはepisode-level evidenceRefsの
+  重複排除unionとして機械的に決める。`--no-story-synthesis`で無効化する
+  と、出力draftの`storySummary`は常に`null`のままになる（従来動作）
 - `--output`/`--report`はworkspace配下のみを想定する。`knowledge/`配下は
   安全策として拒否する（exit code 2、`docs/runbooks/AI_PR_Playbook.md` §7
   「実データ・生成物をcommitしない」の運用を踏襲）
-- 長文episodeのchunk分割2段階要約（Plan §6.4）は本PRでは未実装。
-  `--max-input-characters`を超えるepisodeはissueを立てて生成をskipする
-  安全弁のみ実装している
+- 長文episode/story合成のchunk分割2段階要約（Plan §6.4）は本PRでは未実装。
+  `--max-input-characters`を超える場合はissueを立てて該当する生成
+  （episode生成、またはstory合成）をskipする安全弁のみ実装している
 
 hallucination対策の後処理（`agents/summarizer/generator.py`が実装、Plan
-§6.3）は検出結果を自動rejectしない。draftは常に`generationStatus: "draft"`
-のまま出力され、issueがあるepisodeはこのreport（Markdown）と出力YAMLの
-`notes`欄に記録される。
+§6.3・§11）は検出結果を自動rejectしない。draftは常に`generationStatus:
+"draft"`のまま出力され、issueがあるepisode・story合成issueはこのreport
+（Markdown）と出力YAMLの`notes`欄に記録される。story合成では、入力が
+既にsafeなepisode summaryであるためverbatim引用検出は行わない（Plan
+§11）。
 
 Usage:
     uv run python scripts/generate_story_summaries.py \\
@@ -158,6 +164,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--no-story-synthesis",
+        action="store_true",
+        help=(
+            "Story Summary合成 (Episode Summary群からのLLM再要約、Plan §11) "
+            "を行わない (既定では合成を行い、storySummaryを埋める)"
+        ),
+    )
+    parser.add_argument(
         "--clean",
         action="store_true",
         help="--output出力先ディレクトリを書き込み前に削除する",
@@ -246,6 +260,21 @@ def _build_story_report(result: StorySummaryGenerationResult) -> dict[str, Any]:
                 }
             )
 
+    story_synthesis_report: dict[str, Any] | None = None
+    if result.story_synthesis is not None:
+        story_synthesis_report = {
+            "synthesized": not result.story_synthesis.skipped,
+            "evidenceRefCount": len(result.story_synthesis.evidence_refs),
+            "issues": [
+                {
+                    "code": issue.code,
+                    "message": issue.message,
+                    "blocking": issue.blocking,
+                }
+                for issue in result.story_synthesis.issues
+            ],
+        }
+
     return {
         "storyId": result.story_id,
         "episodeCount": len(result.episode_results),
@@ -253,7 +282,55 @@ def _build_story_report(result: StorySummaryGenerationResult) -> dict[str, Any]:
         "episodesSkipped": episodes_skipped,
         "issueCodeCounts": issue_code_counts,
         "episodesWithIssues": episodes_with_issues,
+        "storySynthesis": story_synthesis_report,
     }
+
+
+def _story_report_lines(report: dict[str, Any]) -> list[str]:
+    """1 story分のreport Markdown節を組み立てる。"""
+    lines = [
+        f"## {report['storyId']}",
+        "",
+        f"- Episode count: {report['episodeCount']}",
+        f"- Episodes generated: {report['episodesGenerated']}",
+        f"- Episodes skipped: {report['episodesSkipped']}",
+        "",
+    ]
+    if report["issueCodeCounts"]:
+        lines.append("### Issue code counts")
+        lines.append("")
+        for code, count in sorted(report["issueCodeCounts"].items()):
+            lines.append(f"- {code}: {count}")
+        lines.append("")
+    if report["episodesWithIssues"]:
+        lines.append("### Episodes with issues")
+        lines.append("")
+        for episode in report["episodesWithIssues"]:
+            lines.append(f"- {episode['episodeId']} (skipped={episode['skipped']}):")
+            for issue in episode["issues"]:
+                lines.append(
+                    f"  - [{issue['code']}] {issue['message']} "
+                    f"(blocking={issue['blocking']})"
+                )
+        lines.append("")
+
+    lines.append("### Story synthesis")
+    lines.append("")
+    synthesis = report["storySynthesis"]
+    if synthesis is None:
+        lines.append("- Synthesized: skipped (--no-story-synthesis)")
+    else:
+        lines.append(f"- Synthesized: {synthesis['synthesized']}")
+        lines.append(f"- evidenceRefs (union): {synthesis['evidenceRefCount']}")
+        if synthesis["issues"]:
+            lines.append("- Issues:")
+            for issue in synthesis["issues"]:
+                lines.append(
+                    f"  - [{issue['code']}] {issue['message']} "
+                    f"(blocking={issue['blocking']})"
+                )
+    lines.append("")
+    return lines
 
 
 def _build_report_markdown(
@@ -274,31 +351,7 @@ def _build_report_markdown(
     ]
 
     for report in story_reports:
-        lines.append(f"## {report['storyId']}")
-        lines.append("")
-        lines.append(f"- Episode count: {report['episodeCount']}")
-        lines.append(f"- Episodes generated: {report['episodesGenerated']}")
-        lines.append(f"- Episodes skipped: {report['episodesSkipped']}")
-        lines.append("")
-        if report["issueCodeCounts"]:
-            lines.append("### Issue code counts")
-            lines.append("")
-            for code, count in sorted(report["issueCodeCounts"].items()):
-                lines.append(f"- {code}: {count}")
-            lines.append("")
-        if report["episodesWithIssues"]:
-            lines.append("### Episodes with issues")
-            lines.append("")
-            for episode in report["episodesWithIssues"]:
-                lines.append(
-                    f"- {episode['episodeId']} (skipped={episode['skipped']}):"
-                )
-                for issue in episode["issues"]:
-                    lines.append(
-                        f"  - [{issue['code']}] {issue['message']} "
-                        f"(blocking={issue['blocking']})"
-                    )
-            lines.append("")
+        lines.extend(_story_report_lines(report))
 
     lines.append("## Validation")
     lines.append("")
@@ -317,8 +370,9 @@ def _build_report_markdown(
         "(Story_Summary_Generation_Plan.md §6.3)。"
     )
     lines.append(
-        "- storySummary (Story全体の要約) はこのCLIでは生成していません "
-        "(次PR summary-generation-story-synthesisのスコープ、常にnull)。"
+        "- storySummary (Story全体の要約) は既定でEpisode Summary群から"
+        "LLM再要約により合成しています (Plan §11)。`--no-story-synthesis`"
+        "で無効化した場合は常にnullのままです。"
     )
     lines.append("")
     return "\n".join(lines)
@@ -441,6 +495,7 @@ def main(
             provider=provider,
             max_input_characters=args.max_input_characters,
             verbatim_threshold=args.verbatim_threshold,
+            synthesize_story=not args.no_story_synthesis,
         )
         for document in documents
     ]
