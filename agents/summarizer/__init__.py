@@ -18,6 +18,7 @@ Usage:
         generate_episode_summary,
         generate_story_summary_draft,
         synthesize_story_summary,
+        check_verbatim_quotes,
     )
 
 Story Summary / Episode Summary AI生成パイプラインの骨格
@@ -36,6 +37,12 @@ evidenceRefsの重複排除unionとして機械的に決める。
 `generate_story_summary_draft`は既定でStory Summary合成まで行う
 (`synthesize_story=False`で無効化可能)。
 
+`check_verbatim_quotes`は`generate_episode_summary`内部のhallucination
+対策 (§6.3項目4) から使う非公開名`_check_verbatim_quotes`を、
+`scripts/check_story_summary_drafts.py` (`summary-generation-quality-gate`)
+がdraftのquality gate検証で再利用できるよう公開名へ最小限リファクタした
+ものである (挙動・既定閾値は変更していない)。
+
 docs/architecture/06_AI/Story_Summary_Generation_Plan.md
 docs/architecture/06_AI/Story_Summary_Design.md
 schemas/story_summary.schema.json
@@ -47,6 +54,7 @@ from .generator import (
     GenerationIssue,
     StorySummaryGenerationResult,
     StorySynthesisResult,
+    check_verbatim_quotes,
     generate_episode_summary,
     generate_story_summary_draft,
     synthesize_story_summary,
@@ -129,4 +137,5 @@ __all__ = [
     "generate_episode_summary",
     "generate_story_summary_draft",
     "synthesize_story_summary",
+    "check_verbatim_quotes",
 ]
