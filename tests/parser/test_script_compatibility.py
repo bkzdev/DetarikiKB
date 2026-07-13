@@ -9,11 +9,13 @@ import sys
 from pathlib import Path
 
 import pytest
+import yaml
 
 from scripts.check_script_compatibility import (
     check_file,
     collect_files,
     compile_name_patterns,
+    load_characters,
 )
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
@@ -390,3 +392,77 @@ def test_cli_report_includes_name_filter_summary_when_pattern_applied(tmp_path):
     assert name_filter["excludePatterns"] == []
     assert len(report["files"]) == 1
     assert report["files"][0]["file"] == "series-episode1.dec"
+
+
+# ----------------------------------------------------------------
+# load_characters: 拡張子による形式自動判別
+# (knowledge/dictionaries/characters.yaml 形式 / レガシー
+#  characters_reference.json 形式、scripts/normalize_story.py --characters
+#  と同じ方式)
+# ----------------------------------------------------------------
+
+
+def test_load_characters_yaml_format(tmp_path):
+    # knowledge/dictionaries/characters.yaml 相当の合成fixture
+    characters_path = tmp_path / "characters.yaml"
+    characters_path.write_text(
+        yaml.safe_dump(
+            {
+                "schemaVersion": "0.1",
+                "characters": [
+                    {
+                        "sourceCharacterId": "1",
+                        "characterId": "CHAR_TEST_ONE",
+                        "displayName": "テスト一号",
+                        "aliases": [],
+                        "status": "confirmed",
+                        "notes": None,
+                    },
+                    {
+                        "sourceCharacterId": "2",
+                        "characterId": None,
+                        "displayName": "テスト二号",
+                        "aliases": [],
+                        "status": "name_only",
+                        "notes": None,
+                    },
+                ],
+            },
+            allow_unicode=True,
+        ),
+        encoding="utf-8",
+    )
+
+    char_map = load_characters(characters_path)
+
+    assert char_map == {"1": "テスト一号", "2": "テスト二号"}
+
+
+def test_load_characters_json_format_legacy(tmp_path):
+    # characters_reference.json 相当の合成fixture (後方互換)
+    characters_path = tmp_path / "characters_reference.json"
+    characters_path.write_text(
+        '{"1": "レイン", "26": "レイン", "29": "レイヴェル"}',
+        encoding="utf-8",
+    )
+
+    char_map = load_characters(characters_path)
+
+    assert char_map == {"1": "レイン", "26": "レイン", "29": "レイヴェル"}
+
+
+def test_load_characters_nonexistent_path_returns_empty(tmp_path):
+    assert load_characters(tmp_path / "does_not_exist.yaml") == {}
+    assert load_characters(tmp_path / "does_not_exist.json") == {}
+
+
+def test_load_characters_invalid_yaml_returns_empty(tmp_path, capsys):
+    characters_path = tmp_path / "broken.yaml"
+    # 不正なYAML (閉じられていないflow mapping)
+    characters_path.write_text("characters: [1, 2,\n", encoding="utf-8")
+
+    char_map = load_characters(characters_path)
+
+    assert char_map == {}
+    captured = capsys.readouterr()
+    assert "警告" in captured.err
