@@ -26,23 +26,23 @@ characters:
     status: "confirmed"
     notes: null
   - sourceCharacterId: "2"
-    characterId: null
+    characterId: "CHAR_002_JULIANA_FLANDORE"
     displayName: "ユリアナ・フランドール"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_002_YURIANA_FLANDORE"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "3"
-    characterId: null
+    characterId: "CHAR_003_KISHI_ERI"
     displayName: "岸瑛里"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_003_KISHI_ERI"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "4"
-    characterId: null
+    characterId: "CHAR_004_TANAKA_KOYUKI"
     displayName: "田中小雪"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_004_TANAKA_KOYUKI"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "5"
     characterId: "CHAR_005_AOI_NANAMI"
     displayName: "青井七海"
@@ -50,17 +50,17 @@ characters:
     status: "confirmed"
     notes: "review packet batch 003で人間確認済み。"
   - sourceCharacterId: "6"
-    characterId: null
+    characterId: "CHAR_006_SHIRASAKI_MITSUKI"
     displayName: "白咲美月"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_006_SHIRASAKI_MIZUKI"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "7"
-    characterId: null
+    characterId: "CHAR_007_TOUMI_SEINA"
     displayName: "透海セイナ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_007_TOUMI_SEINA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "8"
     characterId: "CHAR_008_SHINONOME_WAKA"
     displayName: "東雲和果"
@@ -68,95 +68,95 @@ characters:
     status: "confirmed"
     notes: "review packet batch 003で人間確認済み。"
   - sourceCharacterId: "9"
-    characterId: null
+    characterId: "CHAR_009_MOMOYA_SAYO"
     displayName: "桃谷小夜"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_009_MOMOTANI_SAYO"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "10"
-    characterId: null
+    characterId: "CHAR_010_MIDORIKAWA_MIKA"
     displayName: "緑川美香"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_010_MIDORIKAWA_MIKA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "11"
-    characterId: null
+    characterId: "CHAR_011_OUZUKI_CHIKAGE"
     displayName: "桜月千影"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_011_SAKURATSUKI_CHIKAGE"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "12"
-    characterId: null
+    characterId: "CHAR_012_HINOHARA_SUMOMO"
     displayName: "日野原すもも"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_012_HINOHARA_SUMOMO"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "13"
-    characterId: null
+    characterId: "CHAR_013_KUROKI_FUKA"
     displayName: "黒木風香"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_013_KUROKI_FUUKA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "14"
-    characterId: null
+    characterId: "CHAR_014_SHIROTO_AI"
     displayName: "城戸アイ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_014_KIDO_AI"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "15"
-    characterId: null
+    characterId: "CHAR_015_SAKASHITA_KAEDE"
     displayName: "坂下カエデ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_015_SAKASHITA_KAEDE"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "16"
-    characterId: null
+    characterId: "CHAR_016_TODA_RUI"
     displayName: "戸田ルイ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_016_TODA_RUI"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "17"
-    characterId: null
+    characterId: "CHAR_017_SUZUMI_CHIE"
     displayName: "鈴見知恵"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_017_SUZUMI_CHIE"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "18"
-    characterId: null
+    characterId: "CHAR_018_FUJIMIYA_LILY"
     displayName: "藤宮リリー"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_018_FUJIMIYA_LILY"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "19"
-    characterId: null
+    characterId: "CHAR_019_MISHA_WEIL"
     displayName: "ミーシャ・ワイル"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_019_MISHA_WEIL"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "20"
-    characterId: null
+    characterId: "CHAR_020_TAKAOKA_RUKA"
     displayName: "高岡ルカ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_020_TAKAOKA_RUKA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "21"
-    characterId: null
+    characterId: "CHAR_021_MIRAI_NOZOMI"
     displayName: "未来希"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_021_MIKUKI"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "22"
-    characterId: null
+    characterId: "CHAR_022_MUTSUMINE_MIRAN"
     displayName: "睦峰美蘭"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_022_MUTSUMINE_MIRAN"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "23"
-    characterId: null
+    characterId: "CHAR_023_IKEZAWA_MIO"
     displayName: "池澤ミオ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_023_IKEZAWA_MIO"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "24"
     characterId: "CHAR_024_EMMITT"
     displayName: "エミット"
@@ -170,17 +170,17 @@ characters:
     status: "confirmed"
     notes: null
   - sourceCharacterId: "27"
-    characterId: null
+    characterId: "CHAR_027_BLACK_RAIN"
     displayName: "ブラックレイン"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_027_BLACK_RAIN"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "28"
-    characterId: null
+    characterId: "CHAR_028_RAPHAM"
     displayName: "ラファム"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_028_RAFAM"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "29"
     characterId: "CHAR_029_RAVEL"
     displayName: "レイヴェル"
@@ -188,35 +188,35 @@ characters:
     status: "confirmed"
     notes: "review packet batch 003で人間確認済み。"
   - sourceCharacterId: "30"
-    characterId: null
+    characterId: "CHAR_030_AZAMI_YUKA"
     displayName: "薊優花"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_030_AZAMI_YUUKA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "31"
-    characterId: null
+    characterId: "CHAR_031_SAEGUSA_MISAKI"
     displayName: "三枝美咲"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_031_SAEGUSA_MISAKI"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "32"
-    characterId: null
+    characterId: "CHAR_032_KASHIMURA_NAO"
     displayName: "樫村奈緒"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_032_KASHIMURA_NAO"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "33"
-    characterId: null
+    characterId: "CHAR_033_KIKUTA_AOBA"
     displayName: "菊田蒼葉"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_033_KIKUTA_AOBA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "34"
-    characterId: null
+    characterId: "CHAR_034_KIKUTA_KOUME"
     displayName: "菊田小梅"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_034_KIKUTA_KOUME"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "35"
     characterId: "CHAR_035_SUGIURA_SAKURA"
     displayName: "杉浦咲良"
@@ -224,41 +224,41 @@ characters:
     status: "confirmed"
     notes: "review packet batch 003で人間確認済み。"
   - sourceCharacterId: "36"
-    characterId: null
+    characterId: "CHAR_036_SHIBATA_ELENA"
     displayName: "柴田エレナ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_036_SHIBATA_ELENA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "37"
-    characterId: null
+    characterId: "CHAR_037_SHERYL_SEMART"
     displayName: "シェリル・セマート"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_037_CHERYL_SEMART"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "51"
-    characterId: null
+    characterId: "CHAR_051_KAZAHANA_KINU"
     displayName: "風華絹"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_051_FUUKA_KINU"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "52"
-    characterId: null
+    characterId: "CHAR_052_MIZUNO_MITO"
     displayName: "水野美兎"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_052_MIZUNO_MITO"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "53"
-    characterId: null
+    characterId: "CHAR_053_TSUKISAKA_KIRINA"
     displayName: "月坂霧菜"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_053_TSUKISAKA_KIRINA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "54"
-    characterId: null
+    characterId: "CHAR_054_HIKAWA_MARIN"
     displayName: "陽川真凛"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_054_HIKAWA_MARIN"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "70"
     characterId: "CHAR_070_LIGULASS"
     displayName: "リグラス"
@@ -266,179 +266,179 @@ characters:
     status: "confirmed"
     notes: "review packet batch 003で人間確認済み。"
   - sourceCharacterId: "80"
-    characterId: null
+    characterId: "CHAR_080_HIWA_SEKI"
     displayName: "比和せき"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_080_HIWA_SEKI"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "81"
-    characterId: null
+    characterId: "CHAR_081_ONO_YUKINA"
     displayName: "尾野ゆきな"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_081_ONO_YUKINA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "82"
-    characterId: null
+    characterId: "CHAR_082_YUZUHARA_BOTAN"
     displayName: "柚原ぼたん"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_082_YUZUHARA_BOTAN"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "83"
-    characterId: null
+    characterId: "CHAR_083_YAEISHI_YOSHIKA"
     displayName: "八重石芳佳"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_083_YAEISHI_YOSHIKA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "84"
-    characterId: null
+    characterId: "CHAR_084_SHIGARAKI_INORI"
     displayName: "信楽いのり"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_084_SHIGARAKI_INORI"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "85"
-    characterId: null
+    characterId: "CHAR_085_SUZUSHIRO_KOKOA"
     displayName: "鈴代心愛"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_085_SUZUSHIRO_KOKOA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "86"
-    characterId: null
+    characterId: "CHAR_086_KIYOMIYA_RENA"
     displayName: "清宮れな"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_086_KIYOMIYA_RENA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "87"
-    characterId: null
+    characterId: "CHAR_087_OONO_MIONA"
     displayName: "大能みおな"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_087_OONOU_MIONA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "88"
-    characterId: null
+    characterId: "CHAR_088_SASAKURA_YUZU"
     displayName: "笹倉ゆず"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_088_SASAKURA_YUZU"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "89"
-    characterId: null
+    characterId: "CHAR_089_STELLA_LIBERI"
     displayName: "ステラ・リベリ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_089_STELLA_LIBERI"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "90"
-    characterId: null
+    characterId: "CHAR_090_KIZU_MATSUBA"
     displayName: "岐津まつば"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_090_KIZU_MATSUBA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "91"
-    characterId: null
+    characterId: "CHAR_091_HONJOU_REIRI"
     displayName: "本城怜里"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_091_HONJOU_RERI"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "92"
-    characterId: null
+    characterId: "CHAR_092_YANAGI_YUUKA"
     displayName: "柳夕花"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_092_YANAGI_YUUKA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "100"
-    characterId: null
+    characterId: "CHAR_100_AISHA"
     displayName: "関羽［愛紗］"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_100_AISHA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "101"
-    characterId: null
+    characterId: "CHAR_101_TOUKA"
     displayName: "劉備［桃香］"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_101_TOUKA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "102"
-    characterId: null
+    characterId: "CHAR_102_SHURI"
     displayName: "諸葛亮［朱里］"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_102_SHURI"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "103"
-    characterId: null
+    characterId: "CHAR_103_SEI"
     displayName: "趙雲［星］"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_103_SEI"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "104"
-    characterId: null
+    characterId: "CHAR_104_RENFA"
     displayName: "孫権［蓮華］"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_104_RENGE"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "105"
-    characterId: null
+    characterId: "CHAR_105_HINARI"
     displayName: "鳳統［雛里］"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_105_HINARI"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "106"
-    characterId: null
+    characterId: "CHAR_106_REN"
     displayName: "呂布［恋］"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_106_REN"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "107"
-    characterId: null
+    characterId: "CHAR_107_SUI"
     displayName: "馬超［翠］"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_107_SUI"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "110"
-    characterId: null
+    characterId: "CHAR_110_MAOU_KARIN"
     displayName: "魔王カリン"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_110_MAOU_KARIN"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "111"
-    characterId: null
+    characterId: "CHAR_111_AISHA_2"
     displayName: "アイシャ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_111_AISHA_2"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "112"
-    characterId: null
+    characterId: "CHAR_112_RENFA"
     displayName: "レンファ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_112_RENFA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "113"
-    characterId: null
+    characterId: "CHAR_113_REN_2"
     displayName: "レン"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_113_REN_2"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "140"
-    characterId: null
+    characterId: "CHAR_140_SEFINA_QUARTZ"
     displayName: "セフィーナ・クウォーツ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_140_SEFINA_QUARTZ"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "200"
-    characterId: null
+    characterId: "CHAR_200_SAKAI_MEINA"
     displayName: "酒井芽衣菜"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_200_SAKAI_MEINA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "201"
-    characterId: null
+    characterId: "CHAR_201_SHIMATANI_KAHO"
     displayName: "島谷果歩"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_201_SHIMATANI_KAHO"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "202"
-    characterId: null
+    characterId: "CHAR_202_HAMAMURA_RIKA"
     displayName: "浜村リカ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_202_HAMAMURA_RIKA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "203"
     characterId: "CHAR_203_ISOBE_KAORI"
     displayName: "磯部香織里"
@@ -446,23 +446,23 @@ characters:
     status: "confirmed"
     notes: "review packet batch 003で人間確認済み。"
   - sourceCharacterId: "204"
-    characterId: null
+    characterId: "CHAR_204_TAGABE_TSUMUGI"
     displayName: "多賀部紬"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_204_TAGABE_TSUMUGI"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "205"
-    characterId: null
+    characterId: "CHAR_205_SOUDA_REMON"
     displayName: "早田檸檬"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_205_SOUDA_REMON"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "206"
-    characterId: null
+    characterId: "CHAR_206_MUTOU_RINKA"
     displayName: "武藤凛花"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_206_MUTOU_RINKA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "207"
     characterId: "CHAR_207_KIRIBOSHI_MIMI"
     displayName: "切干美海"
@@ -482,41 +482,41 @@ characters:
     status: "confirmed"
     notes: "review packet batch 003で人間確認済み。"
   - sourceCharacterId: "210"
-    characterId: null
+    characterId: "CHAR_210_MULIN"
     displayName: "ムーリン"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_210_MOORIN"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "211"
-    characterId: null
+    characterId: "CHAR_211_MAMA_LIQUID"
     displayName: "ママーリキッド"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_211_MAMA_LIQUID"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "212"
-    characterId: null
+    characterId: "CHAR_212_LULU_POWDER"
     displayName: "ルルーパウダー"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_212_LULU_POWDER"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "213"
-    characterId: null
+    characterId: "CHAR_213_LALA_SOLID"
     displayName: "ララーソリッド"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_213_LALA_SOLID"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "214"
-    characterId: null
+    characterId: "CHAR_214_MIMI_BAND"
     displayName: "ミミーバンド"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_214_MIMI_BAND"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "215"
-    characterId: null
+    characterId: "CHAR_215_CRUSADE_ZERAFIM"
     displayName: "クルセイド・ゼラフィム"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_215_CRUSADE_SERAPHIM"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "216"
     characterId: "CHAR_216_JASMINE"
     displayName: "ジャスミン"
@@ -530,596 +530,596 @@ characters:
     status: "confirmed"
     notes: "review packet batch 003で人間確認済み。"
   - sourceCharacterId: "218"
-    characterId: null
+    characterId: "CHAR_218_VIORA"
     displayName: "ビオラ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_218_VIORA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "219"
-    characterId: null
+    characterId: "CHAR_219_BRAIN"
     displayName: "ブレイン"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_219_BLAINE"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "220"
-    characterId: null
+    characterId: "CHAR_220_FREESIA"
     displayName: "フリージア"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_220_FREESIA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "221"
-    characterId: null
+    characterId: "CHAR_221_YUKINO_OHARA"
     displayName: "ユキノ・オハラ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_221_YUKINO_OHARA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "222"
-    characterId: null
+    characterId: "CHAR_222_CALLA"
     displayName: "カラー"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_222_COLOR"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "223"
-    characterId: null
+    characterId: "CHAR_223_LESC"
     displayName: "ルスク"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_223_RUSK"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "224"
-    characterId: null
+    characterId: "CHAR_224_YORUNO_MAHIRU"
     displayName: "夜野まひる"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_224_YONO_MAHIRU"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "225"
-    characterId: null
+    characterId: "CHAR_225_SHISUTA_MARIA"
     displayName: "志須田マリア"
     aliases: []
-    status: "name_only"
-    notes: "同名「マリア」のsourceCharacterId 402（高山マリア）とは別人（ユーザー確認 2026-07-13）。 ローマ字案（仮、AI生成、要人間確認）: CHAR_225_SHISUDA_MARIA"
+    status: "confirmed"
+    notes: "同名「マリア」のsourceCharacterId 402（高山マリア）とは別人（ユーザー確認 2026-07-13）。"
   - sourceCharacterId: "226"
-    characterId: null
+    characterId: "CHAR_226_AKAGI_SANA"
     displayName: "赤城紗菜"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_226_AKAGI_SANA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "227"
-    characterId: null
+    characterId: "CHAR_227_SAINOKI_ICHIGO"
     displayName: "賽乃木イチゴ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_227_SAINOKI_ICHIGO"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "228"
-    characterId: null
+    characterId: "CHAR_228_HIOUJI_SONO"
     displayName: "妃王寺園乃"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_228_HIOUJI_SONONO"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "229"
-    characterId: null
+    characterId: "CHAR_229_KOTOZUKA_SHIINE"
     displayName: "琴塚シイネ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_229_KOTOZUKA_SHIINE"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "230"
-    characterId: null
+    characterId: "CHAR_230_BIOUIN_TOKIME"
     displayName: "美王院時女"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_230_MIOUIN_TOKIME"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "231"
-    characterId: null
+    characterId: "CHAR_231_KURENAI"
     displayName: "クレナイ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_231_KURENAI"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "232"
-    characterId: null
+    characterId: "CHAR_232_MINATO_MOEGI"
     displayName: "湊萌葱"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_232_MINATO_MOEGI"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "234"
-    characterId: null
+    characterId: "CHAR_234_SAKURADAMON_TSUKASA"
     displayName: "桜田門つかさ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_234_SAKURADAMON_TSUKASA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "250"
-    characterId: null
+    characterId: "CHAR_250_MINI_NANAMI"
     displayName: "七海"
     aliases: []
-    status: "name_only"
-    notes: "sourceCharacterId 5（青井七海）がイベントで姿が変わった同一人物（ユーザー確認 2026-07-13）。canonical ID確定時はベースキャラと同一人物として扱う。 ローマ字案（仮、AI生成、要人間確認）: CHAR_250_NANAMI"
+    status: "confirmed"
+    notes: "sourceCharacterId 5（青井七海）がイベントで姿が変わった同一人物（ユーザー確認 2026-07-13）。canonical ID確定時はベースキャラと同一人物として扱う。"
   - sourceCharacterId: "251"
-    characterId: null
+    characterId: "CHAR_251_BIG_FUKA"
     displayName: "風香"
     aliases: []
-    status: "name_only"
-    notes: "sourceCharacterId 13（黒木風香）がイベントで姿が変わった同一人物（ユーザー確認 2026-07-13）。canonical ID確定時はベースキャラと同一人物として扱う。 ローマ字案（仮、AI生成、要人間確認）: CHAR_251_FUUKA"
+    status: "confirmed"
+    notes: "sourceCharacterId 13（黒木風香）がイベントで姿が変わった同一人物（ユーザー確認 2026-07-13）。canonical ID確定時はベースキャラと同一人物として扱う。"
   - sourceCharacterId: "252"
-    characterId: null
+    characterId: "CHAR_252_BIG_AI"
     displayName: "アイ"
     aliases: []
-    status: "name_only"
-    notes: "sourceCharacterId 14（城戸アイ）がイベントで姿が変わった同一人物（ユーザー確認 2026-07-13）。canonical ID確定時はベースキャラと同一人物として扱う。 ローマ字案（仮、AI生成、要人間確認）: CHAR_252_AI"
+    status: "confirmed"
+    notes: "sourceCharacterId 14（城戸アイ）がイベントで姿が変わった同一人物（ユーザー確認 2026-07-13）。canonical ID確定時はベースキャラと同一人物として扱う。"
   - sourceCharacterId: "253"
-    characterId: null
+    characterId: "CHAR_253_MINI_MITO"
     displayName: "美兎"
     aliases: []
-    status: "name_only"
-    notes: "sourceCharacterId 52（水野美兎）がイベントで姿が変わった同一人物（ユーザー確認 2026-07-13）。canonical ID確定時はベースキャラと同一人物として扱う。 ローマ字案（仮、AI生成、要人間確認）: CHAR_253_MITO"
+    status: "confirmed"
+    notes: "sourceCharacterId 52（水野美兎）がイベントで姿が変わった同一人物（ユーザー確認 2026-07-13）。canonical ID確定時はベースキャラと同一人物として扱う。"
   - sourceCharacterId: "254"
-    characterId: null
+    characterId: "CHAR_254_MINI_SEINA"
     displayName: "セイナ"
     aliases: []
-    status: "name_only"
-    notes: "sourceCharacterId 7（透海セイナ）がイベントで姿が変わった同一人物（ユーザー確認 2026-07-13）。canonical ID確定時はベースキャラと同一人物として扱う。 ローマ字案（仮、AI生成、要人間確認）: CHAR_254_SEINA"
+    status: "confirmed"
+    notes: "sourceCharacterId 7（透海セイナ）がイベントで姿が変わった同一人物（ユーザー確認 2026-07-13）。canonical ID確定時はベースキャラと同一人物として扱う。"
   - sourceCharacterId: "255"
-    characterId: null
+    characterId: "CHAR_255_MINI_MIMI"
     displayName: "美海"
     aliases: []
-    status: "name_only"
-    notes: "sourceCharacterId 207（切干美海）がイベントで姿が変わった同一人物（ユーザー確認 2026-07-13）。canonical ID確定時はベースキャラと同一人物として扱う。 ローマ字案（仮、AI生成、要人間確認）: CHAR_255_MIMI"
+    status: "confirmed"
+    notes: "sourceCharacterId 207（切干美海）がイベントで姿が変わった同一人物（ユーザー確認 2026-07-13）。canonical ID確定時はベースキャラと同一人物として扱う。"
   - sourceCharacterId: "256"
-    characterId: null
+    characterId: "CHAR_256_MINI_EVE"
     displayName: "イヴ"
     aliases: []
-    status: "name_only"
-    notes: "sourceCharacterId 217（イヴ・ネモフィラ）がイベントで姿が変わった同一人物（ユーザー確認 2026-07-13）。canonical ID確定時はベースキャラと同一人物として扱う。 ローマ字案（仮、AI生成、要人間確認）: CHAR_256_EVE"
+    status: "confirmed"
+    notes: "sourceCharacterId 217（イヴ・ネモフィラ）がイベントで姿が変わった同一人物（ユーザー確認 2026-07-13）。canonical ID確定時はベースキャラと同一人物として扱う。"
   - sourceCharacterId: "257"
-    characterId: null
+    characterId: "CHAR_257_MINI_CALLA"
     displayName: "ミニカラー"
     aliases: []
-    status: "name_only"
-    notes: "sourceCharacterId 222（カラー）がイベントで姿が変わった同一人物（ユーザー確認 2026-07-13）。canonical ID確定時はベースキャラと同一人物として扱う。 ローマ字案（仮、AI生成、要人間確認）: CHAR_257_MINI_COLOR"
+    status: "confirmed"
+    notes: "sourceCharacterId 222（カラー）がイベントで姿が変わった同一人物（ユーザー確認 2026-07-13）。canonical ID確定時はベースキャラと同一人物として扱う。"
   - sourceCharacterId: "258"
-    characterId: null
+    characterId: "CHAR_258_MINI_SONO"
     displayName: "園乃"
     aliases: []
-    status: "name_only"
-    notes: "sourceCharacterId 228（妃王寺園乃）がイベントで姿が変わった同一人物（ユーザー確認 2026-07-13）。canonical ID確定時はベースキャラと同一人物として扱う。 ローマ字案（仮、AI生成、要人間確認）: CHAR_258_SONONO"
+    status: "confirmed"
+    notes: "sourceCharacterId 228（妃王寺園乃）がイベントで姿が変わった同一人物（ユーザー確認 2026-07-13）。canonical ID確定時はベースキャラと同一人物として扱う。"
   - sourceCharacterId: "270"
-    characterId: null
+    characterId: "CHAR_270_MAKUNOUCHI_SAKURAKO"
     displayName: "幕ノ内桜子"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_270_MAKUNOUCHI_SAKURAKO"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "271"
-    characterId: null
+    characterId: "CHAR_271_HIMURO_SHIZUNO"
     displayName: "氷室静乃"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_271_HIMURO_SHIZUNO"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "272"
-    characterId: null
+    characterId: "CHAR_272_NANA"
     displayName: "ナナ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_272_NANA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "280"
-    characterId: null
+    characterId: "CHAR_280_KUONJI_MAKI"
     displayName: "久遠寺真稀"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_280_KUONJI_MAKI"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "281"
-    characterId: null
+    characterId: "CHAR_281_NASUHARA_MINAMI"
     displayName: "奈須原みなみ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_281_NASUHARA_MINAMI"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "282"
-    characterId: null
+    characterId: "CHAR_282_CHRISTINA_ROCCA"
     displayName: "クリスティーナ・ロッカ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_282_CHRISTINA_ROCCA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "283"
-    characterId: null
+    characterId: "CHAR_283_KIRARI_ANDERSON"
     displayName: "きらり・アンダーソン"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_283_KIRARI_ANDERSON"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "284"
-    characterId: null
+    characterId: "CHAR_284_KIRYUU_ZEKKA"
     displayName: "桐生絶佳"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_284_KIRYUU_ZEKKA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "285"
-    characterId: null
+    characterId: "CHAR_285_ELLIE_MAYERS"
     displayName: "エリー・メイザース"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_285_ELLIE_MAYERS"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "286"
-    characterId: null
+    characterId: "CHAR_286_AMAGASA_SHIZUKU"
     displayName: "雨傘雫"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_286_AMAGASA_SHIZUKU"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "287"
-    characterId: null
+    characterId: "CHAR_287_ECCLESIA"
     displayName: "エクレシア"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_287_ECCLESIA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "290"
-    characterId: null
+    characterId: "CHAR_290_CERES"
     displayName: "セレス"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_290_CERES"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "291"
-    characterId: null
+    characterId: "CHAR_291_SAKURA"
     displayName: "サクラ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_291_SAKURA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "292"
-    characterId: null
+    characterId: "CHAR_292_LUNA"
     displayName: "ルナ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_292_LUNA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "300"
-    characterId: null
+    characterId: "CHAR_300_LUCIFER"
     displayName: "ルシフェル"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_300_LUCIFER"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "301"
-    characterId: null
+    characterId: "CHAR_301_BELIAL"
     displayName: "ベリアル"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_301_BELIAL"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "302"
-    characterId: null
+    characterId: "CHAR_302_BEELZEBUB"
     displayName: "ベルゼブブ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_302_BEELZEBUB"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "303"
-    characterId: null
+    characterId: "CHAR_303_BAPHOMET"
     displayName: "バフォメット"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_303_BAPHOMET"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "304"
-    characterId: null
+    characterId: "CHAR_304_SATAN"
     displayName: "サタン"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_304_SATAN"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "305"
-    characterId: null
+    characterId: "CHAR_305_ASTAROTH"
     displayName: "アスタロト"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_305_ASTAROTH"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "310"
-    characterId: null
+    characterId: "CHAR_310_TAKAI_SAYAKA"
     displayName: "高井さやか"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_310_TAKAI_SAYAKA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "311"
-    characterId: null
+    characterId: "CHAR_311_HASEGAWA_AKEMI"
     displayName: "羽瀬川朱美"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_311_HASEGAWA_AKEMI"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "312"
-    characterId: null
+    characterId: "CHAR_312_IWAKURA_NATSUKI"
     displayName: "岩倉夏姫"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_312_IWAKURA_NATSUKI"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "313"
-    characterId: null
+    characterId: "CHAR_313_AIZAWA_TOMOMI"
     displayName: "愛沢ともみ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_313_AIZAWA_TOMOMI"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "314"
-    characterId: null
+    characterId: "CHAR_314_KINOSHITA_TAKAKO"
     displayName: "木ノ下貴子"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_314_KINOSHITA_TAKAKO"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "315"
-    characterId: null
+    characterId: "CHAR_315_KIMIJIMA_NANA"
     displayName: "君島ナナ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_315_KIMIJIMA_NANA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "320"
-    characterId: null
+    characterId: "CHAR_320_LIL"
     displayName: "リル"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_320_LIL"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "321"
-    characterId: null
+    characterId: "CHAR_321_EUNICE"
     displayName: "ユニス"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_321_EUNICE"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "322"
-    characterId: null
+    characterId: "CHAR_322_SPINA"
     displayName: "スピナ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_322_SPINA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "323"
-    characterId: null
+    characterId: "CHAR_323_ELLEN"
     displayName: "エレン"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_323_ELLEN"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "330"
-    characterId: null
+    characterId: "CHAR_330_SOFIA"
     displayName: "ソフィア"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_330_SOFIA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "331"
-    characterId: null
+    characterId: "CHAR_331_RAISA"
     displayName: "ライサ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_331_RAISA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "340"
-    characterId: null
+    characterId: "CHAR_340_RIA_FAL"
     displayName: "リア・ファル"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_340_RIA_FAL"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "341"
-    characterId: null
+    characterId: "CHAR_341_FIA"
     displayName: "フィーア"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_341_FIA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "350"
-    characterId: null
+    characterId: "CHAR_350_NAAMIRU"
     displayName: "ナァミル"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_350_NAAMIRU"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "351"
-    characterId: null
+    characterId: "CHAR_351_KOHARU"
     displayName: "コハル"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_351_KOHARU"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "352"
-    characterId: null
+    characterId: "CHAR_352_BRENDA"
     displayName: "ブレンダ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_352_BRENDA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "353"
-    characterId: null
+    characterId: "CHAR_353_MEIMEI"
     displayName: "メイメイ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_353_MEIMEI"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "354"
-    characterId: null
+    characterId: "CHAR_354_SETSU"
     displayName: "セツ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_354_SETSU"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "355"
-    characterId: null
+    characterId: "CHAR_355_ELTRINDE"
     displayName: "エルトリンデ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_355_ELTRINDE"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "360"
-    characterId: null
+    characterId: "CHAR_360_LIL_LILITH"
     displayName: "リル・リリス"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_360_LIL_LILITH"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "361"
-    characterId: null
+    characterId: "CHAR_361_SHIRAYUKI_AIRU"
     displayName: "白雪愛瑠"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_361_SHIRAYUKI_AIRU"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "362"
-    characterId: null
+    characterId: "CHAR_362_OKAJIMA_ARISU"
     displayName: "岡嶋亞梨栖"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_362_OKAJIMA_ARISU"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "363"
-    characterId: null
+    characterId: "CHAR_363_USHIMITSU_MIRUKU"
     displayName: "牛蜜みるく"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_363_GYUUMITSU_MIRUKU"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "370"
-    characterId: null
+    characterId: "CHAR_370_PRICIA"
     displayName: "プリシア"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_370_PRICIA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "371"
-    characterId: null
+    characterId: "CHAR_371_WINDY"
     displayName: "ウィンディ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_371_WINDY"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "372"
-    characterId: null
+    characterId: "CHAR_372_ARISUGAWA_MITSUMI"
     displayName: "有栖川光海"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_372_ARISUGAWA_MITSUMI"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "373"
-    characterId: null
+    characterId: "CHAR_373_KAGURAZAKA_CHISATO"
     displayName: "神楽坂ちさと"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_373_KAGURAZAKA_CHISATO"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "380"
-    characterId: null
+    characterId: "CHAR_380_ASOBE_IROHA"
     displayName: "遊部いろは"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_380_YUUBE_IROHA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "381"
-    characterId: null
+    characterId: "CHAR_381_YUWASE_KOKOA"
     displayName: "百波瀬ここあ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_381_MOMONOSE_KOKOA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "382"
-    characterId: null
+    characterId: "CHAR_382_HIGASHIYAMA_AKISA"
     displayName: "東山陽彩"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_382_HIGASHIYAMA_HIIRO"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "383"
-    characterId: null
+    characterId: "CHAR_383_OOTORI_AKA"
     displayName: "大鳥丹"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_383_OOTORI_TAN"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "390"
-    characterId: null
+    characterId: "CHAR_390_TACHIBANA_AMANE"
     displayName: "橘天音"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_390_TACHIBANA_AMANE"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "391"
-    characterId: null
+    characterId: "CHAR_391_SAKURAZUKA_REN"
     displayName: "桜塚恋"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_391_SAKURAZUKA_REN"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "392"
-    characterId: null
+    characterId: "CHAR_392_HOUSEN_ERISU"
     displayName: "鳳仙エリス"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_392_HOUSEN_ERISU"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "393"
-    characterId: null
+    characterId: "CHAR_393_KIKYOU_KIRI"
     displayName: "桔梗霧"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_393_KIKYOU_KIRI"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "400"
-    characterId: null
+    characterId: "CHAR_400_ITOU_CHITOSE"
     displayName: "伊東ちとせ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_400_ITOU_CHITOSE"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "401"
-    characterId: null
+    characterId: "CHAR_401_SEGA_AIRI"
     displayName: "瀬賀あいり"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_401_SEGA_AIRI"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "402"
-    characterId: null
+    characterId: "CHAR_402_TAKAYAMA_MARIA"
     displayName: "高山マリア"
     aliases: []
-    status: "name_only"
-    notes: "同名「マリア」のsourceCharacterId 225（志須田マリア）とは別人（ユーザー確認 2026-07-13）。 ローマ字案（仮、AI生成、要人間確認）: CHAR_402_TAKAYAMA_MARIA"
+    status: "confirmed"
+    notes: "同名「マリア」のsourceCharacterId 225（志須田マリア）とは別人（ユーザー確認 2026-07-13）。"
   - sourceCharacterId: "403"
-    characterId: null
+    characterId: "CHAR_403_YUINA"
     displayName: "Yuina"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_403_YUINA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "404"
-    characterId: null
+    characterId: "CHAR_404_MITA_NANAKO"
     displayName: "実田菜々子"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_404_SANADA_NANAKO"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "405"
-    characterId: null
+    characterId: "CHAR_405_SAKURA_MEI"
     displayName: "佐倉芽衣"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_405_SAKURA_MEI"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "410"
-    characterId: null
+    characterId: "CHAR_410_VASILOPITA"
     displayName: "ヴァシロピタ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_410_VASILOPITA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "411"
-    characterId: null
+    characterId: "CHAR_411_ANGEL_CAKE"
     displayName: "エンゼルケーキ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_411_ANGEL_CAKE"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "412"
-    characterId: null
+    characterId: "CHAR_412_COCOA_COOKIE"
     displayName: "ココアクッキー"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_412_COCOA_COOKIE"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "413"
-    characterId: null
+    characterId: "CHAR_413_SUIKA_PARFAIT"
     displayName: "すいかパフェ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_413_SUIKA_PARFAIT"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "420"
-    characterId: null
+    characterId: "CHAR_420_EZAKI_IROHA"
     displayName: "江崎彩葉"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_420_EZAKI_IROHA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "421"
-    characterId: null
+    characterId: "CHAR_421_AKAGI_ESTEFANIA"
     displayName: "赤城エステファニア"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_421_AKAGI_ESTEFANIA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "422"
-    characterId: null
+    characterId: "CHAR_422_SAKUMA_NAGI"
     displayName: "佐久間凪"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_422_SAKUMA_NAGI"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "423"
-    characterId: null
+    characterId: "CHAR_423_YAMAZAKI_HIMARIKO"
     displayName: "山崎ひまり子"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_423_YAMAZAKI_HIMARIKO"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "500"
-    characterId: null
+    characterId: "CHAR_500_LUKIA"
     displayName: "ルキア"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_500_LUCIA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "501"
-    characterId: null
+    characterId: "CHAR_501_PUROSSA"
     displayName: "プロッサ"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_501_PUROSSA"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "502"
-    characterId: null
+    characterId: "CHAR_502_KYARAN"
     displayName: "キャラン"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_502_KYARAN"
+    status: "confirmed"
+    notes: null
   - sourceCharacterId: "503"
-    characterId: null
+    characterId: "CHAR_503_MERUN"
     displayName: "メルン"
     aliases: []
-    status: "name_only"
-    notes: "ローマ字案（仮、AI生成、要人間確認）: CHAR_503_MERUN"
+    status: "confirmed"
+    notes: null
