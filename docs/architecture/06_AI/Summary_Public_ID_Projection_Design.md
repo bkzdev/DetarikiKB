@@ -397,6 +397,7 @@ synthetic "entries" list:
 - `docs/architecture/06_AI/Evidence_Index_Public_ID_Policy.md`（§6.4-§6.10 publicEvidenceId形式・Compatible/Public-safe projection実装・exposure scan仕様、本文書が踏襲する設計・実装パターンの元）
 - `docs/architecture/06_AI/Public_ID_Registry_Design.md`（Public ID Registry設計、§6.3 Registry統合実装が本文書§7の踏襲元）
 - `docs/architecture/06_AI/Story_Summary_Design.md`（Summaryのデータモデル・保存場所・evidenceRefs方針の既存設計）
+- `docs/runbooks/Story_Summary_Generation_Runbook.md`（本文書のprojection script仕様を実際の生成〜昇格フローの1ステップとして組み込んだ実行手順）
 - `scripts/project_evidence_index_public_ids.py`（CLI形状・safety策・field rewrite・exposure scanの実装パターンの踏襲元、読むだけで変更しない）
 - `scripts/check_public_episode_ids.py`（`_resolve_registry_lookup`/`_group_entries_by_internal_story`のimport元、読むだけで変更しない）
 - `schemas/story_summary.schema.json`（本文書§8で変更不要と確認した既存schema）
