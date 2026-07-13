@@ -28,6 +28,19 @@ synthesis`）。
 - 長文episode/story合成のchunk分割2段階要約（Plan §6.4）は本PRでは未実装。
   `--max-input-characters`を超える場合はissueを立てて該当する生成
   （episode生成、またはstory合成）をskipする安全弁のみ実装している
+- **storyId単位のグルーピング**: Phase 1 parserは1 episode 1ファイルの
+  ため、複数episodeを持つstoryは必ず複数のNormalized Story JSONファイルに
+  分かれる。`--input`で読み込んだdocumentはstoryId単位でグルーピングし、
+  同一storyIdのdocument群の`episodes`配列をマージした上で1 story = 1
+  draftとして`generate_story_summary_draft`へ渡す（`summary-generation-
+  poc`のPoC実施中に発見されたバグの修正、`summary-generation-multi-
+  episode-grouping`）。マージ後のepisode順序は各episodeの`episodeNumber`
+  昇順、episodeNumberが無いepisodeはepisodeIdの辞書順にfallbackする
+  （安定ソート）。同一storyIdのdocument間で`metadata.publicStoryId`が
+  矛盾する場合はそのstoryをblocking errorとして扱い（該当storyのdraftは
+  書き出さない、exit code 1）、reportに記録する。グルーピング後も万一
+  同一出力ファイルパスへ2回書き込みが発生した場合も同様にblocking error
+  とし、黙って上書きしない
 
 hallucination対策の後処理（`agents/summarizer/generator.py`が実装、Plan
 §6.3・§11）は検出結果を自動rejectしない。draftは常に`generationStatus:
@@ -47,7 +60,10 @@ Usage:
 Exit codes:
     0: 生成成功（hallucination対策issueの有無に関わらず、draftが
        schema検証を通過していればPASSとする）
-    1: 生成したdraftのschema検証に失敗した（想定外のバグ）
+    1: 生成したdraftのschema検証に失敗した（想定外のバグ）、同一storyIdの
+       document間でmetadata.publicStoryIdが矛盾した、または（想定外の
+       バグとして）グルーピング後に同一出力ファイルパスへ2回書き込みが
+       発生した
     2: --input/--schemaパスが見つからない、入力の読み込みにすべて失敗した、
        または--output/--reportがknowledge/配下を指しているなどのconfig
        error
@@ -231,6 +247,105 @@ def _load_json_documents(
 
 
 # ----------------------------------------------------------------
+# storyId単位のグルーピング
+#
+# Phase 1 parserは1 episode 1ファイルのため、複数episodeを持つstoryは
+# 必ず複数のNormalized Story JSONファイルに分かれる。`generate_story_
+# summary_draft`は「1 document = 1 story」を前提とするため、CLI層で
+# 同一storyIdのdocumentをまとめ、episodes配列をマージしてから渡す
+# (`summary-generation-multi-episode-grouping`で修正したPoC発見バグ)。
+# ----------------------------------------------------------------
+
+
+def _episode_sort_key(episode: dict[str, Any]) -> tuple[int, int, str]:
+    """マージ後のepisode順序を決めるsort key。
+
+    `episodeNumber`があればそれを昇順の主キーとする (tier 0)。
+    `episodeNumber`が無い/不正な型のepisodeはtier 1へ回し、`episodeId`の
+    辞書順で安定ソートする (fallback)。tierをまたいだ混在時はtier 0が
+    常に先に来る。
+    """
+    number = episode.get("episodeNumber")
+    if isinstance(number, int) and not isinstance(number, bool):
+        return (0, number, "")
+    return (1, 0, str(episode.get("episodeId") or ""))
+
+
+def _check_metadata_conflict(
+    story_id: str | None, docs_for_story: list[dict[str, Any]]
+) -> str | None:
+    """同一storyIdのdocument間で、draft組み立てに使うmetadata値
+    (`metadata.publicStoryId`) が矛盾していないか確認する。
+
+    矛盾が無ければNoneを返す。複数の異なる非nullの値が見つかった場合の
+    みblockingな矛盾として扱う (一部のdocumentにpublicStoryIdが未設定な
+    だけのケースは矛盾としない)。
+    """
+    values: set[str] = set()
+    for doc in docs_for_story:
+        public_story_id = (doc.get("metadata") or {}).get("publicStoryId")
+        if public_story_id is not None:
+            values.add(str(public_story_id))
+    if len(values) > 1:
+        joined = ", ".join(sorted(values))
+        return (
+            f"storyId={story_id}: 複数のNormalized Story JSONファイル間で"
+            f"metadata.publicStoryIdが矛盾しています ({joined})"
+        )
+    return None
+
+
+def _merge_story_documents(docs_for_story: list[dict[str, Any]]) -> dict[str, Any]:
+    """同一storyIdのdocument群を1 story documentへマージする。
+
+    先頭documentを基準に、`episodes`配列のみを全document分連結して
+    `_episode_sort_key`で安定ソートしたものへ置き換える (それ以外の
+    document-levelフィールドは`generate_story_summary_draft`が
+    `storyId`/`metadata.publicStoryId`/`episodes`のみを参照するため、
+    先頭documentの値をそのまま使えばよい)。
+    """
+    merged = dict(docs_for_story[0])
+    merged_episodes: list[dict[str, Any]] = []
+    for doc in docs_for_story:
+        merged_episodes.extend(doc.get("episodes", []) or [])
+    merged_episodes.sort(key=_episode_sort_key)
+    merged["episodes"] = merged_episodes
+    return merged
+
+
+def _group_documents_by_story_id(
+    documents: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
+    """documentをstoryId単位でグルーピングし、episodes配列をマージする。
+
+    戻り値: (マージ済みdocument一覧, metadata矛盾一覧)。マージ済み
+    document一覧はグルーピング後もユニークなstoryIdの数だけ含まれる
+    (入力順に安定)。metadata矛盾が検出されたstoryはマージ済みdocument
+    一覧に含めない (該当storyのdraftは生成しない)。
+    """
+    groups: dict[str | None, list[dict[str, Any]]] = {}
+    order: list[str | None] = []
+    for doc in documents:
+        story_id = doc.get("storyId")
+        if story_id not in groups:
+            groups[story_id] = []
+            order.append(story_id)
+        groups[story_id].append(doc)
+
+    merged_documents: list[dict[str, Any]] = []
+    conflicts: list[dict[str, str]] = []
+    for story_id in order:
+        docs_for_story = groups[story_id]
+        conflict_message = _check_metadata_conflict(story_id, docs_for_story)
+        if conflict_message is not None:
+            conflicts.append({"storyId": str(story_id), "message": conflict_message})
+            continue
+        merged_documents.append(_merge_story_documents(docs_for_story))
+
+    return merged_documents, conflicts
+
+
+# ----------------------------------------------------------------
 # Report building
 # ----------------------------------------------------------------
 
@@ -340,18 +455,36 @@ def _build_report_markdown(
     written_count: int,
     schema_valid: bool,
     schema_issues: list[str],
+    metadata_conflicts: list[dict[str, str]] | None = None,
 ) -> str:
+    metadata_conflicts = metadata_conflicts or []
+    # Story countはユニークstoryId単位 (グルーピング後に生成へ進んだstory +
+    # metadata矛盾でblockされたstory)。
     lines = [
         "# Story Summary Generation Report",
         "",
         f"- Input files: {input_count}",
-        f"- Story count: {len(story_reports)}",
+        f"- Story count: {len(story_reports) + len(metadata_conflicts)}",
         f"- Draft files written: {written_count}",
-        "",
     ]
+    if metadata_conflicts:
+        lines.append(f"- Metadata conflicts (blocked): {len(metadata_conflicts)}")
+    lines.append("")
 
     for report in story_reports:
         lines.extend(_story_report_lines(report))
+
+    if metadata_conflicts:
+        lines.append("## Metadata Conflicts")
+        lines.append("")
+        lines.append(
+            "- 同一storyIdのdocument間でmetadata.publicStoryIdが矛盾した"
+            "storyです。draftは生成していません。"
+        )
+        lines.append("")
+        for conflict in metadata_conflicts:
+            lines.append(f"- {conflict['storyId']}: {conflict['message']}")
+        lines.append("")
 
     lines.append("## Validation")
     lines.append("")
@@ -452,6 +585,7 @@ def _write_drafts(
 
     schema_issues: list[str] = []
     written_paths: list[str] = []
+    seen_output_paths: set[Path] = set()
     for result in results:
         document_dict = result.to_document_dict()
         errors = sorted(
@@ -464,6 +598,17 @@ def _write_drafts(
             )
             continue
         out_path = output_dir / f"{result.story_id}.yaml"
+        if out_path in seen_output_paths:
+            # storyId単位のグルーピング後は本来発生しないはずの防御策。
+            # 万一発生した場合も黙って上書きせず、blocking errorとして
+            # 報告する。
+            schema_issues.append(
+                f"{result.story_id}: 出力ファイル{out_path}へ2回目の"
+                "書き込みが発生しました (storyIdグルーピング後の想定外の"
+                "重複、書き込みをskipしました)"
+            )
+            continue
+        seen_output_paths.add(out_path)
         with open(out_path, "w", encoding="utf-8") as f:
             yaml.safe_dump(document_dict, f, allow_unicode=True, sort_keys=False)
         written_paths.append(str(out_path))
@@ -487,6 +632,14 @@ def main(
     report_path = context["report_path"]
     documents = context["documents"]
 
+    # storyId単位でグルーピングし、同一storyIdのdocument群のepisodes配列を
+    # マージした上で1 story = 1 draftとして処理する (Phase 1 parserは
+    # 1 episode 1ファイルのため、複数episode storyは必ず複数ファイルに
+    # 分かれる。`summary-generation-multi-episode-grouping`で修正した
+    # PoC発見バグ)。metadata.publicStoryIdが矛盾するstoryはblocking error
+    # としてgrouped_documentsに含めず、metadata_conflictsに記録する。
+    grouped_documents, metadata_conflicts = _group_documents_by_story_id(documents)
+
     provider = (provider_factory or _default_provider_factory)(args)
 
     results = [
@@ -497,7 +650,7 @@ def main(
             verbatim_threshold=args.verbatim_threshold,
             synthesize_story=not args.no_story_synthesis,
         )
-        for document in documents
+        for document in grouped_documents
     ]
 
     written_paths, schema_issues = _write_drafts(
@@ -511,14 +664,16 @@ def main(
         written_count=len(written_paths),
         schema_valid=not schema_issues,
         schema_issues=schema_issues,
+        metadata_conflicts=metadata_conflicts,
     )
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text(report_markdown, encoding="utf-8")
 
     if not args.quiet:
         print(
-            f"[generate] {len(documents)} story documentを処理し、"
-            f"{len(written_paths)} draftを書き出しました"
+            f"[generate] {len(documents)} document ({len(grouped_documents)} "
+            f"unique story) を処理し、{len(written_paths)} draftを"
+            "書き出しました"
         )
         print(f"[generate] 出力先: {output_dir}")
         print(f"[generate] report: {report_path}")
@@ -527,8 +682,14 @@ def main(
                 f"[エラー] {len(schema_issues)}件のschema検証エラーがあります",
                 file=sys.stderr,
             )
+        if metadata_conflicts:
+            print(
+                f"[エラー] {len(metadata_conflicts)}件のmetadata矛盾により"
+                "storyのdraft生成をblockしました",
+                file=sys.stderr,
+            )
 
-    return 1 if schema_issues else 0
+    return 1 if (schema_issues or metadata_conflicts) else 0
 
 
 if __name__ == "__main__":
