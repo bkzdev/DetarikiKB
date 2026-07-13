@@ -8,6 +8,18 @@ Episode Summary生成prompt、およびStory Summary合成promptの構築
 ユーザーが2026-07-13にsummarizer系のprompt実装を明示的に解禁したことを受けて
 実装する（`AI_CONTEXT.md` §4。`agents/extractor/`は引き続き未解禁のまま）。
 
+未解決話者のprompt表記 (Stage 1 small batchの人間レビューで実測された対策):
+- `agents/parser/resolver.py`の`Speaker.unknown`が付与する
+  `不明人物(ID:NNN)`形式のplaceholder speakerNameは、内部IDの断片を
+  含んだままLLMへ渡すとLLMが人物名として要約本文に書いてしまう問題が
+  あった。`schemas/story.schema.json`の`Speaker.isResolved`
+  (`agents/parser/resolver.py`の`is_resolved`) を正とし、
+  未解決話者のBlockは話者部分を固定表記「話者不明」に置き換えてprompt
+  へ渡す (`_speaker_name`)。`isResolved`が取得できない場合のみ、
+  `不明人物`プレフィックスの文字列判定にfallbackする。
+- system promptに「話者不明」はplaceholderであり人物名として要約に
+  書かないことを明示する一文を追加した (`EPISODE_SUMMARY_SYSTEM_PROMPT`)。
+
 入力構造（Plan §6.1）:
 - Episode単位のNormalized Story JSON (`schemas/story.schema.json`) から、
   `dialogue`/`monologue`/`narration`/`choice`のBlockのみを再帰的に抽出する
@@ -54,7 +66,9 @@ from typing import Any
 
 # LLMへの指示文言・出力formatを変更した場合はこの値も更新する
 # (draft.source.promptVersionへ格納される、Plan §6.2)。
-PROMPT_VERSION = "episode-summary-v1"
+# v2: 未解決話者placeholderの「話者不明」統一表記化・system prompt指示追加
+# (Stage 1 small batchレビューで実測された問題への対策)。
+PROMPT_VERSION = "episode-summary-v2"
 
 # 抽出対象のBlock type (Plan §6.1、Evidence Indexの`--policy public-default`
 # と同じ対象type。stage_direction/unknownは対象外)。
@@ -67,6 +81,16 @@ INCLUDED_BLOCK_TYPES: frozenset[str] = frozenset(
 # skipする安全弁として扱う (常識的な既定値、実装側で確定)。
 DEFAULT_MAX_INPUT_CHARACTERS = 50_000
 
+# 未解決話者 (`schemas/story.schema.json` Speaker.isResolved=false) のBlockを
+# promptへ渡す際に話者部分へ用いる固定表記。`不明人物(ID:NNN)`のような
+# 内部ID断片をLLMへ見せない (Stage 1 small batchレビューで実測された対策)。
+UNRESOLVED_SPEAKER_LABEL = "話者不明"
+
+# isResolvedフラグが取得できない場合のfallback判定に使う、
+# `agents/parser/resolver.py` `Speaker.unknown`が付与するplaceholder名の
+# プレフィックス。フラグ判定が確実な場合はこちらは使わない。
+UNRESOLVED_SPEAKER_NAME_PREFIX = "不明人物"
+
 EPISODE_SUMMARY_SYSTEM_PROMPT = (
     "あなたはゲームシナリオの正規化済みテキストから、"
     "明示された事実のみに基づく簡潔なあらすじを作成するアシスタントです。"
@@ -74,6 +98,9 @@ EPISODE_SUMMARY_SYSTEM_PROMPT = (
     "入力に明記された内容のみを要約してください。"
     "出力は指示されたJSON形式のみとし、それ以外の文章は一切出力しないで"
     "ください。"
+    "「話者不明」という表記は話者が特定できていないことを示すラベルであり、"
+    "実在の人物名・キャラクター名ではありません。あらすじ本文中でこれを"
+    "人物名として扱わないでください。"
 )
 
 
@@ -143,13 +170,36 @@ def _block_text(block: dict[str, Any], block_type: str) -> str | None:
 
 
 def _speaker_name(block: dict[str, Any]) -> str | None:
+    """Blockのspeaker情報から、prompt埋め込み用の話者名を返す。
+
+    未解決話者 (`Speaker.isResolved is False`) の場合は、
+    `不明人物(ID:NNN)`のような内部ID断片を含むplaceholder名をそのまま
+    返さず、固定表記`UNRESOLVED_SPEAKER_LABEL` ("話者不明") に置き換える。
+    """
     speaker = block.get("speaker")
     if not isinstance(speaker, dict):
         return None
     name = speaker.get("speakerName")
-    if isinstance(name, str) and name.strip():
-        return name.strip()
-    return None
+    if not isinstance(name, str) or not name.strip():
+        return None
+    name = name.strip()
+    if _is_unresolved_speaker(speaker, name):
+        return UNRESOLVED_SPEAKER_LABEL
+    return name
+
+
+def _is_unresolved_speaker(speaker: dict[str, Any], name: str) -> bool:
+    """話者が未解決 (placeholder) かどうかを判定する。
+
+    `isResolved`が真偽値として取得できる場合はそちらを正とする
+    (`schemas/story.schema.json` Speaker.isResolved / 「背景・確定事項」の
+    指示通り、文字列パターンより優先)。取得できない場合のみ、
+    `不明人物`プレフィックスの文字列判定にfallbackする。
+    """
+    is_resolved = speaker.get("isResolved")
+    if isinstance(is_resolved, bool):
+        return not is_resolved
+    return name.startswith(UNRESOLVED_SPEAKER_NAME_PREFIX)
 
 
 def format_block_line(block: ExtractedBlock) -> str:

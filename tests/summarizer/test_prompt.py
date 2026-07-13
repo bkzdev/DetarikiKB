@@ -16,6 +16,7 @@ from agents.summarizer.prompt import (
     PROMPT_VERSION,
     STORY_SUMMARY_PROMPT_VERSION,
     STORY_SUMMARY_SYSTEM_PROMPT,
+    UNRESOLVED_SPEAKER_LABEL,
     EpisodeSummaryInput,
     ExtractedBlock,
     build_episode_summary_prompt,
@@ -80,6 +81,45 @@ def _stage_direction_block(block_id: str) -> dict:
 
 def _unknown_block(block_id: str) -> dict:
     return {"id": block_id, "type": "unknown", "rawText": "unclassified", "source": {}}
+
+
+def _unresolved_dialogue_block(
+    block_id: str, text: str, speaker_name: str = "不明人物(ID:83)"
+) -> dict:
+    """isResolved=Falseの未解決話者Block
+
+    (`agents/parser/resolver.py` `Speaker.unknown`が付与する
+    `不明人物(ID:NNN)`形式のplaceholderを模したfixture。合成ID・合成本文の
+    みで、実データ由来のspeakerIdは含まない)。
+    """
+    return {
+        "id": block_id,
+        "type": "dialogue",
+        "text": text,
+        "speaker": {
+            "speakerId": None,
+            "speakerName": speaker_name,
+            "isResolved": False,
+        },
+        "source": {},
+    }
+
+
+def _speaker_no_is_resolved_field_block(
+    block_id: str, text: str, speaker_name: str
+) -> dict:
+    """isResolvedフィールド自体が欠落しているspeaker (fallback判定の検証用)。
+
+    schema上`isResolved`はrequiredだが、fallback文字列判定の経路自体を
+    独立して検証するためのfixture。
+    """
+    return {
+        "id": block_id,
+        "type": "dialogue",
+        "text": text,
+        "speaker": {"speakerId": None, "speakerName": speaker_name},
+        "source": {},
+    }
 
 
 def _episode(scenes: list[dict]) -> dict:
@@ -237,6 +277,84 @@ def test_extract_speaker_name_none_when_speaker_missing_or_unresolved_without_na
 
 
 # ----------------------------------------------------------------
+# (1b) 未解決話者 (isResolved=False) のspeaker_nameが「話者不明」に
+#      置き換わること (Stage 1 small batchレビューで実測された対策)
+# ----------------------------------------------------------------
+
+
+def test_extract_replaces_unresolved_speaker_name_with_placeholder_label():
+    episode = _episode(
+        [
+            _scene(
+                [
+                    _unresolved_dialogue_block(
+                        "EVT_E01_DLG0001", "未解決話者の台詞", "不明人物(ID:83)"
+                    ),
+                ]
+            )
+        ]
+    )
+    blocks = extract_episode_blocks(episode)
+    assert blocks[0].speaker_name == UNRESOLVED_SPEAKER_LABEL
+    # 内部IDの断片(ID:83)がprompt入力側の話者名に残らないこと。
+    assert "83" not in blocks[0].speaker_name
+
+
+def test_extract_keeps_resolved_speaker_name_as_is():
+    episode = _episode(
+        [_scene([_dialogue_block("EVT_E01_DLG0001", "Speaker A", "台詞A")])]
+    )
+    blocks = extract_episode_blocks(episode)
+    assert blocks[0].speaker_name == "Speaker A"
+
+
+def test_extract_falls_back_to_prefix_pattern_when_is_resolved_field_missing():
+    # isResolvedフィールド自体が欠落している防御的fallback経路。
+    # flagで判定できない場合のみ「不明人物」プレフィックスの文字列判定を使う。
+    episode = _episode(
+        [
+            _scene(
+                [
+                    _speaker_no_is_resolved_field_block(
+                        "EVT_E01_DLG0001", "台詞B", "不明人物(ID:99)"
+                    ),
+                ]
+            )
+        ]
+    )
+    blocks = extract_episode_blocks(episode)
+    assert blocks[0].speaker_name == UNRESOLVED_SPEAKER_LABEL
+
+
+def test_extract_does_not_treat_named_speaker_without_is_resolved_field_as_unresolved():
+    # fallback判定は「不明人物」プレフィックス一致時のみ発動し、
+    # 通常の話者名を誤って置き換えないこと。
+    episode = _episode(
+        [
+            _scene(
+                [
+                    _speaker_no_is_resolved_field_block(
+                        "EVT_E01_DLG0001", "台詞C", "Speaker A"
+                    ),
+                ]
+            )
+        ]
+    )
+    blocks = extract_episode_blocks(episode)
+    assert blocks[0].speaker_name == "Speaker A"
+
+
+def test_format_block_line_uses_unresolved_placeholder_label():
+    block = ExtractedBlock(
+        block_id="EVT_E01_DLG0001",
+        block_type="dialogue",
+        speaker_name=UNRESOLVED_SPEAKER_LABEL,
+        text="台詞テキスト",
+    )
+    assert format_block_line(block) == "[EVT_E01_DLG0001] 話者不明: 台詞テキスト"
+
+
+# ----------------------------------------------------------------
 # (2) format_block_line / render_blocks_text: blockId埋め込み表現
 # ----------------------------------------------------------------
 
@@ -308,8 +426,15 @@ def test_system_prompt_forbids_speculation():
     assert "推測" in EPISODE_SUMMARY_SYSTEM_PROMPT
 
 
+def test_system_prompt_instructs_not_to_treat_unresolved_placeholder_as_person_name():
+    # 「話者不明」はplaceholderラベルであり人物名として要約に書かないことを
+    # system promptで明示する (Stage 1 small batchレビューで実測された対策)。
+    assert UNRESOLVED_SPEAKER_LABEL in EPISODE_SUMMARY_SYSTEM_PROMPT
+    assert "人物名" in EPISODE_SUMMARY_SYSTEM_PROMPT
+
+
 def test_prompt_version_constant():
-    assert PROMPT_VERSION == "episode-summary-v1"
+    assert PROMPT_VERSION == "episode-summary-v2"
 
 
 def test_default_max_input_characters_is_positive_and_reasonable():
