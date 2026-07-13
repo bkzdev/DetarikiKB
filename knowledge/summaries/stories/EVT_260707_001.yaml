@@ -1,0 +1,54 @@
+schemaVersion: 0.1.0
+documentType: story_summary
+storyId: EVT_260707_001
+publicStoryId: EVT_260707_001
+language: ja
+generationStatus: generated
+storySummary:
+  text: きゃらめる☆ミルキーウェイ（キャミ）のセイナとイヴに解散ドッキリが仕掛けられる。二人が取り乱さず解散を受け入れるかのような本音を漏らしたことから、ムーリンはキャミへの愛着とメンバーへの誇りを熱く語り、二人に思いをぶつける。
+  confidence: null
+  evidenceRefs:
+  - EVT_260707_001_E01_DLG0030
+  - EVT_260707_001_E01_DLG0047
+  - EVT_260707_001_E01_DLG0060
+  - EVT_260707_001_E01_DLG0070
+  - EVT_260707_001_E01_DLG0072
+  - EVT_260707_001_E02_DLG0010
+  - EVT_260707_001_E02_DLG0059
+  - EVT_260707_001_E02_DLG0062
+  - EVT_260707_001_E02_DLG0067
+  - EVT_260707_001_E02_DLG0072
+episodeSummaries:
+- episodeId: EVT_260707_001_E01
+  publicEpisodeId: EVT_260707_001_E01
+  episodeNumber: 1
+  text: きゃらめる☆ミルキーウェイ（キャミ）のセイナとイヴに、今回のプロジェクトを最後にキャミが解散するというドッキリが仕掛けられる。二人は取り乱すことなく、解散を受け入れるかのような本音を漏らし、仕掛けた側のレインとムーリンは驚く。
+  confidence: null
+  evidenceRefs:
+  - EVT_260707_001_E01_DLG0030
+  - EVT_260707_001_E01_DLG0047
+  - EVT_260707_001_E01_DLG0060
+  - EVT_260707_001_E01_DLG0070
+  - EVT_260707_001_E01_DLG0072
+- episodeId: EVT_260707_001_E02
+  publicEpisodeId: EVT_260707_001_E02
+  episodeNumber: 2
+  text: 解散ドッキリを続ける中で、レインたちはセイナとイヴの本音を探る。イヴは自分のやりたいことを優先したい、セイナは普通の女の子に戻りたいという気持ちが明らかになる一方、ムーリンはキャミへの愛着とメンバーや活動への誇りを熱く語り、二人に思いをぶつける。
+  confidence: null
+  evidenceRefs:
+  - EVT_260707_001_E02_DLG0010
+  - EVT_260707_001_E02_DLG0059
+  - EVT_260707_001_E02_DLG0062
+  - EVT_260707_001_E02_DLG0067
+  - EVT_260707_001_E02_DLG0072
+source:
+  sourceType: ai_generated
+  model: ollama/qwen2.5:14b-instruct
+  promptVersion: episode-summary-v1,story-summary-v1
+  generatedAt: '2026-07-13T02:40:02Z'
+review:
+  status: approved
+  reviewer: bkzdev
+  reviewedAt: '2026-07-13'
+  notes: PoC Stage 0の人間レビュー。AI生成draftの主語誤り（イベント名を行為主体として誤用）と根拠の弱い引用を、原文blockの確認に基づき人手修正した。
+notes: AI生成後にレビュー担当者が本文とevidenceRefsを修正した（sourceはai_generatedのまま）。
