@@ -149,6 +149,48 @@ def test_dict_expansion_batch_001_command_not_unknown_on_either_path(tmp_path):
     assert embedded["unknownCommands"] == set()
 
 
+def test_dict_expansion_batch_002_commands_not_unknown_on_either_path(tmp_path):
+    """script-command-dictionary-expansion-batch-002 (実データ全量scan、
+    本編系2,301件) で見つかった未知コマンド172種のうち、代表的な新規
+    stage_directionコマンド・表記ゆれが、どちらの経路でもunknownCommands
+    に現れないことを確認する。"""
+    script = """@ChEye2Off
+@cheye2off
+@Bg_Default
+@bg_nightcity
+@Timeline/Play 0 0 False
+@TalkPosRR
+@talkposRR
+@chcamera
+@ChTalkname 8 ? Event/example
+"""
+    standalone, embedded = _run_both_paths(tmp_path, script)
+
+    assert standalone["unknownCommands"] == set()
+    assert embedded["unknownCommands"] == set()
+    assert standalone["newSpeechCommands"] == set()
+    assert embedded["newSpeechCommands"] == set()
+
+
+def test_dict_expansion_batch_002_variable_indices_not_unknown_on_standalone_path(
+    tmp_path,
+):
+    """script-command-dictionary-expansion-batch-002で見つかった、
+    値がcharacter_id(数字)ではなくモーションクリップ名や$state()呼び出しに
+    なっている$numX/$valueXの個別インデックス (+ typoである$vaule0) が、
+    standalone checker側でもunknownCommandsに現れないことを確認する。
+    実parser側はVARIABLEトークンとして正規表現ベースで既に汎用対応済み
+    (unknown_commandsに元々計上されない) のため、standalone側のみ確認する。"""
+    script = """$value1 = c_idle_8
+$num0 = $random(4,4)
+$vaule0 = 55070
+"""
+    standalone, embedded = _run_both_paths(tmp_path, script)
+
+    assert standalone["unknownCommands"] == set()
+    assert embedded["unknownCommands"] == set()
+
+
 def test_talk_camera_commands_not_misdetected_as_speech(tmp_path):
     """@TalkCamera3/@TalkCamera4はPR #30で既知コマンド化されているため、
     どちらの経路でも新規会話コマンド候補として誤検出されないこと。"""

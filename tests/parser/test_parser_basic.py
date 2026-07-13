@@ -426,6 +426,64 @@ def test_dict_expansion_batch_001_command_becomes_stage_direction():
     assert block.command_args == ["0", "1", "22"]
 
 
+def test_dict_expansion_batch_002_new_commands_become_stage_direction():
+    """script-command-dictionary-expansion-batch-002 (実データ全量scan、
+    本編系2,301件) で見つかった未知コマンド172種のうち、代表的な新規
+    stage_directionコマンドが unknown ではなく stage_direction として
+    正しい direction_type に分類されることを確認する。"""
+    script = """@ChEye2Off
+@Bg_Default
+@Timeline/Play 0 0 False
+@TalkPosRR
+@ChTalkname 8 ? Event/example
+"""
+    parser = StoryParser(preserve_stage_directions=True)
+    result = parser.parse_text(script)
+    scene = result.episodes[0].scenes[0]
+
+    assert len(scene.blocks) == 5
+    for block in scene.blocks:
+        assert block.block_type == "stage_direction"
+
+    assert scene.blocks[0].raw_command == "@ChEye2Off"
+    assert scene.blocks[0].direction_type == "character_display"
+    assert scene.blocks[1].raw_command == "@Bg_Default"
+    assert scene.blocks[1].direction_type == "background"
+    assert scene.blocks[2].raw_command == "@Timeline/Play"
+    assert scene.blocks[2].direction_type == "system"
+    assert scene.blocks[3].raw_command == "@TalkPosRR"
+    assert scene.blocks[3].direction_type == "ui"
+    assert scene.blocks[4].raw_command == "@ChTalkname"
+    assert scene.blocks[4].direction_type == "character_display"
+
+
+def test_dict_expansion_batch_002_case_variants_normalize_to_canonical():
+    """script-command-dictionary-expansion-batch-002 で見つかった表記ゆれが、
+    CASE_VARIANTS_MAP経由で正規形へ正規化されつつ stage_direction として
+    分類されることを確認する。"""
+    script = """@cheye2off
+@talkposRR
+@chcamera
+"""
+    parser = StoryParser(preserve_stage_directions=True)
+    result = parser.parse_text(script)
+    scene = result.episodes[0].scenes[0]
+
+    assert len(scene.blocks) == 3
+
+    assert scene.blocks[0].raw_command == "@cheye2off"
+    assert scene.blocks[0].normalized_command == "@ChEye2Off"
+    assert scene.blocks[0].direction_type == "character_display"
+
+    assert scene.blocks[1].raw_command == "@talkposRR"
+    assert scene.blocks[1].normalized_command == "@TalkPosRR"
+    assert scene.blocks[1].direction_type == "ui"
+
+    assert scene.blocks[2].raw_command == "@chcamera"
+    assert scene.blocks[2].normalized_command == "@ChCamera"
+    assert scene.blocks[2].direction_type == "camera"
+
+
 def test_dialogue_count_unaffected_by_branch_choice_dry_run_commands(char_dict):
     """costume/fa/@TalkPosR等がセリフの間に挟まっても、dialogue/monologueの
     数・本文・evidence用の行番号が変わらないことを確認する。"""
