@@ -527,7 +527,7 @@ def test_generate_story_summary_draft_provenance_prompt_version_and_input_refs()
         document, provider=provider, synthesize_story=False
     )
 
-    assert result.provenance.prompt_version == PROMPT_VERSION == "episode-summary-v1"
+    assert result.provenance.prompt_version == PROMPT_VERSION == "episode-summary-v2"
     assert result.provenance.generated_at is not None
     assert result.provenance.input_refs == ["EVT_SYNTHETIC_SAMPLE_E01"]
     assert result.provenance.model_provider == "fake"
@@ -789,7 +789,7 @@ def test_generate_story_summary_draft_with_synthesis_end_to_end_is_schema_valid(
     ]
     assert (
         document_dict["source"]["promptVersion"]
-        == "episode-summary-v1,story-summary-v1"
+        == "episode-summary-v2,story-summary-v1"
     )
     assert _validate(document_dict) == []
 
@@ -808,7 +808,7 @@ def test_generate_story_summary_draft_no_story_synthesis_flag_keeps_story_summar
     assert result.draft.story_text is None
     document_dict = result.to_document_dict()
     assert document_dict["storySummary"] is None
-    assert document_dict["source"]["promptVersion"] == "episode-summary-v1"
+    assert document_dict["source"]["promptVersion"] == "episode-summary-v2"
     assert _validate(document_dict) == []
 
 
