@@ -48,10 +48,11 @@ REQUIRED_SECTIONS = (
     "# 8. Visual review方針",
     "# 9. Failed story handling",
     "# 10. Rollback policy",
-    "# 11. PR分割方針",
-    "# 12. `evidence-index-promotion-first-batch-dry-run`",
-    "# 13. Non-goals",
-    "# 14. 関連ドキュメント",
+    "# 11. 公開済みEvidence Indexの更新（re-promotion）方針",
+    "# 12. PR分割方針",
+    "# 13. `evidence-index-promotion-first-batch-dry-run`",
+    "# 14. Non-goals",
+    "# 15. 関連ドキュメント",
 )
 
 REAL_DATA_HINTS = (
@@ -162,9 +163,9 @@ def test_batch_policy_doc_states_failed_story_categories():
 
 def test_batch_policy_doc_states_rollback_policy():
     content = _read_doc()
-    section = content.split("# 10. Rollback policy", 1)[1].split("# 11. PR分割方針", 1)[
-        0
-    ]
+    section = content.split("# 10. Rollback policy", 1)[1].split(
+        "# 11. 公開済みEvidence Indexの更新（re-promotion）方針", 1
+    )[0]
     assert "1 story 1 file" in section
     assert "再利用しない" in section
     assert "exposure check" in section
@@ -172,8 +173,8 @@ def test_batch_policy_doc_states_rollback_policy():
 
 def test_batch_policy_doc_states_pr_split_policy():
     content = _read_doc()
-    section = content.split("# 11. PR分割方針", 1)[1].split(
-        "# 12. `evidence-index-promotion-first-batch-dry-run`", 1
+    section = content.split("# 12. PR分割方針", 1)[1].split(
+        "# 13. `evidence-index-promotion-first-batch-dry-run`", 1
     )[0]
     assert "案A" in section
     assert "案B" in section
@@ -182,18 +183,18 @@ def test_batch_policy_doc_states_pr_split_policy():
 
 def test_batch_policy_doc_states_first_batch_dry_run_scope():
     content = _read_doc()
-    heading = "# 12. `evidence-index-promotion-first-batch-dry-run`"
+    heading = "# 13. `evidence-index-promotion-first-batch-dry-run`"
     assert heading in content
-    section = content.split(heading, 1)[1].split("# 13. Non-goals", 1)[0]
-    assert "## 12.1 やること" in section
-    assert "## 12.2 やらないこと" in section
+    section = content.split(heading, 1)[1].split("# 14. Non-goals", 1)[0]
+    assert "## 13.1 やること" in section
+    assert "## 13.2 やらないこと" in section
     assert "実promotion" in section
     assert "Registry entryの実commit" in section
 
 
 def test_batch_policy_doc_states_non_goals():
     content = _read_doc()
-    section = content.split("# 13. Non-goals", 1)[1].split("# 14. 関連ドキュメント", 1)[
+    section = content.split("# 14. Non-goals", 1)[1].split("# 15. 関連ドキュメント", 1)[
         0
     ]
     for forbidden in (
@@ -285,8 +286,8 @@ def test_batch_policy_doc_dry_run_result_does_not_contain_real_data_hints():
 def test_batch_policy_doc_states_scope_already_executed():
     content = _read_doc()
     section = content.split(
-        "# 12. `evidence-index-promotion-first-batch-dry-run`のスコープ", 1
-    )[1].split("# 13. Non-goals", 1)[0]
+        "# 13. `evidence-index-promotion-first-batch-dry-run`のスコープ", 1
+    )[1].split("# 14. Non-goals", 1)[0]
     assert "実施済み" in section
 
 
@@ -571,6 +572,99 @@ def test_tasks_md_lists_first_real_batch_current_focus():
 
 
 def test_tasks_md_first_real_batch_does_not_contain_real_data_hints():
+    content = TASKS_PATH.read_text(encoding="utf-8")
+    for forbidden in REAL_DATA_HINTS + ("260624", "260504", "CAB-csl"):
+        assert forbidden not in content
+
+
+# ----------------------------------------------------------------
+# feature/evidence-index-republication-policy-dry-run
+# ----------------------------------------------------------------
+
+REPUBLICATION_POLICY_HEADING = "# 11. 公開済みEvidence Indexの更新（re-promotion）方針"
+
+
+def _republication_policy_section() -> str:
+    content = _read_doc()
+    return content.split(REPUBLICATION_POLICY_HEADING, 1)[1].split(
+        "# 12. PR分割方針", 1
+    )[0]
+
+
+def test_batch_policy_doc_has_republication_policy_section():
+    content = _read_doc()
+    assert REPUBLICATION_POLICY_HEADING in content
+
+
+def test_batch_policy_doc_states_republication_id_stability_gate():
+    section = _republication_policy_section()
+    assert "publicEvidenceId" in section
+    assert "完全一致" in section
+    assert "blocking" in section
+    assert "エスカレーション" in section
+
+
+def test_batch_policy_doc_states_republication_allowed_diff_scope():
+    section = _republication_policy_section()
+    assert "unresolved" in section
+    assert "resolved" in section
+    assert "relatedEntities" in section
+    assert "text" in section
+
+
+def test_batch_policy_doc_states_republication_procedure():
+    section = _republication_policy_section()
+    for script in (
+        "project_evidence_index_public_ids.py",
+        "promote_evidence_index.py",
+        "validate_evidence_index.py",
+        "check_evidence_index_promotion.py",
+        "render_wiki.py",
+        "mkdocs build --strict",
+    ):
+        assert script in section
+    assert "--execute --overwrite" in section
+    assert "ユーザーの明示的な事前承認" in section
+
+
+def test_batch_policy_doc_states_republication_summary_handling():
+    section = _republication_policy_section()
+    assert "knowledge/summaries/stories/" in section
+    assert "evidenceRefs" in section
+
+
+def test_batch_policy_doc_states_republication_rollback_inherits_existing():
+    section = _republication_policy_section()
+    assert "§10" in section
+    assert "git revert" in section
+
+
+def test_batch_policy_doc_states_republication_dry_run_result():
+    section = _republication_policy_section()
+    assert "392 entries" in section
+    assert "148" in section
+    assert "blocking" in section
+    assert "見送" in section
+
+
+def test_batch_policy_doc_republication_states_non_goals():
+    section = _republication_policy_section()
+    assert "--execute" in section
+    assert "commit" in section.lower()
+
+
+def test_batch_policy_doc_republication_does_not_contain_real_data_hints():
+    section = _republication_policy_section()
+    for forbidden in REAL_DATA_HINTS + ("260624", "260504", "CAB-csl"):
+        assert forbidden not in section
+
+
+def test_tasks_md_lists_republication_dry_run_current_focus():
+    content = TASKS_PATH.read_text(encoding="utf-8")
+    assert "evidence-index-republication-policy-dry-run" in content
+
+
+def test_tasks_md_republication_does_not_contain_real_data_hints():
     content = TASKS_PATH.read_text(encoding="utf-8")
     for forbidden in REAL_DATA_HINTS + ("260624", "260504", "CAB-csl"):
         assert forbidden not in content
