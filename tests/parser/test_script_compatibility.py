@@ -3,11 +3,21 @@ tests/parser/test_script_compatibility.py
 互換性チェックのユニットテスト
 """
 
+import re
+import subprocess
+import sys
+from pathlib import Path
+
 import pytest
 
 from scripts.check_script_compatibility import (
     check_file,
+    collect_files,
+    compile_name_patterns,
 )
+
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+CHECK_COMPAT_SCRIPT = PROJECT_ROOT / "scripts" / "check_script_compatibility.py"
 
 
 @pytest.fixture
@@ -152,3 +162,231 @@ def test_branch_issues(dummy_config, tmp_path):
     # needs_update になるか確認（branch_issues の severity によるが、通常 high 以上）
     assert result.parser_compatibility in ("needs_update", "blocked")
     assert any(issue["type"] == "missing_endif" for issue in result.branch_issues)
+
+
+# ----------------------------------------------------------------
+# collect_files: ファイル名フィルタ
+# ----------------------------------------------------------------
+
+
+def _touch(path: Path) -> Path:
+    path.write_text("", encoding="utf-8")
+    return path
+
+
+@pytest.fixture
+def mixed_dir(tmp_path):
+    """本編系・演出系が混在する合成ディレクトリ"""
+    names = [
+        "series-episode1.dec",
+        "series-episode2.dec",
+        "series-episode_EX1.dec",
+        "series-main1_tutorial.dec",
+        "series-Surprise_3.dec",
+        "series-H_scene_01.dec",
+        "series-camera_test.dec",
+        "series-finish_01.dec",
+        "series-spine_test.dec",
+        "series-VR_intro.dec",
+    ]
+    for name in names:
+        _touch(tmp_path / name)
+    return tmp_path
+
+
+def test_collect_files_no_patterns_returns_all_and_no_summary(mixed_dir):
+    # 未指定時は従来どおり全件走査し、フィルタサマリーは付与されない (後方互換)
+    files, summary = collect_files(mixed_dir)
+
+    assert len(files) == 10
+    assert summary is None
+
+
+def test_collect_files_single_include_pattern(mixed_dir):
+    patterns = compile_name_patterns([r"-episode\d+\.dec$"])
+    files, summary = collect_files(mixed_dir, include_patterns=patterns)
+
+    names = sorted(f.name for f in files)
+    assert names == ["series-episode1.dec", "series-episode2.dec"]
+    assert summary is not None
+    assert summary.total_scanned == 10
+    assert summary.collected_count == 2
+    assert summary.excluded_count == 8
+    assert summary.include_patterns == [r"-episode\d+\.dec$"]
+    assert summary.exclude_patterns == []
+
+
+def test_collect_files_multiple_include_patterns_or_condition(mixed_dir):
+    patterns = compile_name_patterns(
+        [
+            r"-episode\d+\.dec$",
+            r"-episode_EX\d+\.dec$",
+            r"-main\d+(_tutorial\d*)?(\s*#\d+)?\.dec$",
+            r"-Surprise_\d+\.dec$",
+        ]
+    )
+    files, summary = collect_files(mixed_dir, include_patterns=patterns)
+
+    names = {f.name for f in files}
+    assert names == {
+        "series-episode1.dec",
+        "series-episode2.dec",
+        "series-episode_EX1.dec",
+        "series-main1_tutorial.dec",
+        "series-Surprise_3.dec",
+    }
+    assert summary.collected_count == 5
+    assert summary.excluded_count == 5
+
+
+def test_collect_files_exclude_pattern(mixed_dir):
+    # includeなし、excludeのみ: 演出系のうちH_sceneのみ除外
+    patterns = compile_name_patterns([r"H_scene"])
+    files, summary = collect_files(mixed_dir, exclude_patterns=patterns)
+
+    names = {f.name for f in files}
+    assert "series-H_scene_01.dec" not in names
+    assert len(files) == 9
+    assert summary.total_scanned == 10
+    assert summary.collected_count == 9
+    assert summary.excluded_count == 1
+    assert summary.include_patterns == []
+    assert summary.exclude_patterns == ["H_scene"]
+
+
+def test_collect_files_include_and_exclude_combined(mixed_dir):
+    # includeで本編系に絞り込んだ後、excludeで一部をさらに除外する
+    include_patterns = compile_name_patterns([r"-episode\d+\.dec$", r"-Surprise_\d+"])
+    exclude_patterns = compile_name_patterns([r"episode2"])
+    files, summary = collect_files(
+        mixed_dir, include_patterns=include_patterns, exclude_patterns=exclude_patterns
+    )
+
+    names = sorted(f.name for f in files)
+    assert names == ["series-Surprise_3.dec", "series-episode1.dec"]
+    assert summary.collected_count == 2
+
+
+def test_collect_files_matches_basename_only(tmp_path):
+    # ディレクトリ名がパターンにマッチしても、ファイル名自体がマッチしなければ
+    # 対象にならないこと (マッチ対象はbasenameのみ)
+    sub_dir = tmp_path / "episode1_dir"
+    sub_dir.mkdir()
+    _touch(sub_dir / "unrelated.dec")
+
+    patterns = compile_name_patterns([r"^episode1"])
+    files, summary = collect_files(tmp_path, include_patterns=patterns)
+
+    assert files == []
+    assert summary.total_scanned == 1
+    assert summary.collected_count == 0
+
+
+def test_collect_files_single_file_target_unaffected_by_extensions(tmp_path):
+    # 単一ファイル指定時は、フィルタ未指定なら常にそのファイルを返す
+    file_path = _touch(tmp_path / "series-episode1.dec")
+
+    files, summary = collect_files(file_path)
+
+    assert files == [file_path]
+    assert summary is None
+
+
+def test_compile_name_patterns_empty_or_none_returns_empty_list():
+    assert compile_name_patterns(None) == []
+    assert compile_name_patterns([]) == []
+
+
+def test_compile_name_patterns_invalid_regex_raises():
+    with pytest.raises(re.error):
+        compile_name_patterns(["("])
+
+
+# ----------------------------------------------------------------
+# CLI: --include-name-pattern / --exclude-name-pattern
+# ----------------------------------------------------------------
+
+
+def test_cli_invalid_regex_exits_with_config_error_code(tmp_path):
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(CHECK_COMPAT_SCRIPT),
+            str(tmp_path),
+            "--include-name-pattern",
+            "(",
+            "--output",
+            str(tmp_path),
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 2
+    assert "不正な正規表現" in result.stderr
+
+
+def test_cli_default_behavior_unchanged_without_patterns(tmp_path):
+    script_path = tmp_path / "series-episode1.dec"
+    script_path.write_text("$num0 = 26\n@ChTalk 0\nこんにちは。\n", encoding="utf-8")
+    output_dir = tmp_path / "reports"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(CHECK_COMPAT_SCRIPT),
+            str(tmp_path),
+            "--output",
+            str(output_dir),
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode in (0, 1)
+
+    import json
+
+    report = json.loads(
+        (output_dir / "script_compatibility_report.json").read_text(encoding="utf-8")
+    )
+    assert "nameFilter" not in report["summary"]
+
+
+def test_cli_report_includes_name_filter_summary_when_pattern_applied(tmp_path):
+    (tmp_path / "series-episode1.dec").write_text(
+        "$num0 = 26\n@ChTalk 0\nこんにちは。\n", encoding="utf-8"
+    )
+    (tmp_path / "series-H_scene_01.dec").write_text("camera 0\n", encoding="utf-8")
+    output_dir = tmp_path / "reports"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(CHECK_COMPAT_SCRIPT),
+            str(tmp_path),
+            # 正規表現が "-" で始まるため "=" 付き形式で渡す
+            # (argparseが値を別オプションと誤認するのを避けるため)
+            r"--include-name-pattern=-episode\d+\.dec$",
+            "--output",
+            str(output_dir),
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode in (0, 1), result.stderr
+
+    import json
+
+    report = json.loads(
+        (output_dir / "script_compatibility_report.json").read_text(encoding="utf-8")
+    )
+    name_filter = report["summary"]["nameFilter"]
+    assert name_filter["totalScanned"] == 2
+    assert name_filter["collectedCount"] == 1
+    assert name_filter["excludedCount"] == 1
+    assert name_filter["includePatterns"] == [r"-episode\d+\.dec$"]
+    assert name_filter["excludePatterns"] == []
+    assert len(report["files"]) == 1
+    assert report["files"][0]["file"] == "series-episode1.dec"
