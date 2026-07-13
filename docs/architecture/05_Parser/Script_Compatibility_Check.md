@@ -59,7 +59,7 @@ data/raw/other/
 | 未知コマンド | Parserが知らないコマンド |
 | 新規会話コマンド | セリフ・モノローグに影響する未知コマンド |
 | 既存コマンドの新形式 | 引数数や構文が変わった既存コマンド |
-| 未登録キャラクターID | `characters.json` に存在しないID |
+| 未登録キャラクターID | キャラクター辞書（既定: `knowledge/dictionaries/characters.yaml`）に存在しないID |
 | 分岐構文 | `branch`, `#if`, `#elseif`, `#else`, `#endif` の異常 |
 | 制御文字 | `\x02`, `\x07`, `\x08` など |
 | 表記ゆれ | `@Visibleoff` / `@VisibleOff` など |
@@ -379,7 +379,7 @@ $valueX = character_id
 @ScenarioCosLoad slot variable
 ```
 
-抽出された `sourceCharacterId` が `characters.json` に存在しない場合、未登録キャラクターIDとして記録する。
+抽出された `sourceCharacterId` がキャラクター辞書に存在しない場合、未登録キャラクターIDとして記録する。
 
 ---
 
@@ -745,6 +745,26 @@ python scripts/check_script_compatibility.py data/raw/ \
   }
 }
 ```
+
+---
+
+## 19.2 キャラクター辞書 (`--characters`)
+
+キャラクター辞書のデフォルトは `knowledge/dictionaries/characters.yaml`
+（人手管理の正規辞書、`agents/parser/character_dictionary.py` の
+`load_character_dictionary` と同じ形式）である。
+
+`--characters` に指定するパスの拡張子で読み込み形式を自動判別する
+(`scripts/normalize_story.py --characters` と同じ方式)。
+
+| 拡張子 | 形式 | 想定パス |
+|---|---|---|
+| `.yaml` / `.yml` | `knowledge/dictionaries/characters.yaml` 形式 (`characters[].sourceCharacterId`/`displayName`) | `knowledge/dictionaries/characters.yaml` |
+| `.json` | レガシー `characters_reference.json` 形式 (フラットな `{sourceCharacterId: displayName}`) | `reference/parser/characters_reference.json` (読み取り専用、`AI_CONTEXT.md` §5) |
+
+レガシーJSON形式は後方互換のため引き続き `--characters` へ明示指定すれば
+利用できるが、新規登録キャラクターは正規辞書側にのみ追加されるため、
+未指定時 (デフォルト) の判定は正規辞書を基準にすることを推奨する。
 
 ---
 

@@ -13,7 +13,11 @@ Usage:
     # 出力先指定
     python scripts/check_script_compatibility.py data/raw/ --output data/reports/
 
-    # キャラクター辞書指定
+    # キャラクター辞書指定 (既定は knowledge/dictionaries/characters.yaml。
+    # 拡張子で形式を自動判別する: .yaml/.yml は正規辞書形式、
+    # .json はレガシー characters_reference.json 形式)
+    python scripts/check_script_compatibility.py data/raw/ \
+        --characters knowledge/dictionaries/characters.yaml
     python scripts/check_script_compatibility.py data/raw/ \
         --characters reference/parser/characters_reference.json
 
@@ -57,6 +61,9 @@ _PROJECT_ROOT = Path(__file__).parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
+from agents.parser.character_dictionary import (  # noqa: E402
+    load_character_dictionary,
+)
 from agents.parser.compatibility import (  # noqa: E402
     determine_compatibility_status,
     get_new_speech_hints,
@@ -72,6 +79,12 @@ DEFAULT_COMMANDS_CONFIG = (
     Path(__file__).parent.parent / "config" / "script_commands.yaml"
 )
 DEFAULT_CHARACTERS_PATH = (
+    Path(__file__).parent.parent / "knowledge" / "dictionaries" / "characters.yaml"
+)
+# レガシー辞書 (読み取り専用、CLAUDE.md記載の通り直接改造しない)。
+# 拡張子が .json の場合の後方互換読み込み先としてのみ参照する
+# (scripts/normalize_story.py の LEGACY_CHARACTERS_PATH と同じ位置づけ)。
+LEGACY_CHARACTERS_PATH = (
     Path(__file__).parent.parent / "reference" / "parser" / "characters_reference.json"
 )
 DEFAULT_OUTPUT_DIR = Path(__file__).parent.parent / "data" / "reports"
@@ -112,11 +125,37 @@ def load_command_config(config_path: Path) -> dict[str, Any]:
 
 
 def load_characters(characters_path: Path) -> dict[str, str]:
-    """characters_reference.json を読み込む。
+    """キャラクター辞書を読み込む。拡張子で形式を自動判別する
+    (scripts/normalize_story.py --characters と同じ方式)。
     Returns: {sourceCharacterId: speakerName}
+
+    - `.yaml`/`.yml`: `knowledge/dictionaries/characters.yaml` 形式
+      (`characters[].sourceCharacterId`/`displayName`、
+      `agents/parser/character_dictionary.py` の
+      `load_character_dictionary` を再利用する)
+    - `.json`: レガシー `characters_reference.json` 形式
+      (`{"1": "レイン", "26": "レイン", ...}`のフラットな辞書)
     """
     if not characters_path.exists():
         return {}
+
+    suffix = characters_path.suffix.lower()
+
+    if suffix in (".yaml", ".yml"):
+        try:
+            entries = load_character_dictionary(characters_path)
+        except Exception as e:
+            print(
+                f"[警告] キャラクター辞書の読み込みに失敗しました: {e}",
+                file=sys.stderr,
+            )
+            return {}
+        return {
+            entry.source_character_id: entry.display_name
+            for entry in entries
+            if entry.source_character_id
+        }
+
     try:
         with open(characters_path, encoding="utf-8") as f:
             data = json.load(f)
@@ -933,7 +972,7 @@ def parse_args() -> argparse.Namespace:
             "data/raw/main/example.dec\n"
             "  python scripts/check_script_compatibility.py data/raw/ "
             "--output data/reports/ "
-            "--characters reference/parser/characters_reference.json\n"
+            "--characters knowledge/dictionaries/characters.yaml\n"
         ),
     )
     parser.add_argument(
@@ -955,7 +994,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--characters",
         default=str(DEFAULT_CHARACTERS_PATH),
-        help=f"キャラクター辞書JSONのパス (デフォルト: {DEFAULT_CHARACTERS_PATH})",
+        help=(
+            "キャラクター辞書のパス (デフォルト: "
+            f"{DEFAULT_CHARACTERS_PATH})。拡張子で形式を自動判別する: "
+            ".yaml/.yml は knowledge/dictionaries/characters.yaml 形式、"
+            ".json はレガシー characters_reference.json 形式"
+            f" ({LEGACY_CHARACTERS_PATH})"
+        ),
     )
     parser.add_argument(
         "--include-name-pattern",
