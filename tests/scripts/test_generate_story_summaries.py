@@ -86,15 +86,18 @@ def _stage_direction_block(block_id: str) -> dict:
     }
 
 
-def _episode(episode_id: str, blocks: list[dict]) -> dict:
-    return {
+def _episode(
+    episode_id: str, blocks: list[dict], *, episode_number: int | None = 1
+) -> dict:
+    episode: dict = {
         "episodeId": episode_id,
-        "episodeNumber": 1,
+        "episodeNumber": episode_number,
         "metadata": {"publicEpisodeId": f"PUB_{episode_id}"},
         "scenes": [
             {"sceneId": f"{episode_id}_SC001", "sceneNumber": 1, "blocks": blocks}
         ],
     }
+    return episode
 
 
 def _sample_episode(episode_id: str = "EVT_CLI_SAMPLE_E01") -> dict:
@@ -107,13 +110,15 @@ def _sample_episode(episode_id: str = "EVT_CLI_SAMPLE_E01") -> dict:
     )
 
 
-def _document(story_id: str, episodes: list[dict]) -> dict:
+def _document(
+    story_id: str, episodes: list[dict], *, public_story_id: str | None = None
+) -> dict:
     return {
         "schemaVersion": "0.2",
         "documentType": "normalized_story",
         "storyId": story_id,
         "storyCategory": "EVT",
-        "metadata": {"publicStoryId": f"PUB_{story_id}"},
+        "metadata": {"publicStoryId": public_story_id or f"PUB_{story_id}"},
         "parser": {
             "parserName": "DKB Story Parser",
             "parserVersion": "0.2.0",
@@ -605,6 +610,392 @@ def test_default_provider_factory_builds_ollama_provider(module: ModuleType):
     assert isinstance(provider, OllamaProvider)
     assert provider.model == "llama3"
     assert provider.host == "http://example:11434"
+
+
+# ----------------------------------------------------------------
+# (3) storyId単位のグルーピング (PoC実施中に発見されたバグの修正、
+#     summary-generation-multi-episode-grouping)
+#
+# Phase 1 parserは1 episode 1ファイルのため、複数episodeを持つstoryは
+# 複数のNormalized Story JSONファイルに分かれる。以前はファイルごとに
+# 別story documentとして処理され、同じ`{storyId}.yaml`へ順に書き出す
+# ため、後のepisodeのdraftが前のepisodeのdraftを黙って上書きしていた。
+# ----------------------------------------------------------------
+
+
+def test_generate_groups_same_story_id_files_into_one_draft(
+    module: ModuleType, tmp_path: Path
+):
+    story_id = "EVT_MULTI_EP"
+    ep1_id = f"{story_id}_E01"
+    ep2_id = f"{story_id}_E02"
+    input_dir = tmp_path / "inputs"
+    _write_json(
+        input_dir / "ep1.json",
+        _document(
+            story_id,
+            [
+                _episode(
+                    ep1_id,
+                    [
+                        _dialogue_block(
+                            f"{ep1_id}_DLG0001", "Speaker A", "第1話の台詞。"
+                        )
+                    ],
+                    episode_number=1,
+                )
+            ],
+        ),
+    )
+    _write_json(
+        input_dir / "ep2.json",
+        _document(
+            story_id,
+            [
+                _episode(
+                    ep2_id,
+                    [
+                        _dialogue_block(
+                            f"{ep2_id}_DLG0001", "Speaker B", "第2話の台詞。"
+                        )
+                    ],
+                    episode_number=2,
+                )
+            ],
+        ),
+    )
+    output_dir = tmp_path / "drafts"
+    report_path = tmp_path / "report.md"
+    # storyId単位でグルーピングされ1 story documentとして処理される:
+    # episode応答2件 (episodeNumber順) + story合成応答1件。
+    fake_provider = _FakeProvider(
+        [
+            _json_response("第1話のあらすじ。", [f"{ep1_id}_DLG0001"]),
+            _json_response("第2話のあらすじ。", [f"{ep2_id}_DLG0001"]),
+            json.dumps({"text": "story全体のあらすじ。"}, ensure_ascii=False),
+        ]
+    )
+
+    exit_code = module.main(
+        [
+            "--input",
+            str(input_dir),
+            "--output",
+            str(output_dir),
+            "--model",
+            "unused-model",
+            "--report",
+            str(report_path),
+        ],
+        provider_factory=lambda args: fake_provider,
+    )
+
+    assert exit_code == 0
+    # 2ファイルとも同一storyId -> 1 draftファイルのみに統合される
+    # (以前は後発episodeのdraftが先発episodeのdraftを黙って上書きしていた)。
+    draft_files = sorted(output_dir.glob("*.yaml"))
+    assert len(draft_files) == 1
+    assert draft_files[0].name == f"{story_id}.yaml"
+
+    with open(draft_files[0], encoding="utf-8") as f:
+        document = yaml.safe_load(f)
+    assert _validate_schema(document) == []
+    assert len(document["episodeSummaries"]) == 2
+    assert document["episodeSummaries"][0]["episodeId"] == ep1_id
+    assert document["episodeSummaries"][0]["text"] == "第1話のあらすじ。"
+    assert document["episodeSummaries"][1]["episodeId"] == ep2_id
+    assert document["episodeSummaries"][1]["text"] == "第2話のあらすじ。"
+    assert document["storySummary"]["text"] == "story全体のあらすじ。"
+
+    report_text = report_path.read_text(encoding="utf-8")
+    assert "Story count: 1" in report_text
+    assert "Episode count: 2" in report_text
+
+
+def test_generate_episode_order_fallback_to_episode_id_when_no_number(
+    module: ModuleType, tmp_path: Path
+):
+    story_id = "EVT_MULTI_NONUM"
+    ep_a = f"{story_id}_E01"  # episodeId辞書順ではep_aが先
+    ep_b = f"{story_id}_E02"
+    input_dir = tmp_path / "inputs"
+    # わざとepisodeNumberを与えず (fallback発火)、ファイル書き込み順序を
+    # episodeIdの辞書順とは逆にする (E02を先に書く)。
+    _write_json(
+        input_dir / "a_first.json",
+        _document(
+            story_id,
+            [
+                _episode(
+                    ep_b,
+                    [_dialogue_block(f"{ep_b}_DLG0001", "Speaker B", "第2話の台詞。")],
+                    episode_number=None,
+                )
+            ],
+        ),
+    )
+    _write_json(
+        input_dir / "b_second.json",
+        _document(
+            story_id,
+            [
+                _episode(
+                    ep_a,
+                    [_dialogue_block(f"{ep_a}_DLG0001", "Speaker A", "第1話の台詞。")],
+                    episode_number=None,
+                )
+            ],
+        ),
+    )
+    output_dir = tmp_path / "drafts"
+    report_path = tmp_path / "report.md"
+    fake_provider = _FakeProvider(
+        [
+            _json_response("第1話のあらすじ。", [f"{ep_a}_DLG0001"]),
+            _json_response("第2話のあらすじ。", [f"{ep_b}_DLG0001"]),
+            json.dumps({"text": "story全体のあらすじ。"}, ensure_ascii=False),
+        ]
+    )
+
+    exit_code = module.main(
+        [
+            "--input",
+            str(input_dir),
+            "--output",
+            str(output_dir),
+            "--model",
+            "unused-model",
+            "--report",
+            str(report_path),
+        ],
+        provider_factory=lambda args: fake_provider,
+    )
+
+    assert exit_code == 0
+    draft_path = output_dir / f"{story_id}.yaml"
+    with open(draft_path, encoding="utf-8") as f:
+        document = yaml.safe_load(f)
+    # episodeNumberが無いため、episodeIdの辞書順 (E01 -> E02) にfallbackする。
+    assert document["episodeSummaries"][0]["episodeId"] == ep_a
+    assert document["episodeSummaries"][1]["episodeId"] == ep_b
+
+
+def test_generate_metadata_conflict_blocks_story_and_returns_1(
+    module: ModuleType, tmp_path: Path
+):
+    story_id = "EVT_CONFLICT"
+    input_dir = tmp_path / "inputs"
+    _write_json(
+        input_dir / "a.json",
+        _document(
+            story_id,
+            [_sample_episode(f"{story_id}_E01")],
+            public_story_id="PUB_CONFLICT_A",
+        ),
+    )
+    _write_json(
+        input_dir / "b.json",
+        _document(
+            story_id,
+            [_sample_episode(f"{story_id}_E02")],
+            public_story_id="PUB_CONFLICT_B",
+        ),
+    )
+    output_dir = tmp_path / "drafts"
+    report_path = tmp_path / "report.md"
+    fake_provider = _FakeProvider([])
+
+    exit_code = module.main(
+        [
+            "--input",
+            str(input_dir),
+            "--output",
+            str(output_dir),
+            "--model",
+            "unused-model",
+            "--report",
+            str(report_path),
+        ],
+        provider_factory=lambda args: fake_provider,
+    )
+
+    assert exit_code == 1
+    # metadata矛盾によりblockされ、LLMは一切呼ばれず、draftも書き出されない。
+    assert fake_provider.calls == []
+    assert not (output_dir / f"{story_id}.yaml").exists()
+    report_text = report_path.read_text(encoding="utf-8")
+    assert "Metadata Conflicts" in report_text
+    assert story_id in report_text
+    assert "PUB_CONFLICT_A" in report_text
+    assert "PUB_CONFLICT_B" in report_text
+    assert "Metadata conflicts (blocked): 1" in report_text
+
+
+def test_generate_multiple_distinct_story_ids_processed_independently(
+    module: ModuleType, tmp_path: Path
+):
+    story_a = "EVT_MULTI_A"
+    story_b = "EVT_MULTI_B"
+    input_dir = tmp_path / "inputs"
+    _write_json(
+        input_dir / "a.json",
+        _document(story_a, [_sample_episode(f"{story_a}_E01")]),
+    )
+    _write_json(
+        input_dir / "b.json",
+        _document(story_b, [_sample_episode(f"{story_b}_E01")]),
+    )
+    output_dir = tmp_path / "drafts"
+    report_path = tmp_path / "report.md"
+    fake_provider = _FakeProvider(
+        [
+            _json_response("Aのあらすじ。", [f"{story_a}_E01_DLG0001"]),
+            json.dumps({"text": "story Aのあらすじ。"}, ensure_ascii=False),
+            _json_response("Bのあらすじ。", [f"{story_b}_E01_DLG0001"]),
+            json.dumps({"text": "story Bのあらすじ。"}, ensure_ascii=False),
+        ]
+    )
+
+    exit_code = module.main(
+        [
+            "--input",
+            str(input_dir),
+            "--output",
+            str(output_dir),
+            "--model",
+            "unused-model",
+            "--report",
+            str(report_path),
+        ],
+        provider_factory=lambda args: fake_provider,
+    )
+
+    assert exit_code == 0
+    assert (output_dir / f"{story_a}.yaml").exists()
+    assert (output_dir / f"{story_b}.yaml").exists()
+    report_text = report_path.read_text(encoding="utf-8")
+    assert "Story count: 2" in report_text
+
+
+def test_generate_report_counts_unique_story_id_with_mixed_grouping(
+    module: ModuleType, tmp_path: Path
+):
+    story_multi = "EVT_MIX_MULTI"
+    story_single = "EVT_MIX_SINGLE"
+    ep1 = f"{story_multi}_E01"
+    ep2 = f"{story_multi}_E02"
+    input_dir = tmp_path / "inputs"
+    _write_json(
+        input_dir / "multi_ep1.json",
+        _document(
+            story_multi,
+            [
+                _episode(
+                    ep1,
+                    [_dialogue_block(f"{ep1}_DLG0001", "Speaker A", "台詞1。")],
+                    episode_number=1,
+                )
+            ],
+        ),
+    )
+    _write_json(
+        input_dir / "multi_ep2.json",
+        _document(
+            story_multi,
+            [
+                _episode(
+                    ep2,
+                    [_dialogue_block(f"{ep2}_DLG0001", "Speaker B", "台詞2。")],
+                    episode_number=2,
+                )
+            ],
+        ),
+    )
+    _write_json(
+        input_dir / "single.json",
+        _document(story_single, [_sample_episode(f"{story_single}_E01")]),
+    )
+    output_dir = tmp_path / "drafts"
+    report_path = tmp_path / "report.md"
+    fake_provider = _FakeProvider(
+        [
+            _json_response("台詞1のあらすじ。", [f"{ep1}_DLG0001"]),
+            _json_response("台詞2のあらすじ。", [f"{ep2}_DLG0001"]),
+            json.dumps({"text": "multi storyのあらすじ。"}, ensure_ascii=False),
+            _json_response("singleのあらすじ。", [f"{story_single}_E01_DLG0001"]),
+            json.dumps({"text": "single storyのあらすじ。"}, ensure_ascii=False),
+        ]
+    )
+
+    exit_code = module.main(
+        [
+            "--input",
+            str(input_dir),
+            "--output",
+            str(output_dir),
+            "--model",
+            "unused-model",
+            "--report",
+            str(report_path),
+        ],
+        provider_factory=lambda args: fake_provider,
+    )
+
+    assert exit_code == 0
+    draft_files = sorted(p.name for p in output_dir.glob("*.yaml"))
+    assert draft_files == [f"{story_multi}.yaml", f"{story_single}.yaml"]
+    report_text = report_path.read_text(encoding="utf-8")
+    assert "Input files: 3" in report_text
+    assert "Story count: 2" in report_text
+
+
+def test_write_drafts_blocks_duplicate_output_path_defense(
+    module: ModuleType, tmp_path: Path
+):
+    """`_write_drafts`単体の防御策テスト: storyIdグルーピング後は本来
+    発生しないはずだが、万一同一story_idの結果が2件渡された場合でも
+    2件目を黙って上書きせずblocking errorとして記録することを確認する。
+    """
+    from agents.summarizer import (
+        EpisodeSummaryDraft,
+        StorySummaryDraft,
+        StorySummaryGenerationResult,
+        SummaryProvenance,
+    )
+
+    def _minimal_result(story_id: str) -> StorySummaryGenerationResult:
+        draft = StorySummaryDraft(
+            story_id=story_id,
+            episode_summaries=[
+                EpisodeSummaryDraft(
+                    episode_id=f"{story_id}_E01", text="あらすじ。", evidence_refs=[]
+                )
+            ],
+        )
+        provenance = SummaryProvenance(
+            model_provider="fake",
+            model_name="fake-model",
+            prompt_version="episode-summary-v1",
+            generated_at="2026-01-01T00:00:00Z",
+            input_refs=[],
+        )
+        return StorySummaryGenerationResult(
+            story_id=story_id, draft=draft, provenance=provenance, episode_results=[]
+        )
+
+    with open(SCHEMA_PATH, encoding="utf-8") as f:
+        schema = json.load(f)
+    output_dir = tmp_path / "drafts"
+
+    results = [_minimal_result("EVT_DUP"), _minimal_result("EVT_DUP")]
+    written_paths, schema_issues = module._write_drafts(
+        results, schema=schema, output_dir=output_dir, clean=False
+    )
+
+    assert len(written_paths) == 1
+    assert len(schema_issues) == 1
+    assert "2回目の書き込み" in schema_issues[0]
+    assert list(output_dir.glob("*.yaml")) == [output_dir / "EVT_DUP.yaml"]
 
 
 if __name__ == "__main__":
