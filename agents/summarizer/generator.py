@@ -298,7 +298,7 @@ def _check_forbidden_text(text: str) -> list[GenerationIssue]:
     ]
 
 
-def _check_verbatim_quotes(
+def check_verbatim_quotes(
     text: str, blocks: list[ExtractedBlock], *, threshold: int
 ) -> list[GenerationIssue]:
     """長文verbatim引用検出 (Plan §6.3項目4)。
@@ -306,6 +306,13 @@ def _check_verbatim_quotes(
     生成textと各入力Blockの本文との、最長連続一致部分列 (contiguous
     matching substring) を`difflib.SequenceMatcher.find_longest_match`で
     検出し、`threshold`文字以上一致するBlockがあればissueとして記録する。
+
+    公開関数 (アンダースコアなし): `scripts/check_story_summary_drafts.py`
+    (`summary-generation-quality-gate`) が、draft (episode summaryのtext)
+    とNormalized Story JSON由来のBlockとの verbatim検出に再利用するため、
+    このモジュール外からimportできる名前にしている
+    (`summary-generation-prompt-implementation`時点では
+    `_check_verbatim_quotes`という非公開名だった)。
     """
     issues: list[GenerationIssue] = []
     for block in blocks:
@@ -416,7 +423,7 @@ def generate_episode_summary(
     issues: list[GenerationIssue] = list(parse_issues)
     issues.extend(_check_evidence_refs_exist(parsed["evidenceRefs"], valid_block_ids))
     issues.extend(_check_forbidden_text(text))
-    issues.extend(_check_verbatim_quotes(text, blocks, threshold=verbatim_threshold))
+    issues.extend(check_verbatim_quotes(text, blocks, threshold=verbatim_threshold))
 
     draft = EpisodeSummaryDraft(
         episode_id=episode_id,
