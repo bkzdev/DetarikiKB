@@ -41,6 +41,16 @@ synthesis`）。
   書き出さない、exit code 1）、reportに記録する。グルーピング後も万一
   同一出力ファイルパスへ2回書き込みが発生した場合も同様にblocking error
   とし、黙って上書きしない
+- **episodeNumberのrenumber**: Phase 1 parserは1ファイル1 episodeで、
+  各episodeの`episodeNumber`を常に`1`として出力する。そのため上記の
+  storyId単位マージ後、複数episodeを持つstoryでは`episodeNumber`が
+  全episode共通で`1`のまま重複してしまう（`summary-generation-poc`の
+  PoC実施中に発見された2件目のバグの修正、`summary-generation-episode-
+  renumbering`）。マージ・安定ソート後のepisodeNumber列が一意な昇順に
+  なっていない場合（重複・None混在を含む）は、ソート済み順に1..nで
+  renumberする。既に一意な昇順（manifest由来の飛び番を含む）の場合は
+  renumberせずそのまま維持する。詳細は`_merge_story_documents`の
+  docstring参照
 
 hallucination対策の後処理（`agents/summarizer/generator.py`が実装、Plan
 §6.3・§11）は検出結果を自動rejectしない。draftは常に`generationStatus:
@@ -295,7 +305,35 @@ def _check_metadata_conflict(
     return None
 
 
-def _merge_story_documents(docs_for_story: list[dict[str, Any]]) -> dict[str, Any]:
+def _is_unique_ascending_episode_numbers(episodes: list[dict[str, Any]]) -> bool:
+    """`episodes`(`_episode_sort_key`でソート済み前提) の`episodeNumber`列が、
+    重複・None混在の無い一意な昇順になっているか判定する。
+
+    `scripts/check_public_episode_ids.py`の「内部episodeIdの出現順を
+    1始まりのepisodeOrderとする」episodeOrder導出ルールと同じ意味論を
+    採用する: ここでは「renumberが必要かどうか」の判定のみを行い、既に
+    一意な昇順であれば1始まりでなくとも (manifest由来の飛び番、例:
+    2, 5, 9) そのまま維持する (正しいmetadataを上書きしないため)。
+    """
+    numbers: list[int] = []
+    for episode in episodes:
+        number = episode.get("episodeNumber")
+        if not isinstance(number, int) or isinstance(number, bool):
+            return False
+        numbers.append(number)
+    return all(a < b for a, b in zip(numbers, numbers[1:], strict=False))
+
+
+def _renumber_episodes(episodes: list[dict[str, Any]]) -> None:
+    """`episodes`(ソート済み) の`episodeNumber`を、ソート済み順に1..nで
+    振り直す (in-place)。"""
+    for index, episode in enumerate(episodes, start=1):
+        episode["episodeNumber"] = index
+
+
+def _merge_story_documents(
+    docs_for_story: list[dict[str, Any]],
+) -> tuple[dict[str, Any], bool]:
     """同一storyIdのdocument群を1 story documentへマージする。
 
     先頭documentを基準に、`episodes`配列のみを全document分連結して
@@ -303,25 +341,49 @@ def _merge_story_documents(docs_for_story: list[dict[str, Any]]) -> dict[str, An
     document-levelフィールドは`generate_story_summary_draft`が
     `storyId`/`metadata.publicStoryId`/`episodes`のみを参照するため、
     先頭documentの値をそのまま使えばよい)。
+
+    Phase 1 parserは1ファイル1 episodeで、各episodeの`episodeNumber`を
+    常に`1`として出力する。そのため複数episodeを持つstoryをマージすると、
+    マージ後のepisodes全体で`episodeNumber`が`1`のまま重複する
+    (`summary-generation-poc`のPoC実施中に発見された2件目のバグ、
+    `summary-generation-episode-renumbering`で修正)。
+
+    マージ・安定ソート後、episodes全体の`episodeNumber`列が一意な昇順に
+    なっていない場合 (重複・None混在を含む、
+    `_is_unique_ascending_episode_numbers`参照) は、ソート済み順に1..nで
+    renumberする。このrenumberルールは、`scripts/check_public_episode_ids.py`
+    の「内部episodeIdの出現順を1始まりのepisodeOrderとする」episodeOrder
+    導出ルールと同じ意味論である。episodeNumber列が既に一意な昇順
+    (例: manifest由来で2, 5, 9等の飛び番) の場合はrenumberせずそのまま
+    維持する (正しいmetadataを上書きしないため)。
+
+    戻り値: (マージ済みdocument, renumberが発生したかどうか)。
     """
     merged = dict(docs_for_story[0])
     merged_episodes: list[dict[str, Any]] = []
     for doc in docs_for_story:
         merged_episodes.extend(doc.get("episodes", []) or [])
     merged_episodes.sort(key=_episode_sort_key)
+
+    renumbered = False
+    if not _is_unique_ascending_episode_numbers(merged_episodes):
+        _renumber_episodes(merged_episodes)
+        renumbered = True
+
     merged["episodes"] = merged_episodes
-    return merged
+    return merged, renumbered
 
 
 def _group_documents_by_story_id(
     documents: list[dict[str, Any]],
-) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
+) -> tuple[list[dict[str, Any]], list[dict[str, str]], list[str]]:
     """documentをstoryId単位でグルーピングし、episodes配列をマージする。
 
-    戻り値: (マージ済みdocument一覧, metadata矛盾一覧)。マージ済み
-    document一覧はグルーピング後もユニークなstoryIdの数だけ含まれる
-    (入力順に安定)。metadata矛盾が検出されたstoryはマージ済みdocument
-    一覧に含めない (該当storyのdraftは生成しない)。
+    戻り値: (マージ済みdocument一覧, metadata矛盾一覧, episodeNumberを
+    renumberしたstoryId一覧)。マージ済みdocument一覧はグルーピング後も
+    ユニークなstoryIdの数だけ含まれる (入力順に安定)。metadata矛盾が
+    検出されたstoryはマージ済みdocument一覧に含めない (該当storyのdraft
+    は生成しない)。
     """
     groups: dict[str | None, list[dict[str, Any]]] = {}
     order: list[str | None] = []
@@ -334,15 +396,19 @@ def _group_documents_by_story_id(
 
     merged_documents: list[dict[str, Any]] = []
     conflicts: list[dict[str, str]] = []
+    renumbered_story_ids: list[str] = []
     for story_id in order:
         docs_for_story = groups[story_id]
         conflict_message = _check_metadata_conflict(story_id, docs_for_story)
         if conflict_message is not None:
             conflicts.append({"storyId": str(story_id), "message": conflict_message})
             continue
-        merged_documents.append(_merge_story_documents(docs_for_story))
+        merged_document, renumbered = _merge_story_documents(docs_for_story)
+        if renumbered:
+            renumbered_story_ids.append(str(story_id))
+        merged_documents.append(merged_document)
 
-    return merged_documents, conflicts
+    return merged_documents, conflicts, renumbered_story_ids
 
 
 # ----------------------------------------------------------------
@@ -401,7 +467,9 @@ def _build_story_report(result: StorySummaryGenerationResult) -> dict[str, Any]:
     }
 
 
-def _story_report_lines(report: dict[str, Any]) -> list[str]:
+def _story_report_lines(
+    report: dict[str, Any], *, renumbered: bool = False
+) -> list[str]:
     """1 story分のreport Markdown節を組み立てる。"""
     lines = [
         f"## {report['storyId']}",
@@ -409,8 +477,13 @@ def _story_report_lines(report: dict[str, Any]) -> list[str]:
         f"- Episode count: {report['episodeCount']}",
         f"- Episodes generated: {report['episodesGenerated']}",
         f"- Episodes skipped: {report['episodesSkipped']}",
-        "",
     ]
+    if renumbered:
+        lines.append(
+            "- Episode numbers renumbered: merge後のepisodeNumber列が一意な"
+            "昇順ではなかったため、ソート済み順に1..nへ振り直しました。"
+        )
+    lines.append("")
     if report["issueCodeCounts"]:
         lines.append("### Issue code counts")
         lines.append("")
@@ -456,8 +529,11 @@ def _build_report_markdown(
     schema_valid: bool,
     schema_issues: list[str],
     metadata_conflicts: list[dict[str, str]] | None = None,
+    renumbered_story_ids: list[str] | None = None,
 ) -> str:
     metadata_conflicts = metadata_conflicts or []
+    renumbered_story_ids = renumbered_story_ids or []
+    renumbered_set = set(renumbered_story_ids)
     # Story countはユニークstoryId単位 (グルーピング後に生成へ進んだstory +
     # metadata矛盾でblockされたstory)。
     lines = [
@@ -469,10 +545,16 @@ def _build_report_markdown(
     ]
     if metadata_conflicts:
         lines.append(f"- Metadata conflicts (blocked): {len(metadata_conflicts)}")
+    if renumbered_story_ids:
+        lines.append(
+            f"- Episode numbers renumbered (story count): {len(renumbered_story_ids)}"
+        )
     lines.append("")
 
     for report in story_reports:
-        lines.extend(_story_report_lines(report))
+        lines.extend(
+            _story_report_lines(report, renumbered=report["storyId"] in renumbered_set)
+        )
 
     if metadata_conflicts:
         lines.append("## Metadata Conflicts")
@@ -638,7 +720,9 @@ def main(
     # 分かれる。`summary-generation-multi-episode-grouping`で修正した
     # PoC発見バグ)。metadata.publicStoryIdが矛盾するstoryはblocking error
     # としてgrouped_documentsに含めず、metadata_conflictsに記録する。
-    grouped_documents, metadata_conflicts = _group_documents_by_story_id(documents)
+    grouped_documents, metadata_conflicts, renumbered_story_ids = (
+        _group_documents_by_story_id(documents)
+    )
 
     provider = (provider_factory or _default_provider_factory)(args)
 
@@ -665,6 +749,7 @@ def main(
         schema_valid=not schema_issues,
         schema_issues=schema_issues,
         metadata_conflicts=metadata_conflicts,
+        renumbered_story_ids=renumbered_story_ids,
     )
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text(report_markdown, encoding="utf-8")
