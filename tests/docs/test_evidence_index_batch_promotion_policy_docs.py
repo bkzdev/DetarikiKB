@@ -12,6 +12,8 @@ visual review方針・failed story/rollback方針・PR分割方針・次PRスコ
 
 from pathlib import Path
 
+from _public_id_registry_hints import filter_unregistered_hints
+
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 BATCH_POLICY_PATH = (
     PROJECT_ROOT / "docs" / "runbooks" / "Evidence_Index_Batch_Promotion_Policy.md"
@@ -53,6 +55,7 @@ REQUIRED_SECTIONS = (
     "# 13. `evidence-index-promotion-first-batch-dry-run`",
     "# 14. Non-goals",
     "# 15. 関連ドキュメント",
+    "# 16. publicStoryId命名規約v2への移行実行手順",
 )
 
 REAL_DATA_HINTS = (
@@ -206,8 +209,13 @@ def test_batch_policy_doc_states_non_goals():
 
 
 def test_batch_policy_doc_does_not_contain_real_data_hints():
+    # Registry連動許可リスト方式（tests/docs/_public_id_registry_hints.py）:
+    # §16の移行実行手順で言及する既存Evidence Indexファイル名（旧publicStoryId
+    # 由来、Registryに正式登録済みで割当日ベース・sourceKey由来ではない）は
+    # 許可されるが、それ以外の実データ日付断片・イベント名断片は引き続き
+    # 検出される。
     content = _read_doc()
-    for forbidden in REAL_DATA_HINTS:
+    for forbidden in filter_unregistered_hints(REAL_DATA_HINTS):
         assert forbidden not in content
 
 
@@ -749,3 +757,83 @@ def test_tasks_md_stage2_does_not_contain_real_data_hints():
     content = TASKS_PATH.read_text(encoding="utf-8")
     for forbidden in REAL_DATA_HINTS + STAGE2_REAL_DATA_HINTS:
         assert forbidden not in content
+
+
+# ----------------------------------------------------------------
+# feature/public-id-naming-v2-design
+# ----------------------------------------------------------------
+
+MIGRATION_PROCEDURE_HEADING = "# 16. publicStoryId命名規約v2への移行実行手順"
+
+
+def _migration_procedure_section() -> str:
+    content = _read_doc()
+    return content.split(MIGRATION_PROCEDURE_HEADING, 1)[1]
+
+
+def test_batch_policy_doc_has_migration_procedure_section():
+    content = _read_doc()
+    assert MIGRATION_PROCEDURE_HEADING in content
+
+
+def test_batch_policy_doc_states_naming_v2_non_goals():
+    content = _read_doc()
+    section = content.split("# 14. Non-goals", 1)[1].split("# 15. 関連ドキュメント", 1)[
+        0
+    ]
+    assert "feature/public-id-naming-v2-design" in section
+    assert "knowledge/public_ids/story_public_ids.yaml" in section
+
+
+def test_batch_policy_doc_states_migration_not_executed_in_this_pr():
+    section = _migration_procedure_section()
+    assert "本PRでは一切実施しない" in section
+
+
+def test_batch_policy_doc_states_migration_procedure_steps():
+    section = _migration_procedure_section()
+    steps_section = section.split("## 16.2 移行実行手順（次PRで実施）", 1)[1].split(
+        "## 16.3", 1
+    )[0]
+    assert "Registry書き換え" in steps_section
+    assert "knowledge/evidence/stories/" in steps_section
+    assert "knowledge/summaries/stories/" in steps_section
+    assert "改名" in steps_section
+    assert "evidenceRefs" in steps_section
+
+
+def test_batch_policy_doc_states_migration_verification_suite():
+    section = _migration_procedure_section()
+    steps_section = section.split("## 16.2 移行実行手順（次PRで実施）", 1)[1].split(
+        "## 16.3", 1
+    )[0]
+    assert "検証suite" in steps_section
+    assert "render_wiki.py" in steps_section
+    assert "mkdocs build --strict" in steps_section
+    assert "exposure check" in steps_section
+    assert "新旧mapping逆引き検証" in steps_section
+
+
+def test_batch_policy_doc_states_migration_merge_gate():
+    section = _migration_procedure_section()
+    steps_section = section.split("## 16.2 移行実行手順（次PRで実施）", 1)[1].split(
+        "## 16.3", 1
+    )[0]
+    assert "ユーザーが事前承認済み" in steps_section
+    assert "Fableが確認してからマージする" in steps_section
+
+
+def test_batch_policy_doc_states_migration_does_not_touch_past_docs_records():
+    section = _migration_procedure_section()
+    assert (
+        "本PR（`feature/public-id-naming-v2-design`）では、これらの既存docs記載箇所はいずれも変更しない"
+        in section
+    )
+
+
+def test_batch_policy_doc_states_migration_non_goals():
+    section = _migration_procedure_section()
+    non_goals_section = section.split("## 16.4 本PRでは実装しないこと", 1)[1]
+    assert "knowledge/public_ids/story_public_ids.yaml" in non_goals_section
+    assert "knowledge/evidence/stories/" in non_goals_section
+    assert "knowledge/summaries/stories/" in non_goals_section

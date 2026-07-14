@@ -585,3 +585,74 @@ evidenceRefs:
 - `scripts/check_evidence_index_promotion.py`（promotion check script）
 - `docs/architecture/06_AI/Public_ID_Registry_Design.md`（`publicEpisodeId`未確定問題の整理、Public ID Registry設計、`scripts/check_public_episode_ids.py`）
 - `TASKS.md`（次PR候補の追跡）
+
+---
+
+# 16. publicStoryId命名規約v2（2026-07-14ユーザー決定、`feature/public-id-naming-v2-design`で設計）
+
+**本節はユーザー決定・Fable設計を確定したものであり、覆さない。本PR（`feature/public-id-naming-v2-design`）はdocs整備のみを行い、Registry・Evidence Index・Summaryの実データ変更は次PR（移行実行PR）で行う。**
+
+## 16.1 v1からの変更理由
+
+- v1（旧規約）は`{CATEGORY}_{割当日:YYMMDD}_{seq:03d}`という**Registry entry追加日（割当日）ベース**の連番だった（例の形は§2で示した`EVT_YYYYMMDD_NNN`の系譜、実際の運用値は本節§16.3で扱う）。割当日は「いつRegistryへ登録したか」という運用上の付随情報であり、story/episode自体の内容（いつのイベントか）を表さない
+- 割当日ベースのIDは、Registry登録作業のタイミング（PRの実施時期）に依存してしまい、story自体の性質（いつ配信されたイベント/レイドか）を公開ID自体から読み取れない
+- v2では、`YYMMDD`部分を「Registry登録日」ではなく「**sourceKeyの日付接頭辞**（実データ由来、当該story/eventの実際の日付）」に変更し、`seq`部分を「story全体を通した連番」ではなく「**カテゴリ別の昇格（Registry登録）順**の通し連番」に変更する。これにより、公開ID自体がカテゴリと概ねの時系列を表すようになる
+- この変更はユーザー決定（2026-07-14）であり、Fableが設計を確定した。本ドキュメントはその決定を記録するものであり、設計判断そのものの再検討は行わない
+
+## 16.2 新形式（v2、決定）
+
+```text
+{CATEGORY}_{seq:03d}_{YYMMDD}
+```
+
+- `CATEGORY`: `EVENT`/`RAID`（将来`MAIN`/`OTHER`等への拡張はopen question、§16.6）
+- `seq`: カテゴリ別の**昇格（Registry登録）順**の通し連番、1始まり、3桁zero padding
+- `YYMMDD`: **sourceKeyの日付接頭辞**（実データ由来の日付、ユーザーが「公開ID構成要素としての使用」を明示的に許可済み。§16.5で匿名化方針の改定として記録する）
+
+例（形式のみ、実値は含まない）:
+
+```text
+EVENT_001_YYMMDD
+EVENT_002_YYMMDD
+RAID_001_YYMMDD
+```
+
+`publicEpisodeId`の形式`{publicStoryId}_E{NN}`（`Public_ID_Registry_Design.md` §3.1）、`publicEvidenceId`の形式`{publicEpisodeId}_{PREFIX}{sequence:04d}`（§6.4）はいずれも**不変**。v2で変わるのは`publicStoryId`本体の内部構造のみであり、それを参照する派生ID（episode/evidence）の組み立てロジック自体は変更しない。
+
+## 16.3 移行対象3件の新旧mapping
+
+既公開3 storyのpublicStoryIdをv1からv2へ移行する（移行の実行は次PRのスコープ、本PRでは実施しない）。
+
+| # | カテゴリ | 旧publicStoryId（v1、割当日ベース、廃止） | 新publicStoryId（v2、形式のみ） |
+|---|---|---|---|
+| 1 | EVENT | `EVT_260707_001` | `EVENT_001_{YYMMDD}`（sourceKeyの日付接頭辞、実値は移行実行PRで確定） |
+| 2 | EVENT | `EVT_260712_001` | `EVENT_002_{YYMMDD}` |
+| 3 | RAID | `RAID_260712_001` | `RAID_001_{YYMMDD}` |
+
+- 旧publicStoryId 3件は、いずれもRegistry登録日ベースのID（`Public_ID_Registry_Design.md` §5.2の既存運用）であり、sourceKey由来の実データ断片を含まない（§16.5参照）。そのため本表にそのまま記載してよいと判断した
+- 新publicStoryIdの実値（`YYMMDD`部分、sourceKeyの日付接頭辞由来）は、**`knowledge/public_ids/story_public_ids.yaml`へ正式登録されるまではdocsに書かない**（§4のRegistry連動許可リスト方式に従う、移行実行PRで確定・記載する）
+- seq番号（`001`/`002`）は、カテゴリ別のRegistry登録順（＝現行3 storyの登録順）をそのまま踏襲する。EVENTカテゴリは登録順どおり`001`→`002`、RAIDカテゴリは1件のみのため`001`とする
+
+## 16.4 旧ID廃止と再利用禁止
+
+- v1形式（`EVT_YYYYMMDD_NNN`/`RAID_YYYYMMDD_NNN`、割当日ベース）は**廃止**する。以後、新規Registry entryの追加にv1形式を使わない
+- §16.3の旧publicStoryId 3件（`EVT_260707_001`/`EVT_260712_001`/`RAID_260712_001`）は、移行実行後は`knowledge/public_ids/story_public_ids.yaml`から削除される。**削除後もこれらのID値は将来にわたって再利用しない**（`Public_ID_Registry_Design.md` §2「一度公開したら原則変更しない」安定性原則の系譜、および`Evidence_Index_Batch_Promotion_Policy.md` §10 Rollback policyの「一度公開した`publicStoryId`/`publicEpisodeId`は再利用しない」方針と同じ扱いとする）
+- 旧IDの廃止・再利用禁止は、移行実行PRの更新記録（`TASKS.md`・関連runbook）に明記する運用とする（`Evidence_Index_Batch_Promotion_Policy.md` §11.2.1の「削除される公開IDを更新記録に列挙し以後再利用しない」の記録パターンを踏襲する）
+
+## 16.5 匿名化方針の改定
+
+**旧方針**（`Public_ID_Registry_Design.md` §5.3、`Evidence_Index_Batch_Promotion_Policy.md` §5の既存Registry entry review条件等で前提としてきたもの）: 「公開IDはsourceKey由来にしない」。
+
+**新方針（v2、本PRで確定）**: 「**sourceKeyの日付部分のみ**、正式に割当済みの公開IDの構成要素として使用してよい。**イベント名部分（sourceKeyのslug、例: 実イベント名の略称等）は引き続き使用禁止**」。
+
+- 改定理由: v2の`YYMMDD`はsourceKeyの日付接頭辞そのものだが、日付単体は特定のイベント内容・タイトルを一意に明かす情報ではなく、ユーザーが公開して問題ないと判断した（2026-07-14決定）
+- sourceKeyのイベント名/slug部分（実イベント名の略称等）は、この改定後も**引き続き公開ID・docs双方で使用禁止**のまま変更しない。v2は「日付部分の可否」のみを変更するものであり、匿名化方針全体を緩めるものではない
+- この改定は、`AI_PR_Playbook.md` §5「匿名化ルール」・`Public_ID_Registry_Design.md` §5.3「含めないもの」・`Evidence_Index_Batch_Promotion_Policy.md` §5「Registry entry review条件」の前提を部分的に更新するが、**これらのdocs本文自体の書き換えは本PRでは行わない**（次PR以降、必要に応じて表現を追随させる。矛盾する場合は本節を優先する）
+- 本改定は`knowledge/public_ids/story_public_ids.yaml`に**正式登録済み**のpublicStoryId/publicEpisodeId/publicEvidenceIdの構成要素としての日付断片にのみ適用される。Registry未登録の日付断片（sourceKeyそのものの断片・ローカルworkspace生成物内の値等）は、引き続き匿名化ルールの対象として扱う
+
+## 16.6 Open questions（未確定事項、据え置き）
+
+- 日付接頭辞を持たない旧番号体系のsourceKey（連番_名前_年 形式）への対応は未確定のまま据え置く（今回の移行対象3件はいずれも日付接頭辞つきのため当面影響しない）
+- MAINカテゴリ（日付なし・章番号体系、`Story_ID_Policy_Decision.md` §6.1）の命名は将来の検討事項として据え置く。v2形式`{CATEGORY}_{seq:03d}_{YYMMDD}`をそのまま適用できるかは未確定
+- `OTHER`カテゴリへのv2適用可否も未確定のまま据え置く
+- Registry追加順（＝昇格順）を`seq`の根拠とする運用は、将来batch promotionの粒度（`Evidence_Index_Batch_Promotion_Policy.md` §4）が変わった場合でも一貫して維持できるかは、実際のbatch運用を重ねてから確認する
