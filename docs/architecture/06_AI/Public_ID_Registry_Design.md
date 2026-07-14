@@ -43,9 +43,9 @@ Path: `docs/architecture/06_AI/Public_ID_Registry_Design.md`
 例:
 
 ```text
-EVT_260707_001_E01
-EVT_260707_001_E02
-EVT_260707_001_E03
+EVENT_001_260425_E01
+EVENT_001_260425_E02
+EVENT_001_260425_E03
 ```
 
 - story内のepisode順（`episodeOrder`）で採番する
@@ -69,7 +69,7 @@ EVT_260707_001_E03
 
 - **v2形式**: `{CATEGORY}_{seq:03d}_{YYMMDD}`（`CATEGORY`は`EVENT`/`RAID`、`seq`はカテゴリ別の**昇格（Registry登録）順**の通し連番1始まり3桁zero padding、`YYMMDD`はsourceKeyの日付接頭辞）
 - **採番方針（seq）**: `stories[]`をカテゴリでフィルタし、当該カテゴリ内でのRegistry追加順（＝実際に`knowledge/evidence/stories/`へ昇格した順）を1始まりの連番とする。既存3 storyのRegistry登録順（EVENT 2件→RAID 1件、§8.6参照）がそのままEVENT `001`/`002`・RAID `001`の根拠になる
-- **v1（割当日ベース、`{CATEGORY}_{割当日:YYMMDD}_{seq:03d}`）は廃止する**。本文書§5.2の`EVT_260707_001`という記載は、v1形式の説明用サンプルとして書かれた既存の例示であり、v2移行後の新規Registry entryはこの形式を使わない（既存の説明用サンプル自体は本PRでは書き換えない。移行実行PR以降に追随させる）
+- **v1（割当日ベース、`{CATEGORY}_{割当日:YYMMDD}_{seq:03d}`）は廃止する**。本文書§5.2の`EVT_260707_001`という記載は、v1形式の説明用サンプルとして書かれていた既存の例示であり（`feature/public-id-naming-v2-design`時点では本PRでは書き換えない・移行実行PR以降に追随させる方針だった）、v2移行後の新規Registry entryはこの形式を使わない。移行実行PR（`feature/public-id-naming-v2-migration`）で§3.1・§5.2・§7.4のサンプルをv2形式（`EVENT_001_260425`等）へ更新済み
 - `publicEpisodeId`の採番方針（§3.1: `{publicStoryId}_E{episodeOrder:02d}`）・`publicEvidenceId`の採番方針（§3.2）はいずれも**不変**。v2で変わるのは`publicStoryId`が内部に持つ意味的構造（割当日→sourceKey日付＋カテゴリ別昇格順）のみであり、`publicStoryId`をprefixとして使う派生ID側のロジックには影響しない
 - 実際のRegistry書き換え（`knowledge/public_ids/story_public_ids.yaml`の3 storyのpublicStoryId値の改名、およびそれに伴う`publicEpisodeId`の改名）は移行実行PR（`Evidence_Index_Public_ID_Policy.md` §16の設計を実行するPR）のスコープであり、**本PRでは実施しない**
 
@@ -116,12 +116,12 @@ EVT_260707_001_E03
 ```yaml
 registryVersion: 1
 stories:
-  - publicStoryId: EVT_260707_001
+  - publicStoryId: EVENT_001_260425
     category: event
     episodes:
-      - publicEpisodeId: EVT_260707_001_E01
+      - publicEpisodeId: EVENT_001_260425_E01
         episodeOrder: 1
-      - publicEpisodeId: EVT_260707_001_E02
+      - publicEpisodeId: EVENT_001_260425_E02
         episodeOrder: 2
 ```
 
@@ -165,7 +165,7 @@ schema自体が`additionalProperties: false`を全階層で指定しているた
 - 入力entryのepisodeOrder（内部episodeIdの出現順、1始まり）を常に計算し、`publicStoryId + episodeOrder`でRegistryを引く。episodeOrderを安全に決定できない場合（`publicStoryId`が複数混在・欠落）はRegistry補完を試みず、既存のmissing publicStoryIdチェックにblockingとして委ねる
 - 既存`publicEpisodeId`がある場合: Registry値と一致すればそのまま、不一致ならblocking、Registryに該当が無ければwarning（PASSは維持）
 - 既存`publicEpisodeId`が無い場合: Registryに該当があれば補完（entryを直接書き換え）、無ければ引き続きblocking（自動採番はしない）
-- Registry補完後に`publicEvidenceId`を生成するため、補完されたepisodeのentryは新しい`publicEpisodeId`をprefixにした`publicEvidenceId`を得る（例: `EVT_260707_001_E02_DLG0001`）
+- Registry補完後に`publicEvidenceId`を生成するため、補完されたepisodeのentryは新しい`publicEpisodeId`をprefixにした`publicEvidenceId`を得る（例: `EVENT_001_260425_E02_DLG0001`）
 - compatible modeでもRegistry補完は同様に働く（内部IDは維持したまま`publicEpisodeId`のみ補完し、`publicEvidenceId`を生成する）
 - mapping CSVに`episodeOrder`/`publicEpisodeIdSource`（input/registry/missing）/`registryMatched`/`registryConflict`/`registryPublicEpisodeId`列を追加した（Registry未使用時も`source`はinput/missingとして常に記録する）
 - reportに`## Registry`section（Registry path/stories count/episodes count/entries from input・registry/missing after lookup/conflicts）を追加し、`## Warnings`sectionも新設した
@@ -205,9 +205,9 @@ uv run python scripts/check_public_episode_ids.py `
 
 ```yaml
 suggestions:
-  - publicStoryId: EVT_260707_001
+  - publicStoryId: EVENT_001_260425
     missingEpisodeOrder: 2
-    suggestedPublicEpisodeId: EVT_260707_001_E02
+    suggestedPublicEpisodeId: EVENT_001_260425_E02
     reason: "Next sequential episode order inferred from candidate order."
     reviewRequired: true
 ```
@@ -244,7 +244,7 @@ suggestions:
 
 # 8.5 実Registryへの実データ追加（`feature/evidence-index-promotion-first-reviewed-sample-retry`で実施）
 
-長期方針として採用した候補B（Public ID Registry）を、初めて実データで実行した。`knowledge/public_ids/story_public_ids.yaml`として、1 story分（匿名化表記`EVT_260707_001`、event category、episode 2件）のRegistry entryを正式commitした。内容は§5.2のサンプルと同一（`publicStoryId`/`category`/`episodes[].publicEpisodeId`/`episodeOrder`のみ）で、sourceKey由来の内部ID・raw title・raw pathは一切含まない（schema `additionalProperties: false`により構造的に保証）。
+長期方針として採用した候補B（Public ID Registry）を、初めて実データで実行した。`knowledge/public_ids/story_public_ids.yaml`として、1 story分（匿名化表記`EVENT_001_260425`、event category、episode 2件）のRegistry entryを正式commitした。内容は§5.2のサンプルと同一（`publicStoryId`/`category`/`episodes[].publicEpisodeId`/`episodeOrder`のみ）で、sourceKey由来の内部ID・raw title・raw pathは一切含まない（schema `additionalProperties: false`により構造的に保証）。
 
 この実Registryを`project_evidence_index_public_ids.py --registry`に指定し、Public-safe projectionでEpisode 2（95 entries）の`publicEpisodeId`を正しく補完できることを確認した（187 entries全件PASS、詳細は`docs/runbooks/Evidence_Index_Promotion_Copy.md` §13.8）。`scripts/check_public_episode_ids.py`はRegistryをsuggestion用途にのみ使う設計のため、入力候補自体にEpisode 2の`publicEpisodeId`が無い状態ではexit code 1（missing）のままだが、提案値が正式Registry entryと一致することを確認した（この挙動は仕様通りであり、`check_public_episode_ids.py`側の変更は行っていない）。
 
@@ -285,7 +285,7 @@ suggestions:
 `feature/evidence-index-promotion-first-reviewed-sample-retry`（PR #99）で以下を実施した:
 
 - `knowledge/public_ids/story_public_ids.yaml`への実Registry entry追加（1 story・episode 2件のみ、§8.5参照）
-- 上記Registryを使ったPublic-safe projection・promotion checkの再実行、`knowledge/evidence/stories/EVT_260707_001.yaml`への実Evidence Index昇格（`promote_evidence_index.py --execute`）
+- 上記Registryを使ったPublic-safe projection・promotion checkの再実行、`knowledge/evidence/stories/EVENT_001_260425.yaml`への実Evidence Index昇格（`promote_evidence_index.py --execute`）
 
 同PRでも以下は行っていない:
 

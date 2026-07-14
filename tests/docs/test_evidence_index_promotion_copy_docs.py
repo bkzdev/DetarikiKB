@@ -10,6 +10,8 @@ promotion copy runbookの必須項目（dry-run既定・--execute必須・review
 
 from pathlib import Path
 
+from _public_id_registry_hints import filter_unregistered_hints
+
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 PROMOTION_COPY_RUNBOOK_PATH = (
     PROJECT_ROOT / "docs" / "runbooks" / "Evidence_Index_Promotion_Copy.md"
@@ -164,9 +166,17 @@ def test_promotion_copy_runbook_states_target_filename_concern():
 
 
 def test_promotion_copy_runbook_does_not_contain_real_data_hints():
-    """実イベント名・実ファイル名・raw pathを書かない方針の簡易チェック。"""
+    """実イベント名・実ファイル名・raw pathを書かない方針の簡易チェック。
+
+    "260425"はknowledge/public_ids/story_public_ids.yamlへ正式登録済みの
+    publicStoryId（EVENT_001_260425）に含まれる日付断片のため、Registry
+    連動許可リスト（`filter_unregistered_hints`、`Evidence_Index_Public_ID_
+    Policy.md` §16.5の匿名化方針改定）により許可する。
+    """
     content = _read_runbook()
-    for forbidden in ("CAMI3RD", "260425", "C:\\Users", "D:\\Dev", ".dec\n"):
+    for forbidden in filter_unregistered_hints(
+        ("CAMI3RD", "260425", "C:\\Users", "D:\\Dev", ".dec\n")
+    ):
         assert forbidden not in content
 
 
@@ -195,7 +205,9 @@ def test_tasks_md_lists_target_filename_policy_next_candidate():
 
 def test_tasks_md_does_not_contain_real_data_hints():
     content = TASKS_PATH.read_text(encoding="utf-8")
-    for forbidden in ("CAMI3RD", "260425", "C:\\Users", "D:\\Dev"):
+    for forbidden in filter_unregistered_hints(
+        ("CAMI3RD", "260425", "C:\\Users", "D:\\Dev")
+    ):
         assert forbidden not in content
 
 
@@ -244,7 +256,9 @@ def test_promotion_policy_visual_review_does_not_contain_real_data_hints():
         "実施結果（`feature/evidence-index-promotion-first-sample-visual-review`で実施）",
         1,
     )[1].split("---", 1)[0]
-    for forbidden in ("CAMI3RD", "260425", "C:\\Users", "D:\\Dev"):
+    for forbidden in filter_unregistered_hints(
+        ("CAMI3RD", "260425", "C:\\Users", "D:\\Dev")
+    ):
         assert forbidden not in section
 
 

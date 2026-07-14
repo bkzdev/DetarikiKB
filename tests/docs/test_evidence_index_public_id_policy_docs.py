@@ -63,8 +63,12 @@ REQUIRED_SECTIONS = (
 REAL_DATA_HINTS = (
     "CAMI3RD",
     "260425",
-    "260707",
-    "260712",
+    # "260707"/"260712"は§16.3で移行対象と確定した旧publicStoryId（v1、
+    # Registry登録日ベース）の日付断片であり、sourceKey由来の実データを
+    # 含まないと既に判断済み（§16.3参照）。移行実行PR（publicStoryId
+    # 命名規約v2移行）でRegistryから旧entryが削除された後も、旧IDそのもの
+    # は§16.3の新旧mapping表等に記載され続けるため、恒久的にforbidden
+    # hintsから除外する（Registry連動許可リストの対象外の恒久許可）。
     "C:\\Users",
     "D:\\Dev",
 )

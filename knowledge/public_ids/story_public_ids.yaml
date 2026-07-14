@@ -1,19 +1,19 @@
 registryVersion: 1
 stories:
-  - publicStoryId: EVT_260707_001
+  - publicStoryId: EVENT_001_260425
     category: event
     episodes:
-      - publicEpisodeId: EVT_260707_001_E01
+      - publicEpisodeId: EVENT_001_260425_E01
         episodeOrder: 1
-      - publicEpisodeId: EVT_260707_001_E02
+      - publicEpisodeId: EVENT_001_260425_E02
         episodeOrder: 2
-  - publicStoryId: EVT_260712_001
+  - publicStoryId: EVENT_002_260624
     category: event
     episodes:
-      - publicEpisodeId: EVT_260712_001_E01
+      - publicEpisodeId: EVENT_002_260624_E01
         episodeOrder: 1
-  - publicStoryId: RAID_260712_001
+  - publicStoryId: RAID_001_260504
     category: raid
     episodes:
-      - publicEpisodeId: RAID_260712_001_E01
+      - publicEpisodeId: RAID_001_260504_E01
         episodeOrder: 1

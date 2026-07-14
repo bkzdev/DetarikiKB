@@ -1,32 +1,32 @@
 schemaVersion: 0.1.0
 documentType: story_summary
-storyId: RAID_260712_001
-publicStoryId: RAID_260712_001
+storyId: RAID_001_260504
+publicStoryId: RAID_001_260504
 language: ja
 generationStatus: generated
 storySummary:
   text: 班長と連絡がつかず、エミットは端末の電源が入っていないことに苛立つ。園乃とカラーもリグラスの呼びかけに応答しないが、使用人からの連絡で二人が公園にいることが判明する。公園ではジャマー出現の混乱の中で避難誘導が始まり、弱気になっていた園乃は同行者にたしなめられながら、ジャマーと向き合おうとする。
   confidence: null
   evidenceRefs:
-  - RAID_260712_001_E01_DLG0050
-  - RAID_260712_001_E01_DLG0052
-  - RAID_260712_001_E01_DLG0054
-  - RAID_260712_001_E01_DLG0061
-  - RAID_260712_001_E01_NAR0020
-  - RAID_260712_001_E01_DLG0072
+  - RAID_001_260504_E01_DLG0050
+  - RAID_001_260504_E01_DLG0052
+  - RAID_001_260504_E01_DLG0054
+  - RAID_001_260504_E01_DLG0061
+  - RAID_001_260504_E01_NAR0020
+  - RAID_001_260504_E01_DLG0072
 episodeSummaries:
-- episodeId: RAID_260712_001_E01
-  publicEpisodeId: RAID_260712_001_E01
+- episodeId: RAID_001_260504_E01
+  publicEpisodeId: RAID_001_260504_E01
   episodeNumber: 1
   text: 班長と連絡がつかず、エミットは端末の電源が入っていないことに苛立つ。園乃とカラーもリグラスの呼びかけに応答しないが、使用人からの連絡で二人が公園にいることが判明する。公園ではジャマー出現の混乱の中で避難誘導が始まり、弱気になっていた園乃は同行者にたしなめられながら、ジャマーと向き合おうとする。
   confidence: null
   evidenceRefs:
-  - RAID_260712_001_E01_DLG0050
-  - RAID_260712_001_E01_DLG0052
-  - RAID_260712_001_E01_DLG0054
-  - RAID_260712_001_E01_DLG0061
-  - RAID_260712_001_E01_NAR0020
-  - RAID_260712_001_E01_DLG0072
+  - RAID_001_260504_E01_DLG0050
+  - RAID_001_260504_E01_DLG0052
+  - RAID_001_260504_E01_DLG0054
+  - RAID_001_260504_E01_DLG0061
+  - RAID_001_260504_E01_NAR0020
+  - RAID_001_260504_E01_DLG0072
 source:
   sourceType: ai_generated
   model: ollama/qwen2.5:14b-instruct

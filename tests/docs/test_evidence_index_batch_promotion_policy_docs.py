@@ -61,8 +61,13 @@ REQUIRED_SECTIONS = (
 REAL_DATA_HINTS = (
     "CAMI3RD",
     "260425",
-    "260707",
-    "260712",
+    # "260707"/"260712"は§16.3で移行対象と確定した旧publicStoryId（v1、
+    # Registry登録日ベース）の日付断片であり、sourceKey由来の実データを
+    # 含まないと既に判断済み（`Evidence_Index_Public_ID_Policy.md` §16.3参
+    # 照）。移行実行PR（publicStoryId命名規約v2移行）でRegistryから旧
+    # entryが削除された後も、旧IDそのものは本文書§16.2の手順定義・
+    # `Evidence_Index_Public_ID_Policy.md` §16.3の新旧mapping表に記載され
+    # 続けるため、恒久的にforbidden hintsから除外する。
     "C:\\Users",
     "D:\\Dev",
 )
