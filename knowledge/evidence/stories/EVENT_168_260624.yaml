@@ -1,23 +1,23 @@
 evidenceIndexVersion: 1
 generatedFrom: null
 entries:
-- evidenceId: EVENT_002_260624_E01_NAR0001
+- evidenceId: EVENT_168_260624_E01_NAR0001
   evidenceType: narration
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_NAR0001
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_NAR0001
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
-- evidenceId: EVENT_002_260624_E01_DLG0001
+- evidenceId: EVENT_168_260624_E01_DLG0001
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0001
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0001
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -28,13 +28,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_024_EMMITT
-- evidenceId: EVENT_002_260624_E01_DLG0002
+- evidenceId: EVENT_168_260624_E01_DLG0002
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0002
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0002
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -45,13 +45,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_029_RAVEL
-- evidenceId: EVENT_002_260624_E01_DLG0003
+- evidenceId: EVENT_168_260624_E01_DLG0003
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0003
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0003
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -62,13 +62,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_029_RAVEL
-- evidenceId: EVENT_002_260624_E01_DLG0004
+- evidenceId: EVENT_168_260624_E01_DLG0004
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0004
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0004
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -79,13 +79,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_029_RAVEL
-- evidenceId: EVENT_002_260624_E01_DLG0005
+- evidenceId: EVENT_168_260624_E01_DLG0005
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0005
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0005
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -96,13 +96,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_232_MINATO_MOEGI
-- evidenceId: EVENT_002_260624_E01_DLG0006
+- evidenceId: EVENT_168_260624_E01_DLG0006
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0006
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0006
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -113,13 +113,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_029_RAVEL
-- evidenceId: EVENT_002_260624_E01_DLG0007
+- evidenceId: EVENT_168_260624_E01_DLG0007
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0007
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0007
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -130,13 +130,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_203_ISOBE_KAORI
-- evidenceId: EVENT_002_260624_E01_DLG0008
+- evidenceId: EVENT_168_260624_E01_DLG0008
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0008
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0008
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -147,13 +147,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_083_YAEISHI_YOSHIKA
-- evidenceId: EVENT_002_260624_E01_DLG0009
+- evidenceId: EVENT_168_260624_E01_DLG0009
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0009
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0009
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -164,13 +164,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_232_MINATO_MOEGI
-- evidenceId: EVENT_002_260624_E01_DLG0010
+- evidenceId: EVENT_168_260624_E01_DLG0010
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0010
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0010
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -181,13 +181,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_029_RAVEL
-- evidenceId: EVENT_002_260624_E01_DLG0011
+- evidenceId: EVENT_168_260624_E01_DLG0011
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0011
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0011
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -198,13 +198,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_008_SHINONOME_WAKA
-- evidenceId: EVENT_002_260624_E01_DLG0012
+- evidenceId: EVENT_168_260624_E01_DLG0012
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0012
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0012
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -215,13 +215,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_203_ISOBE_KAORI
-- evidenceId: EVENT_002_260624_E01_DLG0013
+- evidenceId: EVENT_168_260624_E01_DLG0013
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0013
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0013
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -232,13 +232,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_232_MINATO_MOEGI
-- evidenceId: EVENT_002_260624_E01_DLG0014
+- evidenceId: EVENT_168_260624_E01_DLG0014
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0014
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0014
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -249,13 +249,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_008_SHINONOME_WAKA
-- evidenceId: EVENT_002_260624_E01_DLG0015
+- evidenceId: EVENT_168_260624_E01_DLG0015
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0015
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0015
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -266,13 +266,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_232_MINATO_MOEGI
-- evidenceId: EVENT_002_260624_E01_DLG0016
+- evidenceId: EVENT_168_260624_E01_DLG0016
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0016
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0016
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -283,13 +283,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_029_RAVEL
-- evidenceId: EVENT_002_260624_E01_DLG0017
+- evidenceId: EVENT_168_260624_E01_DLG0017
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0017
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0017
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -300,13 +300,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_083_YAEISHI_YOSHIKA
-- evidenceId: EVENT_002_260624_E01_DLG0018
+- evidenceId: EVENT_168_260624_E01_DLG0018
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0018
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0018
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -317,13 +317,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_232_MINATO_MOEGI
-- evidenceId: EVENT_002_260624_E01_DLG0019
+- evidenceId: EVENT_168_260624_E01_DLG0019
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0019
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0019
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -334,13 +334,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_029_RAVEL
-- evidenceId: EVENT_002_260624_E01_DLG0020
+- evidenceId: EVENT_168_260624_E01_DLG0020
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0020
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0020
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -351,13 +351,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_232_MINATO_MOEGI
-- evidenceId: EVENT_002_260624_E01_DLG0021
+- evidenceId: EVENT_168_260624_E01_DLG0021
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0021
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0021
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -368,13 +368,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_029_RAVEL
-- evidenceId: EVENT_002_260624_E01_DLG0022
+- evidenceId: EVENT_168_260624_E01_DLG0022
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0022
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0022
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -385,13 +385,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_203_ISOBE_KAORI
-- evidenceId: EVENT_002_260624_E01_DLG0023
+- evidenceId: EVENT_168_260624_E01_DLG0023
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0023
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0023
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -402,13 +402,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_083_YAEISHI_YOSHIKA
-- evidenceId: EVENT_002_260624_E01_DLG0024
+- evidenceId: EVENT_168_260624_E01_DLG0024
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0024
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0024
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -419,13 +419,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_024_EMMITT
-- evidenceId: EVENT_002_260624_E01_DLG0025
+- evidenceId: EVENT_168_260624_E01_DLG0025
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0025
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0025
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -436,33 +436,33 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_024_EMMITT
-- evidenceId: EVENT_002_260624_E01_NAR0002
+- evidenceId: EVENT_168_260624_E01_NAR0002
   evidenceType: narration
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_NAR0002
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_NAR0002
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
-- evidenceId: EVENT_002_260624_E01_DLG0026
+- evidenceId: EVENT_168_260624_E01_DLG0026
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0026
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0026
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
-- evidenceId: EVENT_002_260624_E01_DLG0027
+- evidenceId: EVENT_168_260624_E01_DLG0027
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0027
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0027
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -473,13 +473,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_029_RAVEL
-- evidenceId: EVENT_002_260624_E01_DLG0028
+- evidenceId: EVENT_168_260624_E01_DLG0028
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0028
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0028
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -490,13 +490,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_008_SHINONOME_WAKA
-- evidenceId: EVENT_002_260624_E01_DLG0029
+- evidenceId: EVENT_168_260624_E01_DLG0029
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0029
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0029
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -507,13 +507,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_203_ISOBE_KAORI
-- evidenceId: EVENT_002_260624_E01_DLG0030
+- evidenceId: EVENT_168_260624_E01_DLG0030
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0030
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0030
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -524,33 +524,33 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_083_YAEISHI_YOSHIKA
-- evidenceId: EVENT_002_260624_E01_NAR0003
+- evidenceId: EVENT_168_260624_E01_NAR0003
   evidenceType: narration
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_NAR0003
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_NAR0003
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
-- evidenceId: EVENT_002_260624_E01_DLG0031
+- evidenceId: EVENT_168_260624_E01_DLG0031
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0031
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0031
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
-- evidenceId: EVENT_002_260624_E01_DLG0032
+- evidenceId: EVENT_168_260624_E01_DLG0032
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0032
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0032
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -561,13 +561,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_029_RAVEL
-- evidenceId: EVENT_002_260624_E01_DLG0033
+- evidenceId: EVENT_168_260624_E01_DLG0033
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0033
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0033
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -578,13 +578,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_232_MINATO_MOEGI
-- evidenceId: EVENT_002_260624_E01_DLG0034
+- evidenceId: EVENT_168_260624_E01_DLG0034
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0034
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0034
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -595,13 +595,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_008_SHINONOME_WAKA
-- evidenceId: EVENT_002_260624_E01_DLG0035
+- evidenceId: EVENT_168_260624_E01_DLG0035
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0035
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0035
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -612,13 +612,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_232_MINATO_MOEGI
-- evidenceId: EVENT_002_260624_E01_DLG0036
+- evidenceId: EVENT_168_260624_E01_DLG0036
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0036
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0036
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -629,13 +629,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_203_ISOBE_KAORI
-- evidenceId: EVENT_002_260624_E01_DLG0037
+- evidenceId: EVENT_168_260624_E01_DLG0037
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0037
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0037
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -646,13 +646,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_232_MINATO_MOEGI
-- evidenceId: EVENT_002_260624_E01_DLG0038
+- evidenceId: EVENT_168_260624_E01_DLG0038
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0038
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0038
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -663,13 +663,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_083_YAEISHI_YOSHIKA
-- evidenceId: EVENT_002_260624_E01_DLG0039
+- evidenceId: EVENT_168_260624_E01_DLG0039
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0039
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0039
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -680,13 +680,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_203_ISOBE_KAORI
-- evidenceId: EVENT_002_260624_E01_DLG0040
+- evidenceId: EVENT_168_260624_E01_DLG0040
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0040
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0040
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -697,13 +697,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_083_YAEISHI_YOSHIKA
-- evidenceId: EVENT_002_260624_E01_DLG0041
+- evidenceId: EVENT_168_260624_E01_DLG0041
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0041
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0041
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -714,23 +714,23 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_029_RAVEL
-- evidenceId: EVENT_002_260624_E01_NAR0004
+- evidenceId: EVENT_168_260624_E01_NAR0004
   evidenceType: narration
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_NAR0004
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_NAR0004
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
-- evidenceId: EVENT_002_260624_E01_DLG0042
+- evidenceId: EVENT_168_260624_E01_DLG0042
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0042
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0042
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -741,13 +741,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_203_ISOBE_KAORI
-- evidenceId: EVENT_002_260624_E01_DLG0043
+- evidenceId: EVENT_168_260624_E01_DLG0043
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0043
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0043
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -758,13 +758,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_008_SHINONOME_WAKA
-- evidenceId: EVENT_002_260624_E01_DLG0044
+- evidenceId: EVENT_168_260624_E01_DLG0044
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0044
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0044
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -775,13 +775,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_029_RAVEL
-- evidenceId: EVENT_002_260624_E01_DLG0045
+- evidenceId: EVENT_168_260624_E01_DLG0045
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0045
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0045
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -792,13 +792,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_083_YAEISHI_YOSHIKA
-- evidenceId: EVENT_002_260624_E01_DLG0046
+- evidenceId: EVENT_168_260624_E01_DLG0046
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0046
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0046
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -809,13 +809,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_029_RAVEL
-- evidenceId: EVENT_002_260624_E01_DLG0047
+- evidenceId: EVENT_168_260624_E01_DLG0047
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0047
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0047
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -826,13 +826,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_232_MINATO_MOEGI
-- evidenceId: EVENT_002_260624_E01_DLG0048
+- evidenceId: EVENT_168_260624_E01_DLG0048
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0048
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0048
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -843,13 +843,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_232_MINATO_MOEGI
-- evidenceId: EVENT_002_260624_E01_DLG0049
+- evidenceId: EVENT_168_260624_E01_DLG0049
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0049
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0049
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -860,13 +860,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_083_YAEISHI_YOSHIKA
-- evidenceId: EVENT_002_260624_E01_DLG0050
+- evidenceId: EVENT_168_260624_E01_DLG0050
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0050
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0050
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -877,13 +877,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_232_MINATO_MOEGI
-- evidenceId: EVENT_002_260624_E01_DLG0051
+- evidenceId: EVENT_168_260624_E01_DLG0051
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0051
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0051
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -894,33 +894,33 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_203_ISOBE_KAORI
-- evidenceId: EVENT_002_260624_E01_NAR0005
+- evidenceId: EVENT_168_260624_E01_NAR0005
   evidenceType: narration
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_NAR0005
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_NAR0005
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
-- evidenceId: EVENT_002_260624_E01_DLG0052
+- evidenceId: EVENT_168_260624_E01_DLG0052
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0052
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0052
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
-- evidenceId: EVENT_002_260624_E01_DLG0053
+- evidenceId: EVENT_168_260624_E01_DLG0053
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0053
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0053
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -931,13 +931,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_083_YAEISHI_YOSHIKA
-- evidenceId: EVENT_002_260624_E01_DLG0054
+- evidenceId: EVENT_168_260624_E01_DLG0054
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0054
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0054
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -948,13 +948,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_029_RAVEL
-- evidenceId: EVENT_002_260624_E01_DLG0055
+- evidenceId: EVENT_168_260624_E01_DLG0055
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0055
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0055
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -965,13 +965,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_203_ISOBE_KAORI
-- evidenceId: EVENT_002_260624_E01_DLG0056
+- evidenceId: EVENT_168_260624_E01_DLG0056
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0056
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0056
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -982,13 +982,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_008_SHINONOME_WAKA
-- evidenceId: EVENT_002_260624_E01_DLG0057
+- evidenceId: EVENT_168_260624_E01_DLG0057
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0057
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0057
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -999,13 +999,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_083_YAEISHI_YOSHIKA
-- evidenceId: EVENT_002_260624_E01_DLG0058
+- evidenceId: EVENT_168_260624_E01_DLG0058
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0058
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0058
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -1016,13 +1016,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_203_ISOBE_KAORI
-- evidenceId: EVENT_002_260624_E01_DLG0059
+- evidenceId: EVENT_168_260624_E01_DLG0059
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0059
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0059
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -1033,13 +1033,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_232_MINATO_MOEGI
-- evidenceId: EVENT_002_260624_E01_DLG0060
+- evidenceId: EVENT_168_260624_E01_DLG0060
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0060
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0060
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -1050,33 +1050,33 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_029_RAVEL
-- evidenceId: EVENT_002_260624_E01_NAR0006
+- evidenceId: EVENT_168_260624_E01_NAR0006
   evidenceType: narration
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_NAR0006
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_NAR0006
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
-- evidenceId: EVENT_002_260624_E01_NAR0007
+- evidenceId: EVENT_168_260624_E01_NAR0007
   evidenceType: narration
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_NAR0007
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_NAR0007
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
-- evidenceId: EVENT_002_260624_E01_DLG0061
+- evidenceId: EVENT_168_260624_E01_DLG0061
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0061
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0061
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -1087,13 +1087,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_008_SHINONOME_WAKA
-- evidenceId: EVENT_002_260624_E01_DLG0062
+- evidenceId: EVENT_168_260624_E01_DLG0062
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0062
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0062
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -1104,13 +1104,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_029_RAVEL
-- evidenceId: EVENT_002_260624_E01_DLG0063
+- evidenceId: EVENT_168_260624_E01_DLG0063
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0063
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0063
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -1121,13 +1121,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_203_ISOBE_KAORI
-- evidenceId: EVENT_002_260624_E01_DLG0064
+- evidenceId: EVENT_168_260624_E01_DLG0064
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0064
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0064
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -1138,13 +1138,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_083_YAEISHI_YOSHIKA
-- evidenceId: EVENT_002_260624_E01_DLG0065
+- evidenceId: EVENT_168_260624_E01_DLG0065
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0065
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0065
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -1155,13 +1155,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_029_RAVEL
-- evidenceId: EVENT_002_260624_E01_DLG0066
+- evidenceId: EVENT_168_260624_E01_DLG0066
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0066
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0066
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -1172,13 +1172,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_203_ISOBE_KAORI
-- evidenceId: EVENT_002_260624_E01_DLG0067
+- evidenceId: EVENT_168_260624_E01_DLG0067
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0067
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0067
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -1189,13 +1189,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_029_RAVEL
-- evidenceId: EVENT_002_260624_E01_DLG0068
+- evidenceId: EVENT_168_260624_E01_DLG0068
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0068
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0068
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -1206,13 +1206,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_232_MINATO_MOEGI
-- evidenceId: EVENT_002_260624_E01_DLG0069
+- evidenceId: EVENT_168_260624_E01_DLG0069
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0069
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0069
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -1223,13 +1223,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_083_YAEISHI_YOSHIKA
-- evidenceId: EVENT_002_260624_E01_DLG0070
+- evidenceId: EVENT_168_260624_E01_DLG0070
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0070
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0070
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -1240,13 +1240,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_232_MINATO_MOEGI
-- evidenceId: EVENT_002_260624_E01_DLG0071
+- evidenceId: EVENT_168_260624_E01_DLG0071
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0071
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0071
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -1257,43 +1257,43 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_008_SHINONOME_WAKA
-- evidenceId: EVENT_002_260624_E01_NAR0008
+- evidenceId: EVENT_168_260624_E01_NAR0008
   evidenceType: narration
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_NAR0008
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_NAR0008
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
-- evidenceId: EVENT_002_260624_E01_NAR0009
+- evidenceId: EVENT_168_260624_E01_NAR0009
   evidenceType: narration
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_NAR0009
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_NAR0009
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
-- evidenceId: EVENT_002_260624_E01_DLG0072
+- evidenceId: EVENT_168_260624_E01_DLG0072
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0072
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0072
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
-- evidenceId: EVENT_002_260624_E01_DLG0073
+- evidenceId: EVENT_168_260624_E01_DLG0073
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0073
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0073
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -1304,13 +1304,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_232_MINATO_MOEGI
-- evidenceId: EVENT_002_260624_E01_DLG0074
+- evidenceId: EVENT_168_260624_E01_DLG0074
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0074
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0074
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -1321,13 +1321,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_029_RAVEL
-- evidenceId: EVENT_002_260624_E01_DLG0075
+- evidenceId: EVENT_168_260624_E01_DLG0075
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0075
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0075
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -1338,13 +1338,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_008_SHINONOME_WAKA
-- evidenceId: EVENT_002_260624_E01_DLG0076
+- evidenceId: EVENT_168_260624_E01_DLG0076
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0076
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0076
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -1355,13 +1355,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_083_YAEISHI_YOSHIKA
-- evidenceId: EVENT_002_260624_E01_DLG0077
+- evidenceId: EVENT_168_260624_E01_DLG0077
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0077
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0077
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -1372,23 +1372,23 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_203_ISOBE_KAORI
-- evidenceId: EVENT_002_260624_E01_NAR0010
+- evidenceId: EVENT_168_260624_E01_NAR0010
   evidenceType: narration
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_NAR0010
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_NAR0010
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
-- evidenceId: EVENT_002_260624_E01_DLG0078
+- evidenceId: EVENT_168_260624_E01_DLG0078
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0078
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0078
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -1399,13 +1399,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_203_ISOBE_KAORI
-- evidenceId: EVENT_002_260624_E01_DLG0079
+- evidenceId: EVENT_168_260624_E01_DLG0079
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0079
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0079
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -1416,23 +1416,23 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_203_ISOBE_KAORI
-- evidenceId: EVENT_002_260624_E01_NAR0011
+- evidenceId: EVENT_168_260624_E01_NAR0011
   evidenceType: narration
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_NAR0011
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_NAR0011
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
-- evidenceId: EVENT_002_260624_E01_DLG0080
+- evidenceId: EVENT_168_260624_E01_DLG0080
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0080
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0080
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -1443,13 +1443,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_029_RAVEL
-- evidenceId: EVENT_002_260624_E01_DLG0081
+- evidenceId: EVENT_168_260624_E01_DLG0081
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0081
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0081
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -1460,13 +1460,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_083_YAEISHI_YOSHIKA
-- evidenceId: EVENT_002_260624_E01_DLG0082
+- evidenceId: EVENT_168_260624_E01_DLG0082
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0082
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0082
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -1477,13 +1477,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_232_MINATO_MOEGI
-- evidenceId: EVENT_002_260624_E01_DLG0083
+- evidenceId: EVENT_168_260624_E01_DLG0083
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0083
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0083
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -1494,13 +1494,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_029_RAVEL
-- evidenceId: EVENT_002_260624_E01_DLG0084
+- evidenceId: EVENT_168_260624_E01_DLG0084
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0084
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0084
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -1511,13 +1511,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_008_SHINONOME_WAKA
-- evidenceId: EVENT_002_260624_E01_DLG0085
+- evidenceId: EVENT_168_260624_E01_DLG0085
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0085
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0085
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -1528,13 +1528,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_203_ISOBE_KAORI
-- evidenceId: EVENT_002_260624_E01_DLG0086
+- evidenceId: EVENT_168_260624_E01_DLG0086
   evidenceType: dialogue
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_DLG0086
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_DLG0086
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false
@@ -1545,13 +1545,13 @@ entries:
   relatedEntities:
   - entityType: character
     id: CHAR_083_YAEISHI_YOSHIKA
-- evidenceId: EVENT_002_260624_E01_NAR0012
+- evidenceId: EVENT_168_260624_E01_NAR0012
   evidenceType: narration
-  storyId: EVENT_002_260624
-  episodeId: EVENT_002_260624_E01
-  publicEvidenceId: EVENT_002_260624_E01_NAR0012
-  publicStoryId: EVENT_002_260624
-  publicEpisodeId: EVENT_002_260624_E01
+  storyId: EVENT_168_260624
+  episodeId: EVENT_168_260624_E01
+  publicEvidenceId: EVENT_168_260624_E01_NAR0012
+  publicStoryId: EVENT_168_260624
+  publicEpisodeId: EVENT_168_260624_E01
   visibility:
     public: true
     rawTextIncluded: false

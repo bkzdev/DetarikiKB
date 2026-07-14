@@ -1,16 +1,16 @@
 registryVersion: 1
 stories:
-  - publicStoryId: EVENT_001_260425
+  - publicStoryId: EVENT_164_260425
     category: event
     episodes:
-      - publicEpisodeId: EVENT_001_260425_E01
+      - publicEpisodeId: EVENT_164_260425_E01
         episodeOrder: 1
-      - publicEpisodeId: EVENT_001_260425_E02
+      - publicEpisodeId: EVENT_164_260425_E02
         episodeOrder: 2
-  - publicStoryId: EVENT_002_260624
+  - publicStoryId: EVENT_168_260624
     category: event
     episodes:
-      - publicEpisodeId: EVENT_002_260624_E01
+      - publicEpisodeId: EVENT_168_260624_E01
         episodeOrder: 1
   - publicStoryId: RAID_001_260504
     category: raid

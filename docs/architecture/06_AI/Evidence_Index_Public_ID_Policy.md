@@ -652,7 +652,67 @@ RAID_001_YYMMDD
 
 ## 16.6 Open questions（未確定事項、据え置き）
 
-- 日付接頭辞を持たない旧番号体系のsourceKey（連番_名前_年 形式）への対応は未確定のまま据え置く（今回の移行対象3件はいずれも日付接頭辞つきのため当面影響しない）
+- ~~日付接頭辞を持たない旧番号体系のsourceKey（連番_名前_年 形式）への対応は未確定のまま据え置く（今回の移行対象3件はいずれも日付接頭辞つきのため当面影響しない）~~ → **§16.7（v2.1、2026-07-14ユーザー決定）で解決**: event category全量enumerationに基づく全体採番方式へ改定し、旧番号体系のsourceKeyにもseqを割り当てる規則を確定した
 - MAINカテゴリ（日付なし・章番号体系、`Story_ID_Policy_Decision.md` §6.1）の命名は将来の検討事項として据え置く。v2形式`{CATEGORY}_{seq:03d}_{YYMMDD}`をそのまま適用できるかは未確定
 - `OTHER`カテゴリへのv2適用可否も未確定のまま据え置く
-- Registry追加順（＝昇格順）を`seq`の根拠とする運用は、将来batch promotionの粒度（`Evidence_Index_Batch_Promotion_Policy.md` §4）が変わった場合でも一貫して維持できるかは、実際のbatch運用を重ねてから確認する
+- ~~Registry追加順（＝昇格順）を`seq`の根拠とする運用は、将来batch promotionの粒度（`Evidence_Index_Batch_Promotion_Policy.md` §4）が変わった場合でも一貫して維持できるかは、実際のbatch運用を重ねてから確認する~~ → **§16.7（v2.1）で解決**: `seq`の根拠をRegistry登録順（昇格順）からevent category全量に対する事前確定済みの全体番号へ変更したため、batch promotionの粒度に依存しない
+- RAIDカテゴリの採番方式は`§16.7.4`のopen questionとして新たに据え置く（v2.1はEVENTカテゴリのみを対象に全体採番を確定した）
+
+## 16.7 v2.1改定（全体採番方式、2026-07-14ユーザー決定、`feature/public-id-naming-v2-1-global-sequence`で設計・実行）
+
+**本節はユーザー決定・Fable設計を確定したものであり、覆さない。本PRは設計（本節の追記）と実行（既公開EVENT 2 storyの再改名）を同一PRで行った。**
+
+### 16.7.1 v2からの変更理由
+
+- v2（§16.2〜§16.6）の`seq`は「カテゴリ別の**Registry登録（昇格）順**」だった。この方式は、Stage 2候補選定（`evidence-index-stage2-candidate-selection`/`evidence-index-stage2-candidate-reselection`、PR #131/#134）の過程で以下2点の課題が判明した
+  - event category全量（`data/raw/event/`、168 export dir）のうち、37件は日付接頭辞を持たない旧番号体系のsourceKey（連番_名前_年 形式）であり、v2の`{CATEGORY}_{seq:03d}_{YYMMDD}`という`YYMMDD`必須の形式をそのまま適用できない（§16.6未確定事項の1点目）
+  - Registry登録順（＝batch promotionの実施順）を`seq`の根拠にすると、`seq`自体が「いつAIエージェントがbatch promotionを実施したか」という運用上の順序に依存してしまい、story自体の時系列（実際のイベント配信順）を表さなくなる。これはv1（割当日ベース）を廃止した理由（§16.1）と同種の問題である
+- これらを解決するため、v2.1では`seq`の根拠を「Registry登録順」から「**event category全量に対して事前に確定した、カテゴリ内の通し番号**」へ変更する。これにより、`seq`はbatch promotionの実施順に依存せず、event category全量のenumerationが完了した時点で全storyのpublicStoryId（の`seq`部分）が確定する
+- この変更はユーザー決定（2026-07-14）であり、Fableが設計を確定した。本節はその決定を記録するものであり、設計判断そのものの再検討は行わない
+
+### 16.7.2 v2.1採番規則（決定）
+
+対象母集団は`data/raw/event/`配下のevent category全量（168 export dir）とする。
+
+1. **旧形式（`NN_name`、日付接頭辞なし、37件）**: 元のsourceKeyが持つ旧番号どおりにseq `001`〜`037`を割り当てる。publicStoryId形式は`EVENT_{seq:03d}`（**日付サフィックスなし**）
+2. **日付つき（`YYMMDD_slug`形式、131件）**: sourceKeyの日付接頭辞の昇順でseq `038`〜`168`を割り当てる。publicStoryId形式は`EVENT_{seq:03d}_{YYMMDD}`（v2と同じ、日付サフィックスあり）
+3. **7桁typoの扱い**: 対象131件のうち1件は、sourceKeyの日付接頭辞が誤って7桁になっているtypoだったが、ユーザー確認により該当eventの日付が確定した。以後はその確定日付をsourceKeyの日付接頭辞として扱い、他の日付つきsourceKeyと同じ規則（2.）で日付昇順のseqを割り当てる。実sourceKey名は本文書に記載しない
+4. **全量採番表**: `workspace/local_inputs/event_numbering_table.tsv`（Fable生成済み、非commit）を正とする。カテゴリ全量のpublicStoryId ⇔ sourceKeyの対応を1行1storyで保持する
+
+`publicEpisodeId`の形式`{publicStoryId}_E{NN}`、`publicEvidenceId`の形式`{publicEpisodeId}_{PREFIX}{sequence:04d}`はいずれも**不変**。v2.1で変わるのは`publicStoryId`本体の`seq`の根拠（Registry登録順→事前確定した全体番号）と、旧形式sourceKey（37件）の表記（日付サフィックスなし）のみである。
+
+### 16.7.3 遅延発見イベントのルール（新設）
+
+- event category全量enumeration確定後に、未収録だったイベント（例: raw配置の見落とし等）が新たに発見される場合がある。このようなstoryは、確定済みの全体番号の**日付順位置に挿入できない**（既存storyのseqを繰り下げることは安定性原則に反するため行わない）
+- **遅延発見イベントは、全体番号確定後の追加として末尾seqを付与する**。日付順序は崩れる（末尾seqのstoryが、より若いseqのstoryより古い日付を持ちうる）が、IDの一意性自体は`YYMMDD`部分（sourceKeyの日付接頭辞）で保たれるため、ID衝突は起きない
+- 本ルールは、今回のtypo事例（§16.7.2の3.）とは別の状況（sourceKeyの表記誤りではなく、raw配置自体の見落とし）を想定したものである
+
+### 16.7.4 RAIDカテゴリの扱い（Open question、据え置き）
+
+- 既公開RAID 1 story（`publicStoryId`は本節では匿名化のため記載しない、§16.7.5参照）は、**本PRでは変更しない**
+- RAIDカテゴリの採番方式（v2のRegistry登録順を維持するか、v2.1と同じ全体採番方式に揃えるか）は、raid batchへ着手するタイミングで別途設計する。本PR時点では未確定のまま据え置く
+
+### 16.7.5 再改名対象（既公開EVENT 2 story）と新旧mapping
+
+v2（§16.2〜§16.6）で確定した既公開EVENT 2 storyのpublicStoryIdを、v2.1の全体採番方式に基づき再改名した。
+
+| # | カテゴリ | 旧publicStoryId（v2、Registry登録順ベース、廃止） | 新publicStoryId（v2.1、全体採番方式） |
+|---|---|---|---|
+| 1 | EVENT | `EVENT_001_260425` | `EVENT_164_260425` |
+| 2 | EVENT | `EVENT_002_260624` | `EVENT_168_260624` |
+
+- 新publicStoryIdの`YYMMDD`部分（`260425`/`260624`）は、v2の値からそのまま変わらない（sourceKeyの日付接頭辞自体は不変のため）。変わるのは`seq`部分（`001`→`164`、`002`→`168`）のみである
+- `seq`値は`workspace/local_inputs/event_numbering_table.tsv`（§16.7.2の4.）における全体番号をそのまま用いた
+- RAIDカテゴリの既公開1 story（`RAID_001_260504`）は§16.7.4のとおり本PRでは変更しない
+
+### 16.7.6 旧v2 ID廃止と再利用禁止
+
+- §16.7.5の旧publicStoryId 2件（`EVENT_001_260425`/`EVENT_002_260624`）は、本PRでの再改名実行後は`knowledge/public_ids/story_public_ids.yaml`から削除される。**削除後もこれらのID値は将来にわたって再利用しない**（§16.4と同じ安定性原則を適用する）
+- v1形式（§16.4）に加え、v2形式（Registry登録順ベースの`seq`）も**廃止**する。以後、新規Registry entryの追加にv2形式（Registry登録順ベースの`seq`）を使わず、v2.1（全体採番方式）の`seq`を使う
+
+### 16.7.7 本PRのNon-goals
+
+- `RAID_001_260504`の変更（§16.7.4）
+- raidカテゴリの採番方式の設計（§16.7.4）
+- Stage 2候補（新規5 story）の昇格
+- `scripts/`本体の変更
