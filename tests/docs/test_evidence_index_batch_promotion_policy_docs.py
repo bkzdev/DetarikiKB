@@ -703,6 +703,19 @@ STAGE2_REAL_DATA_HINTS = (
     "COMINGOFAGECEREMONY",
     "csl_script_event",
     "CAB-csl",
+    # feature/evidence-index-stage2-candidate-reselection で追加した実データ断片
+    "210526",
+    "babydoll",
+    "BABYDOLL",
+    "210707",
+    "wetuniform",
+    "WETUNIFORM",
+    "210721",
+    "210804",
+    "swimsuit",
+    "SWIMSUIT",
+    "220302",
+    "election_export",
 )
 
 
@@ -759,6 +772,94 @@ def test_tasks_md_lists_stage2_candidate_selection_current_focus():
 
 
 def test_tasks_md_stage2_does_not_contain_real_data_hints():
+    content = TASKS_PATH.read_text(encoding="utf-8")
+    for forbidden in REAL_DATA_HINTS + STAGE2_REAL_DATA_HINTS:
+        assert forbidden not in content
+
+
+# ----------------------------------------------------------------
+# feature/evidence-index-stage2-candidate-reselection
+# ----------------------------------------------------------------
+
+STAGE2_RESELECTION_HEADING = "## 4.9 Stage 2 candidate reselection"
+
+
+def _stage2_reselection_section() -> str:
+    content = _read_doc()
+    return content.split(STAGE2_RESELECTION_HEADING, 1)[1].split(
+        "# 5. Registry entry review条件", 1
+    )[0]
+
+
+def test_batch_policy_doc_has_stage2_reselection_section():
+    content = _read_doc()
+    assert STAGE2_RESELECTION_HEADING in content
+
+
+def test_batch_policy_doc_states_stage2_reselection_screening_summary():
+    section = _stage2_reselection_section()
+    assert "167" in section
+    assert "129" in section
+    assert "128" in section
+    assert "127" in section
+    assert "needs_update" in section
+    assert "blocked" in section
+
+
+def test_batch_policy_doc_states_stage2_reselection_matrix():
+    section = _stage2_reselection_section()
+    assert "Story A" in section
+    assert "Story E" in section
+    assert "promotion-candidate" in section
+    assert "9.09%" in section
+
+
+def test_batch_policy_doc_states_stage2_reselection_supersedes_old_candidates():
+    section = _stage2_reselection_section()
+    assert "差し替え" in section
+    assert "excluded" in section
+    assert "§4.8" in section
+
+
+def test_batch_policy_doc_states_stage2_reselection_proposed_id_not_recorded():
+    section = _stage2_reselection_section()
+    assert "Registry未登録" in section
+    assert "candidate_summary_for_user.md" in section
+
+
+def test_batch_policy_doc_states_stage2_reselection_conclusion():
+    section = _stage2_reselection_section()
+    assert "Failed story count: 0" in section
+    assert "excluded story count: 0" in section
+
+
+def test_batch_policy_doc_stage2_reselection_states_non_goals():
+    section = _stage2_reselection_section()
+    assert "Public ID Registry" in section
+    assert "publicStoryId" in section
+    assert "commit" in section.lower()
+
+
+def test_batch_policy_doc_stage2_reselection_does_not_contain_real_data_hints():
+    section = _stage2_reselection_section()
+    for forbidden in REAL_DATA_HINTS + STAGE2_REAL_DATA_HINTS:
+        assert forbidden not in section
+
+
+def test_batch_policy_doc_states_stage2_reselection_non_goals_section_in_scope_list():
+    content = _read_doc()
+    section = content.split("# 14. Non-goals", 1)[1].split("# 15. 関連ドキュメント", 1)[
+        0
+    ]
+    assert "evidence-index-stage2-candidate-reselection" in section
+
+
+def test_tasks_md_lists_stage2_candidate_reselection_current_focus():
+    content = TASKS_PATH.read_text(encoding="utf-8")
+    assert "evidence-index-stage2-candidate-reselection" in content
+
+
+def test_tasks_md_stage2_reselection_does_not_contain_real_data_hints():
     content = TASKS_PATH.read_text(encoding="utf-8")
     for forbidden in REAL_DATA_HINTS + STAGE2_REAL_DATA_HINTS:
         assert forbidden not in content
