@@ -17,3 +17,54 @@ stories:
     episodes:
       - publicEpisodeId: RAID_001_260504_E01
         episodeOrder: 1
+  - publicStoryId: EVENT_041_210526
+    category: event
+    episodes:
+      - publicEpisodeId: EVENT_041_210526_E01
+        episodeOrder: 1
+      - publicEpisodeId: EVENT_041_210526_E02
+        episodeOrder: 2
+      - publicEpisodeId: EVENT_041_210526_E03
+        episodeOrder: 3
+      - publicEpisodeId: EVENT_041_210526_E04
+        episodeOrder: 4
+  - publicStoryId: EVENT_044_210707
+    category: event
+    episodes:
+      - publicEpisodeId: EVENT_044_210707_E01
+        episodeOrder: 1
+      - publicEpisodeId: EVENT_044_210707_E02
+        episodeOrder: 2
+      - publicEpisodeId: EVENT_044_210707_E03
+        episodeOrder: 3
+      - publicEpisodeId: EVENT_044_210707_E04
+        episodeOrder: 4
+  - publicStoryId: EVENT_045_210721
+    category: event
+    episodes:
+      - publicEpisodeId: EVENT_045_210721_E01
+        episodeOrder: 1
+      - publicEpisodeId: EVENT_045_210721_E02
+        episodeOrder: 2
+      - publicEpisodeId: EVENT_045_210721_E03
+        episodeOrder: 3
+      - publicEpisodeId: EVENT_045_210721_E04
+        episodeOrder: 4
+  - publicStoryId: EVENT_046_210804
+    category: event
+    episodes:
+      - publicEpisodeId: EVENT_046_210804_E01
+        episodeOrder: 1
+      - publicEpisodeId: EVENT_046_210804_E02
+        episodeOrder: 2
+      - publicEpisodeId: EVENT_046_210804_E03
+        episodeOrder: 3
+      - publicEpisodeId: EVENT_046_210804_E04
+        episodeOrder: 4
+  - publicStoryId: EVENT_086_230315
+    category: event
+    episodes:
+      - publicEpisodeId: EVENT_086_230315_E01
+        episodeOrder: 1
+      - publicEpisodeId: EVENT_086_230315_E02
+        episodeOrder: 2
