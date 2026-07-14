@@ -63,6 +63,16 @@ EVT_260707_001_E03
 
 つまり`publicEpisodeId`が未確定・不安定な間は、そのepisodeに属する全entryの`publicEvidenceId`も採番できない（PR #95のEpisode 2 blocking FAILがこの依存関係をそのまま体現している）。`publicEpisodeId`の安定性が、`publicEvidenceId`の安定性の前提になる。
 
+## 3.3 publicStoryId命名規約v2（2026-07-14ユーザー決定、`feature/public-id-naming-v2-design`で追記）
+
+`publicStoryId`自体の採番方針をv1からv2へ改定した。詳細（変更理由・移行対象3件の新旧mapping・旧ID廃止方針・匿名化方針の改定）は`Evidence_Index_Public_ID_Policy.md` §16を正とし、本節はRegistryとの関係のみを整理する。
+
+- **v2形式**: `{CATEGORY}_{seq:03d}_{YYMMDD}`（`CATEGORY`は`EVENT`/`RAID`、`seq`はカテゴリ別の**昇格（Registry登録）順**の通し連番1始まり3桁zero padding、`YYMMDD`はsourceKeyの日付接頭辞）
+- **採番方針（seq）**: `stories[]`をカテゴリでフィルタし、当該カテゴリ内でのRegistry追加順（＝実際に`knowledge/evidence/stories/`へ昇格した順）を1始まりの連番とする。既存3 storyのRegistry登録順（EVENT 2件→RAID 1件、§8.6参照）がそのままEVENT `001`/`002`・RAID `001`の根拠になる
+- **v1（割当日ベース、`{CATEGORY}_{割当日:YYMMDD}_{seq:03d}`）は廃止する**。本文書§5.2の`EVT_260707_001`という記載は、v1形式の説明用サンプルとして書かれた既存の例示であり、v2移行後の新規Registry entryはこの形式を使わない（既存の説明用サンプル自体は本PRでは書き換えない。移行実行PR以降に追随させる）
+- `publicEpisodeId`の採番方針（§3.1: `{publicStoryId}_E{episodeOrder:02d}`）・`publicEvidenceId`の採番方針（§3.2）はいずれも**不変**。v2で変わるのは`publicStoryId`が内部に持つ意味的構造（割当日→sourceKey日付＋カテゴリ別昇格順）のみであり、`publicStoryId`をprefixとして使う派生ID側のロジックには影響しない
+- 実際のRegistry書き換え（`knowledge/public_ids/story_public_ids.yaml`の3 storyのpublicStoryId値の改名、およびそれに伴う`publicEpisodeId`の改名）は移行実行PR（`Evidence_Index_Public_ID_Policy.md` §16の設計を実行するPR）のスコープであり、**本PRでは実施しない**
+
 ---
 
 # 4. 永続化場所
@@ -309,6 +319,19 @@ suggestions:
 - `schemas/evidence_index.schema.json`/`schemas/public_id_registry.schema.json`の変更
 - `story_manifest.yaml`の実データ変更・再normalize/merge
 - batch promotion scriptの実装、Internal Review Evidence Packet生成
+
+`feature/public-id-naming-v2-design`（本PR、設計・docsのみ）で以下を実施した:
+
+- `publicStoryId`命名規約v2（`{CATEGORY}_{seq:03d}_{YYMMDD}`、seqはカテゴリ別昇格順の通し連番）を`Evidence_Index_Public_ID_Policy.md` §16に確定し、本文書§3.3にRegistryとの関係を追記した
+
+本PRでも以下は行っていない:
+
+- `knowledge/public_ids/story_public_ids.yaml`の実データ変更（既存3 storyのpublicStoryId改名を含む、移行実行は次PR）
+- `knowledge/evidence/stories/`・`knowledge/summaries/stories/`の実データ変更
+- `scripts/project_evidence_index_public_ids.py`/`scripts/check_public_episode_ids.py`/`scripts/promote_evidence_index.py`/`scripts/check_evidence_index_promotion.py`本体の変更
+- `schemas/evidence_index.schema.json`/`schemas/public_id_registry.schema.json`の変更
+- `story_manifest.yaml`の実データ変更・再normalize/merge
+- candidate再選定、batch promotion scriptの実装、Internal Review Evidence Packet生成
 
 ---
 
