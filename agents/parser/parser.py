@@ -218,6 +218,12 @@ DIRECTION_TYPE_MAP: dict[str, str] = {
     "@ChTalkmono": "character_display",
     "@ChTalkname": "character_display",
     "@Chtalkname": "character_display",
+    # evidence-index-stage2-batch-promotion: Stage 2 batch5 storyのnormalize
+    # で見つかった未登録コマンド3種 (config/script_commands.yaml の
+    # stage_direction、agents/parser/tokenizer.py の KEYWORD_TOKENS と対で追加)。
+    "vol": "sound",  # BGM/SE音量制御 ("sound Bgm ..."直後の "vol 0"/"vol 1")
+    "{": "character_display",  # 複数chスロットへのstage direction同時グループ化 (開始)
+    "}": "character_display",  # 複数chスロットへのstage direction同時グループ化 (終了)
 }
 
 # 表記ゆれ → 正規化

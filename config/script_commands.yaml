@@ -246,6 +246,12 @@ stage_direction:
   - "@ChTalkmono"               # 同上 (speechコマンド表記ゆれの安全側分類)
   - "@ChTalkname"               # 同上 (speechコマンド表記ゆれの安全側分類)
   - "@Chtalkname"               # 同上 (speechコマンド表記ゆれの安全側分類)
+  # evidence-index-stage2-batch-promotion: Stage 2 batch5 storyのnormalizeで
+  # 見つかった未登録コマンド3種。agents/parser/parser.py の DIRECTION_TYPE_MAP、
+  # agents/parser/tokenizer.py の KEYWORD_TOKENS と対で追加すること。
+  - "vol"                       # BGM/SE音量制御 ("sound Bgm ..."直後に続く "vol 0"/"vol 1")
+  - "{"                         # 複数chスロットへのstage direction同時グループ化 (開始)
+  - "}"                         # 複数chスロットへのstage direction同時グループ化 (終了)
 
 # ----------------------------------------------------------------
 # ignored: 無視する行・コマンド

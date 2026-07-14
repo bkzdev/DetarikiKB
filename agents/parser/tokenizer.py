@@ -189,6 +189,13 @@ class Tokenizer:
             # (@TalkPosR等) はここへの追加不要 (先頭が@なら自動でCOMMAND)。
             "costume",
             "fa",
+            # evidence-index-stage2-batch-promotion: Stage 2 batch5 storyの
+            # normalizeで見つかった未登録コマンド3種。config/script_commands.yaml
+            # の stage_direction、agents/parser/parser.py の DIRECTION_TYPE_MAP
+            # と対にして追加すること。
+            "vol",
+            "{",
+            "}",
         }
     )
 

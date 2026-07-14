@@ -484,6 +484,44 @@ def test_dict_expansion_batch_002_case_variants_normalize_to_canonical():
     assert scene.blocks[2].direction_type == "camera"
 
 
+def test_stage2_batch_promotion_new_commands_become_stage_direction():
+    """evidence-index-stage2-batch-promotionで実データnormalize時に見つかった
+    未登録コマンド3種 (vol/{/}) が、unknownではなくstage_directionとして
+    正しいdirection_typeに分類されることを確認する。"""
+    script = """sound Bgm ca_battle_event_boss
+vol 0
+sound Bgm ca_battle_event_boss
+vol 1
+{
+ch 0
+@Visible
+
+ch 1
+@Visible
+}
+"""
+    parser = StoryParser(preserve_stage_directions=True)
+    result = parser.parse_text(script)
+    scene = result.episodes[0].scenes[0]
+
+    stage_blocks = [b for b in scene.blocks if b.block_type == "stage_direction"]
+    assert all(b.block_type == "stage_direction" for b in scene.blocks)
+
+    vol_blocks = [b for b in stage_blocks if b.raw_command == "vol"]
+    assert len(vol_blocks) == 2
+    assert vol_blocks[0].direction_type == "sound"
+    assert vol_blocks[0].command_args == ["0"]
+    assert vol_blocks[1].direction_type == "sound"
+    assert vol_blocks[1].command_args == ["1"]
+
+    open_brace_blocks = [b for b in stage_blocks if b.raw_command == "{"]
+    close_brace_blocks = [b for b in stage_blocks if b.raw_command == "}"]
+    assert len(open_brace_blocks) == 1
+    assert len(close_brace_blocks) == 1
+    assert open_brace_blocks[0].direction_type == "character_display"
+    assert close_brace_blocks[0].direction_type == "character_display"
+
+
 def test_dialogue_count_unaffected_by_branch_choice_dry_run_commands(char_dict):
     """costume/fa/@TalkPosR等がセリフの間に挟まっても、dialogue/monologueの
     数・本文・evidence用の行番号が変わらないことを確認する。"""
