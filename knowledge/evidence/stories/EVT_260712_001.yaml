@@ -89,6 +89,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_232_MINATO_MOEGI
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_232_MINATO_MOEGI
 - evidenceId: EVT_260712_001_E01_DLG0006
   evidenceType: dialogue
   storyId: EVT_260712_001
@@ -133,6 +140,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_083_YAEISHI_YOSHIKA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_083_YAEISHI_YOSHIKA
 - evidenceId: EVT_260712_001_E01_DLG0009
   evidenceType: dialogue
   storyId: EVT_260712_001
@@ -143,6 +157,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_232_MINATO_MOEGI
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_232_MINATO_MOEGI
 - evidenceId: EVT_260712_001_E01_DLG0010
   evidenceType: dialogue
   storyId: EVT_260712_001
@@ -204,6 +225,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_232_MINATO_MOEGI
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_232_MINATO_MOEGI
 - evidenceId: EVT_260712_001_E01_DLG0014
   evidenceType: dialogue
   storyId: EVT_260712_001
@@ -231,6 +259,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_232_MINATO_MOEGI
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_232_MINATO_MOEGI
 - evidenceId: EVT_260712_001_E01_DLG0016
   evidenceType: dialogue
   storyId: EVT_260712_001
@@ -258,6 +293,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_083_YAEISHI_YOSHIKA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_083_YAEISHI_YOSHIKA
 - evidenceId: EVT_260712_001_E01_DLG0018
   evidenceType: dialogue
   storyId: EVT_260712_001
@@ -268,6 +310,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_232_MINATO_MOEGI
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_232_MINATO_MOEGI
 - evidenceId: EVT_260712_001_E01_DLG0019
   evidenceType: dialogue
   storyId: EVT_260712_001
@@ -295,6 +344,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_232_MINATO_MOEGI
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_232_MINATO_MOEGI
 - evidenceId: EVT_260712_001_E01_DLG0021
   evidenceType: dialogue
   storyId: EVT_260712_001
@@ -339,6 +395,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_083_YAEISHI_YOSHIKA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_083_YAEISHI_YOSHIKA
 - evidenceId: EVT_260712_001_E01_DLG0024
   evidenceType: dialogue
   storyId: EVT_260712_001
@@ -454,6 +517,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_083_YAEISHI_YOSHIKA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_083_YAEISHI_YOSHIKA
 - evidenceId: EVT_260712_001_E01_NAR0003
   evidenceType: narration
   storyId: EVT_260712_001
@@ -501,6 +571,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_232_MINATO_MOEGI
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_232_MINATO_MOEGI
 - evidenceId: EVT_260712_001_E01_DLG0034
   evidenceType: dialogue
   storyId: EVT_260712_001
@@ -528,6 +605,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_232_MINATO_MOEGI
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_232_MINATO_MOEGI
 - evidenceId: EVT_260712_001_E01_DLG0036
   evidenceType: dialogue
   storyId: EVT_260712_001
@@ -555,6 +639,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_232_MINATO_MOEGI
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_232_MINATO_MOEGI
 - evidenceId: EVT_260712_001_E01_DLG0038
   evidenceType: dialogue
   storyId: EVT_260712_001
@@ -565,6 +656,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_083_YAEISHI_YOSHIKA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_083_YAEISHI_YOSHIKA
 - evidenceId: EVT_260712_001_E01_DLG0039
   evidenceType: dialogue
   storyId: EVT_260712_001
@@ -592,6 +690,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_083_YAEISHI_YOSHIKA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_083_YAEISHI_YOSHIKA
 - evidenceId: EVT_260712_001_E01_DLG0041
   evidenceType: dialogue
   storyId: EVT_260712_001
@@ -680,6 +785,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_083_YAEISHI_YOSHIKA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_083_YAEISHI_YOSHIKA
 - evidenceId: EVT_260712_001_E01_DLG0046
   evidenceType: dialogue
   storyId: EVT_260712_001
@@ -707,6 +819,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_232_MINATO_MOEGI
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_232_MINATO_MOEGI
 - evidenceId: EVT_260712_001_E01_DLG0048
   evidenceType: dialogue
   storyId: EVT_260712_001
@@ -717,6 +836,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_232_MINATO_MOEGI
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_232_MINATO_MOEGI
 - evidenceId: EVT_260712_001_E01_DLG0049
   evidenceType: dialogue
   storyId: EVT_260712_001
@@ -727,6 +853,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_083_YAEISHI_YOSHIKA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_083_YAEISHI_YOSHIKA
 - evidenceId: EVT_260712_001_E01_DLG0050
   evidenceType: dialogue
   storyId: EVT_260712_001
@@ -737,6 +870,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_232_MINATO_MOEGI
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_232_MINATO_MOEGI
 - evidenceId: EVT_260712_001_E01_DLG0051
   evidenceType: dialogue
   storyId: EVT_260712_001
@@ -784,6 +924,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_083_YAEISHI_YOSHIKA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_083_YAEISHI_YOSHIKA
 - evidenceId: EVT_260712_001_E01_DLG0054
   evidenceType: dialogue
   storyId: EVT_260712_001
@@ -845,6 +992,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_083_YAEISHI_YOSHIKA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_083_YAEISHI_YOSHIKA
 - evidenceId: EVT_260712_001_E01_DLG0058
   evidenceType: dialogue
   storyId: EVT_260712_001
@@ -872,6 +1026,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_232_MINATO_MOEGI
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_232_MINATO_MOEGI
 - evidenceId: EVT_260712_001_E01_DLG0060
   evidenceType: dialogue
   storyId: EVT_260712_001
@@ -970,6 +1131,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_083_YAEISHI_YOSHIKA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_083_YAEISHI_YOSHIKA
 - evidenceId: EVT_260712_001_E01_DLG0065
   evidenceType: dialogue
   storyId: EVT_260712_001
@@ -1031,6 +1199,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_232_MINATO_MOEGI
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_232_MINATO_MOEGI
 - evidenceId: EVT_260712_001_E01_DLG0069
   evidenceType: dialogue
   storyId: EVT_260712_001
@@ -1041,6 +1216,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_083_YAEISHI_YOSHIKA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_083_YAEISHI_YOSHIKA
 - evidenceId: EVT_260712_001_E01_DLG0070
   evidenceType: dialogue
   storyId: EVT_260712_001
@@ -1051,6 +1233,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_232_MINATO_MOEGI
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_232_MINATO_MOEGI
 - evidenceId: EVT_260712_001_E01_DLG0071
   evidenceType: dialogue
   storyId: EVT_260712_001
@@ -1108,6 +1297,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_232_MINATO_MOEGI
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_232_MINATO_MOEGI
 - evidenceId: EVT_260712_001_E01_DLG0074
   evidenceType: dialogue
   storyId: EVT_260712_001
@@ -1152,6 +1348,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_083_YAEISHI_YOSHIKA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_083_YAEISHI_YOSHIKA
 - evidenceId: EVT_260712_001_E01_DLG0077
   evidenceType: dialogue
   storyId: EVT_260712_001
@@ -1250,6 +1453,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_083_YAEISHI_YOSHIKA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_083_YAEISHI_YOSHIKA
 - evidenceId: EVT_260712_001_E01_DLG0082
   evidenceType: dialogue
   storyId: EVT_260712_001
@@ -1260,6 +1470,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_232_MINATO_MOEGI
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_232_MINATO_MOEGI
 - evidenceId: EVT_260712_001_E01_DLG0083
   evidenceType: dialogue
   storyId: EVT_260712_001
@@ -1321,6 +1538,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_083_YAEISHI_YOSHIKA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_083_YAEISHI_YOSHIKA
 - evidenceId: EVT_260712_001_E01_NAR0012
   evidenceType: narration
   storyId: EVT_260712_001
