@@ -668,3 +668,84 @@ def test_tasks_md_republication_does_not_contain_real_data_hints():
     content = TASKS_PATH.read_text(encoding="utf-8")
     for forbidden in REAL_DATA_HINTS + ("260624", "260504", "CAB-csl"):
         assert forbidden not in content
+
+
+# ----------------------------------------------------------------
+# feature/evidence-index-stage2-candidate-selection
+# ----------------------------------------------------------------
+
+STAGE2_SELECTION_HEADING = "## 4.8 Stage 2 first candidate selection"
+
+STAGE2_REAL_DATA_HINTS = (
+    "230315",
+    "3rdelection",
+    "3RDELECTION",
+    "03_christmas_2019",
+    "CHRISTMAS_2019",
+    "06_swimsuit_b_2020",
+    "SWIMSUIT_B_2020",
+    "10_entry_nozomi",
+    "ENTRY_NOZOMI",
+    "31_comingofageceremony_2021",
+    "COMINGOFAGECEREMONY",
+    "csl_script_event",
+    "CAB-csl",
+)
+
+
+def _stage2_selection_section() -> str:
+    content = _read_doc()
+    return content.split(STAGE2_SELECTION_HEADING, 1)[1].split(
+        "# 5. Registry entry review条件", 1
+    )[0]
+
+
+def test_batch_policy_doc_has_stage2_selection_section():
+    content = _read_doc()
+    assert STAGE2_SELECTION_HEADING in content
+
+
+def test_batch_policy_doc_states_stage2_screening_summary():
+    section = _stage2_selection_section()
+    assert "167" in section
+    assert "166" in section
+    assert "needs_update" in section
+    assert "blocked" in section
+
+
+def test_batch_policy_doc_states_stage2_selection_matrix():
+    section = _stage2_selection_section()
+    assert "Story A" in section
+    assert "Story E" in section
+    assert "promotion-candidate" in section
+    assert "9.09%" in section
+
+
+def test_batch_policy_doc_states_stage2_conclusion():
+    section = _stage2_selection_section()
+    assert "Failed story count: 0" in section
+    assert "excluded story count: 0" in section
+
+
+def test_batch_policy_doc_stage2_states_non_goals():
+    section = _stage2_selection_section()
+    assert "Public ID Registry" in section
+    assert "publicStoryId" in section
+    assert "commit" in section.lower()
+
+
+def test_batch_policy_doc_stage2_does_not_contain_real_data_hints():
+    section = _stage2_selection_section()
+    for forbidden in REAL_DATA_HINTS + STAGE2_REAL_DATA_HINTS:
+        assert forbidden not in section
+
+
+def test_tasks_md_lists_stage2_candidate_selection_current_focus():
+    content = TASKS_PATH.read_text(encoding="utf-8")
+    assert "evidence-index-stage2-candidate-selection" in content
+
+
+def test_tasks_md_stage2_does_not_contain_real_data_hints():
+    content = TASKS_PATH.read_text(encoding="utf-8")
+    for forbidden in REAL_DATA_HINTS + STAGE2_REAL_DATA_HINTS:
+        assert forbidden not in content
