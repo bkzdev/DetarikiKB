@@ -169,9 +169,9 @@ def test_promotion_copy_runbook_does_not_contain_real_data_hints():
     """実イベント名・実ファイル名・raw pathを書かない方針の簡易チェック。
 
     "260425"はknowledge/public_ids/story_public_ids.yamlへ正式登録済みの
-    publicStoryId（EVENT_001_260425）に含まれる日付断片のため、Registry
-    連動許可リスト（`filter_unregistered_hints`、`Evidence_Index_Public_ID_
-    Policy.md` §16.5の匿名化方針改定）により許可する。
+    publicStoryId（v2.1移行後はEVENT_164_260425）に含まれる日付断片のため、
+    Registry連動許可リスト（`filter_unregistered_hints`、`Evidence_Index_
+    Public_ID_Policy.md` §16.5の匿名化方針改定）により許可する。
     """
     content = _read_runbook()
     for forbidden in filter_unregistered_hints(

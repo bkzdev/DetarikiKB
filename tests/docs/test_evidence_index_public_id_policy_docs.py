@@ -462,8 +462,119 @@ def test_public_id_policy_doc_states_naming_v2_open_questions():
 
 
 def test_public_id_policy_doc_naming_v2_does_not_expose_new_id_real_values():
-    # Registry未登録の新publicStoryId実値（sourceKey日付接頭辞）は
-    # docs全体のどこにも書かれていないことを確認する
+    # Registry未登録の新publicStoryId実値（sourceKey日付接頭辞）はdocs全体の
+    # どこにも書かれていないことを確認する。ただし§16.7（v2.1移行実行PR、
+    # `feature/public-id-naming-v2-1-global-sequence`）でRegistryへ正式登録
+    # 済みとなった日付断片（既公開EVENT 2 storyの新publicStoryIdに含まれる
+    # 260425/260624）は、Registry連動許可リスト（`filter_unregistered_hints`、
+    # §16.5の匿名化方針改定）により許可する。RAID（260504）は本PRでは
+    # 変更対象外だが既にv2移行時点でRegistry登録済みのため同様に許可される。
     content = _read_doc()
-    for forbidden in ("260425", "260624", "260504"):
+    for forbidden in filter_unregistered_hints(("260425", "260624", "260504")):
         assert forbidden not in content
+
+
+# ----------------------------------------------------------------
+# feature/public-id-naming-v2-1-global-sequence
+# ----------------------------------------------------------------
+
+NAMING_V2_1_HEADING = (
+    "## 16.7 v2.1改定（全体採番方式、2026-07-14ユーザー決定、"
+    "`feature/public-id-naming-v2-1-global-sequence`で設計・実行）"
+)
+
+
+def _naming_v2_1_section() -> str:
+    section = _naming_v2_section()
+    return section.split(NAMING_V2_1_HEADING, 1)[1]
+
+
+def test_public_id_policy_doc_has_naming_v2_1_section():
+    content = _read_doc()
+    assert NAMING_V2_1_HEADING in content
+
+
+def test_public_id_policy_doc_states_naming_v2_1_change_reason():
+    section = _naming_v2_1_section()
+    reason_section = section.split("### 16.7.1 v2からの変更理由", 1)[1].split(
+        "### 16.7.2", 1
+    )[0]
+    assert "Registry登録" in reason_section
+    assert "通し番号" in reason_section
+    assert "全量" in reason_section
+    assert "2026-07-14" in reason_section
+
+
+def test_public_id_policy_doc_states_naming_v2_1_numbering_rule():
+    section = _naming_v2_1_section()
+    rule_section = section.split("### 16.7.2 v2.1採番規則（決定）", 1)[1].split(
+        "### 16.7.3", 1
+    )[0]
+    assert "037" in rule_section
+    assert "038" in rule_section
+    assert "168" in rule_section
+    assert "EVENT_{seq:03d}" in rule_section
+    assert (
+        "{CATEGORY}_{seq:03d}_{YYMMDD}" in rule_section
+        or "EVENT_{seq:03d}_{YYMMDD}" in rule_section
+    )
+    assert "event_numbering_table.tsv" in rule_section
+    assert "typo" in rule_section.lower()
+    assert "実sourceKey名は本文書に記載しない" in rule_section
+
+
+def test_public_id_policy_doc_naming_v2_1_does_not_expose_typo_source_key():
+    # typo事例の実sourceKey・実イベント名は書かない方針（プロンプト前提）の
+    # 簡易チェック。7桁の日付らしき数字列（誤りうるパターン）が本文書に
+    # 書かれていないことを確認する。
+    content = _read_doc()
+    assert "2411017" not in content
+
+
+def test_public_id_policy_doc_states_naming_v2_1_late_discovery_rule():
+    section = _naming_v2_1_section()
+    rule_section = section.split("### 16.7.3 遅延発見イベントのルール（新設）", 1)[
+        1
+    ].split("### 16.7.4", 1)[0]
+    assert "末尾seq" in rule_section
+    assert "日付順序は崩れる" in rule_section
+
+
+def test_public_id_policy_doc_states_naming_v2_1_raid_open_question():
+    section = _naming_v2_1_section()
+    rule_section = section.split(
+        "### 16.7.4 RAIDカテゴリの扱い（Open question、据え置き）", 1
+    )[1].split("### 16.7.5", 1)[0]
+    assert "本PRでは変更しない" in rule_section
+    assert "raid batch" in rule_section
+    assert "未確定" in rule_section
+
+
+def test_public_id_policy_doc_states_naming_v2_1_rename_mapping_table():
+    section = _naming_v2_1_section()
+    mapping_section = section.split(
+        "### 16.7.5 再改名対象（既公開EVENT 2 story）と新旧mapping", 1
+    )[1].split("### 16.7.6", 1)[0]
+    # 260425/260624はknowledge/public_ids/story_public_ids.yamlへ正式登録済み
+    # のため、Registry連動許可リストにより本文書に書いてよい（本テストでは
+    # 具体的な新旧ID値そのものの存在を直接確認する）。
+    assert "EVENT_001_260425" in mapping_section
+    assert "EVENT_002_260624" in mapping_section
+    assert "EVENT_164_260425" in mapping_section
+    assert "EVENT_168_260624" in mapping_section
+
+
+def test_public_id_policy_doc_states_naming_v2_1_deprecation():
+    section = _naming_v2_1_section()
+    deprecation_section = section.split("### 16.7.6 旧v2 ID廃止と再利用禁止", 1)[
+        1
+    ].split("### 16.7.7", 1)[0]
+    assert "廃止" in deprecation_section
+    assert "再利用しない" in deprecation_section
+
+
+def test_public_id_policy_doc_states_naming_v2_1_non_goals():
+    section = _naming_v2_1_section()
+    non_goals_section = section.split("### 16.7.7 本PRのNon-goals", 1)[1]
+    assert "RAID_001_260504" in non_goals_section
+    assert "raidカテゴリ" in non_goals_section

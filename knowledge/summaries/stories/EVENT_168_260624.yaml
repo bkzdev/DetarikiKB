@@ -1,36 +1,36 @@
 schemaVersion: 0.1.0
 documentType: story_summary
-storyId: EVENT_002_260624
-publicStoryId: EVENT_002_260624
+storyId: EVENT_168_260624
+publicStoryId: EVENT_168_260624
 language: ja
 generationStatus: generated
 storySummary:
   text: 対策班がジャマーと遭遇する。最初にくじで順番を決めて磯部香織里が挑戦することになり、彼女は緊張して電車での不可抗力のキスという展開に直面し失敗してしまう。
   confidence: null
   evidenceRefs:
-  - EVENT_002_260624_E01_DLG0053
-  - EVENT_002_260624_E01_DLG0057
-  - EVENT_002_260624_E01_DLG0059
-  - EVENT_002_260624_E01_NAR0008
-  - EVENT_002_260624_E01_DLG0077
-  - EVENT_002_260624_E01_DLG0079
-  - EVENT_002_260624_E01_DLG0062
-  - EVENT_002_260624_E01_DLG0080
+  - EVENT_168_260624_E01_DLG0053
+  - EVENT_168_260624_E01_DLG0057
+  - EVENT_168_260624_E01_DLG0059
+  - EVENT_168_260624_E01_NAR0008
+  - EVENT_168_260624_E01_DLG0077
+  - EVENT_168_260624_E01_DLG0079
+  - EVENT_168_260624_E01_DLG0062
+  - EVENT_168_260624_E01_DLG0080
 episodeSummaries:
-- episodeId: EVENT_002_260624_E01
-  publicEpisodeId: EVENT_002_260624_E01
+- episodeId: EVENT_168_260624_E01
+  publicEpisodeId: EVENT_168_260624_E01
   episodeNumber: 1
   text: 対策班がジャマーと遭遇し、一人ずつ挑戦することになる。最初にくじで決まった順番通りに磯部香織里が挑むことになった。しかし、彼女は緊張してしまい電車での不可抗力のキスという展開を耐えきれずに失敗してしまう。
   confidence: null
   evidenceRefs:
-  - EVENT_002_260624_E01_DLG0053
-  - EVENT_002_260624_E01_DLG0057
-  - EVENT_002_260624_E01_DLG0059
-  - EVENT_002_260624_E01_NAR0008
-  - EVENT_002_260624_E01_DLG0077
-  - EVENT_002_260624_E01_DLG0079
-  - EVENT_002_260624_E01_DLG0062
-  - EVENT_002_260624_E01_DLG0080
+  - EVENT_168_260624_E01_DLG0053
+  - EVENT_168_260624_E01_DLG0057
+  - EVENT_168_260624_E01_DLG0059
+  - EVENT_168_260624_E01_NAR0008
+  - EVENT_168_260624_E01_DLG0077
+  - EVENT_168_260624_E01_DLG0079
+  - EVENT_168_260624_E01_DLG0062
+  - EVENT_168_260624_E01_DLG0080
 source:
   sourceType: ai_generated
   model: ollama/qwen2.5:14b-instruct

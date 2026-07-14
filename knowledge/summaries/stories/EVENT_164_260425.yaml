@@ -1,46 +1,46 @@
 schemaVersion: 0.1.0
 documentType: story_summary
-storyId: EVENT_001_260425
-publicStoryId: EVENT_001_260425
+storyId: EVENT_164_260425
+publicStoryId: EVENT_164_260425
 language: ja
 generationStatus: generated
 storySummary:
   text: きゃらめる☆ミルキーウェイ（キャミ）のセイナとイヴに解散ドッキリが仕掛けられる。二人が取り乱さず解散を受け入れるかのような本音を漏らしたことから、ムーリンはキャミへの愛着とメンバーへの誇りを熱く語り、二人に思いをぶつける。
   confidence: null
   evidenceRefs:
-  - EVENT_001_260425_E01_DLG0030
-  - EVENT_001_260425_E01_DLG0047
-  - EVENT_001_260425_E01_DLG0060
-  - EVENT_001_260425_E01_DLG0070
-  - EVENT_001_260425_E01_DLG0072
-  - EVENT_001_260425_E02_DLG0010
-  - EVENT_001_260425_E02_DLG0059
-  - EVENT_001_260425_E02_DLG0062
-  - EVENT_001_260425_E02_DLG0067
-  - EVENT_001_260425_E02_DLG0072
+  - EVENT_164_260425_E01_DLG0030
+  - EVENT_164_260425_E01_DLG0047
+  - EVENT_164_260425_E01_DLG0060
+  - EVENT_164_260425_E01_DLG0070
+  - EVENT_164_260425_E01_DLG0072
+  - EVENT_164_260425_E02_DLG0010
+  - EVENT_164_260425_E02_DLG0059
+  - EVENT_164_260425_E02_DLG0062
+  - EVENT_164_260425_E02_DLG0067
+  - EVENT_164_260425_E02_DLG0072
 episodeSummaries:
-- episodeId: EVENT_001_260425_E01
-  publicEpisodeId: EVENT_001_260425_E01
+- episodeId: EVENT_164_260425_E01
+  publicEpisodeId: EVENT_164_260425_E01
   episodeNumber: 1
   text: きゃらめる☆ミルキーウェイ（キャミ）のセイナとイヴに、今回のプロジェクトを最後にキャミが解散するというドッキリが仕掛けられる。二人は取り乱すことなく、解散を受け入れるかのような本音を漏らし、仕掛けた側のレインとムーリンは驚く。
   confidence: null
   evidenceRefs:
-  - EVENT_001_260425_E01_DLG0030
-  - EVENT_001_260425_E01_DLG0047
-  - EVENT_001_260425_E01_DLG0060
-  - EVENT_001_260425_E01_DLG0070
-  - EVENT_001_260425_E01_DLG0072
-- episodeId: EVENT_001_260425_E02
-  publicEpisodeId: EVENT_001_260425_E02
+  - EVENT_164_260425_E01_DLG0030
+  - EVENT_164_260425_E01_DLG0047
+  - EVENT_164_260425_E01_DLG0060
+  - EVENT_164_260425_E01_DLG0070
+  - EVENT_164_260425_E01_DLG0072
+- episodeId: EVENT_164_260425_E02
+  publicEpisodeId: EVENT_164_260425_E02
   episodeNumber: 2
   text: 解散ドッキリを続ける中で、レインたちはセイナとイヴの本音を探る。イヴは自分のやりたいことを優先したい、セイナは普通の女の子に戻りたいという気持ちが明らかになる一方、ムーリンはキャミへの愛着とメンバーや活動への誇りを熱く語り、二人に思いをぶつける。
   confidence: null
   evidenceRefs:
-  - EVENT_001_260425_E02_DLG0010
-  - EVENT_001_260425_E02_DLG0059
-  - EVENT_001_260425_E02_DLG0062
-  - EVENT_001_260425_E02_DLG0067
-  - EVENT_001_260425_E02_DLG0072
+  - EVENT_164_260425_E02_DLG0010
+  - EVENT_164_260425_E02_DLG0059
+  - EVENT_164_260425_E02_DLG0062
+  - EVENT_164_260425_E02_DLG0067
+  - EVENT_164_260425_E02_DLG0072
 source:
   sourceType: ai_generated
   model: ollama/qwen2.5:14b-instruct
