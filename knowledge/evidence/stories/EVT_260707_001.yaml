@@ -65,6 +65,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E01_NAR0003
   evidenceType: narration
   storyId: EVT_260707_001
@@ -85,6 +92,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E01_DLG0005
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -166,6 +180,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E01_DLG0010
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -210,6 +231,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E01_DLG0013
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -237,6 +265,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E01_DLG0015
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -264,6 +299,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E01_DLG0017
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -274,6 +316,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E01_DLG0018
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -318,6 +367,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E01_DLG0021
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -372,6 +428,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E01_NAR0006
   evidenceType: narration
   storyId: EVT_260707_001
@@ -392,6 +455,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_204_TAGABE_TSUMUGI
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_204_TAGABE_TSUMUGI
 - evidenceId: EVT_260707_001_E01_DLG0025
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -402,6 +472,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_204_TAGABE_TSUMUGI
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_204_TAGABE_TSUMUGI
 - evidenceId: EVT_260707_001_E01_DLG0026
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -429,6 +506,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_204_TAGABE_TSUMUGI
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_204_TAGABE_TSUMUGI
 - evidenceId: EVT_260707_001_E01_DLG0028
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -439,6 +523,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E01_DLG0029
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -449,6 +540,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_204_TAGABE_TSUMUGI
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_204_TAGABE_TSUMUGI
 - evidenceId: EVT_260707_001_E01_DLG0030
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -459,6 +557,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_204_TAGABE_TSUMUGI
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_204_TAGABE_TSUMUGI
 - evidenceId: EVT_260707_001_E01_NAR0007
   evidenceType: narration
   storyId: EVT_260707_001
@@ -489,6 +594,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E01_DLG0032
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -516,6 +628,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E01_DLG0033
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -526,6 +645,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_007_TOUMI_SEINA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_007_TOUMI_SEINA
 - evidenceId: EVT_260707_001_E01_DLG0034
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -553,6 +679,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_204_TAGABE_TSUMUGI
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_204_TAGABE_TSUMUGI
 - evidenceId: EVT_260707_001_E01_DLG0036
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -563,6 +696,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E01_DLG0037
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -624,6 +764,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E01_DLG0041
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -634,6 +781,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_204_TAGABE_TSUMUGI
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_204_TAGABE_TSUMUGI
 - evidenceId: EVT_260707_001_E01_DLG0042
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -644,6 +798,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_204_TAGABE_TSUMUGI
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_204_TAGABE_TSUMUGI
 - evidenceId: EVT_260707_001_E01_DLG0043
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -654,6 +815,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_204_TAGABE_TSUMUGI
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_204_TAGABE_TSUMUGI
 - evidenceId: EVT_260707_001_E01_DLG0044
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -664,6 +832,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E01_DLG0045
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -691,16 +866,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
-- evidenceId: EVT_260707_001_E01_UNK0001
-  evidenceType: unknown
-  storyId: EVT_260707_001
-  episodeId: EVT_260707_001_E01
-  publicEvidenceId: EVT_260707_001_E01_UNK0001
-  publicStoryId: EVT_260707_001
-  publicEpisodeId: EVT_260707_001_E01
-  visibility:
-    public: true
-    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E01_DLG0046
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -745,6 +917,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E01_DLG0049
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -772,6 +951,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E01_DLG0051
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -853,6 +1039,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_007_TOUMI_SEINA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_007_TOUMI_SEINA
 - evidenceId: EVT_260707_001_E01_DLG0056
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -931,6 +1124,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_007_TOUMI_SEINA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_007_TOUMI_SEINA
 - evidenceId: EVT_260707_001_E01_DLG0061
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -958,6 +1158,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_007_TOUMI_SEINA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_007_TOUMI_SEINA
 - evidenceId: EVT_260707_001_E01_DLG0063
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -985,6 +1192,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_007_TOUMI_SEINA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_007_TOUMI_SEINA
 - evidenceId: EVT_260707_001_E01_NAR0009
   evidenceType: narration
   storyId: EVT_260707_001
@@ -1042,6 +1256,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E01_DLG0068
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -1137,6 +1358,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_007_TOUMI_SEINA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_007_TOUMI_SEINA
 - evidenceId: EVT_260707_001_E01_DLG0074
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -1164,6 +1392,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E01_DLG0076
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -1174,6 +1409,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E01_NAR0011
   evidenceType: narration
   storyId: EVT_260707_001
@@ -1191,16 +1433,6 @@ entries:
   publicEvidenceId: EVT_260707_001_E01_NAR0012
   publicStoryId: EVT_260707_001
   publicEpisodeId: EVT_260707_001_E01
-  visibility:
-    public: true
-    rawTextIncluded: false
-- evidenceId: EVT_260707_001_E02_UNK0001
-  evidenceType: unknown
-  storyId: EVT_260707_001
-  episodeId: EVT_260707_001_E02
-  publicEvidenceId: EVT_260707_001_E02_UNK0001
-  publicStoryId: EVT_260707_001
-  publicEpisodeId: EVT_260707_001_E02
   visibility:
     public: true
     rawTextIncluded: false
@@ -1224,6 +1456,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E02_DLG0002
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -1251,6 +1490,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E02_DLG0004
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -1278,6 +1524,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_204_TAGABE_TSUMUGI
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_204_TAGABE_TSUMUGI
 - evidenceId: EVT_260707_001_E02_DLG0006
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -1305,6 +1558,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_204_TAGABE_TSUMUGI
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_204_TAGABE_TSUMUGI
 - evidenceId: EVT_260707_001_E02_DLG0008
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -1349,6 +1609,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E02_DLG0011
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -1376,6 +1643,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_007_TOUMI_SEINA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_007_TOUMI_SEINA
 - evidenceId: EVT_260707_001_E02_DLG0013
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -1403,6 +1677,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E02_DLG0015
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -1430,6 +1711,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_204_TAGABE_TSUMUGI
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_204_TAGABE_TSUMUGI
 - evidenceId: EVT_260707_001_E02_DLG0017
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -1494,6 +1782,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_007_TOUMI_SEINA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_007_TOUMI_SEINA
 - evidenceId: EVT_260707_001_E02_MONO0001
   evidenceType: monologue
   storyId: EVT_260707_001
@@ -1521,6 +1816,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E02_NAR0003
   evidenceType: narration
   storyId: EVT_260707_001
@@ -1541,6 +1843,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E02_NAR0004
   evidenceType: narration
   storyId: EVT_260707_001
@@ -1561,6 +1870,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E02_DLG0024
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -1639,6 +1955,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E02_NAR0005
   evidenceType: narration
   storyId: EVT_260707_001
@@ -1679,6 +2002,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E02_NAR0007
   evidenceType: narration
   storyId: EVT_260707_001
@@ -1709,6 +2039,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E02_DLG0033
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -1960,6 +2297,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_007_TOUMI_SEINA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_007_TOUMI_SEINA
 - evidenceId: EVT_260707_001_E02_DLG0047
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -2004,6 +2348,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_007_TOUMI_SEINA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_007_TOUMI_SEINA
 - evidenceId: EVT_260707_001_E02_MONO0002
   evidenceType: monologue
   storyId: EVT_260707_001
@@ -2048,6 +2399,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E02_DLG0051
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -2058,6 +2416,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E02_DLG0052
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -2068,6 +2433,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E02_NAR0010
   evidenceType: narration
   storyId: EVT_260707_001
@@ -2098,6 +2470,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E02_DLG0054
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -2142,6 +2521,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_007_TOUMI_SEINA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_007_TOUMI_SEINA
 - evidenceId: EVT_260707_001_E02_DLG0057
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -2152,6 +2538,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_204_TAGABE_TSUMUGI
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_204_TAGABE_TSUMUGI
 - evidenceId: EVT_260707_001_E02_DLG0058
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -2162,6 +2555,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E02_DLG0059
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -2172,6 +2572,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E02_DLG0060
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -2182,6 +2589,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E02_DLG0061
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -2192,6 +2606,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E02_DLG0062
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -2202,6 +2623,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E02_DLG0063
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -2212,6 +2640,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E02_DLG0064
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -2222,6 +2657,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E02_DLG0065
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -2249,6 +2691,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E02_DLG0067
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -2259,6 +2708,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E02_DLG0068
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -2269,6 +2725,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E02_DLG0069
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -2279,6 +2742,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E02_DLG0070
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -2289,6 +2759,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E02_DLG0071
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -2299,6 +2776,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E02_DLG0072
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -2309,6 +2793,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
 - evidenceId: EVT_260707_001_E02_DLG0073
   evidenceType: dialogue
   storyId: EVT_260707_001
@@ -2336,6 +2827,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_007_TOUMI_SEINA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_007_TOUMI_SEINA
 - evidenceId: EVT_260707_001_E02_NAR0012
   evidenceType: narration
   storyId: EVT_260707_001
@@ -2390,6 +2888,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_007_TOUMI_SEINA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_007_TOUMI_SEINA
 - evidenceId: EVT_260707_001_E02_NAR0013
   evidenceType: narration
   storyId: EVT_260707_001

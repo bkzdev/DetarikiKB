@@ -61,6 +61,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_257_MINI_CALLA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_257_MINI_CALLA
 - evidenceId: RAID_260712_001_E01_DLG0002
   evidenceType: dialogue
   storyId: RAID_260712_001
@@ -71,6 +78,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_258_MINI_SONO
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_258_MINI_SONO
 - evidenceId: RAID_260712_001_E01_DLG0003
   evidenceType: dialogue
   storyId: RAID_260712_001
@@ -81,6 +95,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_257_MINI_CALLA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_257_MINI_CALLA
 - evidenceId: RAID_260712_001_E01_DLG0004
   evidenceType: dialogue
   storyId: RAID_260712_001
@@ -91,6 +112,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_258_MINI_SONO
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_258_MINI_SONO
 - evidenceId: RAID_260712_001_E01_DLG0005
   evidenceType: dialogue
   storyId: RAID_260712_001
@@ -101,6 +129,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_257_MINI_CALLA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_257_MINI_CALLA
 - evidenceId: RAID_260712_001_E01_DLG0006
   evidenceType: dialogue
   storyId: RAID_260712_001
@@ -111,6 +146,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_258_MINI_SONO
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_258_MINI_SONO
 - evidenceId: RAID_260712_001_E01_DLG0007
   evidenceType: dialogue
   storyId: RAID_260712_001
@@ -393,6 +435,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_258_MINI_SONO
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_258_MINI_SONO
 - evidenceId: RAID_260712_001_E01_DLG0024
   evidenceType: dialogue
   storyId: RAID_260712_001
@@ -403,6 +452,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_257_MINI_CALLA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_257_MINI_CALLA
 - evidenceId: RAID_260712_001_E01_NAR0006
   evidenceType: narration
   storyId: RAID_260712_001
@@ -494,6 +550,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_230_BIOUIN_TOKIME
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_230_BIOUIN_TOKIME
 - evidenceId: RAID_260712_001_E01_NAR0009
   evidenceType: narration
   storyId: RAID_260712_001
@@ -514,6 +577,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_230_BIOUIN_TOKIME
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_230_BIOUIN_TOKIME
 - evidenceId: RAID_260712_001_E01_DLG0030
   evidenceType: dialogue
   storyId: RAID_260712_001
@@ -524,6 +594,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_230_BIOUIN_TOKIME
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_230_BIOUIN_TOKIME
 - evidenceId: RAID_260712_001_E01_NAR0010
   evidenceType: narration
   storyId: RAID_260712_001
@@ -554,6 +631,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_258_MINI_SONO
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_258_MINI_SONO
 - evidenceId: RAID_260712_001_E01_NAR0012
   evidenceType: narration
   storyId: RAID_260712_001
@@ -594,6 +678,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_257_MINI_CALLA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_257_MINI_CALLA
 - evidenceId: RAID_260712_001_E01_DLG0033
   evidenceType: dialogue
   storyId: RAID_260712_001
@@ -604,6 +695,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_257_MINI_CALLA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_257_MINI_CALLA
 - evidenceId: RAID_260712_001_E01_NAR0015
   evidenceType: narration
   storyId: RAID_260712_001
@@ -624,6 +722,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_257_MINI_CALLA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_257_MINI_CALLA
 - evidenceId: RAID_260712_001_E01_DLG0035
   evidenceType: dialogue
   storyId: RAID_260712_001
@@ -634,6 +739,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_258_MINI_SONO
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_258_MINI_SONO
 - evidenceId: RAID_260712_001_E01_DLG0036
   evidenceType: dialogue
   storyId: RAID_260712_001
@@ -644,6 +756,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_258_MINI_SONO
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_258_MINI_SONO
 - evidenceId: RAID_260712_001_E01_DLG0037
   evidenceType: dialogue
   storyId: RAID_260712_001
@@ -654,6 +773,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_257_MINI_CALLA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_257_MINI_CALLA
 - evidenceId: RAID_260712_001_E01_DLG0038
   evidenceType: dialogue
   storyId: RAID_260712_001
@@ -664,6 +790,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_257_MINI_CALLA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_257_MINI_CALLA
 - evidenceId: RAID_260712_001_E01_DLG0039
   evidenceType: dialogue
   storyId: RAID_260712_001
@@ -674,6 +807,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_258_MINI_SONO
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_258_MINI_SONO
 - evidenceId: RAID_260712_001_E01_DLG0040
   evidenceType: dialogue
   storyId: RAID_260712_001
@@ -684,6 +824,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_258_MINI_SONO
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_258_MINI_SONO
 - evidenceId: RAID_260712_001_E01_DLG0041
   evidenceType: dialogue
   storyId: RAID_260712_001
@@ -694,6 +841,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_257_MINI_CALLA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_257_MINI_CALLA
 - evidenceId: RAID_260712_001_E01_NAR0016
   evidenceType: narration
   storyId: RAID_260712_001
@@ -928,6 +1082,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_230_BIOUIN_TOKIME
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_230_BIOUIN_TOKIME
 - evidenceId: RAID_260712_001_E01_DLG0055
   evidenceType: dialogue
   storyId: RAID_260712_001
@@ -989,6 +1150,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_257_MINI_CALLA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_257_MINI_CALLA
 - evidenceId: RAID_260712_001_E01_DLG0059
   evidenceType: dialogue
   storyId: RAID_260712_001
@@ -999,6 +1167,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_258_MINI_SONO
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_258_MINI_SONO
 - evidenceId: RAID_260712_001_E01_DLG0060
   evidenceType: dialogue
   storyId: RAID_260712_001
@@ -1009,6 +1184,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_258_MINI_SONO
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_258_MINI_SONO
 - evidenceId: RAID_260712_001_E01_NAR0018
   evidenceType: narration
   storyId: RAID_260712_001
@@ -1029,6 +1211,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_257_MINI_CALLA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_257_MINI_CALLA
 - evidenceId: RAID_260712_001_E01_NAR0019
   evidenceType: narration
   storyId: RAID_260712_001
@@ -1059,6 +1248,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_257_MINI_CALLA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_257_MINI_CALLA
 - evidenceId: RAID_260712_001_E01_DLG0064
   evidenceType: dialogue
   storyId: RAID_260712_001
@@ -1069,6 +1265,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_257_MINI_CALLA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_257_MINI_CALLA
 - evidenceId: RAID_260712_001_E01_DLG0065
   evidenceType: dialogue
   storyId: RAID_260712_001
@@ -1079,6 +1282,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_257_MINI_CALLA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_257_MINI_CALLA
 - evidenceId: RAID_260712_001_E01_DLG0066
   evidenceType: dialogue
   storyId: RAID_260712_001
@@ -1089,6 +1299,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_258_MINI_SONO
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_258_MINI_SONO
 - evidenceId: RAID_260712_001_E01_NAR0020
   evidenceType: narration
   storyId: RAID_260712_001
@@ -1129,6 +1346,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_257_MINI_CALLA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_257_MINI_CALLA
 - evidenceId: RAID_260712_001_E01_NAR0023
   evidenceType: narration
   storyId: RAID_260712_001
@@ -1189,6 +1413,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_257_MINI_CALLA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_257_MINI_CALLA
 - evidenceId: RAID_260712_001_E01_DLG0071
   evidenceType: dialogue
   storyId: RAID_260712_001
@@ -1199,6 +1430,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_258_MINI_SONO
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_258_MINI_SONO
 - evidenceId: RAID_260712_001_E01_DLG0072
   evidenceType: dialogue
   storyId: RAID_260712_001
@@ -1209,6 +1447,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_257_MINI_CALLA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_257_MINI_CALLA
 - evidenceId: RAID_260712_001_E01_DLG0073
   evidenceType: dialogue
   storyId: RAID_260712_001
@@ -1219,6 +1464,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_257_MINI_CALLA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_257_MINI_CALLA
 - evidenceId: RAID_260712_001_E01_DLG0074
   evidenceType: dialogue
   storyId: RAID_260712_001
@@ -1229,6 +1481,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_258_MINI_SONO
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_258_MINI_SONO
 - evidenceId: RAID_260712_001_E01_DLG0075
   evidenceType: dialogue
   storyId: RAID_260712_001
@@ -1239,6 +1498,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_257_MINI_CALLA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_257_MINI_CALLA
 - evidenceId: RAID_260712_001_E01_DLG0076
   evidenceType: dialogue
   storyId: RAID_260712_001
@@ -1249,6 +1515,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_258_MINI_SONO
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_258_MINI_SONO
 - evidenceId: RAID_260712_001_E01_NAR0026
   evidenceType: narration
   storyId: RAID_260712_001
@@ -1269,6 +1542,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_257_MINI_CALLA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_257_MINI_CALLA
 - evidenceId: RAID_260712_001_E01_NAR0027
   evidenceType: narration
   storyId: RAID_260712_001
@@ -1299,6 +1579,13 @@ entries:
   visibility:
     public: true
     rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_257_MINI_CALLA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_257_MINI_CALLA
 - evidenceId: RAID_260712_001_E01_NAR0029
   evidenceType: narration
   storyId: RAID_260712_001
