@@ -12,10 +12,10 @@ stories:
     episodes:
       - publicEpisodeId: EVENT_168_260624_E01
         episodeOrder: 1
-  - publicStoryId: RAID_001_260504
+  - publicStoryId: RAID_027_260504
     category: raid
     episodes:
-      - publicEpisodeId: RAID_001_260504_E01
+      - publicEpisodeId: RAID_027_260504_E01
         episodeOrder: 1
   - publicStoryId: EVENT_041_210526
     category: event

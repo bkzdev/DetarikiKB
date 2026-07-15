@@ -79,7 +79,15 @@ EVENT_164_260425_E03
 
 - v2.1形式自体（`{CATEGORY}_{seq:03d}_{YYMMDD}`、旧形式sourceKeyは`{CATEGORY}_{seq:03d}`）・`publicEpisodeId`/`publicEvidenceId`の採番方針はいずれも不変
 - 既公開EVENT 2 storyのRegistry書き換え（`publicStoryId`/`episodes[].publicEpisodeId`の改名）は本PR（`feature/public-id-naming-v2-1-global-sequence`）で実施した
-- RAIDカテゴリの既公開1 storyは本PRでは変更しない（`Evidence_Index_Public_ID_Policy.md` §16.7.4）
+- RAIDカテゴリの既公開1 storyは本PRでは変更しない（`Evidence_Index_Public_ID_Policy.md` §16.7.4、のちに§16.8で実施、下記§3.5参照）
+
+## 3.5 RAIDカテゴリへのv2.1適用（2026-07-15ユーザー決定、`feature/raid-public-id-v2-1-alignment`で追記）
+
+§3.4で据え置いたRAIDカテゴリのopen questionを解決し、v2.1の全体採番方式をRAIDカテゴリにも適用した。詳細（対象母集団・採番規則・既公開RAID 1 storyの新旧mapping・旧ID廃止）は`Evidence_Index_Public_ID_Policy.md` §16.8を正とし、本節はRegistryとの関係のみを整理する。
+
+- v2.1形式自体・`publicEpisodeId`/`publicEvidenceId`の採番方針はEVENTカテゴリと同じくいずれも不変
+- 既公開RAID 1 storyのRegistry書き換え（`publicStoryId`/`episodes[].publicEpisodeId`の改名）は本PR（`feature/raid-public-id-v2-1-alignment`）で実施した
+- v2形式（Registry登録順ベースの`seq`）はRAIDカテゴリでも廃止する（§3.4のEVENTカテゴリと同じ扱い）
 
 ---
 
