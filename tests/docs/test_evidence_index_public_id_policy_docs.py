@@ -543,11 +543,12 @@ def test_public_id_policy_doc_states_naming_v2_1_late_discovery_rule():
 def test_public_id_policy_doc_states_naming_v2_1_raid_open_question():
     section = _naming_v2_1_section()
     rule_section = section.split(
-        "### 16.7.4 RAIDカテゴリの扱い（Open question、据え置き）", 1
+        "### 16.7.4 RAIDカテゴリの扱い（Open question→§16.8で解決）", 1
     )[1].split("### 16.7.5", 1)[0]
     assert "本PRでは変更しない" in rule_section
     assert "raid batch" in rule_section
     assert "未確定" in rule_section
+    assert "§16.8" in rule_section
 
 
 def test_public_id_policy_doc_states_naming_v2_1_rename_mapping_table():
@@ -575,6 +576,74 @@ def test_public_id_policy_doc_states_naming_v2_1_deprecation():
 
 def test_public_id_policy_doc_states_naming_v2_1_non_goals():
     section = _naming_v2_1_section()
-    non_goals_section = section.split("### 16.7.7 本PRのNon-goals", 1)[1]
+    non_goals_section = section.split("### 16.7.7 本PRのNon-goals", 1)[1].split(
+        "## 16.8", 1
+    )[0]
     assert "RAID_001_260504" in non_goals_section
     assert "raidカテゴリ" in non_goals_section
+
+
+# ----------------------------------------------------------------
+# feature/raid-public-id-v2-1-alignment
+# ----------------------------------------------------------------
+
+NAMING_RAID_V2_1_HEADING = (
+    "## 16.8 RAIDカテゴリへのv2.1適用（2026-07-15ユーザー決定、"
+    "`feature/raid-public-id-v2-1-alignment`で設計・実行）"
+)
+
+
+def _naming_raid_v2_1_section() -> str:
+    content = _read_doc()
+    return content.split(NAMING_RAID_V2_1_HEADING, 1)[1]
+
+
+def test_public_id_policy_doc_has_naming_raid_v2_1_section():
+    content = _read_doc()
+    assert NAMING_RAID_V2_1_HEADING in content
+
+
+def test_public_id_policy_doc_states_naming_raid_v2_1_numbering_rule():
+    section = _naming_raid_v2_1_section()
+    rule_section = section.split("### 16.8.1 対象母集団と採番規則（決定）", 1)[1].split(
+        "### 16.8.2", 1
+    )[0]
+    assert "27 export dir" in rule_section
+    assert "001" in rule_section
+    assert "004" in rule_section
+    assert "005" in rule_section
+    assert "027" in rule_section
+    assert "RAID_{seq:03d}" in rule_section
+    assert (
+        "{CATEGORY}_{seq:03d}_{YYMMDD}" in rule_section
+        or "RAID_{seq:03d}_{YYMMDD}" in rule_section
+    )
+    assert "raid_numbering_table.tsv" in rule_section
+
+
+def test_public_id_policy_doc_states_naming_raid_v2_1_rename_mapping_table():
+    section = _naming_raid_v2_1_section()
+    mapping_section = section.split(
+        "### 16.8.2 再改名対象（既公開RAID 1 story）と新旧mapping", 1
+    )[1].split("### 16.8.3", 1)[0]
+    # 260504はv2移行時点でknowledge/public_ids/story_public_ids.yamlへ既に
+    # 正式登録済みのため、Registry連動許可リストにより本文書に書いてよい
+    # （本テストでは具体的な新旧ID値そのものの存在を直接確認する）。
+    assert "RAID_001_260504" in mapping_section
+    assert "RAID_027_260504" in mapping_section
+
+
+def test_public_id_policy_doc_states_naming_raid_v2_1_deprecation():
+    section = _naming_raid_v2_1_section()
+    deprecation_section = section.split("### 16.8.3 旧v2 ID廃止と再利用禁止", 1)[
+        1
+    ].split("### 16.8.4", 1)[0]
+    assert "廃止" in deprecation_section
+    assert "再利用しない" in deprecation_section
+
+
+def test_public_id_policy_doc_states_naming_raid_v2_1_non_goals():
+    section = _naming_raid_v2_1_section()
+    non_goals_section = section.split("### 16.8.4 本PRのNon-goals", 1)[1]
+    assert "raid batch" in non_goals_section
+    assert "EVENT" in non_goals_section
