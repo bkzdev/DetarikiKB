@@ -18,8 +18,8 @@ Path: `docs/architecture/01_Project/03_Scope.md`
 
 `data/raw/`へ実データ全量（4,307件）が配置された時点（2026-07-13）で、大きく2種類のコンテンツが存在することが判明した。
 
-- **本編系**（`main`/`event`/`raid`カテゴリ、`-episode\d+\.dec$`等のファイル名パターン）: 2,301件。既存のcompatibility check・辞書拡張作業（`docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md` §4.7）が完了済みで、既に内部KB化・Evidence Index promotionの両方が進行中。
-- **演出系**（`character`カテゴリ、キャラクター別dir構成）: 残る約2,006件。個別キャラクターごとのエピソード（`episode1`〜`episode3`/`episode_EX`）に加え、`H_sceneN`という命名パターンの演出コンテンツ本体・その変種（表記違い接尾辞や複製と見られる同名パターン）、および`camera`/`finish`/`episode_bgm`等の純コマンド演出ファイルが大量に含まれる。
+- **本編系**（`-episode\d+\.dec$`等のファイル名パターン）: 2,301件。`main`/`event`/`raid`カテゴリの本編ストーリーに加えて、**`character`カテゴリの本編系エピソード（`episode1`〜`episode3`/`episode_EX`）および`character_date`カテゴリ（Surprise系）も含む**（内訳: episodeN 1,008件・episode_EX 220件・mainN 214件・Surprise_N（日付付き）859件）。既存のcompatibility check・辞書拡張作業（`docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md` §4.7）が完了済みで、既に内部KB化・Evidence Index promotionの両方が進行中。
+- **演出系**: 残る約2,006件。`character`カテゴリのうち本編系エピソード（上記2,301件側に属する）を除いた残りであり、`H_sceneN`という命名パターンの演出コンテンツ本体・その変種（表記違い接尾辞や複製と見られる同名パターン）、および`camera`/`finish`/`episode_bgm`等の純コマンド演出ファイルからなる。
 
 この演出系コンテンツ（特に`H_scene`系）をKBのどの範囲まで対象にするかは、`script-command-dictionary-expansion-batch-002`（PR #131）の時点で「演出系（H_scene等）2,006件のスコープ判断・対応」として保留（`Evidence_Index_Batch_Promotion_Policy.md` §4.7.4）にされ、複数セッションにわたり未決だった。本文書は、ユーザーが2026-07-15に行った決定に基づき、この保留を解消するものである。
 
