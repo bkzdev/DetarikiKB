@@ -63,7 +63,7 @@ raw DEC配置とDKB正規ID体系（storyId/episodeId）は`story_manifest.yaml`
 以下はどのPRでも一貫してcommit対象外: 実`.dec`、実データ由来`story_manifest.yaml`、実Normalized Story JSON、実extraction/merged collection、実Wiki Markdown、raw HTML、実candidate YAML/CSV、`workspace/`配下の生成物、`.env`、APIキー。`.gitignore`で網羅済み。
 
 ### 3.12 コンテンツスコープ方針（要約）
-`data/raw/`配下のコンテンツは、軸(A)内部KB対象か・軸(B)公開対象か、の2軸で独立に判断する（two-tier方針）。`character`カテゴリのH_scene系（演出コンテンツ）は、ユーザー決定（2026-07-15）により**軸(A)内部KB対象・軸(B)公開対象外（恒久除外）**と確定した。実パースはH_sceneN本体・`H_scene_s`のみ（約589件）に限定し、変種（`_n`/`_VR`/`_spine`/`#N`）はmanifest記録のみでパース対象外とする。詳細・open questions（純コマンド演出ファイルの扱い・5〜6桁キャラID帯・変種の全キャラ横断部分集合性検証）は`docs/architecture/01_Project/03_Scope.md`を参照。
+`data/raw/`配下のコンテンツは、軸(A)内部KB対象か・軸(B)公開対象か、の2軸で独立に判断する（two-tier方針）。`character`カテゴリのH_scene系（演出コンテンツ）は、ユーザー決定（2026-07-15）により**軸(A)内部KB対象・軸(B)公開対象外（恒久除外）**と確定した。実パース対象はH_sceneN本体・`H_scene_s`（約589件）に加え、本体の部分集合になっていない例外変種（最大144件、ユーザー決定(b)・2026-07-15、パース時に動的判定）とし、純粋な部分集合だった変種と`_VR`全件はパース対象外のままとする。詳細・open questions（純コマンド演出ファイルの扱い・5〜6桁キャラID帯・`@SpineTalk`分類）は`docs/architecture/01_Project/03_Scope.md`を参照。
 
 ## 4. やってはいけないこと
 
