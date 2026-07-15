@@ -191,6 +191,61 @@ $vaule0 = 55070
     assert embedded["unknownCommands"] == set()
 
 
+def test_dict_h_scene_batch_variable_indices_not_unknown_on_standalone_path(
+    tmp_path,
+):
+    """script-command-dictionary-h-scene-parse-target-batch (character/配下の
+    パース対象ファイルで見つかった24種のうち) で見つかった$numX/$valueXの
+    個別インデックス8種+$common0が、standalone checker側でも
+    unknownCommandsに現れないことを確認する。実parser側はVARIABLEトークン
+    として正規表現ベースで既に汎用対応済み(unknown_commandsに元々計上
+    されない)のため、standalone側のみ確認する。"""
+    script = """$num1 = $split(0,$value11)
+$num2 = $split(1,$value11)
+$num3 = $split(2,$value11)
+$num4 = $split(3,$value11)
+$num5 = $split(4,$value11)
+$num6 = $split(5,$value11)
+$value7 = $state(HighGraphicsFlag)
+$value10 = $value11
+$common0 = 1.6
+"""
+    standalone, embedded = _run_both_paths(tmp_path, script)
+
+    assert standalone["unknownCommands"] == set()
+    assert embedded["unknownCommands"] == set()
+
+
+def test_dict_h_scene_parse_target_batch_commands_not_unknown_on_either_path(
+    tmp_path,
+):
+    """script-command-dictionary-h-scene-parse-target-batchで見つかった
+    新規stage_directionコマンド8種・表記ゆれ7種が、どちらの経路でも
+    unknownCommandsに現れないことを確認する。"""
+    script = """@ShadowOff
+@Shadowoff
+@ChBlueMan/SynchroMotionMirror 1 h_03_09_05 0 BlueMan/h_03_09_05_ 0.2
+@Cache Motion Human/h_04_05_00
+@SpringBone/BreastTouchRemoveCollider 2 1 1 2
+@Spine/EyeRight
+@Spine/EyeLeft
+@Spine/EyeCenter
+@ChBlueMan/BlueManSuimedo 0 0 17
+@motionwaitU h_02_01_016_
+@ChEYe2RightLow
+@ChEye2RIghtLow
+@ChEye2LeftlOW
+@ChEYe2RightHigh
+@MotioNReset
+"""
+    standalone, embedded = _run_both_paths(tmp_path, script)
+
+    assert standalone["unknownCommands"] == set()
+    assert embedded["unknownCommands"] == set()
+    assert standalone["newSpeechCommands"] == set()
+    assert embedded["newSpeechCommands"] == set()
+
+
 def test_talk_camera_commands_not_misdetected_as_speech(tmp_path):
     """@TalkCamera3/@TalkCamera4はPR #30で既知コマンド化されているため、
     どちらの経路でも新規会話コマンド候補として誤検出されないこと。"""

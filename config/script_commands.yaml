@@ -40,6 +40,23 @@ variable_assignment:
   - "$value2"
   - "$value3"
   - "$value6"
+  # script-command-dictionary-h-scene-parse-target-batch: character/配下の
+  # パース対象ファイル(H_sceneN本体・H_scene_s・episodeN/episode_EX)で
+  # 見つかった$numX/$valueXの個別インデックス8種+$common0。standalone
+  # checker(scripts/check_script_compatibility.py)の既知コマンド集合は
+  # 完全一致で判定するため個別登録する。実parser (agents/parser/parser.py)
+  # は正規表現ベースで既に汎用対応済みのため変更不要。$common0は既存の
+  # $num/$value(キャラ/コスチュームID系)とは別系統の可能性があるため、
+  # character-id sourceとしては扱わず、既知の変数トークンとしてのみ登録する。
+  - "$num1"
+  - "$num2"
+  - "$num3"
+  - "$num4"
+  - "$num5"
+  - "$num6"
+  - "$value7"
+  - "$value10"
+  - "$common0"
 
 # ----------------------------------------------------------------
 # choice: 分岐・選択肢系
@@ -252,6 +269,18 @@ stage_direction:
   - "vol"                       # BGM/SE音量制御 ("sound Bgm ..."直後に続く "vol 0"/"vol 1")
   - "{"                         # 複数chスロットへのstage direction同時グループ化 (開始)
   - "}"                         # 複数chスロットへのstage direction同時グループ化 (終了)
+  # script-command-dictionary-h-scene-parse-target-batch: character/配下の
+  # パース対象ファイル(H_sceneN本体・H_scene_s・episodeN/episode_EX)で
+  # 見つかった新規演出コマンド8種。agents/parser/parser.py の
+  # DIRECTION_TYPE_MAP と対で追加。
+  - "@ShadowOff"                       # キャラクター影非表示 (既存@Shadowのoff対)
+  - "@ChBlueMan/SynchroMotionMirror"   # モーション同期 (BlueManプレースホルダー、ミラー版)
+  - "@Cache"                           # アセットキャッシュ (例: "@Cache Motion <path>")
+  - "@SpringBone/BreastTouchRemoveCollider"  # 物理演算コライダー除去
+  - "@Spine/EyeRight"                  # キャラ視線 (Spine系) 右
+  - "@Spine/EyeLeft"                   # キャラ視線 (Spine系) 左
+  - "@Spine/EyeCenter"                 # キャラ視線 (Spine系) 中央
+  - "@ChBlueMan/BlueManSuimedo"        # BlueManプレースホルダー水着衣装バリエーション
 
 # ----------------------------------------------------------------
 # ignored: 無視する行・コマンド
@@ -366,6 +395,17 @@ case_variants:
   "@Talkcamera4": "@TalkCamera4"
   # isloading 表記ゆれ (既存@IsLoading)
   "@isloading": "@IsLoading"
+  # script-command-dictionary-h-scene-parse-target-batch: character/配下の
+  # パース対象ファイル(H_sceneN本体・H_scene_s・episodeN/episode_EX)で
+  # 見つかった表記ゆれ7種 (agents/parser/parser.py の CASE_VARIANTS_MAP と
+  # 対で追加)。
+  "@motionwaitU": "@MotionWaitU"
+  "@ChEYe2RightLow": "@ChEye2RightLow"
+  "@ChEye2RIghtLow": "@ChEye2RightLow"
+  "@ChEye2LeftlOW": "@ChEye2LeftLow"
+  "@ChEYe2RightHigh": "@ChEye2RightHigh"
+  "@MotioNReset": "@MotionReset"
+  "@Shadowoff": "@ShadowOff"
 
 # ----------------------------------------------------------------
 # new_speech_detection_hints: 新規会話コマンド候補の検出ヒント

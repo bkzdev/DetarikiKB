@@ -679,3 +679,91 @@ totallyUnknownCommand123 foo bar
     assert scene.blocks[0].block_type == "stage_direction"
     assert scene.blocks[1].block_type == "unknown"
     assert "totallyUnknownCommand123" in scene.blocks[1].raw_text
+
+
+def test_dict_h_scene_parse_target_batch_new_commands_become_stage_direction():
+    """script-command-dictionary-h-scene-parse-target-batch (character/配下の
+    パース対象ファイル: H_sceneN本体・H_scene_s・episodeN/episode_EXに
+    1回以上出現する未登録コマンド24種のうち) で見つかった新規
+    stage_directionコマンド8種が、unknownではなくstage_directionとして
+    正しいdirection_typeに分類されることを確認する。"""
+    script = """@ShadowOff
+@ChBlueMan/SynchroMotionMirror 1 h_03_09_05 0 BlueMan/h_03_09_05_ 0.2
+@Cache Motion Human/h_04_05_00
+@SpringBone/BreastTouchRemoveCollider 2 1 1 2
+@Spine/EyeRight
+@Spine/EyeLeft
+@Spine/EyeCenter
+@ChBlueMan/BlueManSuimedo 0 0 17
+"""
+    parser = StoryParser(preserve_stage_directions=True)
+    result = parser.parse_text(script)
+    scene = result.episodes[0].scenes[0]
+
+    assert len(scene.blocks) == 8
+    for block in scene.blocks:
+        assert block.block_type == "stage_direction"
+
+    assert scene.blocks[0].raw_command == "@ShadowOff"
+    assert scene.blocks[0].direction_type == "character_display"
+    assert scene.blocks[1].raw_command == "@ChBlueMan/SynchroMotionMirror"
+    assert scene.blocks[1].direction_type == "motion"
+    assert scene.blocks[2].raw_command == "@Cache"
+    assert scene.blocks[2].direction_type == "system"
+    assert scene.blocks[3].raw_command == "@SpringBone/BreastTouchRemoveCollider"
+    assert scene.blocks[3].direction_type == "motion"
+    assert scene.blocks[4].raw_command == "@Spine/EyeRight"
+    assert scene.blocks[4].direction_type == "character_display"
+    assert scene.blocks[5].raw_command == "@Spine/EyeLeft"
+    assert scene.blocks[5].direction_type == "character_display"
+    assert scene.blocks[6].raw_command == "@Spine/EyeCenter"
+    assert scene.blocks[6].direction_type == "character_display"
+    assert scene.blocks[7].raw_command == "@ChBlueMan/BlueManSuimedo"
+    assert scene.blocks[7].direction_type == "character_display"
+
+
+def test_dict_h_scene_parse_target_batch_case_variants_normalize_to_canonical():
+    """script-command-dictionary-h-scene-parse-target-batchで見つかった
+    表記ゆれ7種が、CASE_VARIANTS_MAP経由で正規形へ正規化されつつ
+    stage_directionとして分類されることを確認する。"""
+    script = """@motionwaitU h_02_01_016_
+@ChEYe2RightLow
+@ChEye2RIghtLow
+@ChEye2LeftlOW
+@ChEYe2RightHigh
+@MotioNReset
+@Shadowoff
+"""
+    parser = StoryParser(preserve_stage_directions=True)
+    result = parser.parse_text(script)
+    scene = result.episodes[0].scenes[0]
+
+    assert len(scene.blocks) == 7
+
+    assert scene.blocks[0].raw_command == "@motionwaitU"
+    assert scene.blocks[0].normalized_command == "@MotionWaitU"
+    assert scene.blocks[0].direction_type == "motion"
+
+    assert scene.blocks[1].raw_command == "@ChEYe2RightLow"
+    assert scene.blocks[1].normalized_command == "@ChEye2RightLow"
+    assert scene.blocks[1].direction_type == "character_display"
+
+    assert scene.blocks[2].raw_command == "@ChEye2RIghtLow"
+    assert scene.blocks[2].normalized_command == "@ChEye2RightLow"
+    assert scene.blocks[2].direction_type == "character_display"
+
+    assert scene.blocks[3].raw_command == "@ChEye2LeftlOW"
+    assert scene.blocks[3].normalized_command == "@ChEye2LeftLow"
+    assert scene.blocks[3].direction_type == "character_display"
+
+    assert scene.blocks[4].raw_command == "@ChEYe2RightHigh"
+    assert scene.blocks[4].normalized_command == "@ChEye2RightHigh"
+    assert scene.blocks[4].direction_type == "character_display"
+
+    assert scene.blocks[5].raw_command == "@MotioNReset"
+    assert scene.blocks[5].normalized_command == "@MotionReset"
+    assert scene.blocks[5].direction_type == "motion"
+
+    assert scene.blocks[6].raw_command == "@Shadowoff"
+    assert scene.blocks[6].normalized_command == "@ShadowOff"
+    assert scene.blocks[6].direction_type == "character_display"
