@@ -99,19 +99,29 @@ Wiki生成（`agents/wiki_generator/`）・Public Evidence Index promotion（`kn
 
 **調査結果**: `scripts/check_script_compatibility.py`が「未登録キャラクターID」として検出する890 distinct IDのうち、**867件（97.4%）は話者スロットに一切束縛されない誤検出だった**（costume/mo/fa等の非話者引数としてのみ消費されるもの762件・延べ5,379回、いずれの消費経路にも当てはまらない未消費その他121件・延べ552回）。これは、compatibility checkerが`$numX`/`$valueX`代入行を検出した時点で無条件に「キャラID候補」と記録し、その後実際に話者スロットとして参照されるかどうかを区別していないことに起因する（`agents/parser/parser.py`側も同様に無条件でスロットへ自動バインドするが、そのスロットがどの会話コマンドからも参照されなければ話者として表面化しない）。
 
-真に話者として使われる未登録IDは**7件のみ**（speaker-bound 2件・mixed 5件、いずれも3〜5桁帯。**6桁帯には話者実体が一件も無い**）。うち6件は`name`強制上書き（forced-name override）または`@ChTalkName`のインライン引数から表示名候補が実データから抽出できた。
+真に話者として使われる未登録IDは、当初の調査（変数形式`@ScenarioCos`未対応の調査スキャナによる暫定値）では**7件**（speaker-bound 2件・mixed 5件、いずれも3〜5桁帯。**6桁帯には話者実体が一件も無い**）だった。うち6件は`name`強制上書き（forced-name override）または`@ChTalkName`のインライン引数から表示名候補が実データから抽出できた。この7件は後述（§5.2末尾）のとおり、`@ScenarioCos`変数引数形式対応後の再スキャンで**6件**へ確定した。
 
 調査手法の要点: resolver.py（`SpeakerResolver`）と同じ意味論で、`$numX`/`$valueX`代入・`@ScenarioCos`（直接指定）・`@ScenarioCosLoad`（変数経由）によるスロット再束縛を時系列1パスでシミュレートし、各時点のスロット状態を参照して`@ChTalk`系コマンドが実際にどのIDを話者として消費しているかを判定した。調査成果物（distinct ID単位の分析表・サマリー）は`workspace/local_inputs/`配下（非commit・workspace限定）にある。
 
-また、本調査により重要なparserギャップが判明した。**`@ScenarioCos`（直接指定版）の第2引数が変数の形式**（例: `@ScenarioCos slot $numN ...`）は、`agents/parser/parser.py`の`SCENARIO_COS_PATTERN`（`^@ScenarioCos\s+(\d+)\s+(\d+)`、数値直指定のみ想定）・`scripts/check_script_compatibility.py`の対応する正規表現のいずれにも一切マッチせず、話者スロットへの束縛が取りこぼされる。raw全量のgrep集計では、この変数引数形式は延べ**約3,400回**出現し、数値直指定形式（約340回）より支配的であるため、話者スロット束縛の大量取りこぼしが起きている（後続実装PRで対応予定）。なお`@ScenarioCosLoad slot $var`形式は`SCENARIO_COS_LOAD_PATTERN`で正しくマッチ・消費されており、問題は3トークン目以降に追加変数が置かれるパターン（例: `@ScenarioCosLoad 1 $num1 $value1 ON`）の追加トークンが未消費という点のみである（コスチューム値の可能性が高く、話者解決への影響は限定的）。
+また、本調査により重要なparserギャップが判明した。**`@ScenarioCos`（直接指定版）の第2引数が変数の形式**（例: `@ScenarioCos slot $numN ...`）は、`agents/parser/parser.py`の`SCENARIO_COS_PATTERN`（`^@ScenarioCos\s+(\d+)\s+(\d+)`、数値直指定のみ想定）・`scripts/check_script_compatibility.py`の対応する正規表現のいずれにも一切マッチせず、話者スロットへの束縛が取りこぼされる。raw全量のgrep集計では、この変数引数形式は延べ**約3,400回**出現し、数値直指定形式（約340回）より支配的であるため、話者スロット束縛の大量取りこぼしが起きている。なお`@ScenarioCosLoad slot $var`形式は`SCENARIO_COS_LOAD_PATTERN`で正しくマッチ・消費されており、問題は3トークン目以降に追加変数が置かれるパターン（例: `@ScenarioCosLoad 1 $num1 $value1 ON`）の追加トークンが未消費という点のみである（コスチューム値の可能性が高く、話者解決への影響は限定的、`feature/scenario-cos-variable-variant-support`のNon-goalsとして対応しない）。
+
+**このgapは`feature/scenario-cos-variable-variant-support`（2026-07-15実装）で解消済みである。** `SCENARIO_COS_PATTERN`を`^@ScenarioCos\s+(\d+)\s+(\d+|\$[\w\d]+)`へ拡張し、第2引数が`$`始まりの変数の場合は`@ScenarioCosLoad`と同じ意味論（変数マップからIDを引いてスロットへ束縛、未定義変数はunknown speakerのまま破棄しない）で処理するよう`agents/parser/parser.py`・`scripts/check_script_compatibility.py`の両方を修正した（第3引数以降はコスチューム値として従来どおり無視、数値直接指定形式の既存挙動は無回帰）。
 
 この変数形式`@ScenarioCos`について、以下の追加事実も確認済みである（2026-07-15追加検証）。
 
 - 変数形式は特定カテゴリに偏らず**全カテゴリに分布**する（main約1,009回・event約1,168回・raid約103回・other約55回・character約671回・character_date約464回、計約3,470回）。
 - ただし`$numX`形式では slot番号==変数index となるケースが3,218/3,278回（約98%）を占め、resolver.pyが`$numX`代入時に行う自動スロット束縛（slot=X）が結果的に正しい束縛を再現する。したがって実害（話者誤帰属）の可能性があるのは、不一致の60回と、`$valueN`形式（約540回、自動束縛のslot対応が自明でない）に限られる。
-- **注意: 前述の「真の未登録話者7件」という数字は、調査スキャナ自体も数値直指定のみの`SCENARIO_COS`正規表現を使っていたため、変数形式`@ScenarioCos`による話者スロット束縛を含まない計算である。** 過小評価の可能性があり、変数形式対応（後続実装PR）の実装後に再スキャンを行い、7件という数字とレビューパケットの内容を再検証する必要がある。
 
-**現状**: 真の未登録話者7件は、`docs/runbooks/Character_Dictionary_Review.md`の既存レビュー運用に沿ったレビューパケットとしてユーザー確認待ちであり、確認後に`knowledge/dictionaries/characters.yaml`へconfirmed batchとして登録する（`Character_Dictionary_Review.md`の該当節を参照）。867件の誤検出については、checker側を消費文脈ベースの判定へ修正する後続実装PRで解消する予定であり、本文書時点ではまだ未着手である。`@ScenarioCos`変数引数形式への対応も同様に後続実装PRのスコープとする。
+### 5.2.1 再スキャン結果（`@ScenarioCos`変数引数形式対応後、2026-07-15確定）
+
+`@ScenarioCos`変数引数形式対応（§5.2冒頭）の実装後、調査スキャナ（同じ意味論へ更新済み）で`data/raw/`全量を再走査した。**真の未登録話者は7件から6件へ確定した**（speaker-bound 3件・mixed 3件、いずれも2〜5桁帯。未登録distinct ID総数890自体は不変、costume-motion-only/unconsumed-or-otherの内訳のみ組み替わっている）。
+
+差分の内訳:
+
+- **離脱2件**（3〜5桁帯、いずれも旧mixed分類）: `@ScenarioCos slot $varA $varB ...`という「話者ID変数＋コスチューム値変数」形式の行で、変数形式未対応だった旧スキャナ（および旧parser/checker）が第2引数（話者ID変数）のスロット再束縛を認識できず、スロットに残っていた別の代入由来の値（実際にはコスチューム値側の変数）を誤って話者として計上していた誤検出。修正後はスロットが正しい話者IDへ再束縛されるため、この誤検出は解消した。この2件は同一の構造的バグに起因する既知の対（パートナー役の組）であり、対応するIDは既に他の消費経路で確認されていた登録済みキャラクターの可能性が高い。
+- **新規1件**（2桁帯、`main`カテゴリ、speaker-bound）: `$numX`/`$valueN`変数経由で`@ScenarioCos`のスロットへ束縛される話者IDで、変数形式対応前は一切検出されていなかった（全く新規の未登録ID候補）。表示名候補は実データから確認できていない。
+
+**現状**: 真の未登録話者6件（確定値）は、`docs/runbooks/Character_Dictionary_Review.md`の既存レビュー運用に沿ったレビューパケットとしてユーザー確認待ちであり、確認後に`knowledge/dictionaries/characters.yaml`へconfirmed batchとして登録する（`Character_Dictionary_Review.md`の該当節を参照）。867件の誤検出については、checker側を消費文脈ベースの判定へ修正する後続実装PRで解消する予定であり、本文書時点ではまだ未着手である。
 
 ## 5.3 変種の全キャラクター横断部分集合性検証
 

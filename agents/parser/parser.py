@@ -335,8 +335,8 @@ NUM_VAR_PATTERN = re.compile(r"^\$num(\d+)$")
 # $valueX パターン
 VALUE_VAR_PATTERN = re.compile(r"^\$value(\d+)$")
 
-# @ScenarioCos
-SCENARIO_COS_PATTERN = re.compile(r"^@ScenarioCos\s+(\d+)\s+(\d+)")
+# @ScenarioCos (第2引数は数値の直接指定、または $numX/$valueX 等の変数指定のいずれか)
+SCENARIO_COS_PATTERN = re.compile(r"^@ScenarioCos\s+(\d+)\s+(\d+|\$[\w\d]+)")
 # @ScenarioCosLoad
 SCENARIO_COS_LOAD_PATTERN = re.compile(r"^@ScenarioCosLoad\s+(\d+)\s+(\$[\w\d]+)")
 
@@ -616,17 +616,28 @@ class StoryParser:
                 cmd = token.command or ""
                 normalized_cmd = CASE_VARIANTS_MAP.get(cmd, cmd)
 
-                # @ScenarioCos slot id
+                # @ScenarioCos slot id (数値直接指定) / slot $var (変数経由)
                 if cmd == "@ScenarioCos":
                     flush_text()
                     sc_match = SCENARIO_COS_PATTERN.match(token.raw)
                     if sc_match:
-                        resolver.assign_character(
-                            slot=sc_match.group(1),
-                            source_character_id=sc_match.group(2),
-                            line_start=token.line_number,
-                            raw=token.raw,
-                        )
+                        second_arg = sc_match.group(2)
+                        if second_arg.startswith("$"):
+                            # @ScenarioCosLoad と同じ意味論: 変数マップからIDを引いて
+                            # スロットへ束縛する (第3引数以降は無視)
+                            resolver.assign_from_variable(
+                                slot=sc_match.group(1),
+                                variable_name=second_arg,
+                                line_start=token.line_number,
+                                raw=token.raw,
+                            )
+                        else:
+                            resolver.assign_character(
+                                slot=sc_match.group(1),
+                                source_character_id=second_arg,
+                                line_start=token.line_number,
+                                raw=token.raw,
+                            )
                     continue
 
                 # @ScenarioCosLoad slot variable

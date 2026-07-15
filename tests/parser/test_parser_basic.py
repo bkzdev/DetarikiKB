@@ -135,6 +135,111 @@ name
     assert dlg.speaker.speaker_name != ""
 
 
+# ----------------------------------------------------------------
+# @ScenarioCos 変数引数形式 (feature/scenario-cos-variable-variant-support)
+# 第2引数が $numX/$valueX 等の変数の場合、@ScenarioCosLoad と同じ意味論
+# (変数マップからIDを引いてスロットへ束縛) で処理されることを確認する。
+# ----------------------------------------------------------------
+
+
+def test_scenario_cos_numeric_direct_form_unaffected(char_dict):
+    """既存の数値直接指定形式 (@ScenarioCos slot id) の挙動に無回帰であること。"""
+    script = """@ScenarioCos 6 26
+@ChTalk 6
+数値直接指定のセリフ
+"""
+    parser = StoryParser(char_dict=char_dict)
+    result = parser.parse_text(script)
+    dlg = result.episodes[0].scenes[0].blocks[0]
+
+    assert dlg.speaker.speaker_name == "レイン"
+    assert dlg.speaker.is_resolved is True
+
+
+def test_scenario_cos_variable_form_slot_equals_index_matches_numeric_form(char_dict):
+    """$numX形式でslot==変数indexのケースは、数値直接指定と同一の結果になること。"""
+    script_var = """$num1 = 26
+@ScenarioCos 1 $num1
+@ChTalk 1
+こんにちは、レインです。
+"""
+    script_numeric = """$num1 = 26
+@ScenarioCos 1 26
+@ChTalk 1
+こんにちは、レインです。
+"""
+    dlg_var = (
+        StoryParser(char_dict=char_dict)
+        .parse_text(script_var)
+        .episodes[0]
+        .scenes[0]
+        .blocks[0]
+    )
+    dlg_num = (
+        StoryParser(char_dict=char_dict)
+        .parse_text(script_numeric)
+        .episodes[0]
+        .scenes[0]
+        .blocks[0]
+    )
+
+    assert dlg_var.speaker.speaker_name == "レイン"
+    assert dlg_var.speaker.is_resolved is True
+    assert dlg_var.speaker.speaker_name == dlg_num.speaker.speaker_name
+    assert dlg_var.speaker.speaker_id == dlg_num.speaker.speaker_id
+
+
+def test_scenario_cos_variable_form_slot_not_equal_index(char_dict):
+    """
+    $num7 = 1 は resolver.assign_variable の副作用でスロット "7" にも自動束縛するが、
+    @ScenarioCos 2 $num7 はそれとは別に、変数を参照してスロット "2" (indexとは異なる)
+    を正しく同じキャラクターへ束縛できることを確認する。
+    """
+    script = """$num7 = 1
+@ScenarioCos 2 $num7
+@ChTalk 2
+スロット2のセリフ
+"""
+    parser = StoryParser(char_dict=char_dict)
+    result = parser.parse_text(script)
+    dlg = result.episodes[0].scenes[0].blocks[0]
+
+    assert dlg.speaker.speaker_name == "赤城陽菜"
+    assert dlg.speaker.is_resolved is True
+
+
+def test_scenario_cos_variable_form_value_variable(char_dict):
+    """$valueN形式の変数も @ScenarioCos の第2引数として正しく参照されること。"""
+    script = """$value0 = 1
+@ScenarioCos 4 $value0
+@ChTalk 4
+スロット4のセリフ
+"""
+    parser = StoryParser(char_dict=char_dict)
+    result = parser.parse_text(script)
+    dlg = result.episodes[0].scenes[0].blocks[0]
+
+    assert dlg.speaker.speaker_name == "赤城陽菜"
+    assert dlg.speaker.is_resolved is True
+
+
+def test_scenario_cos_variable_form_undefined_variable_yields_unknown_speaker(
+    char_dict,
+):
+    """未定義変数を参照した場合、話者を破棄せずunknown speakerとして保持すること。"""
+    script = """@ScenarioCos 2 $numUndefined
+@ChTalk 2
+定義されていない変数のセリフ
+"""
+    parser = StoryParser(char_dict=char_dict)
+    result = parser.parse_text(script)
+    dlg = result.episodes[0].scenes[0].blocks[0]
+
+    assert dlg.speaker.is_resolved is False
+    assert dlg.speaker.speaker_id is None
+    assert "slot2" in dlg.speaker.speaker_name
+
+
 def test_narration():
     script = """msg
 異形生物対策班　本部
