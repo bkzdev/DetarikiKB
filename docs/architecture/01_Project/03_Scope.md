@@ -83,6 +83,16 @@ Wiki生成（`agents/wiki_generator/`）・Public Evidence Index promotion（`kn
 
 パース自体は、`AI_CONTEXT.md` §3.2・§13.3（不明情報を破棄しない不変則）により、未登録キャラクターIDの辞書確定を待たずに実行可能である（未解決IDは「不明人物」placeholderとして保持され、破棄されない）。5〜6桁ID帯の辞書整備自体は別の未決事項として残る（§5.2）。
 
+### 4.4.1 全量再検証による訂正（2026-07-15追加調査）
+
+**上記「1キャラクター分15ファイルで未知コマンド2種のみ」は、1キャラ分サンプルに基づく過小評価だったことが判明した。** `data/raw/character/`全量（2,419ファイル）に対する再検証の結果、未登録コマンドは**41 distinct**（延べ出現数はチェッカーの`summary.unknownCommandCount`生値で1,016、ただしこの値は実際には「ファイル単位のdistinctコマンド数の合計」でありコマンド出現回数の合計ではない。出現回数ベースで再集計した実測値は、後述`@SpineTalk`を除く40種で延べ**1,228回**）であり、加えて`@SpineTalk`という新規発話コマンド（`@ChTalk`と同型の`@SpineTalk $numN <voice/textアセット参照path>`形式、延べ**2,893回**・132 distinctファイル）が別枠で検出された。
+
+`@ToCloud`（523回）・`@VR/VRSelect`（50回）を含め、この41種はいずれも**パース対象外のvariant-onlyファイル集合（`_n`/`_VR`/`_spine`/`#N`変種、および`camera`/`finish`/`episode_bgm`等の純コマンド演出ファイル）にのみ出現するもの17種**と、**パース対象ファイル（H_sceneN本体・`H_scene_s`・episode系）に1回以上出現するもの24種**（既存登録コマンドの表記ゆれ`case-variant`・`$numX`/`$valueX`/`$common`/`$return`の個別インデックス`variable-token`が大半を占め、機械的分類が可能）に分かれる。`@SpineTalk`はパース対象ファイルには一度も出現せず、variant-only集合（`_spine`変種および同梱の`finish`系ファイル）にのみ出現することを確認した。
+
+1キャラ分サンプルがこの2種のみを検出したのは、サンプルに含まれていた15ファイルの構成（variant側ファイルを含むが全variantパターン・全コマンド種を網羅していなかった）に起因すると考えられる。
+
+全量インベントリ（コマンド別の出現回数・分類・ファイルスコープ）は`workspace/local_inputs/hscene_unknown_command_inventory.md`（非commit、`docs/runbooks/AI_PR_Playbook.md` §4 docs-only PR方針に基づきworkspace限定）にある。実コマンド登録・`@SpineTalk`の分類決定はいずれも本節の時点では未着手であり、§5に未決事項として記録する。
+
 ---
 
 # 5. Open questions（未決事項）
@@ -126,6 +136,17 @@ Wiki生成（`agents/wiki_generator/`）・Public Evidence Index promotion（`kn
 ## 5.3 変種の全キャラクター横断部分集合性検証
 
 §4.3.2で述べたとおり、`_n`/`_VR`/`_spine`/`#N`変種が全キャラクター・全パターンで本体の部分集合であることを機械的に検証するdry-runは、実パース着手前の後続タスクとして残っている。
+
+**2026-07-15追加調査（§4.4.1）による注記**: `_spine`変種は本体の`@ChTalk`系セリフコマンドを`@SpineTalk`という別コマンドで置換している可能性がある（`@SpineTalk`はvariant-only集合にのみ出現し、パース対象ファイルには一切出現しないことを確認済み）。したがって`_spine`変種の部分集合性比較を行う際は、コマンド名の一致ではなく、セリフ行が参照するvoice/textアセット参照path単位で比較する必要がある（コマンド名が`@ChTalk`か`@SpineTalk`かに関わらず、同一アセットpathを参照していれば同一発話とみなせる）。本注記は比較手法上の留意点の記録であり、実際の部分集合性検証（dry-run）自体は本文書時点では未着手のままである。
+
+## 5.4 `@SpineTalk`の分類・variant-onlyコマンドの登録可否（2026-07-15追加、未決）
+
+§4.4.1の全量調査で判明した以下2点は、いずれもユーザー/Fable判断待ちであり、**本文書では決定しない**。
+
+1. **`@SpineTalk`の分類**: `@ChTalk`と同型のセリフ形式コマンド（`@SpineTalk $numN <voice/textアセット参照path>`）でありながら、`_spine`変種（§4.3の決定によりパース対象外）にのみ出現する。発話コマンドとして`config/script_commands.yaml`の`speech`カテゴリへ登録するか、`_spine`変種がそもそもパース対象外である以上登録不要とするかは未決定。
+2. **パース対象外のvariant-only集合にのみ現れるコマンド（41種中17種、`@ToCloud`・`@VR/VRSelect`等を含む）を登録するかどうか**: パーサーが実際にこれらのコマンドに遭遇するのはvariant-only側ファイルを将来パース対象に含めた場合のみであり、現行の§4.3決定（H_sceneN本体+`H_scene_s`のみパース対象）の下では遭遇しない。登録を先送りするか、`unknown`ブロックとして扱われ続けることを許容するかは未決定。
+
+インベントリ詳細は`workspace/local_inputs/hscene_unknown_command_inventory.md`（非commit）を参照。
 
 ---
 
