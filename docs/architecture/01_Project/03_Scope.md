@@ -103,9 +103,15 @@ Wiki生成（`agents/wiki_generator/`）・Public Evidence Index promotion（`kn
 
 調査手法の要点: resolver.py（`SpeakerResolver`）と同じ意味論で、`$numX`/`$valueX`代入・`@ScenarioCos`（直接指定）・`@ScenarioCosLoad`（変数経由）によるスロット再束縛を時系列1パスでシミュレートし、各時点のスロット状態を参照して`@ChTalk`系コマンドが実際にどのIDを話者として消費しているかを判定した。調査成果物（distinct ID単位の分析表・サマリー）は`workspace/local_inputs/`配下（非commit・workspace限定）にある。
 
-副次発見として、`@ScenarioCosLoad slot $var1 $var2 OFF`という変数版バリアントが実データに存在するが、`agents/parser/resolver.py`の`SCENARIO_COS_LOAD_PATTERN`・`scripts/check_script_compatibility.py`の対応する正規表現はいずれも数値直指定のみを想定しており、この変数版を取りこぼす。
+また、本調査により重要なparserギャップが判明した。**`@ScenarioCos`（直接指定版）の第2引数が変数の形式**（例: `@ScenarioCos slot $numN ...`）は、`agents/parser/parser.py`の`SCENARIO_COS_PATTERN`（`^@ScenarioCos\s+(\d+)\s+(\d+)`、数値直指定のみ想定）・`scripts/check_script_compatibility.py`の対応する正規表現のいずれにも一切マッチせず、話者スロットへの束縛が取りこぼされる。raw全量のgrep集計では、この変数引数形式は延べ**約3,400回**出現し、数値直指定形式（約340回）より支配的であるため、話者スロット束縛の大量取りこぼしが起きている（後続実装PRで対応予定）。なお`@ScenarioCosLoad slot $var`形式は`SCENARIO_COS_LOAD_PATTERN`で正しくマッチ・消費されており、問題は3トークン目以降に追加変数が置かれるパターン（例: `@ScenarioCosLoad 1 $num1 $value1 ON`）の追加トークンが未消費という点のみである（コスチューム値の可能性が高く、話者解決への影響は限定的）。
 
-**現状**: 真の未登録話者7件は、`docs/runbooks/Character_Dictionary_Review.md`の既存レビュー運用に沿ったレビューパケットとしてユーザー確認待ちであり、確認後に`knowledge/dictionaries/characters.yaml`へconfirmed batchとして登録する（`Character_Dictionary_Review.md`の該当節を参照）。867件の誤検出については、checker側を消費文脈ベースの判定へ修正する後続実装PRで解消する予定であり、本文書時点ではまだ未着手である。`@ScenarioCosLoad`変数版バリアントへの対応も同様に後続実装PRのスコープとする。
+この変数形式`@ScenarioCos`について、以下の追加事実も確認済みである（2026-07-15追加検証）。
+
+- 変数形式は特定カテゴリに偏らず**全カテゴリに分布**する（main約1,009回・event約1,168回・raid約103回・other約55回・character約671回・character_date約464回、計約3,470回）。
+- ただし`$numX`形式では slot番号==変数index となるケースが3,218/3,278回（約98%）を占め、resolver.pyが`$numX`代入時に行う自動スロット束縛（slot=X）が結果的に正しい束縛を再現する。したがって実害（話者誤帰属）の可能性があるのは、不一致の60回と、`$valueN`形式（約540回、自動束縛のslot対応が自明でない）に限られる。
+- **注意: 前述の「真の未登録話者7件」という数字は、調査スキャナ自体も数値直指定のみの`SCENARIO_COS`正規表現を使っていたため、変数形式`@ScenarioCos`による話者スロット束縛を含まない計算である。** 過小評価の可能性があり、変数形式対応（後続実装PR）の実装後に再スキャンを行い、7件という数字とレビューパケットの内容を再検証する必要がある。
+
+**現状**: 真の未登録話者7件は、`docs/runbooks/Character_Dictionary_Review.md`の既存レビュー運用に沿ったレビューパケットとしてユーザー確認待ちであり、確認後に`knowledge/dictionaries/characters.yaml`へconfirmed batchとして登録する（`Character_Dictionary_Review.md`の該当節を参照）。867件の誤検出については、checker側を消費文脈ベースの判定へ修正する後続実装PRで解消する予定であり、本文書時点ではまだ未着手である。`@ScenarioCos`変数引数形式への対応も同様に後続実装PRのスコープとする。
 
 ## 5.3 変種の全キャラクター横断部分集合性検証
 
