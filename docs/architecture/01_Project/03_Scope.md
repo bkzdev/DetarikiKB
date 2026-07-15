@@ -93,9 +93,19 @@ Wiki生成（`agents/wiki_generator/`）・Public Evidence Index promotion（`kn
 
 `camera`/`finish`/`episode_bgm`等、テキスト行を一切含まない純コマンド演出ファイルを、内部KB対象（軸A）に含めるかどうかは、本文書では決定していない。§4の決定はH_sceneN本体・`H_scene_s`にのみ適用され、これらの純コマンドファイルには及ばない。
 
-## 5.2 5〜6桁キャラクターID帯の辞書整備
+## 5.2 5〜6桁キャラクターID帯の辞書整備（2026-07-15調査により前提が更新）
 
-§4.4で判明した5〜6桁の数字IDを持つ未登録キャラクター（モブ/システム系と疑われる）を`knowledge/dictionaries/characters.yaml`へどう登録するかは、既存の未決事項（`docs/runbooks/Character_Dictionary_Review.md`関連）のまま未決である。
+§4.4で判明した5〜6桁の数字IDを持つ未登録キャラクター（モブ/システム系と疑われる）の扱いは、2026-07-15にユーザーが実施した`data/raw/`全量（4,301件）に対する消費文脈調査により、当初の前提が覆った。
+
+**調査結果**: `scripts/check_script_compatibility.py`が「未登録キャラクターID」として検出する890 distinct IDのうち、**867件（97.4%）は話者スロットに一切束縛されない誤検出だった**（costume/mo/fa等の非話者引数としてのみ消費されるもの762件・延べ5,379回、いずれの消費経路にも当てはまらない未消費その他121件・延べ552回）。これは、compatibility checkerが`$numX`/`$valueX`代入行を検出した時点で無条件に「キャラID候補」と記録し、その後実際に話者スロットとして参照されるかどうかを区別していないことに起因する（`agents/parser/parser.py`側も同様に無条件でスロットへ自動バインドするが、そのスロットがどの会話コマンドからも参照されなければ話者として表面化しない）。
+
+真に話者として使われる未登録IDは**7件のみ**（speaker-bound 2件・mixed 5件、いずれも3〜5桁帯。**6桁帯には話者実体が一件も無い**）。うち6件は`name`強制上書き（forced-name override）または`@ChTalkName`のインライン引数から表示名候補が実データから抽出できた。
+
+調査手法の要点: resolver.py（`SpeakerResolver`）と同じ意味論で、`$numX`/`$valueX`代入・`@ScenarioCos`（直接指定）・`@ScenarioCosLoad`（変数経由）によるスロット再束縛を時系列1パスでシミュレートし、各時点のスロット状態を参照して`@ChTalk`系コマンドが実際にどのIDを話者として消費しているかを判定した。調査成果物（distinct ID単位の分析表・サマリー）は`workspace/local_inputs/`配下（非commit・workspace限定）にある。
+
+副次発見として、`@ScenarioCosLoad slot $var1 $var2 OFF`という変数版バリアントが実データに存在するが、`agents/parser/resolver.py`の`SCENARIO_COS_LOAD_PATTERN`・`scripts/check_script_compatibility.py`の対応する正規表現はいずれも数値直指定のみを想定しており、この変数版を取りこぼす。
+
+**現状**: 真の未登録話者7件は、`docs/runbooks/Character_Dictionary_Review.md`の既存レビュー運用に沿ったレビューパケットとしてユーザー確認待ちであり、確認後に`knowledge/dictionaries/characters.yaml`へconfirmed batchとして登録する（`Character_Dictionary_Review.md`の該当節を参照）。867件の誤検出については、checker側を消費文脈ベースの判定へ修正する後続実装PRで解消する予定であり、本文書時点ではまだ未着手である。`@ScenarioCosLoad`変数版バリアントへの対応も同様に後続実装PRのスコープとする。
 
 ## 5.3 変種の全キャラクター横断部分集合性検証
 

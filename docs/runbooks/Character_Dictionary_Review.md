@@ -189,10 +189,19 @@ confirmedMappings:
 - packetの`humanConfirmedCharacterId`は**必ず人間が実データを直接確認してから**埋める。AI（Claude等）がobservedCount・displayNameの一致だけを根拠に推測で埋めることは、本ドキュメント§3-4・§9のルールにより禁止する
 - packetには元セリフ・実ストーリー本文・raw payload・merged collection全文を含めない（`build_character_review_packet`の実装で機械的に保証、§12.1参照）
 
+## 12.7 未登録ID消費文脈調査由来のレビューパケット（2026-07-15）
+
+`docs/architecture/01_Project/03_Scope.md` §5.2が扱ってきた「5〜6桁キャラクターID帯」の未決事項は、2026-07-15に`data/raw/`全量に対する消費文脈調査（同§5.2参照）が実施され、compatibility checkerが報告する890 distinct未登録IDのうち実際に話者スロットへ束縛される（真に未登録の話者である）ものは**7件のみ**であることが判明した。
+
+この7件（speaker-bound 2件・mixed 5件）を対象に、`workspace/local_inputs/unregistered_speaker_id_review_packet.csv`（非commit、本節§12.6のcommit禁止対象と同じ扱い）を作成済みである。フィールドは`sourceCharacterId`/消費分類/出現カテゴリ/出現ファイル数・延べ数/`name`強制上書き（または`@ChTalkName`インライン引数）から実データより抽出した表示名候補/空のuser確認列で構成し、§12.3の`humanReviewStatus`と同じ運用（`pending`→人間確認後に`confirmed`/`rejected`/`needs_more_context`）に従う。
+
+このパケットの人間確認が完了した後は、確認済みエントリを既存の`character-dictionary-confirmed-batch-005`（PR実績）に続く**confirmed batch 006相当**として、`knowledge/dictionaries/characters.yaml`へ登録する後続PRを起票する（§9「人間確認済みmappingだけcommitするルール」に従う）。残る867件の誤検出（話者に束縛されない`$numX`/`$valueX`代入）については、この辞書登録とは別に、checker側の消費文脈ベース判定への修正PRで解消する。
+
 ---
 
 # 13. 関連ドキュメント
 
+- `docs/architecture/01_Project/03_Scope.md` §5.2（5〜6桁キャラクターID帯の消費文脈調査結果、§12.7のレビューパケットの前提）
 - `docs/architecture/06_AI/Canonical_ID_Policy.md`（canonical ID全体の方針、confirmed化の上位ルール）
 - `docs/architecture/05_Parser/Identifier_Specification.md` §6.1（`CHAR_{ROMANIZED_NAME}`形式、OD-001ローマ字表記ルール未確定事項）
 - `docs/runbooks/Real_Data_Dry_Run.md`（実データdry-run全体の手順、実データ・生成物をcommitしないルール）
