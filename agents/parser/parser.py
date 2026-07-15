@@ -224,6 +224,18 @@ DIRECTION_TYPE_MAP: dict[str, str] = {
     "vol": "sound",  # BGM/SE音量制御 ("sound Bgm ..."直後の "vol 0"/"vol 1")
     "{": "character_display",  # 複数chスロットへのstage direction同時グループ化 (開始)
     "}": "character_display",  # 複数chスロットへのstage direction同時グループ化 (終了)
+    # script-command-dictionary-h-scene-parse-target-batch: character/配下の
+    # パース対象ファイル(H_sceneN本体・H_scene_s・episodeN/episode_EX)で
+    # 見つかった新規演出コマンド8種 (config/script_commands.yaml の
+    # stage_direction と対で追加)。
+    "@ShadowOff": "character_display",
+    "@ChBlueMan/SynchroMotionMirror": "motion",
+    "@Cache": "system",
+    "@SpringBone/BreastTouchRemoveCollider": "motion",
+    "@Spine/EyeRight": "character_display",
+    "@Spine/EyeLeft": "character_display",
+    "@Spine/EyeCenter": "character_display",
+    "@ChBlueMan/BlueManSuimedo": "character_display",
 }
 
 # 表記ゆれ → 正規化
@@ -315,6 +327,17 @@ CASE_VARIANTS_MAP: dict[str, str] = {
     "@talkcamera4": "@TalkCamera4",
     "@Talkcamera4": "@TalkCamera4",
     "@isloading": "@IsLoading",
+    # script-command-dictionary-h-scene-parse-target-batch: character/配下の
+    # パース対象ファイル(H_sceneN本体・H_scene_s・episodeN/episode_EX)で
+    # 見つかった表記ゆれ7種 (config/script_commands.yaml の case_variants
+    # と対で追加)。
+    "@motionwaitU": "@MotionWaitU",
+    "@ChEYe2RightLow": "@ChEye2RightLow",
+    "@ChEye2RIghtLow": "@ChEye2RightLow",
+    "@ChEye2LeftlOW": "@ChEye2LeftLow",
+    "@ChEYe2RightHigh": "@ChEye2RightHigh",
+    "@MotioNReset": "@MotionReset",
+    "@Shadowoff": "@ShadowOff",
 }
 
 # 既知の stage_direction コマンドセット

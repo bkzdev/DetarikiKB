@@ -93,6 +93,20 @@ Wiki生成（`agents/wiki_generator/`）・Public Evidence Index promotion（`kn
 
 全量インベントリ（コマンド別の出現回数・分類・ファイルスコープ）は`workspace/local_inputs/hscene_unknown_command_inventory.md`（非commit、`docs/runbooks/AI_PR_Playbook.md` §4 docs-only PR方針に基づきworkspace限定）にある。実コマンド登録・`@SpineTalk`の分類決定はいずれも本節の時点では未着手であり、§5に未決事項として記録する。
 
+### 4.4.2 パース対象24種の登録実施（`script-command-dictionary-h-scene-parse-target-batch`、2026-07-15）
+
+§4.4.1で確認した「パース対象ファイル（H_sceneN本体・`H_scene_s`・episodeN/episode_EX）に1回以上出現する24種」について、`scripts/check_script_compatibility.py --include-name-pattern`でパース対象ファイル集合（1,025ファイル）のみに絞った再スキャンで24 distinctを再導出し、機械分類可能なもの全てを`config/script_commands.yaml`・`agents/parser/parser.py`（`DIRECTION_TYPE_MAP`・`CASE_VARIANTS_MAP`）へ登録した。
+
+分類内訳（24種すべてを機械分類でき、`要判断`として保留したものはなし）:
+
+- **`case-variant`（7種）**: `@motionwaitU`→`@MotionWaitU`、`@ChEYe2RightLow`→`@ChEye2RightLow`、`@ChEye2RIghtLow`→`@ChEye2RightLow`、`@ChEye2LeftlOW`→`@ChEye2LeftLow`、`@ChEYe2RightHigh`→`@ChEye2RightHigh`、`@MotioNReset`→`@MotionReset`、`@Shadowoff`→`@ShadowOff`（正規コマンドはいずれも実データのコマンド構造・既存`case_variants`の同系統パターンから確認）
+- **`variable-token`（9種）**: `$num1`〜`$num6`・`$value7`・`$value10`・`$common0`。実データでは`$num1`〜`$num6`が`$split(...)`関数呼び出しの結果代入、`$common0`が浮動小数点値の代入に使われており、いずれもcharacter-id系ではないことを確認した上で、既知の変数トークンとしてのみ登録した（`agents/parser/parser.py`は正規表現ベースで汎用対応済みのため変更不要、config側のみ変更）
+- **`stage_direction`（8種）**: `@ShadowOff`（character_display、既存`@Shadow`のoff対）・`@ChBlueMan/SynchroMotionMirror`（motion）・`@Cache`（system、アセットキャッシュ）・`@SpringBone/BreastTouchRemoveCollider`（motion）・`@Spine/EyeRight`/`@Spine/EyeLeft`/`@Spine/EyeCenter`（character_display）・`@ChBlueMan/BlueManSuimedo`（character_display）
+
+登録後、同じパース対象ファイル集合（1,025ファイル）への再スキャンで未登録コマンド数は24 distinctから0へ減少したことを確認した（残る`needs_update`判定は§5.2の未登録キャラクターID5件に起因するもので、本PRのスコープ外）。合成fixtureテスト（`tests/parser/test_parser_basic.py`・`tests/parser/test_compatibility_consistency.py`）を追加し、実parser/standalone checker両経路での無回帰を確認済み。
+
+`@SpineTalk`・variant-onlyのみに出現する17種の扱いは、引き続き§5.4の未決事項のままである（本節の登録範囲には含まれない）。
+
 ---
 
 # 5. Open questions（未決事項）
