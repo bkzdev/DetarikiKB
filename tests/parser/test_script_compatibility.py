@@ -189,6 +189,148 @@ def test_scenario_cos_numeric_direct_form_unknown_id_still_flagged(
     assert "999" in result.unknown_character_ids
 
 
+# ----------------------------------------------------------------
+# 消費文脈ベースの未登録ID分類
+# (script-compatibility-checker-consumption-context-fix、03_Scope.md §5.2)
+# ----------------------------------------------------------------
+
+
+def test_unregistered_id_consumed_as_speaker_flagged_as_warning(dummy_config, tmp_path):
+    """$numXで代入された未登録IDが@ChTalkでそのスロット番号を実際に
+    参照している (話者として消費される) 場合、従来どおり
+    unknown_character_idsへ記録され、parserCompatibilityがwarningになる。"""
+    script_content = """$num0 = 555
+@ChTalk 0
+セリフ
+"""
+    script_path = tmp_path / "speaker_consumed.dec"
+    script_path.write_text(script_content, encoding="utf-8")
+
+    result = check_file(
+        file_path=script_path,
+        known_commands=dummy_config["known_commands"],
+        speech_commands=dummy_config["speech_commands"],
+        case_variants_map=dummy_config["case_variants_map"],
+        speech_hints=dummy_config["speech_hints"],
+        char_map=dummy_config["char_map"],
+    )
+
+    assert "555" in result.unknown_character_ids
+    assert "555" not in result.non_speaker_numeric_assignments
+    assert result.parser_compatibility == "warning"
+
+
+def test_unregistered_id_costume_argument_only_not_flagged_as_warning(
+    dummy_config, tmp_path
+):
+    """$numXで代入された未登録IDが、話者コマンド(@ChTalk等)からは一度も
+    スロット参照されず、costume等の非話者コマンドの引数としてのみ現れる
+    場合は、新設のnon_speaker_numeric_assignmentsへ記録され、
+    parserCompatibility判定には影響しない(warning要因にならない)。"""
+    known_commands = set(dummy_config["known_commands"]) | {"costume"}
+    script_content = """$num0 = 777
+costume 0 3
+"""
+    script_path = tmp_path / "costume_only.dec"
+    script_path.write_text(script_content, encoding="utf-8")
+
+    result = check_file(
+        file_path=script_path,
+        known_commands=known_commands,
+        speech_commands=dummy_config["speech_commands"],
+        case_variants_map=dummy_config["case_variants_map"],
+        speech_hints=dummy_config["speech_hints"],
+        char_map=dummy_config["char_map"],
+    )
+
+    assert "777" not in result.unknown_character_ids
+    assert "777" in result.non_speaker_numeric_assignments
+    assert result.non_speaker_numeric_assignments["777"]["count"] == 1
+    assert result.parser_compatibility == "compatible"
+
+
+def test_unregistered_id_unconsumed_assignment_not_flagged_as_warning(
+    dummy_config, tmp_path
+):
+    """$numXで代入されたのみで、以降どのコマンドからも一切参照されない
+    未登録IDも、non_speaker_numeric_assignmentsへ記録され
+    (「不明情報を破棄しない」不変則により削除ではなく分類変更とする)、
+    parserCompatibility判定には影響しない。"""
+    script_content = """$num0 = 888
+"""
+    script_path = tmp_path / "unconsumed.dec"
+    script_path.write_text(script_content, encoding="utf-8")
+
+    result = check_file(
+        file_path=script_path,
+        known_commands=dummy_config["known_commands"],
+        speech_commands=dummy_config["speech_commands"],
+        case_variants_map=dummy_config["case_variants_map"],
+        speech_hints=dummy_config["speech_hints"],
+        char_map=dummy_config["char_map"],
+    )
+
+    assert "888" not in result.unknown_character_ids
+    assert "888" in result.non_speaker_numeric_assignments
+    assert result.parser_compatibility == "compatible"
+
+
+def test_registered_id_never_recorded_in_either_bucket(dummy_config, tmp_path):
+    """登録済みIDは話者消費の有無にかかわらず、どちらのバケットにも
+    記録されないこと (無回帰)。"""
+    script_content = """$num0 = 26
+@ChTalk 0
+こんにちは。
+$num1 = 29
+"""
+    script_path = tmp_path / "registered_ids.dec"
+    script_path.write_text(script_content, encoding="utf-8")
+
+    result = check_file(
+        file_path=script_path,
+        known_commands=dummy_config["known_commands"],
+        speech_commands=dummy_config["speech_commands"],
+        case_variants_map=dummy_config["case_variants_map"],
+        speech_hints=dummy_config["speech_hints"],
+        char_map=dummy_config["char_map"],
+    )
+
+    assert "26" not in result.unknown_character_ids
+    assert "26" not in result.non_speaker_numeric_assignments
+    assert "29" not in result.unknown_character_ids
+    assert "29" not in result.non_speaker_numeric_assignments
+    assert result.parser_compatibility == "compatible"
+
+
+def test_slot_reused_by_later_assignment_does_not_misattribute_speaker(
+    dummy_config, tmp_path
+):
+    """同じスロット番号が後で別の未登録IDに再代入された場合、@ChTalkの
+    消費は再代入後の (時系列上その時点での) IDに帰属し、古いIDを誤って
+    話者消費ありと判定しないこと (調査スキャナv3のv1→v2修正と同じ観点の
+    回帰確認)。"""
+    script_content = """$num0 = 111
+$num0 = 222
+@ChTalk 0
+セリフ
+"""
+    script_path = tmp_path / "slot_reused.dec"
+    script_path.write_text(script_content, encoding="utf-8")
+
+    result = check_file(
+        file_path=script_path,
+        known_commands=dummy_config["known_commands"],
+        speech_commands=dummy_config["speech_commands"],
+        case_variants_map=dummy_config["case_variants_map"],
+        speech_hints=dummy_config["speech_hints"],
+        char_map=dummy_config["char_map"],
+    )
+
+    assert "222" in result.unknown_character_ids
+    assert "111" not in result.unknown_character_ids
+    assert "111" in result.non_speaker_numeric_assignments
+
+
 def test_branch_issues(dummy_config, tmp_path):
     # 分岐構文に異常があるスクリプト
     script_content = """branch A B

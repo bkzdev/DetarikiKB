@@ -309,9 +309,18 @@ class FileCompatibilityResult:
         self.unknown_commands: dict[str, dict] = {}  # command -> {count, sample_lines}
         self.new_speech_commands: list[dict] = []
         self.changed_command_patterns: list[dict] = []
+        # 未登録キャラクターID (話者スロットとして実際に@ChTalk系コマンドに
+        # 消費されたもののみ。判定は消費文脈シミュレーション
+        # (_simulate_id_consumption) による。03_Scope.md §5.2参照)
         self.unknown_character_ids: dict[
             str, dict
         ] = {}  # char_id -> {count, sample_lines}
+        # 未登録の数値代入のうち、話者スロットとして消費されなかったもの
+        # (costume/mo/fa等の非話者引数としてのみ消費される・完全未消費のいずれも
+        # このバケットに分類する。「不明情報を破棄しない」不変則
+        # (AI_CONTEXT.md §3.2) のため削除はせず、判定への影響を持たない
+        # 別フィールドとして情報保持する)
+        self.non_speaker_numeric_assignments: dict[str, dict] = {}
         self.branch_issues: list[dict] = []
         self.control_chars_removed: int = 0
         self.case_variants: dict[str, set] = defaultdict(
@@ -332,39 +341,200 @@ def _strip_control_chars(raw_line: str, result: FileCompatibilityResult) -> str:
     return cleaned.strip()
 
 
-def _check_character_id_line(
-    line: str,
-    line_number: int,
+def _is_character_id_assignment_line(line: str) -> bool:
+    """$numX / $valueX / @ScenarioCos / @ScenarioCosLoad 行かどうかを判定する。
+
+    キャラクターIDの記録自体は、ファイル単位の消費文脈シミュレーション
+    (`_simulate_id_consumption` / `_classify_and_record_character_ids`、
+    `check_file`から一度だけ呼ばれる) へ移管したため、ここでは
+    「通常のコマンド行処理 (`_check_command_line`) をスキップすべきか」の
+    判定のみを行う (挙動は分割前と同一: これらの行はunknown commandとして
+    扱われない)。
+    """
+    return bool(
+        NUM_VAR_PATTERN.match(line)
+        or VALUE_VAR_PATTERN.match(line)
+        or SCENARIO_COS_PATTERN.match(line)
+        or SCENARIO_COS_LOAD_PATTERN.match(line)
+    )
+
+
+class _SlotSimState:
+    """`_simulate_id_consumption`の時系列1パスシミュレーション状態。
+
+    `resolver.py`(`SpeakerResolver`)・`agents/parser/parser.py`と同じ意味論
+    (スロットへの再代入は上書き) で`slot_map`/`variable_map`を保持する。
+    """
+
+    def __init__(self) -> None:
+        self.max_num_index = -1
+        self.variable_map: dict[str, str] = {}
+        self.slot_map: dict[str, str] = {}
+        self.id_signals: dict[str, dict[str, Any]] = {}
+
+    def get_signal(self, id_value: str) -> dict[str, Any]:
+        return self.id_signals.setdefault(
+            id_value, {"speaker": False, "occurrences": []}
+        )
+
+
+def _apply_num_var_assignment(
+    match: re.Match[str], line_number: int, line: str, state: _SlotSimState
+) -> None:
+    idx = int(match.group(1))
+    value = match.group(2)
+    if idx > state.max_num_index:
+        state.max_num_index = idx
+    state.variable_map[f"$num{idx}"] = value
+    state.slot_map[str(idx)] = value
+    state.get_signal(value)["occurrences"].append((line_number, line))
+
+
+def _apply_value_var_assignment(
+    match: re.Match[str], line_number: int, line: str, state: _SlotSimState
+) -> None:
+    idx = int(match.group(1))
+    value = match.group(2)
+    slot = str(state.max_num_index + 1 + idx)
+    state.variable_map[f"$value{idx}"] = value
+    state.slot_map[slot] = value
+    state.get_signal(value)["occurrences"].append((line_number, line))
+
+
+def _apply_scenario_cos(
+    match: re.Match[str], line_number: int, line: str, state: _SlotSimState
+) -> None:
+    slot, second_arg = match.group(1), match.group(2)
+    if second_arg.startswith("$"):
+        # 変数経由 (@ScenarioCosLoadと同じ意味論): variable_mapから
+        # IDを引いてスロットへ束縛し、その定義元IDへ話者シグナルを立てる。
+        # char_id直接取得不可のためoccurrencesには追加しない
+        # (従来のchar_id直接取得不可判定と同じ)。
+        resolved = state.variable_map.get(second_arg)
+        if resolved is not None:
+            state.slot_map[slot] = resolved
+            state.get_signal(resolved)["speaker"] = True
+        return
+    state.slot_map[slot] = second_arg
+    sig = state.get_signal(second_arg)
+    sig["occurrences"].append((line_number, line))
+    sig["speaker"] = True
+
+
+def _apply_scenario_cos_load(match: re.Match[str], state: _SlotSimState) -> None:
+    slot, var = match.group(1), match.group(2)
+    resolved = state.variable_map.get(var)
+    if resolved is not None:
+        state.slot_map[slot] = resolved
+        state.get_signal(resolved)["speaker"] = True
+
+
+def _apply_speech_command_consumption(
+    parts: list[str],
+    state: _SlotSimState,
+    speech_commands: set[str],
+    case_variants_map: dict[str, str],
+) -> None:
+    first_token = parts[0]
+    normalized = case_variants_map.get(first_token, first_token)
+    if normalized not in speech_commands:
+        return
+    slot_arg = parts[1] if len(parts) > 1 else None
+    if slot_arg is None:
+        return
+    resolved = state.slot_map.get(slot_arg)
+    if resolved is not None:
+        state.get_signal(resolved)["speaker"] = True
+
+
+def _simulate_id_consumption(
+    lines: list[str],
+    speech_commands: set[str],
+    case_variants_map: dict[str, str],
+) -> dict[str, dict[str, Any]]:
+    """ファイル全体を時系列1パスでシミュレートし、`$numX`/`$valueX`代入・
+    `@ScenarioCos`(直接数値指定)で検出されたcharacter_id候補ごとに、
+    実際に話者スロットとして`@ChTalk`系コマンドに消費されたかどうかを
+    判定する。
+
+    行ごとの分岐は独立したヘルパー (`_apply_num_var_assignment`等) へ
+    切り出し、ここでは行分類の制御フローのみを担う (ruffのC901複雑度対策)。
+    調査用スキャナv3 (`docs/architecture/01_Project/03_Scope.md` §5.2) と
+    同じアルゴリズムをchecker本体へ統合したもの。
+
+    戻り値: `id_value -> {"speaker": bool, "occurrences": [(line_number, raw), ...]}`。
+    `occurrences`が空のIDは「代入行として検出されなかった」ことを意味し
+    (`@ScenarioCosLoad`や変数形式`@ScenarioCos`経由でのみ話者判定された値等)、
+    従来どおり未登録ID候補の集計対象にしない。
+    """
+    state = _SlotSimState()
+
+    for line_number, line in enumerate(lines, start=1):
+        if not line or line.startswith("//"):
+            continue
+
+        num_match = NUM_VAR_PATTERN.match(line)
+        if num_match:
+            _apply_num_var_assignment(num_match, line_number, line, state)
+            continue
+
+        val_match = VALUE_VAR_PATTERN.match(line)
+        if val_match:
+            _apply_value_var_assignment(val_match, line_number, line, state)
+            continue
+
+        sc_match = SCENARIO_COS_PATTERN.match(line)
+        if sc_match:
+            _apply_scenario_cos(sc_match, line_number, line, state)
+            continue
+
+        scl_match = SCENARIO_COS_LOAD_PATTERN.match(line)
+        if scl_match:
+            _apply_scenario_cos_load(scl_match, state)
+            continue
+
+        parts = line.split()
+        if not parts:
+            continue
+        _apply_speech_command_consumption(
+            parts, state, speech_commands, case_variants_map
+        )
+
+    return state.id_signals
+
+
+def _classify_and_record_character_ids(
+    id_signals: dict[str, dict[str, Any]],
     char_map: dict[str, str],
     result: FileCompatibilityResult,
-) -> bool:
-    """$numX / $valueX / @ScenarioCos / @ScenarioCosLoad 行を処理する。
-    処理済み (これ以上の分類が不要) ならTrueを返す。
+) -> None:
+    """`_simulate_id_consumption`の結果を分類し、未登録IDを
+    (a) 話者消費あり → `result.unknown_character_ids` (従来フィールド、
+        `parserCompatibility`判定に反映される)、
+    (b) 話者消費なし → `result.non_speaker_numeric_assignments` (新設フィールド、
+        判定には影響しない情報保持用)
+    へ振り分けて記録する。
     """
-    num_match = NUM_VAR_PATTERN.match(line)
-    if num_match:
-        _record_character_id(result, num_match.group(2), char_map, line_number, line)
-        return True
+    for id_value, sig in id_signals.items():
+        occurrences = sig["occurrences"]
+        if not occurrences:
+            continue
+        if id_value in char_map:
+            continue
 
-    val_match = VALUE_VAR_PATTERN.match(line)
-    if val_match:
-        _record_character_id(result, val_match.group(2), char_map, line_number, line)
-        return True
-
-    sc_match = SCENARIO_COS_PATTERN.match(line)
-    if sc_match:
-        second_arg = sc_match.group(2)
-        if second_arg.startswith("$"):
-            # 変数経由のため char_id 直接取得不可 (@ScenarioCosLoad と同様)
-            return True
-        _record_character_id(result, second_arg, char_map, line_number, line)
-        return True
-
-    if SCENARIO_COS_LOAD_PATTERN.match(line):
-        # 変数経由のため char_id 直接取得不可
-        return True
-
-    return False
+        target = (
+            result.unknown_character_ids
+            if sig["speaker"]
+            else result.non_speaker_numeric_assignments
+        )
+        entry = target.setdefault(
+            id_value,
+            {"sourceCharacterId": id_value, "count": 0, "sampleLines": []},
+        )
+        for line_number, raw in occurrences:
+            entry["count"] += 1
+            if len(entry["sampleLines"]) < 3:
+                entry["sampleLines"].append({"lineNumber": line_number, "raw": raw})
 
 
 def _check_branch_keyword(
@@ -507,21 +677,24 @@ def _check_command_line(
 
 def _process_line(
     line_number: int,
-    raw_line: str,
+    line: str,
     branch_stack: list[int],
     known_commands: set[str],
     case_variants_map: dict[str, str],
     speech_hints: list[str],
-    char_map: dict[str, str],
     result: FileCompatibilityResult,
 ) -> None:
-    """1行を解析し、検出結果をresultへ記録する。
-    各行分類は独立したヘルパーへ切り出し、ここでは「制御文字除去/空行・
-    コメントスキップ」→「その他の分類を順番に試す」という制御フローのみを
-    担う (挙動は分割前と同一、ruffのC901複雑度対策でのリファクタリング)。
-    """
-    line = _strip_control_chars(raw_line, result)
+    """制御文字除去済みの1行を解析し、検出結果をresultへ記録する。
+    各行分類は独立したヘルパーへ切り出し、ここでは「空行・コメントスキップ」
+    →「その他の分類を順番に試す」という制御フローのみを担う (挙動は分割前と
+    同一、ruffのC901複雑度対策でのリファクタリング)。
 
+    キャラクターID代入行 (`$numX`/`$valueX`/`@ScenarioCos`/`@ScenarioCosLoad`)
+    の記録自体は`check_file`側の消費文脈シミュレーションで一括処理済みのため、
+    ここでは`_is_character_id_assignment_line`でそれらの行をunknown command
+    判定から除外するだけに留める (制御文字除去は`check_file`側で一度だけ行う
+    ため、ここでは受け取らない)。
+    """
     if not line or line.startswith("//"):
         return
 
@@ -532,7 +705,7 @@ def _process_line(
     parts = line.split()
     first_token = parts[0] if parts else ""
 
-    if _check_character_id_line(line, line_number, char_map, result):
+    if _is_character_id_assignment_line(line):
         return
 
     if _check_branch_syntax(first_token, line, line_number, branch_stack, result):
@@ -572,18 +745,30 @@ def check_file(
 
     result.line_count = len(raw_lines)
 
+    # 制御文字除去 (行単位、除去件数はresultへ集計)。以降の消費文脈
+    # シミュレーション・通常のコマンド行処理はいずれもこのstripped_linesを使う
+    # (二重stripを避けるため一度だけ行う)。
+    stripped_lines = [_strip_control_chars(rl, result) for rl in raw_lines]
+
+    # キャラクターID消費文脈シミュレーション (ファイル単位、時系列1パス)。
+    # unknown_character_ids (話者消費あり) / non_speaker_numeric_assignments
+    # (話者消費なし) への分類はここで完結させる (03_Scope.md §5.2参照)。
+    id_signals = _simulate_id_consumption(
+        stripped_lines, speech_commands, case_variants_map
+    )
+    _classify_and_record_character_ids(id_signals, char_map, result)
+
     # 分岐スタック
     branch_stack: list[int] = []
 
-    for line_number, raw_line in enumerate(raw_lines, start=1):
+    for line_number, line in enumerate(stripped_lines, start=1):
         _process_line(
             line_number,
-            raw_line,
+            line,
             branch_stack,
             known_commands,
             case_variants_map,
             speech_hints,
-            char_map,
             result,
         )
 
@@ -602,27 +787,6 @@ def check_file(
     result.parser_compatibility = _determine_compatibility(result)
 
     return result
-
-
-def _record_character_id(
-    result: FileCompatibilityResult,
-    char_id: str,
-    char_map: dict[str, str],
-    line_number: int,
-    raw: str,
-) -> None:
-    """キャラクターIDを記録 (未登録の場合 unknownCharacterIds へ)"""
-    if char_id not in char_map:
-        if char_id not in result.unknown_character_ids:
-            result.unknown_character_ids[char_id] = {
-                "sourceCharacterId": char_id,
-                "count": 0,
-                "sampleLines": [],
-            }
-        entry = result.unknown_character_ids[char_id]
-        entry["count"] += 1
-        if len(entry["sampleLines"]) < 3:
-            entry["sampleLines"].append({"lineNumber": line_number, "raw": raw})
 
 
 def _record_unknown_command(
@@ -719,6 +883,9 @@ def build_json_report(
     total_unknown_commands = sum(len(r.unknown_commands) for r in results)
     total_new_speech = sum(len(r.new_speech_commands) for r in results)
     total_unknown_char_ids = sum(len(r.unknown_character_ids) for r in results)
+    total_non_speaker_numeric_assignments = sum(
+        len(r.non_speaker_numeric_assignments) for r in results
+    )
     total_control_chars = sum(r.control_chars_removed for r in results)
 
     # ファイルレポート
@@ -733,6 +900,9 @@ def build_json_report(
             "newSpeechCommands": r.new_speech_commands,
             "changedCommandPatterns": r.changed_command_patterns,
             "unknownCharacterIds": list(r.unknown_character_ids.values()),
+            "nonSpeakerNumericAssignments": list(
+                r.non_speaker_numeric_assignments.values()
+            ),
             "branchIssues": r.branch_issues,
             "controlCharsRemoved": r.control_chars_removed,
             "caseVariants": [
@@ -761,6 +931,7 @@ def build_json_report(
             "unknownCommandCount": total_unknown_commands,
             "newSpeechCommandCount": total_new_speech,
             "unknownCharacterIdCount": total_unknown_char_ids,
+            "nonSpeakerNumericAssignmentCount": total_non_speaker_numeric_assignments,
             "controlCharsRemoved": total_control_chars,
         },
         "files": file_reports,
@@ -789,7 +960,12 @@ def _build_summary_section(report: dict[str, Any]) -> list[str]:
     lines.append(f"| 総行数 | {summary['totalLines']} |")
     lines.append(f"| 未知コマンド種類 | {summary['unknownCommandCount']} |")
     lines.append(f"| 新規会話コマンド候補 | {summary['newSpeechCommandCount']} |")
-    lines.append(f"| 未登録キャラクターID | {summary['unknownCharacterIdCount']} |")
+    unknown_char_count = summary["unknownCharacterIdCount"]
+    lines.append(f"| 未登録キャラクターID (話者消費あり) | {unknown_char_count} |")
+    lines.append(
+        f"| 話者非消費の数値代入 (参考情報、判定に非反映) | "
+        f"{summary['nonSpeakerNumericAssignmentCount']} |"
+    )
     lines.append(f"| 制御文字除去件数 | {summary['controlCharsRemoved']} |")
     lines.append("")
 
@@ -816,16 +992,19 @@ def _build_file_results_section(report: dict[str, Any]) -> list[str]:
     """ファイル別結果テーブルのMarkdown行を構築する"""
     lines = ["## ファイル別結果", ""]
     lines.append(
-        "| ファイル | 互換性 | 行数 | 未知Cmd | 新規会話 | 未登録ID | 制御文字 |"
+        "| ファイル | 互換性 | 行数 | 未知Cmd | 新規会話 | 未登録ID(話者) | "
+        "話者非消費代入 | 制御文字 |"
     )
-    lines.append("|---|---|---:|---:|---:|---:|---:|")
+    lines.append("|---|---|---:|---:|---:|---:|---:|---:|")
     for f in report["files"]:
         st = f["parserCompatibility"]
         em = _status_emoji(st)
         lines.append(
             f"| {f['file']} | {em} {st} | {f['lineCount']} | "
             f"{len(f['unknownCommands'])} | {len(f['newSpeechCommands'])} | "
-            f"{len(f['unknownCharacterIds'])} | {f['controlCharsRemoved']} |"
+            f"{len(f['unknownCharacterIds'])} | "
+            f"{len(f.get('nonSpeakerNumericAssignments', []))} | "
+            f"{f['controlCharsRemoved']} |"
         )
     lines.append("")
     return lines
@@ -909,15 +1088,73 @@ def _collect_unknown_character_ids(report: dict[str, Any]) -> dict[str, dict]:
 
 
 def _build_unknown_characters_section(report: dict[str, Any]) -> list[str]:
-    """未登録キャラクターIDセクションのMarkdown行を構築する (該当なしなら空)"""
+    """未登録キャラクターID (話者消費あり) セクションのMarkdown行を構築する
+    (該当なしなら空)。ここに載るIDのみが`parserCompatibility`判定に反映される
+    (03_Scope.md §5.2の消費文脈ベース判定)。"""
     all_unknown_chars = _collect_unknown_character_ids(report)
     if not all_unknown_chars:
         return []
-    lines = ["## ⚠️ 未登録キャラクターID", ""]
+    lines = ["## ⚠️ 未登録キャラクターID (話者消費あり)", ""]
     lines.append("| キャラクターID | 出現回数 | サンプル行 |")
     lines.append("|---|---:|---|")
     for cid, info in sorted(
         all_unknown_chars.items(), key=lambda x: int(x[0]) if x[0].isdigit() else 0
+    ):
+        sample = ""
+        if info["sampleLines"]:
+            sl = info["sampleLines"][0]
+            sample = f"L{sl['lineNumber']}: `{sl['raw'][:60]}`"
+        lines.append(f"| `{cid}` | {info['count']} | {sample} |")
+    lines.append("")
+    return lines
+
+
+def _collect_non_speaker_numeric_assignments(report: dict[str, Any]) -> dict[str, dict]:
+    all_non_speaker: dict[str, dict] = {}
+    for f in report["files"]:
+        for char_info in f.get("nonSpeakerNumericAssignments", []):
+            cid = char_info["sourceCharacterId"]
+            if cid not in all_non_speaker:
+                all_non_speaker[cid] = {
+                    "sourceCharacterId": cid,
+                    "count": 0,
+                    "files": set(),
+                    "sampleLines": [],
+                }
+            all_non_speaker[cid]["count"] += char_info["count"]
+            all_non_speaker[cid]["files"].add(f["file"])
+            if len(all_non_speaker[cid]["sampleLines"]) < 2:
+                all_non_speaker[cid]["sampleLines"].extend(
+                    char_info.get("sampleLines", [])
+                )
+    return all_non_speaker
+
+
+def _build_non_speaker_numeric_assignments_section(report: dict[str, Any]) -> list[str]:
+    """話者非消費の数値代入セクションのMarkdown行を構築する (該当なしなら空)。
+
+    ここに載るIDは`$numX`/`$valueX`等で代入されたが、話者スロットとして
+    `@ChTalk`系コマンドに一度も消費されなかったもの (costume/mo/fa等の
+    非話者引数としてのみ消費される・完全未消費のいずれも含む)。
+    `parserCompatibility`判定・exit codeには一切影響しない参考情報
+    (03_Scope.md §5.2、「不明情報を破棄しない」不変則により削除ではなく
+    分類変更として保持する)。
+    """
+    all_non_speaker = _collect_non_speaker_numeric_assignments(report)
+    if not all_non_speaker:
+        return []
+    lines = ["## ℹ️ 話者非消費の数値代入 (参考情報、判定に非反映)", ""]
+    lines.append(
+        "`$numX`/`$valueX`等で代入されたが、話者スロットとして`@ChTalk`系"
+        "コマンドには一度も消費されなかった値です。costume/mo/fa等の非話者"
+        "引数としてのみ消費される場合や、完全に未消費の場合が含まれます。"
+        "`parserCompatibility`判定には影響しません。"
+    )
+    lines.append("")
+    lines.append("| ID | 出現回数 | サンプル行 |")
+    lines.append("|---|---:|---|")
+    for cid, info in sorted(
+        all_non_speaker.items(), key=lambda x: int(x[0]) if x[0].isdigit() else 0
     ):
         sample = ""
         if info["sampleLines"]:
@@ -947,6 +1184,7 @@ def build_markdown_report(report: dict[str, Any]) -> str:
     lines.extend(_build_new_speech_section(report))
     lines.extend(_build_unknown_commands_section(report))
     lines.extend(_build_unknown_characters_section(report))
+    lines.extend(_build_non_speaker_numeric_assignments_section(report))
     lines.append("---")
     lines.append("")
     lines.append(
@@ -1123,7 +1361,14 @@ def _print_summary(
     print(f"[DKB] 総合互換性: {status_label}")
     print(f"[DKB] 未知コマンド種類: {summary['unknownCommandCount']}")
     print(f"[DKB] 新規会話コマンド候補: {summary['newSpeechCommandCount']}")
-    print(f"[DKB] 未登録キャラクターID: {summary['unknownCharacterIdCount']}")
+    print(
+        "[DKB] 未登録キャラクターID (話者消費あり): "
+        f"{summary['unknownCharacterIdCount']}"
+    )
+    print(
+        "[DKB] 話者非消費の数値代入 (参考情報、判定に非反映): "
+        f"{summary['nonSpeakerNumericAssignmentCount']}"
+    )
     print(f"[DKB] 制御文字除去件数: {summary['controlCharsRemoved']}")
 
     name_filter = summary.get("nameFilter")
