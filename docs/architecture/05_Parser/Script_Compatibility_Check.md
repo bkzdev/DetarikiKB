@@ -379,7 +379,36 @@ $valueX = character_id
 @ScenarioCosLoad slot variable
 ```
 
-抽出された `sourceCharacterId` がキャラクター辞書に存在しない場合、未登録キャラクターIDとして記録する。
+## 11.0 消費文脈ベースの判定 (script-compatibility-checker-consumption-context-fix)
+
+**2026-07-15の調査（`docs/architecture/01_Project/03_Scope.md` §5.2）により、
+`$numX`/`$valueX`代入・`@ScenarioCos`直接指定を検出した時点で無条件に
+「未登録キャラクターID候補」とする旧ロジックは、大半（890 distinct候補中
+884前後、詳細は§5.2参照）が話者スロットとして一切消費されない誤検出で
+あることが判明した。** 本チェッカーはこれを受け、ファイル単位の時系列1パス
+シミュレーション（`resolver.py`(`SpeakerResolver`)・`agents/parser/parser.py`
+と同じ意味論。`$numX`/`$valueX`代入・`@ScenarioCos`（直接指定/変数経由）・
+`@ScenarioCosLoad`によるスロット再束縛を時系列順に反映し、各時点のスロット
+状態を参照して`@ChTalk`系コマンドが実際にどのIDを話者として消費したかを
+判定する）で候補を分類する。
+
+抽出された `sourceCharacterId` がキャラクター辞書に存在しない場合、以下の
+いずれかへ分類して記録する（「不明情報を破棄しない」不変則、`AI_CONTEXT.md`
+§3.2により、いずれの場合も**削除ではなく分類**として保持する）。
+
+| 分類 | 条件 | 記録先フィールド | `parserCompatibility`判定への影響 |
+|---|---|---|---|
+| (a) 話者消費あり | 代入されたIDが、その後`@ChTalk`系コマンドから実際にスロット参照される | `unknownCharacterIds`（従来フィールド） | あり（`compatible`/`warning`判定に反映） |
+| (b) 話者消費なし | 代入されたが、話者コマンドからは一度もスロット参照されない（costume/mo/fa等の非話者引数としてのみ消費される場合・完全に未消費の場合の両方を含む） | `nonSpeakerNumericAssignments`（新設フィールド） | なし（参考情報として保持のみ） |
+
+exit code・総合`parserCompatibility`はいずれも(a)のみを見て決定する。(b)は
+JSON/Markdown/コンソールいずれの出力面にも表示されるが、判定には一切影響
+しない。
+
+なお、`agents/parser/parser.py`側の自動バインド挙動（`$numX`代入時に
+無条件でスロットへ話者候補として自動束縛する現行動作）自体は本チェッカー
+修正の対象外であり、変更していない（`TASKS.md` Backlogのopen questionとして
+別途検討する）。
 
 ---
 
@@ -401,9 +430,26 @@ $valueX = character_id
         }
       ]
     }
+  ],
+  "nonSpeakerNumericAssignments": [
+    {
+      "sourceCharacterId": "55070",
+      "files": [
+        "CAB-csl_script_event_xxx-episode1.dec"
+      ],
+      "sampleLines": [
+        {
+          "lineNumber": 42,
+          "raw": "$num0 = 55070"
+        }
+      ]
+    }
   ]
 }
 ```
+
+`unknownCharacterIds`のIDのみが§11.0の(a)に該当し、`parserCompatibility`
+判定に反映される。`nonSpeakerNumericAssignments`は(b)に該当する参考情報。
 
 ---
 
@@ -421,6 +467,22 @@ $valueX = character_id
   }
 }
 ```
+
+---
+
+## 11.3 `nonSpeakerNumericAssignments` (話者非消費の数値代入)
+
+`$numX`/`$valueX`等で代入されたが、話者スロットとして`@ChTalk`系コマンドに
+一度も消費されなかった未登録IDの記録先。データ構造は`unknownCharacterIds`と
+同一（`sourceCharacterId`/`count`/`sampleLines`）だが、意味合いが異なる:
+
+- `parserCompatibility`判定・exit codeには一切影響しない。
+- costume/mo/fa等の非話者引数としてのみ消費される場合と、完全に未消費の
+  場合の両方を区別せず、同一バケットへまとめて記録する（チェッカーの分類
+  粒度としてはこれで十分であり、詳細な消費経路の区別は`03_Scope.md` §5.2の
+  調査用スキャナ側の役割とする）。
+- Parser本体（`agents/parser/parser.py`）は、話者として表面化しないこれらの
+  スロットも引き続き無条件で自動バインドする（本チェッカー修正の対象外）。
 
 ---
 
@@ -579,10 +641,17 @@ Phase 1では `stage_direction` として保持する。
     "unknownCommandCount": 38,
     "newSpeechCommandCount": 3,
     "unknownCharacterIdCount": 11,
+    "nonSpeakerNumericAssignmentCount": 240,
     "controlCharsRemoved": 3
   }
 }
 ```
+
+`unknownCharacterIdCount`は§11.0の(a)話者消費ありのIDのみ、
+`nonSpeakerNumericAssignmentCount`は(b)話者消費なしの数値代入のみを
+カウントする（いずれもファイル単位distinct数の合計であり、コーパス全体での
+distinct数ではない点に注意）。`parserCompatibility`判定・exit codeは前者
+のみに基づく。
 
 ---
 
@@ -603,6 +672,9 @@ Phase 1では `stage_direction` として保持する。
   ],
   "unknownCharacterIds": [
     "232"
+  ],
+  "nonSpeakerNumericAssignments": [
+    "55070"
   ],
   "controlCharsRemoved": 0,
   "branchIssues": [],
@@ -632,7 +704,10 @@ Phase 1では `stage_direction` として保持する。
 - 未知の会話コマンドなし
 - 分岐構文エラーなし
 - 未知コマンドがすべて無視可能
-- 未登録キャラクターIDなし、または安全にunknown speaker化可能
+- 未登録キャラクターID（§11.0の(a)話者消費あり）なし、または安全に
+  unknown speaker化可能
+- （§11.0の(b)話者消費なしの`nonSpeakerNumericAssignments`は判定に
+  一切影響しない。これのみが存在する場合もcompatibleになりうる）
 
 ---
 
@@ -641,7 +716,7 @@ Phase 1では `stage_direction` として保持する。
 条件:
 
 - 未知演出コマンドがある
-- 未登録キャラクターIDがある
+- 未登録キャラクターID（§11.0の(a)話者消費あり）がある
 - 制御文字が除去された
 - ただし本文抽出には影響しない
 
