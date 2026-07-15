@@ -99,8 +99,8 @@ HYPHEN_LINE_PATTERN = re.compile(r"^-\s+\S")
 NUM_VAR_PATTERN = re.compile(r"^\$num(\d+)\s*=\s*(\d+)")
 # $valueX = ID
 VALUE_VAR_PATTERN = re.compile(r"^\$value(\d+)\s*=\s*(\d+)")
-# @ScenarioCos slot id
-SCENARIO_COS_PATTERN = re.compile(r"^@ScenarioCos\s+(\d+)\s+(\d+)")
+# @ScenarioCos slot id (数値直接指定) または @ScenarioCos slot $var (変数経由)
+SCENARIO_COS_PATTERN = re.compile(r"^@ScenarioCos\s+(\d+)\s+(\d+|\$[\w\d]+)")
 # @ScenarioCosLoad slot var
 SCENARIO_COS_LOAD_PATTERN = re.compile(r"^@ScenarioCosLoad\s+(\d+)\s+(\$[\w\d]+)")
 
@@ -353,7 +353,11 @@ def _check_character_id_line(
 
     sc_match = SCENARIO_COS_PATTERN.match(line)
     if sc_match:
-        _record_character_id(result, sc_match.group(2), char_map, line_number, line)
+        second_arg = sc_match.group(2)
+        if second_arg.startswith("$"):
+            # 変数経由のため char_id 直接取得不可 (@ScenarioCosLoad と同様)
+            return True
+        _record_character_id(result, second_arg, char_map, line_number, line)
         return True
 
     if SCENARIO_COS_LOAD_PATTERN.match(line):

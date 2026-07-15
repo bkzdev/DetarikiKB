@@ -191,9 +191,9 @@ confirmedMappings:
 
 ## 12.7 未登録ID消費文脈調査由来のレビューパケット（2026-07-15）
 
-`docs/architecture/01_Project/03_Scope.md` §5.2が扱ってきた「5〜6桁キャラクターID帯」の未決事項は、2026-07-15に`data/raw/`全量に対する消費文脈調査（同§5.2参照）が実施され、compatibility checkerが報告する890 distinct未登録IDのうち実際に話者スロットへ束縛される（真に未登録の話者である）ものは**7件のみ**であることが判明した。
+`docs/architecture/01_Project/03_Scope.md` §5.2が扱ってきた「5〜6桁キャラクターID帯」の未決事項は、2026-07-15に`data/raw/`全量に対する消費文脈調査（同§5.2参照）が実施され、compatibility checkerが報告する890 distinct未登録IDのうち実際に話者スロットへ束縛される（真に未登録の話者である）ものは当初**7件**と判明した。その後、`feature/scenario-cos-variable-variant-support`（同日実装）で`@ScenarioCos`変数引数形式のparser/checkerギャップを修正した上で再スキャンを行い、**6件（speaker-bound 3件・mixed 3件）へ確定**している（`03_Scope.md` §5.2.1参照。旧mixed 2件が誤検出と判明して離脱し、`main`カテゴリの2桁帯ID 1件が新規に検出された）。
 
-この7件（speaker-bound 2件・mixed 5件）を対象に、`workspace/local_inputs/unregistered_speaker_id_review_packet.csv`（非commit、本節§12.6のcommit禁止対象と同じ扱い）を作成済みである。フィールドは`sourceCharacterId`/消費分類/出現カテゴリ/出現ファイル数・延べ数/`name`強制上書き（または`@ChTalkName`インライン引数）から実データより抽出した表示名候補/空のuser確認列で構成し、§12.3の`humanReviewStatus`と同じ運用（`pending`→人間確認後に`confirmed`/`rejected`/`needs_more_context`）に従う。
+この6件を対象に、`workspace/local_inputs/unregistered_speaker_id_review_packet.csv`（非commit、本節§12.6のcommit禁止対象と同じ扱い）を作成済みである（再スキャンに合わせて再生成済み）。フィールドは`sourceCharacterId`/消費分類/出現カテゴリ/出現ファイル数・延べ数/`name`強制上書き（または`@ChTalkName`インライン引数）から実データより抽出した表示名候補/空のuser確認列で構成し、§12.3の`humanReviewStatus`と同じ運用（`pending`→人間確認後に`confirmed`/`rejected`/`needs_more_context`）に従う。
 
 このパケットの人間確認が完了した後は、確認済みエントリを既存の`character-dictionary-confirmed-batch-005`（PR実績）に続く**confirmed batch 006相当**として、`knowledge/dictionaries/characters.yaml`へ登録する後続PRを起票する（§9「人間確認済みmappingだけcommitするルール」に従う）。残る867件の誤検出（話者に束縛されない`$numX`/`$valueX`代入）については、この辞書登録とは別に、checker側の消費文脈ベース判定への修正PRで解消する。
 

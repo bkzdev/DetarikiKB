@@ -142,6 +142,53 @@ def test_new_speech_command(dummy_config, tmp_path):
     assert any(c["command"] == "@NewTalkCommand" for c in result.new_speech_commands)
 
 
+def test_scenario_cos_variable_form_not_flagged_as_unknown_char(dummy_config, tmp_path):
+    """@ScenarioCos slot $var 形式は @ScenarioCosLoad と同様、変数経由のため
+    char_id を直接取得できず、unknown_character_ids には計上されないこと。"""
+    script_content = """$num0 = 26
+@ScenarioCos 1 $num0
+@ChTalk 1
+こんにちは。
+"""
+    script_path = tmp_path / "scenario_cos_var.dec"
+    script_path.write_text(script_content, encoding="utf-8")
+
+    result = check_file(
+        file_path=script_path,
+        known_commands=dummy_config["known_commands"],
+        speech_commands=dummy_config["speech_commands"],
+        case_variants_map=dummy_config["case_variants_map"],
+        speech_hints=dummy_config["speech_hints"],
+        char_map=dummy_config["char_map"],
+    )
+
+    assert result.parser_compatibility == "compatible"
+    assert len(result.unknown_character_ids) == 0
+
+
+def test_scenario_cos_numeric_direct_form_unknown_id_still_flagged(
+    dummy_config, tmp_path
+):
+    """数値直接指定形式での未登録ID検出に無回帰であること。"""
+    script_content = """@ScenarioCos 1 999
+@ChTalk 1
+セリフ
+"""
+    script_path = tmp_path / "scenario_cos_numeric_unknown.dec"
+    script_path.write_text(script_content, encoding="utf-8")
+
+    result = check_file(
+        file_path=script_path,
+        known_commands=dummy_config["known_commands"],
+        speech_commands=dummy_config["speech_commands"],
+        case_variants_map=dummy_config["case_variants_map"],
+        speech_hints=dummy_config["speech_hints"],
+        char_map=dummy_config["char_map"],
+    )
+
+    assert "999" in result.unknown_character_ids
+
+
 def test_branch_issues(dummy_config, tmp_path):
     # 分岐構文に異常があるスクリプト
     script_content = """branch A B
