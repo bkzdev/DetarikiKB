@@ -123,12 +123,14 @@ def parse_args() -> argparse.Namespace:
             "CHAR_MAIN",
             "CHAR_EXTRA",
             "CHAR_DATE",
+            "CHAR_HS",
         ],
         help=(
             "ストーリーカテゴリ。--manifest指定時に一致するepisode entryが"
             "見つかった場合は省略できる(明示的に指定した場合はそちらが優先"
-            "される。characterカテゴリはCHAR_MAIN/CHAR_EXTRA/CHAR_DATEの"
-            "いずれか判定できないため、--manifestからは自動解決されない)"
+            "される。characterカテゴリはCHAR_MAIN/CHAR_EXTRA/CHAR_DATE/"
+            "CHAR_HSのいずれか判定できないため、--manifestからは自動解決"
+            "されない)"
         ),
     )
 

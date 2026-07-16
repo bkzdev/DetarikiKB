@@ -101,6 +101,7 @@ class Normalizer:
         preserve_stage_directions: bool = True,
         commands_config_path: str | Path | None = None,
         manifest_source: dict | None = None,
+        variant_trace: dict | None = None,
     ) -> None:
         """
         Args:
@@ -127,6 +128,14 @@ class Normalizer:
                 sourceにmanifestキー自体を追加しない
                 (feature/normalize-story-manifest-integration、既存呼び出し
                 元・既存テストとの後方互換のため)。
+            variant_trace: H_scene例外変種の動的判定由来のtrace情報
+                (baseEpisodeId/variantPattern/dupIndex/judgment等) を
+                source.hsceneVariantTraceへ格納する
+                (agents/parser/hscene_variant_judgment.py、
+                Character_Story_ID_Manifest_Design.md §6.4)。Noneの場合は
+                既存通りsourceにhsceneVariantTraceキー自体を追加しない
+                (SourceInfoはadditionalProperties: trueのためschema変更
+                不要、既存呼び出し元・既存テストとの後方互換のため)。
         """
         self.story_id = story_id
         self.story_category = story_category
@@ -138,6 +147,7 @@ class Normalizer:
         self.preserve_stage_directions = preserve_stage_directions
         self.commands_config_path = commands_config_path
         self.manifest_source = manifest_source
+        self.variant_trace = variant_trace
 
     def normalize(
         self, parse_result: ParseResult, line_count: int | None = None
@@ -198,6 +208,8 @@ class Normalizer:
         }
         if self.manifest_source is not None:
             info["manifest"] = self.manifest_source
+        if self.variant_trace is not None:
+            info["hsceneVariantTrace"] = self.variant_trace
         return info
 
     def _build_compatibility_report(self, parse_result: ParseResult) -> dict[str, Any]:
