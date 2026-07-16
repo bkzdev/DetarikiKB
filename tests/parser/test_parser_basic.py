@@ -767,3 +767,125 @@ def test_dict_h_scene_parse_target_batch_case_variants_normalize_to_canonical():
     assert scene.blocks[6].raw_command == "@Shadowoff"
     assert scene.blocks[6].normalized_command == "@ShadowOff"
     assert scene.blocks[6].direction_type == "character_display"
+
+
+# ----------------------------------------------------------------
+# @SpineTalk + variant-only 17種
+# (script-command-dictionary-spinetalk-variant-only-batch)
+# ----------------------------------------------------------------
+
+
+def test_spine_talk_variable_slot_form_produces_dialogue(char_dict):
+    """@SpineTalk $numN <path> (実データで支配的な形式、延べ2,893回中2,891回)
+    が、@ChTalkと同様にdialogueブロックを生成し、$numN代入時に自動束縛
+    されたスロット (slot番号==変数index) 経由で話者解決されることを
+    確認する。"""
+    script = """$num2 = 26
+@SpineTalk $num2 H_scene/1/1_h14_42
+セリフ本文
+"""
+    parser = StoryParser(char_dict=char_dict)
+    result = parser.parse_text(script)
+    scene = result.episodes[0].scenes[0]
+
+    assert len(scene.blocks) == 1
+    dlg = scene.blocks[0]
+    assert dlg.block_type == "dialogue"
+    assert dlg.text == "セリフ本文"
+    assert dlg.speaker.speaker_name == "レイン"
+    assert dlg.speaker.is_resolved is True
+    assert dlg.has_voice is True
+    assert dlg.parser_rule == "spine_talk_dialogue"
+
+
+def test_spine_talk_numeric_slot_direct_form_produces_dialogue(char_dict):
+    """@SpineTalk slot <path> (数値スロット直接指定形式、実データでは
+    延べ2回のみ) も@ChTalkと同じ意味論でスロット解決されることを確認する。"""
+    script = """@ScenarioCos 1 26
+@SpineTalk 1 H_scene/217/217_h12_57
+数値スロット直接指定のセリフ
+"""
+    parser = StoryParser(char_dict=char_dict)
+    result = parser.parse_text(script)
+    scene = result.episodes[0].scenes[0]
+
+    assert len(scene.blocks) == 1
+    dlg = scene.blocks[0]
+    assert dlg.block_type == "dialogue"
+    assert dlg.speaker.speaker_name == "レイン"
+    assert dlg.speaker.is_resolved is True
+    assert dlg.has_voice is True
+
+
+def test_spine_talk_unresolved_slot_not_dropped():
+    """未割り当てスロットを参照する@SpineTalkでも、不明人物placeholderと
+    してブロックが生成され破棄されないこと (AI_CONTEXT.md §13.3の
+    不明情報を破棄しない不変則)。"""
+    script = """@SpineTalk $num9 H_scene/1/1_h1_1
+未解決スロットのセリフ
+"""
+    parser = StoryParser()
+    result = parser.parse_text(script)
+    scene = result.episodes[0].scenes[0]
+
+    assert len(scene.blocks) == 1
+    dlg = scene.blocks[0]
+    assert dlg.block_type == "dialogue"
+    assert dlg.speaker.is_resolved is False
+    assert dlg.text == "未解決スロットのセリフ"
+
+
+def test_dict_spinetalk_variant_only_batch_new_commands_become_stage_direction():
+    """script-command-dictionary-spinetalk-variant-only-batchで見つかった
+    variant-only(パース対象外ファイル集合にのみ出現)の新規stage_direction
+    コマンド6種が、unknownではなくstage_directionとして正しい
+    direction_typeに分類されることを確認する。"""
+    script = """@ToCloud
+@VR/VRSelect
+@SpringBone/BreastTouchAddCollider 2 1 1 2
+@WebParsonal $value10 $arg3
+@Spine/EyeDown
+@ChMotionGree 0
+"""
+    parser = StoryParser(preserve_stage_directions=True)
+    result = parser.parse_text(script)
+    scene = result.episodes[0].scenes[0]
+
+    assert len(scene.blocks) == 6
+    for block in scene.blocks:
+        assert block.block_type == "stage_direction"
+
+    assert scene.blocks[0].raw_command == "@ToCloud"
+    assert scene.blocks[0].direction_type == "screen"
+    assert scene.blocks[1].raw_command == "@VR/VRSelect"
+    assert scene.blocks[1].direction_type == "system"
+    assert scene.blocks[2].raw_command == "@SpringBone/BreastTouchAddCollider"
+    assert scene.blocks[2].direction_type == "motion"
+    assert scene.blocks[3].raw_command == "@WebParsonal"
+    assert scene.blocks[3].direction_type == "system"
+    assert scene.blocks[4].raw_command == "@Spine/EyeDown"
+    assert scene.blocks[4].direction_type == "character_display"
+    assert scene.blocks[5].raw_command == "@ChMotionGree"
+    assert scene.blocks[5].direction_type == "motion"
+
+
+def test_dict_spinetalk_variant_only_batch_case_variants_normalize_to_canonical():
+    """script-command-dictionary-spinetalk-variant-only-batchで見つかった
+    表記ゆれ2種が、CASE_VARIANTS_MAP経由で正規形へ正規化されつつ
+    stage_directionとして分類されることを確認する。"""
+    script = """@motionWait sg_standup_sigh4
+@FadeOutblack
+"""
+    parser = StoryParser(preserve_stage_directions=True)
+    result = parser.parse_text(script)
+    scene = result.episodes[0].scenes[0]
+
+    assert len(scene.blocks) == 2
+
+    assert scene.blocks[0].raw_command == "@motionWait"
+    assert scene.blocks[0].normalized_command == "@MotionWait"
+    assert scene.blocks[0].direction_type == "motion"
+
+    assert scene.blocks[1].raw_command == "@FadeOutblack"
+    assert scene.blocks[1].normalized_command == "@FadeOutBlack"
+    assert scene.blocks[1].direction_type == "screen"

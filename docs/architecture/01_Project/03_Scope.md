@@ -187,6 +187,22 @@ Wiki生成（`agents/wiki_generator/`）・Public Evidence Index promotion（`kn
 
 インベントリ詳細は`workspace/local_inputs/hscene_unknown_command_inventory.md`（非commit）を参照。
 
+### 5.4.1 実装実施（`script-command-dictionary-spinetalk-variant-only-batch`、2026-07-16）
+
+上記2点の実装を行った。`config/script_commands.yaml`へ`@SpineTalk`をspeechカテゴリとして登録し、`agents/parser/parser.py`の発話コマンド処理（`@ChTalk`系と同じ経路）で実際にdialogueブロックを生成できるようにした（config登録のみの「known but unhandled」にしていない）。
+
+**実装前に`scripts/check_script_compatibility.py`で`data/raw/character/`全量（2,419ファイル）を再スキャンし、インベントリの鵜呑みを避けて実測値を再導出した。** 再スキャン結果は未登録コマンド**17 distinct**（`unknownCommandCount`、うち`@SpineTalk`自身が1件を占める）であり、本節冒頭の「41種中17種」という記述は`@SpineTalk`を含めた数値としては実測と整合するが、**`@SpineTalk`を除いた非speechのvariant-onlyコマンドは実測16種**だった（本節初版時点の「17種」表記はこの内訳を明示していなかった過小な精度の記述であり、本節で訂正する）。16種は以下のとおり機械分類できた（`要判断`として保留したものはなし）。
+
+- **`variable-token`（8種）**: `$value4`・`$value9`・`$value11`（既存`$value7`/`$value10`と同系統の個別インデックス）、`$common`・`$common1`〜`$common3`（既存`$common0`と同系統）、`$return`（`#if`条件分岐用の一時変数）。実データ確認では`$value4`=414970（アセットID）・`$value9`=`$state(Name,$value10)`（表示名候補文字列）・`$return`=`$state(HighGraphicsFlag)`のいずれもcharacter-id系ではないことを確認した上で、既知の変数トークンとしてのみ登録した。実parser（`agents/parser/parser.py`）は`$valueX`を正規表現ベースで既に汎用対応済みのため変更不要、`$common`/`$common1`〜`3`/`$return`は`$num`/`$value`と異なる別系統のためVARIABLEトークンとして消費されるだけでスロット割り当ては発生しない（既存の`$common0`と同じ扱い、変更不要）。
+- **`stage_direction`（6種）**: `@ToCloud`（ファイル末尾に出現する画面遷移演出、523回・523ファイル、screen）・`@VR/VRSelect`（シーン冒頭のVRモード選択、50回・50ファイル、system）・`@SpringBone/BreastTouchAddCollider`（既存`@SpringBone/BreastTouchRemoveCollider`の対、motion）・`@WebParsonal`（Web個人情報系アセット参照、既存`@Cache`同様に安全側でsystem分類）・`@Spine/EyeDown`（既存`@Spine/EyeRight`等の姉妹コマンド、character_display）・`@ChMotionGree`（`@MotionCache`/`@MotionWait`と同系統のモーション指定、motion）
+- **`case-variant`（2種）**: `@motionWait`→`@MotionWait`（既存の`@motionwait`等とは異なる大文字小文字パターン）、`@FadeOutblack`→`@FadeOutBlack`（既存の`@fadeoutblack`とは異なるパターン）
+
+`@SpineTalk`のスロット解決は、実データで支配的な`@SpineTalk $numN <path>`形式（延べ2,893回中2,891回）と、数値スロット直接指定形式`@SpineTalk slot <path>`（延べ2回）の両方に対応した。前者は`$numN`代入時にresolver側で自動束縛されるスロット（slot番号==変数index、§5.2で確認済みの約98%一致する意味論）を再利用して解決する。
+
+登録後、同じ`data/raw/character/`全量への再スキャンで未登録コマンド数は17 distinctから**0**へ減少し、新規会話コマンド候補（`newSpeechCommandCount`）も**0**になったことを確認した（残る`needs_update`判定は§5.2の未登録キャラクターID9件に起因するもので、本PRのスコープ外）。合成fixtureテスト（`tests/parser/test_parser_basic.py`・`tests/parser/test_compatibility_consistency.py`）を追加し、実parser/standalone checker両経路での無回帰・`@SpineTalk`のdialogueブロック生成（話者解決込み）を確認済み。
+
+実装詳細は`docs/architecture/05_Parser/Character_Story_ID_Manifest_Design.md` §7.2を参照。
+
 ## 5.5 変種の一部をパース対象に含める必要があるか（(b)で決定、2026-07-15ユーザー決定）
 
 §5.3の全量検証で、`_spine`（39.4%）・`#N`（47.8%）・`_n`（10.5%）に、本体の部分集合になっていない例外が確認された（`_VR`は例外0件）。これにより、§4.3決定の当初前提（変種は本体と同一内容にすぎずパース対象外でよい）が全量では成立しないことが判明した。

@@ -15,6 +15,12 @@ speech:
   - "@ChTalkSoundOff"   # 音声なしセリフ
   - "@ChTalkSoundOffMono"  # 音声なしモノローグ
   - "@ChTalkName"       # コマンド内に話者名を持つセリフ
+  # script-command-dictionary-spinetalk-variant-only-batch: @ChTalkと同型の
+  # セリフコマンド (`@SpineTalk $numN <voice/textアセット参照path>`、
+  # character/配下の`_spine`変種および同梱finish系ファイルにのみ出現)。
+  # agents/parser/parser.py の発話コマンド処理 (@ChTalk系と同じ経路) と
+  # 対で追加。
+  - "@SpineTalk"
 
 # ----------------------------------------------------------------
 # speaker_assignment: 話者スロット割り当て系
@@ -57,6 +63,28 @@ variable_assignment:
   - "$value7"
   - "$value10"
   - "$common0"
+  # script-command-dictionary-spinetalk-variant-only-batch: character/配下の
+  # variant-onlyファイル(パース対象外の`_n`/`_VR`/`_spine`/`#N`変種、および
+  # camera/finish/episode_bgm等の純コマンド演出ファイル)にのみ出現する
+  # $valueX個別インデックス3種+$common/$common1〜3+$return。standalone
+  # checker(scripts/check_script_compatibility.py)の既知コマンド集合は
+  # 完全一致で判定するため個別登録する。実データでは$value4=414970 (アセット
+  # ID)・$value9=$state(Name,$value10) (表示名候補文字列)・$value11 (フラグ
+  # 値)・$common/$common1〜3 (浮動小数点値)・$return=$state(...) (条件分岐用
+  # 一時変数) のいずれもcharacter-id系ではないことを確認した上で、既知の
+  # 変数トークンとしてのみ登録する。実parser (agents/parser/parser.py) は
+  # $valueXを正規表現ベースで既に汎用対応済みのため変更不要。$common/
+  # $common1〜3/$returnは$num/$valueプレフィックスと異なる別系統のため、
+  # parser.py側でも(既存の$common0同様)VARIABLEトークンとして消費される
+  # だけでスロット割り当ては発生しない (変更不要)。
+  - "$value4"
+  - "$value9"
+  - "$value11"
+  - "$common"
+  - "$common1"
+  - "$common2"
+  - "$common3"
+  - "$return"
 
 # ----------------------------------------------------------------
 # choice: 分岐・選択肢系
@@ -281,6 +309,17 @@ stage_direction:
   - "@Spine/EyeLeft"                   # キャラ視線 (Spine系) 左
   - "@Spine/EyeCenter"                 # キャラ視線 (Spine系) 中央
   - "@ChBlueMan/BlueManSuimedo"        # BlueManプレースホルダー水着衣装バリエーション
+  # script-command-dictionary-spinetalk-variant-only-batch: character/配下の
+  # variant-onlyファイル(パース対象外の`_n`/`_VR`/`_spine`/`#N`変種、および
+  # camera/finish/episode_bgm等の純コマンド演出ファイル)にのみ出現する
+  # 新規演出コマンド6種。agents/parser/parser.py の DIRECTION_TYPE_MAP と
+  # 対で追加。
+  - "@ToCloud"                         # 画面演出 (ファイル末尾のフェード/遷移演出、screen系)
+  - "@VR/VRSelect"                     # VRモード選択 (シーン冒頭のVRセットアップ、system系)
+  - "@SpringBone/BreastTouchAddCollider"  # 物理演算コライダー追加 (既存@SpringBone/BreastTouchRemoveColliderの対)
+  - "@WebParsonal"                     # Web個人情報系アセット参照 (system系、既存@Cache同様に安全側分類)
+  - "@Spine/EyeDown"                   # キャラ視線 (Spine系) 下 (既存@Spine/EyeRight等の姉妹コマンド)
+  - "@ChMotionGree"                    # モーション演出 (@MotionCache/@MotionWaitと同系統のモーション指定)
 
 # ----------------------------------------------------------------
 # ignored: 無視する行・コマンド
@@ -406,6 +445,11 @@ case_variants:
   "@ChEYe2RightHigh": "@ChEye2RightHigh"
   "@MotioNReset": "@MotionReset"
   "@Shadowoff": "@ShadowOff"
+  # script-command-dictionary-spinetalk-variant-only-batch: character/配下の
+  # variant-onlyファイルで見つかった表記ゆれ2種 (agents/parser/parser.py の
+  # CASE_VARIANTS_MAP と対で追加)。
+  "@motionWait": "@MotionWait"
+  "@FadeOutblack": "@FadeOutBlack"
 
 # ----------------------------------------------------------------
 # new_speech_detection_hints: 新規会話コマンド候補の検出ヒント

@@ -231,6 +231,8 @@ Phase 1の「1ファイル=1episode」前提を維持する。`03_Scope.md` §5.
 
 実装（`config/script_commands.yaml`・`agents/parser/parser.py`への登録、合成fixtureテスト）は§9のPR Bで行う。本PRでは実施しない。
 
+**実装済み（`script-command-dictionary-spinetalk-variant-only-batch`、2026-07-16）**: `@SpineTalk`をspeechカテゴリへ登録し、`agents/parser/parser.py`の発話コマンド処理で実際にdialogueブロックを生成できるようにした。variant-only非speechコマンド（実測16種、内訳はvariable-token 8種・stage_direction 6種・case-variant 2種）もあわせて機械分類方式で登録した。詳細・実測値の訂正経緯は`03_Scope.md` §5.4.1を参照。
+
 ---
 
 # 8. manifest統合設計
