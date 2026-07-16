@@ -229,6 +229,7 @@ Wiki生成（`agents/wiki_generator/`）・Public Evidence Index promotion（`kn
 - `@SpineTalk`・variant-only 17種の登録可否（§5.4）は§5.5の(b)決定（2026-07-15）の時点では対象外・未決だったが、2026-07-16に§5.4で決定済み（`Character_Story_ID_Manifest_Design.md` §7参照）。
 - **設計doc完成（2026-07-16）**: 上記実装制約1〜5を踏まえたstoryId体系・episodeId suffix規則・manifest統合方針の設計は`docs/architecture/05_Parser/Character_Story_ID_Manifest_Design.md`で完成した（§5.4の`@SpineTalk`分類決定もあわせて記録済み）。実装（PR B〜E）は同文書§9の分割計画に従い後続PRで行う。
 - **実装完了（2026-07-16、PR D）**: 上記実装制約1〜4（動的判定方式・`reverse_superset`/`partial_overlap`取り込み方針・内容同一性判定子）を`feature/hscene-variant-dynamic-judgment`で実装した。詳細は`Character_Story_ID_Manifest_Design.md` §6.5を参照。実装後、`data/raw/character/`全量への判定実行（workspace限定・非commit）で、判定分布が本節（§5.3）の全量検証結果（部分集合615・例外144・`_VR`45、計759件）と完全一致することを確認した。制約2・3（重複排除ロジックそのもの）は引き続き§9のPR Eのスコープ。
+- **実装完了（2026-07-17、PR E）**: 制約2・3（`reverse_superset`/`partial_overlap`双方の抽出段階重複排除ロジック）を`feature/hscene-variant-extraction-dedup`で実装した。詳細は`Character_Story_ID_Manifest_Design.md` §6.6を参照。これにより、`character-story-id-manifest-design`のPR B〜Eが全て完了した。
 
 検証成果物（キャラクター別・パターン別の件数一覧、例外の実セリフ内容を含む詳細）はいずれもworkspace限定・非commit（`workspace/local_inputs/h_scene_variant_subset_verification.md`・`.tsv`・`h_scene_variant_subset_exceptions_detail.md`）。
 

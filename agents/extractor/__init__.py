@@ -15,6 +15,7 @@ docs/architecture/06_AI/Extraction_Result_Schema.md
 """
 
 from .extractor import Extractor
+from .hscene_dedup import extract_stories_with_hscene_dedup
 from .models import (
     DOCUMENT_TYPE,
     EXTRACTOR_VERSION,
@@ -38,4 +39,5 @@ __all__ = [
     "SemanticValidationIssue",
     "run_semantic_validation",
     "has_errors",
+    "extract_stories_with_hscene_dedup",
 ]

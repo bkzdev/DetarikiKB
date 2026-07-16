@@ -211,6 +211,8 @@ Phase 1の「1ファイル=1episode」前提を維持する。`03_Scope.md` §5.
 
 具体的な重複排除ロジックの実装は§9のPR Eで行う。
 
+**実装済み（`feature/hscene-variant-extraction-dedup`、PR E、2026-07-17）**: 上記方針を`agents/extractor/hscene_dedup.py`（新設）として実装した。詳細は§6.6を参照。
+
 ## 6.4 §5.5.1との対応
 
 本節は`03_Scope.md` §5.5.1が要求していた5点の設計方針のうち、(1)動的判定方式・(2)(3)取り込み方針・(4)内容同一性の判定子をそのまま踏襲し、episodeId suffix規則という具体的な採番ルールを新たに追加したものである。(5)「storyId/manifest設計の一部として組み込む」という要求は、本文書自体がその設計にあたる。
@@ -225,6 +227,20 @@ Phase 1の「1ファイル=1episode」前提を維持する。`03_Scope.md` §5.
 - **実データ動作確認（workspace限定・非commit）**: `data/raw/character/`全量（H_sceneN本体517件）に対し`scripts/judge_hscene_variants.py`を実行し、判定分布が`03_Scope.md` §5.3の全量検証結果（部分集合615・例外144・`_VR`45、計759件）と完全一致することを確認した（totalException=144、totalSkippedVr=45、部分集合570+`_VR`45=615）。パターン別内訳（`_n`: subset451/exception53、`#N`(hash): subset59/exception54、`_spine`+`_spine #N`(spine+spine_hash): 合計exception37）も§5.3の値と一致する。
 - 合成fixtureテスト: `tests/parser/test_hscene_variant_judgment.py`（判定ロジック単体）・`tests/scripts/test_judge_hscene_variants.py`（CLIスモークテスト、`--normalize`のCHAR_HS出力を含む）・`tests/parser/test_normalized_story_schema.py::test_normalized_json_char_hs_category`（schema検証）。
 - §6.3の重複排除ロジック（抽出段階のアセットpath同一性判定）は本PRでは実装しない（§9のPR Eのスコープのまま）。
+
+## 6.6 実装状況（`feature/hscene-variant-extraction-dedup`、PR E）
+
+§6.3の抽出段階dedupロジックを実装した。
+
+- **配置**: 新設`agents/extractor/hscene_dedup.py`。既存の`agents/extractor/`パイプライン構造（`Extractor.extract_episode`を組み立てる各`build_*_candidates()`と同じ層）に合わせ、`Extractor`をラップするオーケストレーション関数`extract_stories_with_hscene_dedup(story_jsons: list[dict]) -> list[dict]`として実装した。複数のNormalized Story JSON document（Phase 1では1 file = 1 episodeのため、documentは実質1 episode分）を受け取り、`source.hsceneVariantTrace.baseEpisodeId`でH_sceneNグループ（本体1+例外変種0〜複数）へグループ化する。
+- **Block単位の識別子抽出**: `block_identifier_set()`が、`agents/parser/hscene_variant_judgment.py`の`extract_identifier_set_from_tokens`をそのまま再利用する。Block1件分の`source.raw`（発話コマンド行）・`rawText`（本文行）・`choiceText`を結合してTokenizerへ渡し、ファイル全体判定（PR D）と全く同じ意味論（発話系コマンドのアセットpath＋正規化済み日本語TEXT行）でBlock単位の識別子集合を得る。
+- **重複判定**: 本体のevidence対象Block（dialogue/monologue/narration/choice、`agents/extractor/models.py`の`EVIDENCE_BLOCK_TYPES`と同じ集合、choiceのoption内blocksも`agents/extractor/base.py`の`evidence_from_block`と同じ再帰で辿る）の識別子集合を起点(`seen`)とし、変種episodeIdの辞書順で決定的に処理する。各Blockの識別子集合が空でなく、かつ`seen`の部分集合なら重複マーク、そうでなければ`seen`へ追加して保持する。これにより変種同士の重複も初出のみが残る（後続変種は先行変種に対して重複判定される）。
+- **不破棄不変則**: 重複と判定したBlockは、Extractorへ渡すepisode dictの**コピー**（`_filter_episode_for_extraction`）からのみ取り除く。入力のNormalized Story JSON辞書自体は一切変更しない（合成fixtureテストで辞書の`==`比較により無変更を確認済み）。
+- **記録**: episode_extraction出力へ任意フィールド`hsceneDedup`を追加する（`schemas/extraction.schema.json`に`HsceneDedup`定義として後方互換追加、`additionalProperties: false`だが必須プロパティは無し、既存fixtureは無変更で検証を通過する）。`role: "body"`（`groupBaseEpisodeId`・今回の入力に含まれていた`variantEpisodeIds`）と`role: "variant"`（`groupBaseEpisodeId`・`baseEpisodeAvailable`・`excludedBlockCount`・`excludedBlockIds`・`dedupedAgainstEpisodeIds`）の2種を区別する。トレースの無い通常episode・CHAR_HS以外のカテゴリのepisodeには`hsceneDedup`キー自体を付与しない（完全無回帰）。`extraction.schema.json`の`storyCategory` enumへ`"CHAR_HS"`も追加した（`schemas/story.schema.json`は既にPR Dで追加済みだったが、抽出schema側は未追加だったため）。
+- **本体不在時の挙動**: 入力にbaseEpisodeIdに対応する本体documentが含まれない場合、dedupは実施せず、`hsceneDedup.baseEpisodeAvailable: false`・`excludedBlockCount: 0`として本体不在の事実を記録する（黙って本体扱いしない、変種のBlockは全件フル抽出される）。
+- **CLI**: `scripts/extract_story.py`に`--input-dir`（`--input`と排他）を追加した。ディレクトリ直下の全`*.json`を読み込み`extract_stories_with_hscene_dedup()`へ渡す。既存の`--input`（単一ファイル）は完全に無変更（挙動・出力とも既存テストのまま）。
+- **実データ動作確認（workspace限定・非commit）**: `data/raw/character/`の一部キャラクターについて、`scripts/judge_hscene_variants.py --normalize`相当の処理で本体+例外変種のNormalized Story JSON群を生成し、`extract_stories_with_hscene_dedup()`（`scripts/extract_story.py --input-dir`と同じ経路）を実行した。exception変種が発生したgroup 11件のうち、Block単位で実際に重複除外が発生したgroupは18件（1本体に複数変種が対応するケースを含む）、除外Block数の合計は484件だった。個別のサンプルでは、本体・変種が全く異なるアセット番号を参照し重複が0件になるケース（`03_Scope.md` §5.5で確認済みの「本体が別H_scene番号の既存アセットを再利用した短い内容」パターンに合致）も観測しており、これはBlock単位judgeが意図通り保守的（誤って重複マークしない）に動作していることを示す。`scripts/extract_story.py --input-dir`のCLI経路自体も、同じ入力の一部（本体1件+変種1件）で実行し`--validate`込みでschema検証PASSを確認した。件数のみを記録し、生成物・実ファイル名はcommitしない。
+- 合成fixtureテスト: `tests/extractor/test_hscene_dedup.py`（`reverse_superset`相当・`partial_overlap`相当の両形状での重複除外・変種同士の初出のみ抽出・除外件数/重複先episodeIdの記録・Normalized Story JSON不変・トレース無しepisodeの無回帰・CHAR_HS以外カテゴリの無回帰・本体不在時の挙動・extraction.schema.json検証）。
 
 ---
 
@@ -300,7 +316,7 @@ Phase 1の「1ファイル=1episode」前提を維持する。`03_Scope.md` §5.
 | **PR B** | `@SpineTalk` speech登録+variant-only 17種登録（§7） | `config/script_commands.yaml`・`agents/parser/parser.py`・合成fixtureテスト |
 | **PR C** | `story_manifest` schema拡張＋候補生成builderのCHARACTER/CHARACTER_DATE対応（§8） | `schemas/story_manifest.schema.json`・`scripts/build_story_manifest_candidates.py`（**実装済み**、`feature/story-manifest-character-category-support`） |
 | **PR D** | 動的部分集合判定＋CHAR_HS例外変種episode生成＋storyCategory enum/exporter対応（§5.2・§6） | `agents/parser/`・`schemas/story.schema.json`・`agents/parser/exporter.py`（**実装済み**、`feature/hscene-variant-dynamic-judgment`） |
-| **PR E** | 抽出段階のアセットpath重複排除（§6.3） | `agents/extractor/`（または該当する抽出段階のモジュール） |
+| **PR E** | 抽出段階のアセットpath重複排除（§6.3） | `agents/extractor/`（**実装済み**、`feature/hscene-variant-extraction-dedup`。新設`agents/extractor/hscene_dedup.py`・`schemas/extraction.schema.json`の`hsceneDedup`定義追加・`scripts/extract_story.py`の`--input-dir`対応） |
 
 依存関係: PR Dの動的判定はPR Bの`@SpineTalk`登録に依存する（§7.1）。PR EはPR Dの例外変種episode生成結果に依存する。PR Cは他PRと独立して着手可能。
 

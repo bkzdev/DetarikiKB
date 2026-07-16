@@ -48,7 +48,7 @@
     "storyCategory": {
       "type": "string",
       "description": "ストーリー種別",
-      "enum": ["MAIN", "EVT", "RAID", "OTHER", "CHAR_MAIN", "CHAR_EXTRA", "CHAR_DATE"]
+      "enum": ["MAIN", "EVT", "RAID", "OTHER", "CHAR_MAIN", "CHAR_EXTRA", "CHAR_DATE", "CHAR_HS"]
     },
     "extractionRun": {
       "$ref": "#/definitions/ExtractionRun"
@@ -133,6 +133,9 @@
     "publicEpisodeId": {
       "type": ["string", "null"],
       "description": "story_manifest.yaml由来の公開Wiki URL用Episode ID (任意、episodes[].metadata.publicEpisodeIdをそのまま転記。未設定時はepisodeIdへfallback、Story_ID_Policy_Decision.md #7)"
+    },
+    "hsceneDedup": {
+      "$ref": "#/definitions/HsceneDedup"
     }
   },
 
@@ -155,6 +158,48 @@
       "type": "string",
       "description": "候補ID。Stage Aでは暫定候補ID形式、Stage B昇格後はcanonical ID (Extraction_Result_Schema.md §4.2)",
       "pattern": "^[A-Z][A-Z0-9_-]+$"
+    },
+
+    "HsceneDedup": {
+      "type": "object",
+      "description": "CHAR_HS本体episodeと例外変種episode間 (および例外変種同士) の重複ブロックを、抽出段階でvoice/textアセットpath同一性により除外マークした結果 (任意、Character_Story_ID_Manifest_Design.md §6.3・§9 PR E)。source.hsceneVariantTrace (Normalized_Story_JSON.md) を持つ変種episode、またはそのbaseEpisodeIdとして参照されている本体episodeのepisode_extractionにのみ付与される。hsceneVariantTraceの無い通常episode・CHAR_HS以外のカテゴリには付与されない (完全無回帰)。Normalized Story JSON自体からブロックが削除されることはない (不破棄不変則)",
+      "required": ["role", "groupBaseEpisodeId"],
+      "additionalProperties": false,
+      "properties": {
+        "role": {
+          "type": "string",
+          "enum": ["body", "variant"],
+          "description": "同一H_sceneNグループ内で、このepisodeが本体 (body) か例外変種 (variant) か"
+        },
+        "groupBaseEpisodeId": {
+          "type": "string",
+          "description": "同一グループの本体episodeId (role=bodyの場合は自身のepisodeIdと同じ値)"
+        },
+        "variantEpisodeIds": {
+          "type": "array",
+          "description": "role=bodyの場合のみ。同一グループのうち、今回の抽出実行の入力に含まれていた例外変種episodeIdの一覧",
+          "items": { "type": "string" }
+        },
+        "baseEpisodeAvailable": {
+          "type": "boolean",
+          "description": "role=variantの場合のみ。本体documentが今回の抽出実行の入力に含まれていたか。falseの場合、本体不在のためdedupは実施していない (黙って本体扱いしない)"
+        },
+        "excludedBlockCount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "role=variantの場合のみ。重複と判定しevidence候補・集計の対象から除外したBlock数 (Normalized Story JSON自体からは削除していない)"
+        },
+        "excludedBlockIds": {
+          "type": "array",
+          "description": "role=variantの場合のみ。除外マークしたBlock IDの一覧",
+          "items": { "type": "string" }
+        },
+        "dedupedAgainstEpisodeIds": {
+          "type": "array",
+          "description": "role=variantの場合のみ。除外マークの根拠になった内容が最初に出現したepisodeId (本体、または先に処理された変種) の一覧 (重複無し・昇順)",
+          "items": { "type": "string" }
+        }
+      }
     },
 
     "ExtractionRun": {
