@@ -87,6 +87,18 @@
           "oneOf": [{ "type": "string" }, { "type": "null" }],
           "description": "自由記述の補足 (実データ本文の転記はしない)"
         },
+        "characterId": {
+          "oneOf": [
+            { "type": "string", "pattern": "^CHAR_[A-Z0-9_-]+$" },
+            { "type": "null" }
+          ],
+          "description": "このstoryが紐づくキャラクターのcharacterId (knowledge/dictionaries/characters.yaml準拠、agents/parser/character_dictionary.pyのCHARACTER_ID_PATTERNと同じパターン)。CHARACTERカテゴリのstoryのみ設定する想定で、それ以外のカテゴリではnullまたは省略 (docs/architecture/05_Parser/Character_Story_ID_Manifest_Design.md §8.1)"
+        },
+        "auxiliaryFiles": {
+          "type": "array",
+          "description": "このstoryに紐づく、独立episodeとしてはパースしない補助ファイル一覧 (H_scene変種・camera/finish等の演出コマンド専用ファイル等)。空配列も有効 (Character_Story_ID_Manifest_Design.md §8.1)",
+          "items": { "$ref": "#/definitions/AuxiliaryFileEntry" }
+        },
         "episodes": {
           "type": "array",
           "description": "このストーリーに属するepisode一覧",
@@ -148,6 +160,32 @@
           "type": "string",
           "enum": ["pending", "confirmed", "title_unknown", "deprecated"],
           "description": "このエピソードエントリのメタデータ確認状態"
+        },
+        "notes": {
+          "oneOf": [{ "type": "string" }, { "type": "null" }],
+          "description": "自由記述の補足 (実データ本文の転記はしない)"
+        }
+      }
+    },
+
+    "AuxiliaryFileEntry": {
+      "type": "object",
+      "description": "H_scene変種ファイル・camera/finish等の演出コマンド専用ファイルなど、独立episodeとしてはパースせずstory-levelで記録だけ行う補助ファイルのエントリ (Character_Story_ID_Manifest_Design.md §8.1)",
+      "required": ["rawPath", "sourceFileName", "fileRole"],
+      "additionalProperties": false,
+      "properties": {
+        "rawPath": {
+          "type": "string",
+          "description": "raw DECファイルの相対パス。区切り文字は/に正規化する"
+        },
+        "sourceFileName": {
+          "type": "string",
+          "description": "raw DECファイル名のみ"
+        },
+        "fileRole": {
+          "type": "string",
+          "enum": ["variant", "direction", "other"],
+          "description": "variant=H_sceneN変種ファイル (_n/_spine/_VR/#N等)、direction=camera/finish/episode_bgm等の純コマンド演出ファイル、other=img/test/tutorial等の特殊ファイルおよび上記いずれにも該当しないもの"
         },
         "notes": {
           "oneOf": [{ "type": "string" }, { "type": "null" }],

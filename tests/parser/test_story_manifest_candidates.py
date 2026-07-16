@@ -14,10 +14,19 @@ from pathlib import Path
 
 from jsonschema import Draft7Validator
 
+from agents.parser.character_dictionary import (
+    STATUS_CONFIRMED,
+    STATUS_NAME_ONLY,
+    CharacterDictionaryEntry,
+)
 from agents.parser.story_manifest_candidates import (
     build_candidate_document,
+    build_character_story_manifest_candidates,
     build_story_manifest_candidate,
     build_story_manifest_candidates,
+    classify_auxiliary_suffix,
+    find_character_category_directory,
+    find_character_date_category_directory,
     normalize_path_separators,
     parse_episode_filename,
     parse_export_directory_name,
@@ -26,6 +35,10 @@ from agents.parser.story_manifest_candidates import (
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 SCHEMA_PATH = PROJECT_ROOT / "schemas" / "story_manifest.schema.json"
 SOURCE_KEY = "250626_synthetic_dancer"
+
+CHARACTER_SOURCE_ID = "42"
+CHARACTER_ID = "CHAR_SYNTH_TEST"
+UNCONFIRMED_SOURCE_ID = "43"
 
 
 def _make_export_dir(raw_root, source_key: str = SOURCE_KEY):
@@ -273,6 +286,395 @@ def test_candidate_document_validates_against_schema(tmp_path):
 
 def test_empty_candidate_document_validates_against_schema():
     document = build_candidate_document([])
+    with open(SCHEMA_PATH, encoding="utf-8") as f:
+        schema = json.load(f)
+    errors = list(Draft7Validator(schema).iter_errors(document))
+    assert errors == []
+
+
+# ----------------------------------------------------------------
+# CHARACTER / CHARACTER_DATE
+# (Character_Story_ID_Manifest_Design.md §4・§8・§9 PR C)
+# ----------------------------------------------------------------
+
+
+def _confirmed_entry(
+    source_id: str = CHARACTER_SOURCE_ID, character_id: str = CHARACTER_ID
+) -> CharacterDictionaryEntry:
+    return CharacterDictionaryEntry(
+        source_character_id=source_id,
+        display_name="Synthetic Character",
+        character_id=character_id,
+        status=STATUS_CONFIRMED,
+    )
+
+
+def _name_only_entry(
+    source_id: str = UNCONFIRMED_SOURCE_ID,
+) -> CharacterDictionaryEntry:
+    return CharacterDictionaryEntry(
+        source_character_id=source_id,
+        display_name="Synthetic Pending Character",
+        character_id=None,
+        status=STATUS_NAME_ONLY,
+    )
+
+
+def _make_character_export_dir(
+    raw_root: Path, source_id: str = CHARACTER_SOURCE_ID
+) -> Path:
+    export_dir = (
+        raw_root / "CHARACTER" / f"csl_script_charastory_character{source_id}_export"
+    )
+    export_dir.mkdir(parents=True)
+    return export_dir
+
+
+def _make_character_date_export_dir(
+    raw_root: Path, source_id: str = CHARACTER_SOURCE_ID
+) -> Path:
+    export_dir = (
+        raw_root / "CHARACTER_DATE" / f"csl_script_surprise_character{source_id}_export"
+    )
+    export_dir.mkdir(parents=True)
+    return export_dir
+
+
+def _make_character_file(export_dir: Path, source_id: str, suffix: str) -> Path:
+    path = export_dir / f"CAB-csl_script_charastory_character{source_id}-{suffix}.dec"
+    path.write_text("", encoding="utf-8")
+    return path
+
+
+def _make_character_date_file(export_dir: Path, source_id: str, suffix: str) -> Path:
+    path = export_dir / f"CAB-csl_script_surprise_character{source_id}-{suffix}.dec"
+    path.write_text("", encoding="utf-8")
+    return path
+
+
+def test_find_character_category_directory_case_insensitive(tmp_path):
+    (tmp_path / "Character").mkdir()
+    assert find_character_category_directory(tmp_path) is not None
+
+
+def test_find_character_date_category_directory_case_insensitive(tmp_path):
+    (tmp_path / "Character_Date").mkdir()
+    assert find_character_date_category_directory(tmp_path) is not None
+
+
+def test_find_character_category_directory_returns_none_when_absent(tmp_path):
+    assert find_character_category_directory(tmp_path) is None
+
+
+def test_classify_auxiliary_suffix_variant_patterns():
+    for suffix in (
+        "H_scene6_n",
+        "H_scene6_spine",
+        "H_scene6_VR",
+        "H_scene6 #2",
+        "H_scene6_n #2",
+        "H_scene6_spine #2",
+    ):
+        assert classify_auxiliary_suffix(suffix) == "variant", suffix
+
+
+def test_classify_auxiliary_suffix_direction_patterns():
+    for suffix in (
+        "camera6",
+        "camera6 #2",
+        "camera",
+        "camera #2",
+        "finish #2",
+        "finish",
+        "episode_bgm6",
+        "sv_1",
+        "docking6",
+        "cameradocking6",
+        "episode_osawari6_start",
+        "episode_osawari6_end",
+        "camerabreast6",
+        "breast6",
+        "cameracrotch6",
+        "crotch6",
+        "episode_ASMR6",
+        "VR_1",
+        "talk",
+        "start",
+        "position",
+    ):
+        assert classify_auxiliary_suffix(suffix) == "direction", suffix
+
+
+def test_classify_auxiliary_suffix_defaults_to_other():
+    for suffix in (
+        "H_scene6_img",
+        "H_scene_test",
+        "H_scene_s_tutorial",
+        "episode6_n",
+        "episode_osawari6_start_n",
+        "PinkMan",
+        "idolVR",
+        "totally_unrecognized_suffix",
+    ):
+        assert classify_auxiliary_suffix(suffix) == "other", suffix
+
+
+def test_build_character_story_manifest_candidates_generates_main_extra_hs(tmp_path):
+    export_dir = _make_character_export_dir(tmp_path)
+    _make_character_file(export_dir, CHARACTER_SOURCE_ID, "episode1")
+    _make_character_file(export_dir, CHARACTER_SOURCE_ID, "episode_EX1")
+    _make_character_file(export_dir, CHARACTER_SOURCE_ID, "H_scene6")
+
+    candidates, report = build_character_story_manifest_candidates(
+        tmp_path, [_confirmed_entry()]
+    )
+
+    story_ids = {story["storyId"] for story in candidates}
+    assert story_ids == {
+        "CHAR_MAIN_SYNTH_TEST",
+        "CHAR_EXTRA_SYNTH_TEST",
+        "CHAR_HS_SYNTH_TEST",
+    }
+    assert report == []
+    for story in candidates:
+        assert story["characterId"] == CHARACTER_ID
+        assert story["category"] == "character"
+        assert story["sourceKey"] == CHARACTER_SOURCE_ID
+
+
+def test_build_character_story_manifest_candidates_generates_date_story(tmp_path):
+    export_dir = _make_character_date_export_dir(tmp_path)
+    _make_character_date_file(export_dir, CHARACTER_SOURCE_ID, "Surprise_1")
+    _make_character_date_file(export_dir, CHARACTER_SOURCE_ID, "Surprise_2")
+
+    candidates, report = build_character_story_manifest_candidates(
+        tmp_path, [_confirmed_entry()]
+    )
+
+    assert len(candidates) == 1
+    story = candidates[0]
+    assert story["storyId"] == "CHAR_DATE_SYNTH_TEST"
+    episode_numbers = [e["episodeNumber"] for e in story["episodes"]]
+    assert episode_numbers == [1, 2]
+    assert report == []
+
+
+def test_only_stories_with_matching_files_are_generated(tmp_path):
+    """該当ファイルが存在する種別のみstoryを生成する
+    (Character_Story_ID_Manifest_Design.md §4.1)。"""
+    export_dir = _make_character_export_dir(tmp_path)
+    _make_character_file(export_dir, CHARACTER_SOURCE_ID, "episode1")
+
+    candidates, _ = build_character_story_manifest_candidates(
+        tmp_path, [_confirmed_entry()]
+    )
+
+    assert len(candidates) == 1
+    assert candidates[0]["storyId"] == "CHAR_MAIN_SYNTH_TEST"
+
+
+def test_h_scene_s_generates_es01_episode_id(tmp_path):
+    export_dir = _make_character_export_dir(tmp_path)
+    _make_character_file(export_dir, CHARACTER_SOURCE_ID, "H_scene1")
+    _make_character_file(export_dir, CHARACTER_SOURCE_ID, "H_scene_s")
+
+    candidates, report = build_character_story_manifest_candidates(
+        tmp_path, [_confirmed_entry()]
+    )
+
+    assert len(candidates) == 1
+    episode_ids = [e["episodeId"] for e in candidates[0]["episodes"]]
+    assert episode_ids == ["CHAR_HS_SYNTH_TEST_E01", "CHAR_HS_SYNTH_TEST_ES01"]
+    assert report == []
+
+
+def test_unconfirmed_character_generates_pending_report_and_no_candidate(tmp_path):
+    export_dir = _make_character_export_dir(tmp_path, UNCONFIRMED_SOURCE_ID)
+    _make_character_file(export_dir, UNCONFIRMED_SOURCE_ID, "episode1")
+
+    candidates, report = build_character_story_manifest_candidates(
+        tmp_path, [_name_only_entry()]
+    )
+
+    assert candidates == []
+    assert len(report) == 1
+    assert report[0]["issueType"] == "unconfirmed_character"
+    assert report[0]["sourceCharacterId"] == UNCONFIRMED_SOURCE_ID
+
+
+def test_character_not_in_dictionary_at_all_is_pending(tmp_path):
+    export_dir = _make_character_export_dir(tmp_path, UNCONFIRMED_SOURCE_ID)
+    _make_character_file(export_dir, UNCONFIRMED_SOURCE_ID, "episode1")
+
+    candidates, report = build_character_story_manifest_candidates(tmp_path, [])
+
+    assert candidates == []
+    assert len(report) == 1
+    assert report[0]["issueType"] == "unconfirmed_character"
+
+
+def test_auxiliary_files_are_classified_and_attached_to_hs_story(tmp_path):
+    export_dir = _make_character_export_dir(tmp_path)
+    _make_character_file(export_dir, CHARACTER_SOURCE_ID, "H_scene6")
+    _make_character_file(export_dir, CHARACTER_SOURCE_ID, "H_scene6_n")
+    _make_character_file(export_dir, CHARACTER_SOURCE_ID, "camera6")
+    _make_character_file(export_dir, CHARACTER_SOURCE_ID, "H_scene6_img")
+
+    candidates, report = build_character_story_manifest_candidates(
+        tmp_path, [_confirmed_entry()]
+    )
+
+    assert len(candidates) == 1
+    story = candidates[0]
+    assert story["storyId"] == "CHAR_HS_SYNTH_TEST"
+    roles_by_filename = {
+        aux["sourceFileName"]: aux["fileRole"] for aux in story["auxiliaryFiles"]
+    }
+    prefix = f"CAB-csl_script_charastory_character{CHARACTER_SOURCE_ID}"
+    assert roles_by_filename == {
+        f"{prefix}-H_scene6_n.dec": "variant",
+        f"{prefix}-camera6.dec": "direction",
+        f"{prefix}-H_scene6_img.dec": "other",
+    }
+    assert report == []
+
+
+def test_direction_file_falls_back_to_main_story_when_hs_story_absent(tmp_path):
+    export_dir = _make_character_export_dir(tmp_path)
+    _make_character_file(export_dir, CHARACTER_SOURCE_ID, "episode1")
+    _make_character_file(export_dir, CHARACTER_SOURCE_ID, "camera1")
+
+    candidates, report = build_character_story_manifest_candidates(
+        tmp_path, [_confirmed_entry()]
+    )
+
+    assert len(candidates) == 1
+    story = candidates[0]
+    assert story["storyId"] == "CHAR_MAIN_SYNTH_TEST"
+    assert len(story["auxiliaryFiles"]) == 1
+    assert story["auxiliaryFiles"][0]["fileRole"] == "direction"
+    assert report == []
+
+
+def test_variant_file_without_hs_story_is_reported_as_unattached(tmp_path):
+    """H_scene変種のみが存在しH_sceneN本体・H_scene_sが無い場合、
+    紐づけ先のCHAR_HS storyが無いためpending報告として残す
+    (黙って除外しない、Character_Story_ID_Manifest_Design.md §8.1)。"""
+    export_dir = _make_character_export_dir(tmp_path)
+    _make_character_file(export_dir, CHARACTER_SOURCE_ID, "H_scene6_n")
+
+    candidates, report = build_character_story_manifest_candidates(
+        tmp_path, [_confirmed_entry()]
+    )
+
+    assert candidates == []
+    assert len(report) == 1
+    assert report[0]["issueType"] == "unattached_auxiliary_file"
+    assert report[0]["fileRole"] == "variant"
+
+
+def test_direction_file_without_any_story_is_reported_as_unattached(tmp_path):
+    export_dir = _make_character_export_dir(tmp_path)
+    _make_character_file(export_dir, CHARACTER_SOURCE_ID, "camera1")
+
+    candidates, report = build_character_story_manifest_candidates(
+        tmp_path, [_confirmed_entry()]
+    )
+
+    assert candidates == []
+    assert len(report) == 1
+    assert report[0]["issueType"] == "unattached_auxiliary_file"
+    assert report[0]["fileRole"] == "direction"
+
+
+def test_id_mismatch_file_is_reported_and_excluded(tmp_path):
+    """ディレクトリ名の{N}とファイル名の{N}が食い違う場合、認識できない
+    ファイルとして報告し、episode/auxiliaryFilesいずれにも含めない
+    (Character_Story_ID_Manifest_Design.md §4.5)。"""
+    export_dir = _make_character_export_dir(tmp_path)
+    _make_character_file(export_dir, CHARACTER_SOURCE_ID, "episode1")
+    # ディレクトリはCHARACTER_SOURCE_IDだが、ファイル名は別ID。
+    mismatched = export_dir / (
+        f"CAB-csl_script_charastory_character{UNCONFIRMED_SOURCE_ID}-episode1.dec"
+    )
+    mismatched.write_text("", encoding="utf-8")
+
+    candidates, report = build_character_story_manifest_candidates(
+        tmp_path, [_confirmed_entry()]
+    )
+
+    assert len(candidates) == 1
+    assert len(candidates[0]["episodes"]) == 1
+    id_mismatch_issues = [r for r in report if r["issueType"] == "id_mismatch"]
+    assert len(id_mismatch_issues) == 1
+    assert id_mismatch_issues[0]["sourceCharacterId"] == CHARACTER_SOURCE_ID
+
+
+def test_id_mismatch_between_character_date_dir_and_filename_is_reported(tmp_path):
+    export_dir = _make_character_date_export_dir(tmp_path)
+    _make_character_date_file(export_dir, CHARACTER_SOURCE_ID, "Surprise_1")
+    mismatched = export_dir / (
+        f"CAB-csl_script_surprise_character{UNCONFIRMED_SOURCE_ID}-Surprise_2.dec"
+    )
+    mismatched.write_text("", encoding="utf-8")
+
+    candidates, report = build_character_story_manifest_candidates(
+        tmp_path, [_confirmed_entry()]
+    )
+
+    assert len(candidates) == 1
+    assert len(candidates[0]["episodes"]) == 1
+    id_mismatch_issues = [r for r in report if r["issueType"] == "id_mismatch"]
+    assert len(id_mismatch_issues) == 1
+
+
+def test_build_character_story_manifest_candidates_empty_when_no_directories(tmp_path):
+    candidates, report = build_character_story_manifest_candidates(tmp_path, [])
+    assert candidates == []
+    assert report == []
+
+
+def test_event_candidates_unaffected_by_character_candidates(tmp_path):
+    """EVENT既存挙動の無回帰: 同じraw_root配下にCHARACTERディレクトリが
+    あってもEVENT側候補生成は影響を受けない。"""
+    event_export_dir = tmp_path / "EVENT" / f"csl_script_event_{SOURCE_KEY}_export"
+    event_export_dir.mkdir(parents=True)
+    (event_export_dir / f"CAB-csl_script_event_{SOURCE_KEY}-episode1.dec").write_text(
+        "", encoding="utf-8"
+    )
+
+    character_export_dir = _make_character_export_dir(tmp_path)
+    _make_character_file(character_export_dir, CHARACTER_SOURCE_ID, "episode1")
+
+    event_candidates = build_story_manifest_candidates(tmp_path)
+    character_candidates, report = build_character_story_manifest_candidates(
+        tmp_path, [_confirmed_entry()]
+    )
+
+    assert len(event_candidates) == 1
+    assert event_candidates[0]["storyId"] == "EVT_250626_SYNTHETIC_DANCER"
+    assert len(character_candidates) == 1
+    assert character_candidates[0]["storyId"] == "CHAR_MAIN_SYNTH_TEST"
+    assert report == []
+
+
+def test_character_candidate_document_validates_against_schema(tmp_path):
+    export_dir = _make_character_export_dir(tmp_path)
+    _make_character_file(export_dir, CHARACTER_SOURCE_ID, "episode1")
+    _make_character_file(export_dir, CHARACTER_SOURCE_ID, "episode_EX1")
+    _make_character_file(export_dir, CHARACTER_SOURCE_ID, "H_scene1")
+    _make_character_file(export_dir, CHARACTER_SOURCE_ID, "H_scene_s")
+    _make_character_file(export_dir, CHARACTER_SOURCE_ID, "H_scene1_n")
+    _make_character_file(export_dir, CHARACTER_SOURCE_ID, "camera1")
+    _make_character_file(export_dir, CHARACTER_SOURCE_ID, "H_scene1_img")
+    date_dir = _make_character_date_export_dir(tmp_path)
+    _make_character_date_file(date_dir, CHARACTER_SOURCE_ID, "Surprise_1")
+
+    candidates, _ = build_character_story_manifest_candidates(
+        tmp_path, [_confirmed_entry()]
+    )
+    document = build_candidate_document(candidates)
+
     with open(SCHEMA_PATH, encoding="utf-8") as f:
         schema = json.load(f)
     errors = list(Draft7Validator(schema).iter_errors(document))
