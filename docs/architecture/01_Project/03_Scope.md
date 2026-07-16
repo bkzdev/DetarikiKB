@@ -210,7 +210,7 @@ Wiki生成（`agents/wiki_generator/`）・Public Evidence Index promotion（`kn
 ### 5.5.2 関連タスク
 
 - `TASKS.md` Backlogの`character-story-id-manifest-design`に、上記実装制約1〜5（例外変種の動的取り込み・アセットpath重複排除を要件に含む旨）を追記済み。
-- `@SpineTalk`・variant-only 17種の登録可否（§5.4）は本決定の対象外であり、引き続き別途未決のままとする。
+- `@SpineTalk`・variant-only 17種の登録可否（§5.4）は§5.5の(b)決定（2026-07-15）の時点では対象外・未決だったが、2026-07-16に§5.4で決定済み（`Character_Story_ID_Manifest_Design.md` §7参照）。
 - **設計doc完成（2026-07-16）**: 上記実装制約1〜5を踏まえたstoryId体系・episodeId suffix規則・manifest統合方針の設計は`docs/architecture/05_Parser/Character_Story_ID_Manifest_Design.md`で完成した（§5.4の`@SpineTalk`分類決定もあわせて記録済み）。実装（PR B〜E）は同文書§9の分割計画に従い後続PRで行う。
 
 検証成果物（キャラクター別・パターン別の件数一覧、例外の実セリフ内容を含む詳細）はいずれもworkspace限定・非commit（`workspace/local_inputs/h_scene_variant_subset_verification.md`・`.tsv`・`h_scene_variant_subset_exceptions_detail.md`）。
