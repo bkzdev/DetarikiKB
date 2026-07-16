@@ -345,6 +345,80 @@ def test_chtalk_family_still_dialogue_monologue_regardless_of_compat_report(
     assert story_json["compatibilityReport"]["unknownCommands"] == []
 
 
+def test_spinetalk_known_as_speech_not_new_speech_command_on_either_path(tmp_path):
+    """script-command-dictionary-spinetalk-variant-only-batchで
+    speechカテゴリへ登録した@SpineTalkが、既知speechコマンドとして
+    認識され、newSpeechCommands(新規会話コマンド候補)には現れないこと。
+    両経路(standalone checker / StoryParser+Normalizerのcompatibility
+    Report)の一貫性を確認する。
+
+    statusまでの完全一致は確認しない: 話者に使われた未登録character_id
+    ("26")の扱いが standalone(消費文脈ベース、fix/checker-unregistered-
+    character-id-consumption-basedで修正済み) と embedded(resolver.pyが
+    代入時に即時解決するため常に未登録記録) で異なりstatusが分岐しうる
+    (このPRのスコープ外、既存の test_known_speech_commands_produce_
+    compatible_on_both_pathsも同じ理由でstatus比較を避けている)。"""
+    script = """$num2 = 26
+@SpineTalk $num2 H_scene/1/1_h14_42
+セリフ本文
+@SpineTalk 1 H_scene/217/217_h12_57
+数値スロット直接指定
+"""
+    standalone, embedded = _run_both_paths(tmp_path, script)
+
+    assert standalone["unknownCommands"] == set()
+    assert embedded["unknownCommands"] == set()
+    assert standalone["newSpeechCommands"] == set()
+    assert embedded["newSpeechCommands"] == set()
+
+
+def test_dict_spinetalk_variant_only_batch_commands_not_unknown_on_either_path(
+    tmp_path,
+):
+    """script-command-dictionary-spinetalk-variant-only-batchで見つかった
+    variant-only新規stage_directionコマンド6種・表記ゆれ2種が、どちらの
+    経路でもunknownCommandsに現れないことを確認する。"""
+    script = """@ToCloud
+@VR/VRSelect
+@SpringBone/BreastTouchAddCollider 2 1 1 2
+@WebParsonal $value10 $arg3
+@Spine/EyeDown
+@ChMotionGree 0
+@motionWait sg_standup_sigh4
+@FadeOutblack
+"""
+    standalone, embedded = _run_both_paths(tmp_path, script)
+
+    assert standalone["unknownCommands"] == set()
+    assert embedded["unknownCommands"] == set()
+    assert standalone["newSpeechCommands"] == set()
+    assert embedded["newSpeechCommands"] == set()
+
+
+def test_dict_spinetalk_batch_variable_tokens_not_unknown_on_standalone_path(
+    tmp_path,
+):
+    """script-command-dictionary-spinetalk-variant-only-batchで見つかった
+    $valueX個別インデックス3種+$common/$common1〜3+$returnが、standalone
+    checker側でもunknownCommandsに現れないことを確認する。実parser側は
+    $valueXを正規表現ベースで既に汎用対応済み、$common/$common1〜3/$return
+    はVARIABLEトークンとして消費されるだけ(unknown_commandsに元々計上
+    されない)のため、standalone側のみ確認する。"""
+    script = """$value4 = 414970
+$value9 = $state(Name,$value10)
+$value11 = 0
+$common = 0
+$common1 = 1
+$common2 = 2
+$common3 = 3
+$return = $state(HighGraphicsFlag)
+"""
+    standalone, embedded = _run_both_paths(tmp_path, script)
+
+    assert standalone["unknownCommands"] == set()
+    assert embedded["unknownCommands"] == set()
+
+
 def test_branch_choice_script_matches_on_both_paths(tmp_path):
     """branch/#if/#else/#endifを含むスクリプトでも、check_script_
     compatibility.py単体実行とNormalizerのcompatibilityReportが一致する

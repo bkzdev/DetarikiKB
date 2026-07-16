@@ -236,6 +236,17 @@ DIRECTION_TYPE_MAP: dict[str, str] = {
     "@Spine/EyeLeft": "character_display",
     "@Spine/EyeCenter": "character_display",
     "@ChBlueMan/BlueManSuimedo": "character_display",
+    # script-command-dictionary-spinetalk-variant-only-batch: character/配下の
+    # variant-onlyファイル(パース対象外の`_n`/`_VR`/`_spine`/`#N`変種、および
+    # camera/finish/episode_bgm等の純コマンド演出ファイル)にのみ出現する
+    # 新規演出コマンド6種 (config/script_commands.yaml の stage_direction と
+    # 対で追加)。
+    "@ToCloud": "screen",
+    "@VR/VRSelect": "system",
+    "@SpringBone/BreastTouchAddCollider": "motion",
+    "@WebParsonal": "system",
+    "@Spine/EyeDown": "character_display",
+    "@ChMotionGree": "motion",
 }
 
 # 表記ゆれ → 正規化
@@ -338,6 +349,11 @@ CASE_VARIANTS_MAP: dict[str, str] = {
     "@ChEYe2RightHigh": "@ChEye2RightHigh",
     "@MotioNReset": "@MotionReset",
     "@Shadowoff": "@ShadowOff",
+    # script-command-dictionary-spinetalk-variant-only-batch: character/配下の
+    # variant-onlyファイルで見つかった表記ゆれ2種 (config/script_commands.yaml
+    # の case_variants と対で追加)。
+    "@motionWait": "@MotionWait",
+    "@FadeOutblack": "@FadeOutBlack",
 }
 
 # 既知の stage_direction コマンドセット
@@ -579,7 +595,13 @@ class StoryParser:
                     raw_line=pending_speech_command.raw
                     if pending_speech_command
                     else None,
-                    parser_rule=_speech_parser_rule(block_type, pending_has_voice),
+                    parser_rule=_speech_parser_rule(
+                        block_type,
+                        pending_has_voice,
+                        pending_speech_command.command
+                        if pending_speech_command
+                        else None,
+                    ),
                     confidence=1.0,
                 )
 
@@ -709,6 +731,25 @@ class StoryParser:
                     slot = token.args[0] if token.args else "0"
                     pending_speech_type = "monologue"
                     pending_has_voice = cmd == "@ChTalkMono"
+                    pending_speaker = resolver.resolve_slot(slot)
+                    pending_speech_command = token
+                    continue
+
+                # @SpineTalk slot_arg voice/textアセット参照path
+                # (script-command-dictionary-spinetalk-variant-only-batch)。
+                # @ChTalkと同型のセリフコマンドだが、第1引数が数値スロット
+                # 直接指定 (@ChTalkと同じ) の場合と $numN 変数参照の場合の
+                # 両方が実データに存在する (延べ2,893回中2,891回が$numN形式)。
+                # $numN代入時にresolver側でslot=Nへ自動束縛される既存の
+                # 意味論 (03_Scope.md §5.2、slot番号==変数indexが約98%一致)
+                # を再利用し、$numNからNを抽出してスロット解決する。
+                if cmd == "@SpineTalk":
+                    flush_text()
+                    slot_arg = token.args[0] if token.args else "0"
+                    num_var_match = NUM_VAR_PATTERN.match(slot_arg)
+                    slot = num_var_match.group(1) if num_var_match else slot_arg
+                    pending_speech_type = "dialogue"
+                    pending_has_voice = True
                     pending_speaker = resolver.resolve_slot(slot)
                     pending_speech_command = token
                     continue
@@ -1020,8 +1061,16 @@ def _clean_text(text: str) -> str:
     return "".join(lines)
 
 
-def _speech_parser_rule(block_type: str, has_voice: bool | None) -> str:
+def _speech_parser_rule(
+    block_type: str, has_voice: bool | None, command: str | None = None
+) -> str:
     """Parser ルール名を返す"""
+    if command == "@SpineTalk":
+        # script-command-dictionary-spinetalk-variant-only-batch: @ChTalkと
+        # 同型だが、証跡 (source.raw) だけでなくparserRule単体からも
+        # @SpineTalk由来のブロックだと判別できるよう専用ルール名を返す
+        # (PR D の動的部分集合判定がこの区別を利用する想定)。
+        return "spine_talk_dialogue"
     if block_type == "dialogue":
         if has_voice is True:
             return "ch_talk_dialogue"
