@@ -152,6 +152,7 @@ DKBでは以下のストーリー種別を採用する。
 | `CHAR_MAIN` | キャラクターメインストーリー | キャラクター個別のメインストーリー |
 | `CHAR_EXTRA` | キャラクターエクストラストーリー | キャラクター個別の追加・補足ストーリー |
 | `CHAR_DATE` | キャラクターデートストーリー | キャラクター個別のデートストーリー |
+| `CHAR_HS` | キャラクターH_sceneストーリー | キャラクター個別の演出コンテンツ。内部KB専用・公開恒久除外（`Character_Story_ID_Manifest_Design.md` §5） |
 
 この分類はDKBの正規ID体系の一部とする。
 
@@ -318,6 +319,38 @@ CHAR_DATE_{characterId}_E{episode}
 ```text
 CHAR_DATE_AKAGI_HINA_E01
 ```
+
+---
+
+## 4.9 キャラクターH_sceneストーリーID
+
+形式:
+
+```text
+CHAR_HS_{characterId}_E{episode}
+```
+
+例:
+
+```text
+CHAR_HS_AKAGI_HINA_E06
+```
+
+`H_scene_s`接尾辞ファイルは連番接尾辞`ES{number:02d}`を使う。
+
+```text
+CHAR_HS_AKAGI_HINA_ES01
+```
+
+本体の部分集合になっていない例外変種は、専用suffixを付けた別episodeとしてIDを割り当てる（動的判定、`Character_Story_ID_Manifest_Design.md` §6）。
+
+```text
+CHAR_HS_AKAGI_HINA_E06_VN
+CHAR_HS_AKAGI_HINA_E06_VSP
+CHAR_HS_AKAGI_HINA_E06_VD2
+```
+
+`CHAR_HS`カテゴリは内部KB専用であり、Wiki出力・Evidence Index promotionを含む公開面からは恒久的に除外する（`docs/architecture/01_Project/03_Scope.md` §4.2、`Character_Story_ID_Manifest_Design.md` §5）。
 
 ---
 
@@ -764,6 +797,8 @@ site/docs/organizations/igyo-seibutsu-taisakuhan.md
 - `CHAR_EXTRA`
 - `CHAR_DATE`
 
+**解消（`feature/character-story-id-manifest-design`で2026-07-16決定により解消）**: OD-003は、raw配置（`data/raw/character/`・`data/raw/character_date/`）の実配置全量調査（2026-07-16 Fable調査）とユーザー決定に基づき解消した。storyId体系はローマ字characterId方式（`CHAR_MAIN_{characterId}`/`CHAR_EXTRA_{characterId}`/`CHAR_DATE_{characterId}`/`CHAR_HS_{characterId}`）を採用し、prefixの判定はraw配置ディレクトリ（`character`/`character_date`）とファイル名サフィックス（`episodeN`/`episode_EXN`/`Surprise_N`/`H_sceneN`/`H_scene_s`）の組み合わせによる機械判定で行う。新設カテゴリ`CHAR_HS`（内部KB専用・公開恒久除外）も含む。詳細は`docs/architecture/05_Parser/Character_Story_ID_Manifest_Design.md`を参照。
+
 ---
 
 # 11. 例
@@ -814,6 +849,7 @@ CHAR_DATE_AKAGI_HINA_E01
 - `CHAR_MAIN`: キャラクターメインストーリー
 - `CHAR_EXTRA`: キャラクターエクストラストーリー
 - `CHAR_DATE`: キャラクターデートストーリー
+- `CHAR_HS`: キャラクターH_sceneストーリー（内部KB専用・公開恒久除外）
 
 この文書はID仕様のみを扱う。
 
