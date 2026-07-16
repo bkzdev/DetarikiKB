@@ -26,7 +26,7 @@
     "storyCategory": {
       "type": "string",
       "description": "ストーリー種別",
-      "enum": ["MAIN", "EVT", "RAID", "OTHER", "CHAR_MAIN", "CHAR_EXTRA", "CHAR_DATE"]
+      "enum": ["MAIN", "EVT", "RAID", "OTHER", "CHAR_MAIN", "CHAR_EXTRA", "CHAR_DATE", "CHAR_HS"]
     },
     "metadata": {
       "$ref": "#/definitions/StoryMetadata"

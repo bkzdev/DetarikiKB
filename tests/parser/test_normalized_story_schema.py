@@ -79,3 +79,33 @@ def test_normalized_json_with_choice(schema):
             f"Schema validation failed (choice block): {e.message}\n"
             f"Path: {list(e.path)}"
         )
+
+
+def test_normalized_json_char_hs_category(schema):
+    """storyCategory `CHAR_HS` (H_scene系例外変種、
+    Character_Story_ID_Manifest_Design.md §5.2) がschemaで受理されることを
+    確認する回帰テスト (character-story-id-manifest-design-pr-d)。"""
+    script = "$num0 = 1\n@ChTalk 0 test/asset/1\nテスト用のせりふです。\n"
+    parser = StoryParser()
+    parse_result = parser.parse_text(script, source_file="H_scene1")
+
+    normalizer = Normalizer(
+        story_id="CHAR_HS_TEST",
+        story_category="CHAR_HS",
+        episode_id="CHAR_HS_TEST_E01_VN",
+        source_file="H_scene1_n",
+        variant_trace={
+            "baseEpisodeId": "CHAR_HS_TEST_E01",
+            "variantPattern": "n",
+            "dupIndex": None,
+            "judgment": "exception",
+        },
+    )
+    story_json = normalizer.normalize(parse_result)
+
+    try:
+        validate(instance=story_json, schema=schema)
+    except ValidationError as e:
+        pytest.fail(
+            f"Schema validation failed (CHAR_HS): {e.message}\nPath: {list(e.path)}"
+        )

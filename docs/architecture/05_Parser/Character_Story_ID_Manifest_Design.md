@@ -172,6 +172,8 @@ candidate生成の対象になるのは、対象キャラクターの`sourceChar
 
 実装は§9のPR Dで行う。
 
+**実装済み（`feature/hscene-variant-dynamic-judgment`、PR D）**: 上記2点をそのまま実装した。`schemas/story.schema.json`の`storyCategory` enumへ`"CHAR_HS"`を追加し、`agents/parser/exporter.py`の`_category_to_subdir`へ`"CHAR_HS": "character"`を追加した。`scripts/normalize_story.py`の`--category`選択肢にも`CHAR_HS`を追加した。合成fixtureでのschema検証テスト（`tests/parser/test_normalized_story_schema.py::test_normalized_json_char_hs_category`）を追加済み。
+
 ## 5.3 promotion除外の機械判定への効果
 
 現行の`docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md` §17は、H_scene系由来のstoryをpromotion対象外として扱う運用ルールを人間可読なテキストで定義しているのみで、母集団抽出段階での機械的な事前除外は「現状は運用ルールの明文化のみ」（同§17.5）と明記されている。`CHAR_HS`カテゴリが実装されれば、`storyCategory == "CHAR_HS"`という1条件でこの事前除外を機械的に実装できるようになる（実装自体はPR D以降）。
@@ -212,6 +214,17 @@ Phase 1の「1ファイル=1episode」前提を維持する。`03_Scope.md` §5.
 ## 6.4 §5.5.1との対応
 
 本節は`03_Scope.md` §5.5.1が要求していた5点の設計方針のうち、(1)動的判定方式・(2)(3)取り込み方針・(4)内容同一性の判定子をそのまま踏襲し、episodeId suffix規則という具体的な採番ルールを新たに追加したものである。(5)「storyId/manifest設計の一部として組み込む」という要求は、本文書自体がその設計にあたる。
+
+## 6.5 実装状況（`feature/hscene-variant-dynamic-judgment`、PR D）
+
+§6.1・§6.2の動的部分集合判定・episodeId suffix規則を実装した。
+
+- **判定ロジック**: 新設`agents/parser/hscene_variant_judgment.py`。識別子集合抽出（`extract_identifier_set`、実tokenizer `agents/parser/tokenizer.py`ベース）・部分集合判定（`judge_subset`）・変種ファイル名パターン検出（`find_variant_candidates`、`_n`/`_spine`/`#K`/`_n #K`/`_spine #K`/`_VR`を本体ファイルのstemから厳密照合）・episodeId suffix導出（`derive_variant_episode_id`、§6.2の規則どおり）・本体単位の判定オーケストレーション（`judge_body_variants`）を実装した。`_VR`は常に`judgment="skipped_vr"`として記録し、部分集合判定自体は行わない（スキップした事実は判定結果に残る）。
+- **CLI**: 新設`scripts/judge_hscene_variants.py`。H_sceneN本体ファイルまたはキャラクターexportディレクトリを入力に判定を実行し、判定レポート（JSON/Markdown、実ファイル名を含むためworkspace限定・非commit）を出力する。`--normalize`指定時のみ、exception判定された変種を既存のnormalize経路（`StoryParser`→`Normalizer`→`Exporter`）で`storyCategory: CHAR_HS`の別episodeとしてnormalizeする（`--story-id`必須、`episodeId`は§6.2規則から自動導出）。
+- **trace情報**: `agents/parser/normalizer.py`の`Normalizer`に`variant_trace`引数を追加し、`source.hsceneVariantTrace`（baseEpisodeId/variantPattern/dupIndex/judgment等）として記録する（`SourceInfo`は`additionalProperties: true`のためschema変更不要）。
+- **実データ動作確認（workspace限定・非commit）**: `data/raw/character/`全量（H_sceneN本体517件）に対し`scripts/judge_hscene_variants.py`を実行し、判定分布が`03_Scope.md` §5.3の全量検証結果（部分集合615・例外144・`_VR`45、計759件）と完全一致することを確認した（totalException=144、totalSkippedVr=45、部分集合570+`_VR`45=615）。パターン別内訳（`_n`: subset451/exception53、`#N`(hash): subset59/exception54、`_spine`+`_spine #N`(spine+spine_hash): 合計exception37）も§5.3の値と一致する。
+- 合成fixtureテスト: `tests/parser/test_hscene_variant_judgment.py`（判定ロジック単体）・`tests/scripts/test_judge_hscene_variants.py`（CLIスモークテスト、`--normalize`のCHAR_HS出力を含む）・`tests/parser/test_normalized_story_schema.py::test_normalized_json_char_hs_category`（schema検証）。
+- §6.3の重複排除ロジック（抽出段階のアセットpath同一性判定）は本PRでは実装しない（§9のPR Eのスコープのまま）。
 
 ---
 
@@ -286,7 +299,7 @@ Phase 1の「1ファイル=1episode」前提を維持する。`03_Scope.md` §5.
 |---|---|---|
 | **PR B** | `@SpineTalk` speech登録+variant-only 17種登録（§7） | `config/script_commands.yaml`・`agents/parser/parser.py`・合成fixtureテスト |
 | **PR C** | `story_manifest` schema拡張＋候補生成builderのCHARACTER/CHARACTER_DATE対応（§8） | `schemas/story_manifest.schema.json`・`scripts/build_story_manifest_candidates.py`（**実装済み**、`feature/story-manifest-character-category-support`） |
-| **PR D** | 動的部分集合判定＋CHAR_HS例外変種episode生成＋storyCategory enum/exporter対応（§5.2・§6） | `agents/parser/`・`schemas/story.schema.json`・`agents/parser/exporter.py` |
+| **PR D** | 動的部分集合判定＋CHAR_HS例外変種episode生成＋storyCategory enum/exporter対応（§5.2・§6） | `agents/parser/`・`schemas/story.schema.json`・`agents/parser/exporter.py`（**実装済み**、`feature/hscene-variant-dynamic-judgment`） |
 | **PR E** | 抽出段階のアセットpath重複排除（§6.3） | `agents/extractor/`（または該当する抽出段階のモジュール） |
 
 依存関係: PR Dの動的判定はPR Bの`@SpineTalk`登録に依存する（§7.1）。PR EはPR Dの例外変種episode生成結果に依存する。PR Cは他PRと独立して着手可能。

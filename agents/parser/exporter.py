@@ -78,7 +78,8 @@ class Exporter:
             EVT      → output_dir/event/
             RAID     → output_dir/raid/
             OTHER    → output_dir/other/
-            CHAR_*   → output_dir/character/
+            CHAR_*   → output_dir/character/ (CHAR_HS含む、
+                       Character_Story_ID_Manifest_Design.md §5.2)
         """
         category = story_json.get("storyCategory", "OTHER")
         subdir = _category_to_subdir(category)
@@ -100,6 +101,7 @@ def _category_to_subdir(category: str) -> str:
         "CHAR_MAIN": "character",
         "CHAR_EXTRA": "character",
         "CHAR_DATE": "character",
+        "CHAR_HS": "character",
     }
     return mapping.get(category, "other")
 

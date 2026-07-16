@@ -34,6 +34,18 @@ from .exporter import (
     Exporter,
     export_json,
 )
+from .hscene_variant_judgment import (
+    BodyJudgmentResult,
+    SubsetJudgment,
+    VariantCandidate,
+    VariantJudgmentResult,
+    derive_variant_episode_id,
+    extract_identifier_set,
+    find_hscene_body_files,
+    find_variant_candidates,
+    judge_body_variants,
+    judge_subset,
+)
 from .normalizer import (
     PARSER_VERSION,
     IdGenerator,
@@ -100,4 +112,15 @@ __all__ = [
     # exporter
     "Exporter",
     "export_json",
+    # hscene_variant_judgment
+    "BodyJudgmentResult",
+    "SubsetJudgment",
+    "VariantCandidate",
+    "VariantJudgmentResult",
+    "derive_variant_episode_id",
+    "extract_identifier_set",
+    "find_hscene_body_files",
+    "find_variant_candidates",
+    "judge_body_variants",
+    "judge_subset",
 ]
