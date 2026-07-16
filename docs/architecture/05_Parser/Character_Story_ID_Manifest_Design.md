@@ -237,6 +237,8 @@ Phase 1の「1ファイル=1episode」前提を維持する。`03_Scope.md` §5.
 
 # 8. manifest統合設計
 
+**実装状況（`feature/story-manifest-character-category-support`で実施、PR C）**: 本節が設計した`schemas/story_manifest.schema.json`拡張（`characterId`/`auxiliaryFiles`）と、`scripts/build_story_manifest_candidates.py`のCHARACTER/CHARACTER_DATE対応を実装した。実装詳細は`Story_Manifest_Design.md` §13.3・§16.1を参照。
+
 ## 8.1 `schemas/story_manifest.schema.json`拡張案
 
 実装はPR C（§9）で行う。本PRでは以下の設計のみを記録する。
@@ -283,7 +285,7 @@ Phase 1の「1ファイル=1episode」前提を維持する。`03_Scope.md` §5.
 | PR | 内容 | 対象 |
 |---|---|---|
 | **PR B** | `@SpineTalk` speech登録+variant-only 17種登録（§7） | `config/script_commands.yaml`・`agents/parser/parser.py`・合成fixtureテスト |
-| **PR C** | `story_manifest` schema拡張＋候補生成builderのCHARACTER/CHARACTER_DATE対応（§8） | `schemas/story_manifest.schema.json`・`scripts/build_story_manifest_candidates.py` |
+| **PR C** | `story_manifest` schema拡張＋候補生成builderのCHARACTER/CHARACTER_DATE対応（§8） | `schemas/story_manifest.schema.json`・`scripts/build_story_manifest_candidates.py`（**実装済み**、`feature/story-manifest-character-category-support`） |
 | **PR D** | 動的部分集合判定＋CHAR_HS例外変種episode生成＋storyCategory enum/exporter対応（§5.2・§6） | `agents/parser/`・`schemas/story.schema.json`・`agents/parser/exporter.py` |
 | **PR E** | 抽出段階のアセットpath重複排除（§6.3） | `agents/extractor/`（または該当する抽出段階のモジュール） |
 

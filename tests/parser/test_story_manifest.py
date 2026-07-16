@@ -179,6 +179,60 @@ def test_existing_manifest_without_public_ids_still_loads(tmp_path):
 
 
 # ----------------------------------------------------------------
+# characterId / auxiliaryFiles
+# (feature/story-manifest-character-category-support、
+# Character_Story_ID_Manifest_Design.md §8.1)
+# ----------------------------------------------------------------
+
+
+def test_load_story_manifest_reads_character_id_and_auxiliary_files(tmp_path):
+    data = _synthetic_manifest_dict()
+    data["stories"][0]["characterId"] = "CHAR_SYNTH_TEST"
+    data["stories"][0]["auxiliaryFiles"] = [
+        {
+            "rawPath": f"{RAW_DIR}/CAB-x-H_scene1_n.dec",
+            "sourceFileName": "CAB-x-H_scene1_n.dec",
+            "fileRole": "variant",
+            "notes": None,
+        },
+        {
+            "rawPath": f"{RAW_DIR}/CAB-x-camera1.dec",
+            "sourceFileName": "CAB-x-camera1.dec",
+            "fileRole": "direction",
+            "notes": "synthetic note",
+        },
+    ]
+
+    manifest_path = tmp_path / "story_manifest.yaml"
+    _write_manifest(manifest_path, data)
+
+    manifest = load_story_manifest(manifest_path)
+
+    story = manifest.stories[0]
+    assert story.character_id == "CHAR_SYNTH_TEST"
+    assert len(story.auxiliary_files) == 2
+    assert story.auxiliary_files[0].file_role == "variant"
+    assert story.auxiliary_files[0].source_file_name == "CAB-x-H_scene1_n.dec"
+    assert story.auxiliary_files[1].file_role == "direction"
+    assert story.auxiliary_files[1].notes == "synthetic note"
+
+
+def test_existing_manifest_without_character_id_or_auxiliary_files_still_loads(
+    tmp_path,
+):
+    """既存manifest (characterId/auxiliaryFilesを含まない) がそのまま
+    読み込めることを確認する (後方互換)。"""
+    manifest_path = tmp_path / "story_manifest.yaml"
+    _write_manifest(manifest_path, _synthetic_manifest_dict())
+
+    manifest = load_story_manifest(manifest_path)
+
+    story = manifest.stories[0]
+    assert story.character_id is None
+    assert story.auxiliary_files == []
+
+
+# ----------------------------------------------------------------
 # find_episode_by_raw_path
 # ----------------------------------------------------------------
 

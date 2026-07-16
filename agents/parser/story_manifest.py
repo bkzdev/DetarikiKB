@@ -67,6 +67,18 @@ class StoryManifestEpisode:
 
 
 @dataclass
+class StoryManifestAuxiliaryFile:
+    """story-levelの補助ファイル記録（H_scene変種・camera/finish等の演出コマンド
+    専用ファイル等、独立episodeとしてはパースしないファイルの記録）。
+    `Character_Story_ID_Manifest_Design.md` §8.1準拠。"""
+
+    raw_path: str
+    source_file_name: str
+    file_role: str
+    notes: str | None = None
+
+
+@dataclass
 class StoryManifestStory:
     """1ストーリー分のmanifestエントリ。"""
 
@@ -80,6 +92,8 @@ class StoryManifestStory:
     episodes: list[StoryManifestEpisode] = field(default_factory=list)
     notes: str | None = None
     public_story_id: str | None = None
+    character_id: str | None = None
+    auxiliary_files: list[StoryManifestAuxiliaryFile] = field(default_factory=list)
 
 
 @dataclass
@@ -120,8 +134,20 @@ def _parse_episode(raw: dict[str, Any]) -> StoryManifestEpisode:
     )
 
 
+def _parse_auxiliary_file(raw: dict[str, Any]) -> StoryManifestAuxiliaryFile:
+    return StoryManifestAuxiliaryFile(
+        raw_path=raw.get("rawPath", ""),
+        source_file_name=raw.get("sourceFileName", ""),
+        file_role=raw.get("fileRole", ""),
+        notes=raw.get("notes"),
+    )
+
+
 def _parse_story(raw: dict[str, Any]) -> StoryManifestStory:
     episodes = [_parse_episode(e) for e in raw.get("episodes", []) or []]
+    auxiliary_files = [
+        _parse_auxiliary_file(a) for a in raw.get("auxiliaryFiles", []) or []
+    ]
     return StoryManifestStory(
         story_id=raw.get("storyId", ""),
         category=raw.get("category", ""),
@@ -133,6 +159,8 @@ def _parse_story(raw: dict[str, Any]) -> StoryManifestStory:
         episodes=episodes,
         notes=raw.get("notes"),
         public_story_id=raw.get("publicStoryId"),
+        character_id=raw.get("characterId"),
+        auxiliary_files=auxiliary_files,
     )
 
 

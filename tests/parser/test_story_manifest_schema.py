@@ -363,6 +363,151 @@ def test_template_still_validates_without_public_id_values():
             assert episode["publicEpisodeId"] is None
 
 
+# ----------------------------------------------------------------
+# characterId / auxiliaryFiles
+# (feature/story-manifest-character-category-support、
+# Character_Story_ID_Manifest_Design.md §8.1)
+# ----------------------------------------------------------------
+
+
+def test_character_id_field_exists_in_schema():
+    schema = _load_schema()
+    story_props = schema["definitions"]["StoryManifestEntry"]["properties"]
+    assert "characterId" in story_props
+
+
+def test_auxiliary_files_field_exists_in_schema():
+    schema = _load_schema()
+    story_props = schema["definitions"]["StoryManifestEntry"]["properties"]
+    assert "auxiliaryFiles" in story_props
+
+
+def test_character_id_is_not_in_required_list():
+    schema = _load_schema()
+    required = schema["definitions"]["StoryManifestEntry"]["required"]
+    assert "characterId" not in required
+
+
+def test_auxiliary_files_is_not_in_required_list():
+    schema = _load_schema()
+    required = schema["definitions"]["StoryManifestEntry"]["required"]
+    assert "auxiliaryFiles" not in required
+
+
+def test_manifest_without_character_id_or_auxiliary_files_remains_valid():
+    """既存manifest (characterId/auxiliaryFilesを含まない) がそのまま
+    schema検証を通ることを確認する (後方互換、additiveな追加)。"""
+    assert _validate(_document(_synthetic_story())) == []
+
+
+def test_character_id_null_is_valid():
+    story = _synthetic_story(characterId=None)
+    assert _validate(_document(story)) == []
+
+
+def test_character_id_with_valid_pattern_is_valid():
+    story = _synthetic_story(characterId="CHAR_SYNTH_TEST")
+    assert _validate(_document(story)) == []
+
+
+def test_rejects_character_id_without_char_prefix():
+    story = _synthetic_story(characterId="SYNTH_TEST")
+    assert _validate(_document(story)) != []
+
+
+def test_rejects_character_id_lowercase():
+    story = _synthetic_story(characterId="char_synth_test")
+    assert _validate(_document(story)) != []
+
+
+def test_empty_auxiliary_files_array_is_valid():
+    story = _synthetic_story(auxiliaryFiles=[])
+    assert _validate(_document(story)) == []
+
+
+def test_auxiliary_file_with_variant_role_is_valid():
+    story = _synthetic_story(
+        auxiliaryFiles=[
+            {
+                "rawPath": "CHARACTER/x_export/CAB-x-H_scene1_n.dec",
+                "sourceFileName": "CAB-x-H_scene1_n.dec",
+                "fileRole": "variant",
+                "notes": None,
+            }
+        ]
+    )
+    assert _validate(_document(story)) == []
+
+
+def test_auxiliary_file_accepts_all_file_role_choices():
+    for file_role in ("variant", "direction", "other"):
+        story = _synthetic_story(
+            auxiliaryFiles=[
+                {
+                    "rawPath": "CHARACTER/x_export/CAB-x-aux.dec",
+                    "sourceFileName": "CAB-x-aux.dec",
+                    "fileRole": file_role,
+                    "notes": None,
+                }
+            ]
+        )
+        assert _validate(_document(story)) == [], f"failed for {file_role}"
+
+
+def test_rejects_auxiliary_file_with_invalid_file_role():
+    story = _synthetic_story(
+        auxiliaryFiles=[
+            {
+                "rawPath": "CHARACTER/x_export/CAB-x-aux.dec",
+                "sourceFileName": "CAB-x-aux.dec",
+                "fileRole": "not_a_real_role",
+                "notes": None,
+            }
+        ]
+    )
+    assert _validate(_document(story)) != []
+
+
+def test_rejects_auxiliary_file_missing_file_role():
+    story = _synthetic_story(
+        auxiliaryFiles=[
+            {
+                "rawPath": "CHARACTER/x_export/CAB-x-aux.dec",
+                "sourceFileName": "CAB-x-aux.dec",
+                "notes": None,
+            }
+        ]
+    )
+    assert _validate(_document(story)) != []
+
+
+def test_rejects_auxiliary_file_with_additional_properties():
+    story = _synthetic_story(
+        auxiliaryFiles=[
+            {
+                "rawPath": "CHARACTER/x_export/CAB-x-aux.dec",
+                "sourceFileName": "CAB-x-aux.dec",
+                "fileRole": "other",
+                "notes": None,
+                "unexpectedField": "not allowed",
+            }
+        ]
+    )
+    assert _validate(_document(story)) != []
+
+
+def test_template_character_story_validates_and_uses_synthetic_character_id():
+    with open(TEMPLATE_PATH, encoding="utf-8") as f:
+        document = yaml.safe_load(f)
+    character_stories = [s for s in document["stories"] if s["category"] == "character"]
+    assert len(character_stories) == 1
+    story = character_stories[0]
+    assert story["characterId"] == "CHAR_AKAGI_HINA"
+    assert len(story["auxiliaryFiles"]) == 3
+    roles = {aux["fileRole"] for aux in story["auxiliaryFiles"]}
+    assert roles == {"variant", "direction", "other"}
+
+
 def test_all_manifest_source_type_choices_are_valid():
     """Story_Manifest_Design.md §11.5で定義した全sourceTypeがschema上
     有効であることを確認する。"""
