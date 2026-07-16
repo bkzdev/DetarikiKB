@@ -174,12 +174,16 @@ Wiki生成（`agents/wiki_generator/`）・Public Evidence Index promotion（`kn
 
 **結論**: `_VR`は全件で§4.3.1の前提（本体と同一内容）が確認された。`_n`もおおむね成立する（約9割）が、1割は本体側にない内容を含む。一方`_spine`・`#N`は約4〜5割が部分集合関係不成立であり、**§4.3の決定の前提（変種は本体と同一内容の変種にすぎず、パース対象外としてよい）は`_spine`・`#N`については全量では裏付けられなかった**。詳細な集計・キャラクター別/ファイル別の一覧（匿名化不要な件数・パターンのみで構成、実キャラ名・実セリフ本文は含まない）は`workspace/local_inputs/h_scene_variant_subset_verification.md`・同`.tsv`（非commit）、例外の実内容（セリフ本文を含む）は`workspace/local_inputs/h_scene_variant_subset_exceptions_detail.md`（非commit）を参照。後続の判断事項は§5.5。
 
-## 5.4 `@SpineTalk`の分類・variant-onlyコマンドの登録可否（2026-07-15追加、未決）
+## 5.4 `@SpineTalk`の分類・variant-onlyコマンドの登録可否（決定済み、2026-07-16ユーザー決定）
 
-§4.4.1の全量調査で判明した以下2点は、いずれもユーザー/Fable判断待ちであり、**本文書では決定しない**。
+§4.4.1の全量調査で判明した以下2点は、当初ユーザー/Fable判断待ちとして本文書では決定していなかったが、2026-07-16に`character-story-id-manifest-design`の設計と合わせてユーザーが決定した。
 
-1. **`@SpineTalk`の分類**: `@ChTalk`と同型のセリフ形式コマンド（`@SpineTalk $numN <voice/textアセット参照path>`）でありながら、`_spine`変種（§4.3の決定によりパース対象外）にのみ出現する。発話コマンドとして`config/script_commands.yaml`の`speech`カテゴリへ登録するか、`_spine`変種がそもそもパース対象外である以上登録不要とするかは未決定。
-2. **パース対象外のvariant-only集合にのみ現れるコマンド（41種中17種、`@ToCloud`・`@VR/VRSelect`等を含む）を登録するかどうか**: パーサーが実際にこれらのコマンドに遭遇するのはvariant-only側ファイルを将来パース対象に含めた場合のみであり、現行の§4.3決定（H_sceneN本体+`H_scene_s`のみパース対象）の下では遭遇しない。登録を先送りするか、`unknown`ブロックとして扱われ続けることを許容するかは未決定。
+1. **`@SpineTalk`の分類**: `@ChTalk`と同型のセリフ形式コマンド（`@SpineTalk $numN <voice/textアセット参照path>`）でありながら、`_spine`変種にのみ出現する。**発話コマンドとして`config/script_commands.yaml`の`speech`カテゴリへ登録する。**
+2. **パース対象外のvariant-only集合にのみ現れるコマンド（41種中17種、`@ToCloud`・`@VR/VRSelect`等を含む）**: **`@SpineTalk`と同一実装PRで一括登録する。**
+
+**決定根拠**: §5.5決定(b)（例外が発生したH_sceneN単位のみ変種もパース対象に追加する）が要求する動的部分集合判定は、`_spine`変種が参照するvoice/textアセットpath集合を抽出するために`@SpineTalk`の解釈を必要とする。したがって`@SpineTalk`の登録は動的判定の実装上ほぼ必須であり、variant-only 17種も例外変種パース時に遭遇しうるため、既存batch（§4.4.2）と同じ機械分類方式で同一PRで登録する方が合理的と判断された。
+
+**実装は`docs/architecture/05_Parser/Character_Story_ID_Manifest_Design.md` §9のPR Bで行う（本文書・`character-story-id-manifest-design`の設計PRでは実施していない）。**
 
 インベントリ詳細は`workspace/local_inputs/hscene_unknown_command_inventory.md`（非commit）を参照。
 
@@ -206,9 +210,19 @@ Wiki生成（`agents/wiki_generator/`）・Public Evidence Index promotion（`kn
 ### 5.5.2 関連タスク
 
 - `TASKS.md` Backlogの`character-story-id-manifest-design`に、上記実装制約1〜5（例外変種の動的取り込み・アセットpath重複排除を要件に含む旨）を追記済み。
-- `@SpineTalk`・variant-only 17種の登録可否（§5.4）は本決定の対象外であり、引き続き別途未決のままとする。
+- `@SpineTalk`・variant-only 17種の登録可否（§5.4）は§5.5の(b)決定（2026-07-15）の時点では対象外・未決だったが、2026-07-16に§5.4で決定済み（`Character_Story_ID_Manifest_Design.md` §7参照）。
+- **設計doc完成（2026-07-16）**: 上記実装制約1〜5を踏まえたstoryId体系・episodeId suffix規則・manifest統合方針の設計は`docs/architecture/05_Parser/Character_Story_ID_Manifest_Design.md`で完成した（§5.4の`@SpineTalk`分類決定もあわせて記録済み）。実装（PR B〜E）は同文書§9の分割計画に従い後続PRで行う。
 
 検証成果物（キャラクター別・パターン別の件数一覧、例外の実セリフ内容を含む詳細）はいずれもworkspace限定・非commit（`workspace/local_inputs/h_scene_variant_subset_verification.md`・`.tsv`・`h_scene_variant_subset_exceptions_detail.md`）。
+
+## 5.6 `character`カテゴリファイル種別全量調査での新発見（2026-07-16、未決）
+
+`character-story-id-manifest-design`の設計にあたり実施した`data/raw/character/`ファイル種別全量調査（2,419件、`.gitkeep`除く）で、本文書がこれまで扱ってきたH_sceneN本体・変種・純コマンド演出ファイルの分類に含まれない種別が新たに見つかった。いずれも本文書では決定しない。
+
+- **`episodeN_n`（13件）・`episode_osawariN_start_n`（3件）**: 本編episode系（`episodeN`/純コマンド`episode_osawariN_start`）にも`_n`接尾辞の変種が存在することが判明した。§5.3の全量検証対象はH_scene変種（`H_sceneN`基準の`_n`/`_VR`/`_spine`/`#N`）のみであり、本編episode側の`_n`変種は未検証である。本編episodeは公開対象（軸(B)=Yes、§6）であるため、もしこちら側にも本体との非部分集合関係が存在した場合、内部取り込みだけでなく**公開スコープ判断**（Wiki出力・Evidence Index promotionに変種内容を含めるか）も絡む。H_sceneと同じ動的部分集合判定を適用するかどうかは未決。
+- **特殊ファイル群**: `H_sceneN_img`（7件）・`H_scene_test`（1件）・`H_scene_s_tutorial`（1件）・`PinkMan`/`idolVR`/`position`/`talk`/`start`等（既知件数、§4.1参照）。§5.1（純コマンド演出ファイルの扱い）と同じ未決バケットとして扱う。`story_manifest.yaml`側では`fileRole: other`または`direction`で記録するのみとし（`Character_Story_ID_Manifest_Design.md` §8.1）、内部KB対象化・公開スコープの判断はいずれも保留する。
+
+詳細な件数・パターン一覧は`docs/architecture/05_Parser/Character_Story_ID_Manifest_Design.md` §3・§10を参照。
 
 ---
 
