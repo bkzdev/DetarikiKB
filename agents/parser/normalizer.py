@@ -213,11 +213,25 @@ class Normalizer:
         return info
 
     def _build_compatibility_report(self, parse_result: ParseResult) -> dict[str, Any]:
-        # unresolved character IDs
+        # unresolved character IDs (話者スロットとして実消費されたもののみ。
+        # 消費文脈ベースの判定はagents/parser/resolver.py
+        # SpeakerResolver.unresolved_character_idsで行う。
+        # feature/resolver-consumption-context-report、
+        # scripts/check_script_compatibility.pyの#141と対称)
         unresolved_ids: list[dict] = []
         for ep in parse_result.episodes:
             for cid in ep.unresolved_character_ids:
                 unresolved_ids.append({"sourceCharacterId": cid})
+
+        # 話者スロットとして一度も消費されなかった未登録の数値代入
+        # (costume/mo/fa等の非話者引数専用消費・完全未消費のいずれも含む。
+        # 「不明情報を破棄しない」不変則により削除ではなく分類として保持する。
+        # parserCompatibility判定には一切影響しない、checker側
+        # nonSpeakerNumericAssignmentsと対応する情報フィールド)
+        non_speaker_numeric_assignments: list[dict] = []
+        for ep in parse_result.episodes:
+            for cid in ep.non_speaker_numeric_assignment_ids:
+                non_speaker_numeric_assignments.append({"sourceCharacterId": cid})
 
         # unknown commands
         unknown_cmds: list[dict] = []
@@ -256,6 +270,7 @@ class Normalizer:
             "unknownCommands": unknown_cmds,
             "newSpeechCommands": new_speech_cmds,
             "unknownCharacterIds": unresolved_ids,
+            "nonSpeakerNumericAssignments": non_speaker_numeric_assignments,
             "controlCharsRemoved": parse_result.control_chars_removed,
         }
 

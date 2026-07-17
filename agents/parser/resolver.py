@@ -275,8 +275,23 @@ class SpeakerResolver:
         # 割り当て記録ログ
         self.assignment_records: list[SpeakerAssignmentRecord] = []
 
-        # 未登録キャラクターID の記録
-        self.unresolved_character_ids: set[str] = set()
+        # 未登録キャラクターID の消費文脈シグナル (feature/resolver-consumption-
+        # context-report、scripts/check_script_compatibility.pyの#141
+        # (_simulate_id_consumption/_classify_and_record_character_ids)と
+        # 対称化)。sourceCharacterId (str) -> {"speaker": bool, "hasOccurrence": bool}。
+        # - hasOccurrence: $numX/$valueX代入または@ScenarioCos直接指定のように、
+        #   代入行から直接IDを取得できる形で記録されたか
+        #   (checker側のoccurrencesに相当)。
+        # - speaker: 話者スロットとして実際に消費 (@ChTalk系コマンドからの
+        #   resolve_slot呼び出しで解決、または@ScenarioCos直接指定/
+        #   @ScenarioCosLoad/@ScenarioCos変数経由のように代入コマンド自体が
+        #   話者スロット専用の意味を持つ場合は即時) されたか。
+        # 最終的な分類 (unresolved_character_ids / non_speaker_numeric_
+        # assignment_ids) は hasOccurrence かつ speaker の有無で決まる
+        # (hasOccurrence=Falseのものはchecker側と同様どちらのバケットにも
+        # 含めない)。スロット自動バインド挙動・resolve_slot/assign_*が返す
+        # Speakerの内容自体はこのシグナル記録によって一切変化しない。
+        self._unresolved_char_id_signals: dict[str, dict[str, bool]] = {}
 
     # ----------------------------------------------------------------
     # 割り当てメソッド
@@ -292,8 +307,15 @@ class SpeakerResolver:
         """
         @ScenarioCos slot character_id に対応。
         スロットへキャラクターを直接割り当てる。
+
+        checker側`_apply_scenario_cos`のdirect-id分岐と同じ意味論:
+        @ScenarioCosによる直接キャラクターID指定はそれ自体が話者スロット
+        束縛を意味するため、hasOccurrence/speakerともに即時Trueとして
+        記録する。
         """
-        speaker = self._resolve_character_id(source_character_id, slot)
+        speaker = self._resolve_character_id(
+            source_character_id, slot, has_occurrence=True, immediate_speaker=True
+        )
         self._slot_map[str(slot)] = speaker
 
         rec = SpeakerAssignmentRecord(
@@ -320,6 +342,12 @@ class SpeakerResolver:
         """
         $numX = character_id / $valueX = character_id に対応。
         変数マップに記録し、スロットも自動割り当てする。
+
+        checker側`_apply_num_var_assignment`/`_apply_value_var_assignment`と
+        同じ意味論: $numX/$valueX代入は「代入行からIDを直接取得できる」
+        (hasOccurrence=True) が、話者スロットとして消費されるかどうかは
+        未確定 (immediate_speaker=False、後続の実際の@ChTalk系コマンドに
+        よるresolve_slot呼び出しでのみspeaker=Trueとなる)。
         """
         self._variable_map[variable_name] = source_character_id
 
@@ -334,7 +362,9 @@ class SpeakerResolver:
         else:
             slot = variable_name  # フォールバック
 
-        speaker = self._resolve_character_id(source_character_id, slot)
+        speaker = self._resolve_character_id(
+            source_character_id, slot, has_occurrence=True, immediate_speaker=False
+        )
         self._slot_map[slot] = speaker
 
         rec = SpeakerAssignmentRecord(
@@ -359,6 +389,16 @@ class SpeakerResolver:
         """
         @ScenarioCosLoad slot variable に対応。
         変数マップからキャラクターIDを引き、スロットに割り当てる。
+
+        checker側`_apply_scenario_cos_load`/`_apply_scenario_cos`の変数経由
+        分岐と同じ意味論: @ScenarioCosLoad (および@ScenarioCosの変数経由
+        呼び出し、agents/parser/parser.py参照) は変数から間接的にIDを
+        解決するため「代入行から直接IDを取得できる」形ではない
+        (hasOccurrence=False、checker側コメント「char_id直接取得不可の
+        ためoccurrencesには追加しない」と同じ)。ただし、このコマンド自体は
+        話者スロット束縛を意味するためspeakerは即時True
+        (解決できた場合のみ。変数未定義でsource_character_idがNoneの
+        場合はシグナル自体を記録しない)。
         """
         source_character_id = self._variable_map.get(variable_name)
         if source_character_id is None:
@@ -366,7 +406,12 @@ class SpeakerResolver:
             speaker = Speaker.unknown(slot=str(slot))
             self._slot_map[str(slot)] = speaker
         else:
-            speaker = self._resolve_character_id(source_character_id, str(slot))
+            speaker = self._resolve_character_id(
+                source_character_id,
+                str(slot),
+                has_occurrence=False,
+                immediate_speaker=True,
+            )
             self._slot_map[str(slot)] = speaker
 
         rec = SpeakerAssignmentRecord(
@@ -399,8 +444,21 @@ class SpeakerResolver:
         """
         スロット番号から話者を解決する。
         スロットが未割り当ての場合は unknown speaker を返す。
+
+        agents/parser/parser.pyでは@ChTalk系の会話コマンド文脈からのみ
+        呼ばれる (話者スロットとしての消費)。返すSpeakerの内容自体は
+        変更しないが、未登録source_character_idについては消費文脈シグナル
+        のspeakerフラグをTrueへ更新する (checker側
+        `_apply_speech_command_consumption`と同じ意味論)。
         """
-        return self._slot_map.get(str(slot), Speaker.unknown(slot=str(slot)))
+        speaker = self._slot_map.get(str(slot), Speaker.unknown(slot=str(slot)))
+        if not speaker.is_resolved and speaker.source_character_id is not None:
+            sig = self._unresolved_char_id_signals.setdefault(
+                speaker.source_character_id,
+                {"speaker": False, "hasOccurrence": False},
+            )
+            sig["speaker"] = True
+        return speaker
 
     def resolve_from_command_name(
         self,
@@ -431,11 +489,26 @@ class SpeakerResolver:
     # ----------------------------------------------------------------
 
     def _resolve_character_id(
-        self, source_character_id: str, slot: str | None = None
+        self,
+        source_character_id: str,
+        slot: str | None = None,
+        *,
+        has_occurrence: bool = True,
+        immediate_speaker: bool = False,
     ) -> Speaker:
         """
         source_character_id から Speaker を生成する。
         辞書に存在すれば is_resolved=True、なければ False。
+
+        未登録の場合は即座に`unresolved_character_ids`へ記録するのではなく、
+        消費文脈シグナル (`_unresolved_char_id_signals`) のみを更新する
+        (feature/resolver-consumption-context-report)。最終的な分類
+        (話者として実消費されたか) は`unresolved_character_ids`/
+        `non_speaker_numeric_assignment_ids`プロパティで判定時に導出する。
+        has_occurrence/immediate_speakerの意味は呼び出し元
+        (assign_character/assign_variable/assign_from_variable) の
+        docstringおよびクラス冒頭の`_unresolved_char_id_signals`コメント
+        を参照。
         """
         name = self.char_dict.get_name(source_character_id)
         speaker_id = self.char_dict.get_speaker_id(source_character_id)
@@ -449,9 +522,53 @@ class SpeakerResolver:
                 is_resolved=True,
             )
         else:
-            # 未登録キャラクターID として記録
-            self.unresolved_character_ids.add(source_character_id)
+            # 未登録キャラクターID: 消費文脈シグナルを更新する
+            sig = self._unresolved_char_id_signals.setdefault(
+                source_character_id, {"speaker": False, "hasOccurrence": False}
+            )
+            if has_occurrence:
+                sig["hasOccurrence"] = True
+            if immediate_speaker:
+                sig["speaker"] = True
             return Speaker.unknown(slot=slot, source_character_id=source_character_id)
+
+    # ----------------------------------------------------------------
+    # 未登録キャラクターID の分類 (消費文脈ベース)
+    # ----------------------------------------------------------------
+
+    @property
+    def unresolved_character_ids(self) -> set[str]:
+        """話者スロットとして実際に消費された未登録キャラクターID。
+
+        scripts/check_script_compatibility.pyの#141
+        (`_classify_and_record_character_ids`) が`unknown_character_ids`
+        (話者消費あり) へ分類する条件 (occurrencesあり かつ speaker=True)
+        と同じ意味論。agents/parser/normalizer.pyが
+        compatibilityReport.unknownCharacterIdsを組み立てる際に参照する
+        (feature/resolver-consumption-context-report)。
+        """
+        return {
+            cid
+            for cid, sig in self._unresolved_char_id_signals.items()
+            if sig["hasOccurrence"] and sig["speaker"]
+        }
+
+    @property
+    def non_speaker_numeric_assignment_ids(self) -> set[str]:
+        """話者スロットとして一度も消費されなかった未登録の数値代入。
+
+        scripts/check_script_compatibility.pyの#141が
+        `non_speaker_numeric_assignments` (話者消費なし) へ分類する条件
+        (occurrencesあり かつ speaker=False) と同じ意味論。costume/mo/fa等の
+        非話者引数専用消費・完全未消費のいずれも含む。「不明情報を破棄
+        しない」不変則 (AI_CONTEXT.md §3.2) により削除はせず、判定への
+        影響を持たない情報保持用フィールドとして残す。
+        """
+        return {
+            cid
+            for cid, sig in self._unresolved_char_id_signals.items()
+            if sig["hasOccurrence"] and not sig["speaker"]
+        }
 
     # ----------------------------------------------------------------
     # 状態リセット (エピソード切り替え時など)

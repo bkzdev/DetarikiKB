@@ -271,7 +271,15 @@ Parser自身の情報を記録する。
 
 互換性チェック結果を任意で格納する。
 
-詳細は `Script_Compatibility_Check.md` で定義する。
+詳細は `Script_Compatibility_Check.md` で定義する。`unknownCharacterIds`/
+`nonSpeakerNumericAssignments`は消費文脈ベースで分類する
+（`feature/resolver-consumption-context-report`、Script_Compatibility_Check.md
+§11.0/§11.2/§11.3参照）: `unknownCharacterIds`は話者スロットとして実際に
+消費された未登録キャラクターID（`parserCompatibility`判定に反映）、
+`nonSpeakerNumericAssignments`（任意フィールド、後方互換のため必須にしない）
+は話者スロットとして一度も消費されなかった未登録の数値代入
+（costume/mo/fa等の非話者引数専用消費・完全未消費を含む、判定には影響しない
+情報保持用）。
 
 ```json
 {
@@ -280,6 +288,7 @@ Parser自身の情報を記録する。
     "unknownCommands": [],
     "newSpeechCommands": [],
     "unknownCharacterIds": [],
+    "nonSpeakerNumericAssignments": [],
     "controlCharsRemoved": 0
   }
 }
@@ -1019,6 +1028,7 @@ Parserが分類できなかった行を保持する。
     "unknownCommands": [],
     "newSpeechCommands": [],
     "unknownCharacterIds": [],
+    "nonSpeakerNumericAssignments": [],
     "controlCharsRemoved": 0
   },
   "episodes": [
