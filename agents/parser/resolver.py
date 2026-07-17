@@ -461,6 +461,66 @@ class SpeakerResolver:
         self.assignment_records.append(rec)
         return speaker
 
+    def assign_costume_character(
+        self,
+        slot: str,
+        second_arg: str,
+        line_start: int | None = None,
+        raw: str | None = None,
+    ) -> Speaker | None:
+        """
+        `ch N` (表示スロットN指定の裸コマンド) 直後の
+        `costume <衣装ID> <キャラID> [ON]` に対応する、スロットNの
+        再束縛 (feature/costume-slot-binding-fix)。
+
+        実データパターン: `$numX = <キャラID>`・`$numY = <衣装ID>`等の
+        代入後、`ch N`→直後の`costume $numY $numX [ON]`（第1引数=衣装ID・
+        **第2引数=キャラID**）でスロットNのキャラクターが決まる。呼び出し元
+        (agents/parser/parser.py) は`ch N`出現時のNを覚えておき、その直後
+        (間に別の`ch`が現れるまでの範囲) に出現する`costume`の第2引数
+        (second_arg) をこのメソッドへ渡す。
+
+        `@ScenarioCos`と同等の意味論のスロット再束縛として扱う:
+        second_argが`$`始まりの変数なら`assign_from_variable`と同じ
+        (has_occurrence=False、変数解決できた場合のみimmediate_speaker=True)、
+        数字のみのリテラルなら`assign_character`と同じ
+        (has_occurrence=True、immediate_speaker=True)。
+
+        second_argが未定義変数、または数値でも$変数でもない場合は
+        一切束縛を行わず (既存の`$numX`自動バインド等によるスロット状態を
+        変更せず) Noneを返す。「不明情報を破棄しない」不変則により、
+        解決できない`costume`引数によって既存の正しいスロット束縛を
+        破壊してはならないため。
+        """
+        if second_arg.startswith("$"):
+            resolved = self._variable_map.get(second_arg)
+            if resolved is None:
+                return None
+            speaker = self._resolve_character_id(
+                resolved, slot, has_occurrence=False, immediate_speaker=True
+            )
+        elif _is_literal_character_id(second_arg):
+            resolved = second_arg
+            speaker = self._resolve_character_id(
+                resolved, slot, has_occurrence=True, immediate_speaker=True
+            )
+        else:
+            return None
+
+        self._slot_map[str(slot)] = speaker
+
+        rec = SpeakerAssignmentRecord(
+            slot=str(slot),
+            source_character_id=resolved,
+            speaker_id=speaker.speaker_id,
+            speaker_name=speaker.speaker_name,
+            line_start=line_start,
+            line_end=line_start,
+            raw=raw,
+        )
+        self.assignment_records.append(rec)
+        return speaker
+
     def set_forced_name(self, name: str) -> None:
         """name コマンドによる強制話者名をセットする"""
         self._forced_name = name if name.strip() else None

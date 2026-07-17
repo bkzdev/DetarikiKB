@@ -103,6 +103,12 @@ VALUE_VAR_PATTERN = re.compile(r"^\$value(\d+)\s*=\s*(\d+)")
 SCENARIO_COS_PATTERN = re.compile(r"^@ScenarioCos\s+(\d+)\s+(\d+|\$[\w\d]+)")
 # @ScenarioCosLoad slot var
 SCENARIO_COS_LOAD_PATTERN = re.compile(r"^@ScenarioCosLoad\s+(\d+)\s+(\$[\w\d]+)")
+# ch N (表示スロットN指定の裸コマンド、feature/costume-slot-binding-fix)。
+# 第1引数を捕捉し、数字かどうかの判定は呼び出し側 (_apply_ch_command) で行う
+# (agents/parser/parser.pyのtoken.args[0].isdigit()判定と対称)。
+CH_PATTERN = re.compile(r"^ch\s+(\S+)")
+# costume <衣装ID> <キャラID> [ON] (第1引数=衣装ID、第2引数=キャラID)
+COSTUME_PATTERN = re.compile(r"^costume\s+(\S+)\s+(\S+)")
 
 # 日本語文字を含む行の検出 (会話本文の可能性)
 JAPANESE_TEXT_PATTERN = re.compile(
@@ -371,6 +377,11 @@ class _SlotSimState:
         self.variable_map: dict[str, str] = {}
         self.slot_map: dict[str, str] = {}
         self.id_signals: dict[str, dict[str, Any]] = {}
+        # ch N (表示スロットN指定の裸コマンド) で直近に指定されたスロット番号。
+        # 直後 (間に別の ch が現れるまでの範囲) に出現する costume コマンドの
+        # スロット再束縛先として参照する (feature/costume-slot-binding-fix、
+        # agents/parser/parser.pyのpending_ch_slotと対称)。
+        self.pending_ch_slot: str | None = None
 
     def get_signal(self, id_value: str) -> dict[str, Any]:
         return self.id_signals.setdefault(
@@ -429,6 +440,40 @@ def _apply_scenario_cos_load(match: re.Match[str], state: _SlotSimState) -> None
         state.get_signal(resolved)["speaker"] = True
 
 
+def _apply_ch_command(match: re.Match[str], state: _SlotSimState) -> None:
+    """`ch N`によるpending_ch_slotの更新
+    (agents/parser/parser.pyの`kw == "ch"`分岐と対称)。数字以外の引数
+    (カメラ演出目的の別用法) はウィンドウを無効化する。"""
+    arg = match.group(1)
+    state.pending_ch_slot = arg if arg.isdigit() else None
+
+
+def _apply_costume_command(
+    match: re.Match[str], line_number: int, line: str, state: _SlotSimState
+) -> None:
+    """`costume <衣装ID> <キャラID> [ON]`によるpending_ch_slotの再束縛
+    (agents/parser/parser.pyの`resolver.assign_costume_character`と対称)。
+    第2引数 (キャラID) が`$`始まりの変数ならvariable_mapから解決
+    (occurrences追加なし、assign_from_variableと同じ意味論)、数字のみの
+    リテラルならそのまま (occurrences追加あり、assign_characterと同じ
+    意味論) スロットを再束縛する。直前にchが無い場合・第2引数が未定義変数/
+    非数値の場合は一切束縛しない (既存slot_mapを破壊しない)。"""
+    if state.pending_ch_slot is None:
+        return
+    second_arg = match.group(2)
+    if second_arg.startswith("$"):
+        resolved = state.variable_map.get(second_arg)
+        if resolved is None:
+            return
+        state.slot_map[state.pending_ch_slot] = resolved
+        state.get_signal(resolved)["speaker"] = True
+    elif second_arg.isdigit():
+        state.slot_map[state.pending_ch_slot] = second_arg
+        sig = state.get_signal(second_arg)
+        sig["occurrences"].append((line_number, line))
+        sig["speaker"] = True
+
+
 def _apply_speech_command_consumption(
     parts: list[str],
     state: _SlotSimState,
@@ -453,9 +498,9 @@ def _simulate_id_consumption(
     case_variants_map: dict[str, str],
 ) -> dict[str, dict[str, Any]]:
     """ファイル全体を時系列1パスでシミュレートし、`$numX`/`$valueX`代入・
-    `@ScenarioCos`(直接数値指定)で検出されたcharacter_id候補ごとに、
-    実際に話者スロットとして`@ChTalk`系コマンドに消費されたかどうかを
-    判定する。
+    `@ScenarioCos`(直接数値指定)・`ch N`+`costume`(feature/costume-slot-
+    binding-fix)で検出されたcharacter_id候補ごとに、実際に話者スロットとして
+    `@ChTalk`系コマンドに消費されたかどうかを判定する。
 
     行ごとの分岐は独立したヘルパー (`_apply_num_var_assignment`等) へ
     切り出し、ここでは行分類の制御フローのみを担う (ruffのC901複雑度対策)。
@@ -491,6 +536,16 @@ def _simulate_id_consumption(
         scl_match = SCENARIO_COS_LOAD_PATTERN.match(line)
         if scl_match:
             _apply_scenario_cos_load(scl_match, state)
+            continue
+
+        ch_match = CH_PATTERN.match(line)
+        if ch_match:
+            _apply_ch_command(ch_match, state)
+            continue
+
+        costume_match = COSTUME_PATTERN.match(line)
+        if costume_match:
+            _apply_costume_command(costume_match, line_number, line, state)
             continue
 
         parts = line.split()

@@ -261,6 +261,89 @@ def test_non_literal_expression_does_not_affect_numeric_id_regression(char_dict)
     assert "40286" not in resolver.non_literal_speaker_expressions
 
 
+# ----------------------------------------------------------------
+# ch N + costume スロット再束縛 (feature/costume-slot-binding-fix)
+# ----------------------------------------------------------------
+
+
+def test_assign_costume_character_direct_numeric_rebinds_slot(char_dict):
+    """costumeの第2引数が数字のみのリテラルの場合、@ScenarioCos直接指定
+    (assign_character) と同じ意味論 (has_occurrence=True/immediate_speaker
+    =True) でスロットを再束縛すること (`costume 40364 26`形式)。"""
+    resolver = SpeakerResolver(char_dict)
+    # $num1 = 26 (キャラID) による自動バインドが先行
+    resolver.assign_variable(
+        variable_name="$num1", source_character_id="26", num_index=1
+    )
+
+    speaker = resolver.assign_costume_character(slot="1", second_arg="26")
+
+    assert speaker is not None
+    assert speaker.is_resolved is True
+    assert speaker.speaker_name == "レイン"
+    assert resolver.resolve_slot("1").speaker_name == "レイン"
+    assert "26" not in resolver.unresolved_character_ids
+
+
+def test_assign_costume_character_undefined_variable_keeps_costume_id_not_speaker(
+    char_dict,
+):
+    """実データパターン: $num0=キャラID・$num1=衣装IDの代入後、
+    ch 1 + costume $num1 $num0 で、衣装ID側 ($num1) がresolve_slotの前に
+    キャラIDへ再束縛され、話者として消費されないこと (nonSpeakerNumeric
+    Assignmentsへの分類)。"""
+    resolver = SpeakerResolver(char_dict)
+    resolver.assign_variable(
+        variable_name="$num0", source_character_id="26", num_index=0
+    )
+    # $num1 = 40364 (衣装ID) が、resolverの$numX自動バインドによって
+    # 一旦スロット1へ誤って割り当てられる (修正前の誤帰属バグと同じ状態)
+    resolver.assign_variable(
+        variable_name="$num1", source_character_id="40364", num_index=1
+    )
+    assert resolver.current_assignments()["1"] == "不明人物(ID:40364)"
+
+    # ch 1 + costume $num1 $num0 ON → 第2引数 ($num0 = 26) でスロット1を
+    # 再束縛する
+    speaker = resolver.assign_costume_character(slot="1", second_arg="$num0")
+
+    assert speaker is not None
+    assert speaker.speaker_name == "レイン"
+    assert resolver.resolve_slot("1").speaker_name == "レイン"
+
+    # 衣装ID (40364) はhasOccurrence=Trueのまま話者として一度も消費されない
+    assert "40364" not in resolver.unresolved_character_ids
+    assert "40364" in resolver.non_speaker_numeric_assignment_ids
+
+
+def test_assign_costume_character_undefined_variable_does_not_clobber_slot(
+    char_dict,
+):
+    """第2引数の変数が未定義の場合、束縛を行わず既存スロット状態を
+    破壊しないこと (Noneを返し、slot_mapは変更されない)。"""
+    resolver = SpeakerResolver(char_dict)
+    resolver.assign_variable(
+        variable_name="$num1", source_character_id="26", num_index=1
+    )
+
+    result = resolver.assign_costume_character(slot="1", second_arg="$numUndefined")
+
+    assert result is None
+    assert resolver.resolve_slot("1").speaker_name == "レイン"
+
+
+def test_assign_costume_character_non_numeric_literal_does_not_bind(char_dict):
+    """第2引数が$変数でも数字のみのリテラルでもない場合は束縛しない
+    (既存スロット状態を保持する)。"""
+    resolver = SpeakerResolver(char_dict)
+    resolver.assign_character(slot="1", source_character_id="26")
+
+    result = resolver.assign_costume_character(slot="1", second_arg="ON")
+
+    assert result is None
+    assert resolver.resolve_slot("1").speaker_name == "レイン"
+
+
 def test_forced_name(char_dict):
     resolver = SpeakerResolver(char_dict)
     resolver.set_forced_name("謎の声")
