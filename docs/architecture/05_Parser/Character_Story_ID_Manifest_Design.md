@@ -320,6 +320,63 @@ Phase 1の「1ファイル=1episode」前提を維持する。`03_Scope.md` §5.
 
 依存関係: PR Dの動的判定はPR Bの`@SpineTalk`登録に依存する（§7.1）。PR EはPR Dの例外変種episode生成結果に依存する。PR Cは他PRと独立して着手可能。
 
+## 9.1 全量実行の実施記録（dry-run、2026-07-17）
+
+**実施PR: `feature/hscene-full-pipeline-dry-run`（docs-only扱いのdry-run PR）。**
+
+PR B〜E（§9表、`feature/script-command-dictionary-spinetalk-variant-only-batch`〜`feature/hscene-variant-extraction-dedup`）で実装が完了したH_scene全パイプライン（normalize→動的部分集合判定→例外変種normalize→extraction+dedup）を、`data/raw/character/`全72キャラクターに対してworkspace限定で実行した（`agents/`・`scripts/`本体は変更していない。既存の公開関数・CLIをオーケストレーションするだけの使い捨てscriptを`workspace/local_inputs/`配下に置いて実行した）。生成物（normalized JSON・extraction JSON・判定レポート）はすべてworkspace限定・非commit。以下は件数のみの集計である。
+
+### 9.1.1 normalize結果
+
+| 項目 | 結果 | 期待値との対応 |
+|---|---|---|
+| 本体episode数（H_sceneN 517 + H_scene_s 72） | 589 | `03_Scope.md` §4.3の589件と完全一致 |
+| 例外変種episode数 | 144 | §5.3確定値144と完全一致 |
+| 総episode数 | 733 | 589 + 144 |
+| story.schema.json検証PASS率 | 733/733（100%） | 全件PASS |
+
+### 9.1.2 compatibility
+
+| 項目 | 結果 |
+|---|---|
+| `type: "unknown"`ブロック数 | 7,049件（733episode中404episode、約55%に出現） |
+| `unknownCharacterIds`が非空のepisode数（compatibilityReport集計ベース） | 614 |
+| 同distinct未登録sourceCharacterId数（compatibilityReport集計ベース） | 815 |
+| 実際にdialogue/monologueブロックの話者（`isResolved: false`）として出現するepisode数 | 162 |
+| 同distinct sourceCharacterId数（数値ID・実際に話者として消費されたもののみ） | 3 |
+
+**期待（unknownブロック数0近傍・distinct未登録ID数が§5.2の既知件数付近）とは大きく乖離した。** 原因調査の結果、以下3件の実装上の非対称性・不具合を確認した（**症状・再現条件の記録のみ。修正は別PR**）。
+
+1. **裸単語コマンドの検出範囲の非対称性（既存Known Issue「compatibility checkの既知の非対称性」の実データでの顕在化）**: `_spine`/`_spine #K`系のH_scene本体・例外変種には、`@`接頭辞を持たない継続パラメータ行（`postProcess 1`・`depth length 35`・`bloom intensity 3`等、実測32種のトークン）が多数出現する。`scripts/check_script_compatibility.py`（standalone checker）はこれらを「未登録コマンド」として検出しない（`@`接頭辞トークンのみを対象とする実装のため）一方、実parser（`agents/parser/tokenizer.py`）はこれらを`unknown`トークンとして分類し、`StoryParser`が`type: "unknown"`ブロックへ変換する。この非対称性自体はTASKS.md Known Issuesに「実データでは稀」として既に記載されていたが、H_scene系コンテンツ（特に`_spine`変種）に限れば733episode中404episode・7,049ブロックという無視できない規模で顕在化することが今回の全量実行で判明した。
+2. **未登録キャラクターID記録の代入時点/消費時点の非対称性**: 実parserの`SpeakerResolver._resolve_character_id`（`agents/parser/resolver.py`）は、`@ScenarioCos`/`$numX=`/`@ScenarioCosLoad`によるスロット**代入時点**で無条件に`unresolved_character_ids`へ記録する（`assign_character`/`assign_variable`/`assign_from_variable`から呼ばれる）。これは、`scripts/check_script_compatibility.py`が`#141`（`feature/checker-consumption-context-fix`）で採用した**消費時点**（実際に発話コマンドで話者として使われたスロットのみを未登録として扱う）ベースの判定とは異なるロジックであり、`#141`修正はstandalone checker側のみに適用され、実parserの`resolver.py`側は据え置かれていた（TASKS.md Backlog「parser-auto-bind-non-speaker-slot-review」で既に検討対象として記録されている自動バインド挙動そのもの）。この非対称性により、`compatibilityReport.unknownCharacterIds`集計ベースの件数（614episode・815 distinct ID）は、実際にdialogue/monologueブロックの話者として表面化する件数（162episode・3 distinct ID）を大幅に上回った。
+3. **`sourceCharacterId`への非ID文字列混入**: 実際にdialogue/monologueブロックの話者として出現する3 distinct数値IDとは別に、`$split(0,$value11)`（未評価の関数呼び出し式）・`11.2,-7.7,-24`（座標様の数値列）という2件の非数値文字列が`sourceCharacterId`として記録される事例を確認した。話者名/IDの引数が単純なリテラルでない場合（式・座標データ等）の抽出処理に起因すると考えられる未調査の不具合であり、再現条件の特定（該当コマンド種別の絞り込み）は未実施。
+
+### 9.1.3 extraction + dedup
+
+| 項目 | 結果 |
+|---|---|
+| `hsceneDedup`で除外マークされたBlock総数 | 6,017 |
+| dedupが発生した（除外Block数>0の）グループ数 | 71 |
+| `baseEpisodeAvailable: false`の発生件数 | 0（発生なし、期待どおり） |
+| extraction.schema.json検証PASS率 | 733/733（100%） |
+
+PR Eのサンプル実測（キャラクターexportディレクトリ15件、9グループ・484 Block除外）と比較して、全量（72ディレクトリ）でも同様の傾向（重複排除が実際に機能し、本体・変種で異なるアセットを参照するケースでは誤って除外しない保守的な挙動）を確認した。
+
+### 9.1.4 判定分布
+
+| judgment | 件数 | §5.3確定値との対応 |
+|---|---|---|
+| subset（非`_VR`の部分集合） | 570 | |
+| exception | 144 | 完全一致 |
+| skipped_vr（`_VR`、判定対象外） | 45 | 完全一致 |
+| 合計 | 759 | §5.3の「部分集合615（=570+45）・例外144・`_VR`45、計759件」と完全一致 |
+
+パターン別内訳（`n`: subset451/exception53、`spine`: subset32/exception16、`hash`: subset59/exception54、`n_hash`: subset3/exception0、`spine_hash`: subset25/exception21、`vr`: skipped_vr45）も、§5.3・§6.5の実データ確認結果と完全一致した。
+
+### 9.1.5 実行状況
+
+72キャラクター全件を1回のバッチで処理し、途中失敗（例外・schema検証失敗）は0件だった。処理対象外（未confirmedキャラクター等）も0件（`data/raw/character/`全72キャラクターは§4.3前提どおり全件confirmed）。
+
 ---
 
 # 10. Open questions（本PRでは決定しない）
