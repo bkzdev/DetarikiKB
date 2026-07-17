@@ -419,6 +419,68 @@ $return = $state(HighGraphicsFlag)
     assert embedded["unknownCommands"] == set()
 
 
+def test_bare_word_parameter_token_registration_not_unknown_on_either_path(tmp_path):
+    """bare-word-parameter-token-registration (Character_Story_ID_Manifest_
+    Design.md §9.1.2の1) で見つかった裸単語パラメータトークン14種+
+    表記ゆれ1種("caemra")が、どちらの経路でもunknownCommandsに現れない
+    こと (両経路の対称性) を確認する。"""
+    script = """postProcess 1
+depth length 33
+bloom intensity 2
+enable 0 false
+volume enable true
+analogGlitch
+retroGlitch
+digitalGlitch
+mozaiku koyuki_9 0.018 cutoff
+fade\t0\t0
+mask SET CAMERA0
+layer CAMERA1 true
+duplication true
+shadow type None
+caemra 0
+"""
+    standalone, embedded = _run_both_paths(tmp_path, script)
+
+    assert standalone["unknownCommands"] == set()
+    assert embedded["unknownCommands"] == set()
+    assert standalone["newSpeechCommands"] == set()
+    assert embedded["newSpeechCommands"] == set()
+
+
+def test_bare_word_parameter_tokens_left_unregistered_still_unknown_on_embedded_path(
+    tmp_path,
+):
+    """Character_Story_ID_Manifest_Design.md §9.1.2の1で未登録のまま
+    (要判断) とした裸単語パラメータトークンの代表例が、実parser側では
+    引き続きunknownCommandsに現れること (不破棄不変則) を確認する。
+
+    standalone checker側は既存の非対称性 (is_command_lineが@/$接頭辞
+    または既知コマンド集合のみを対象とするため、未登録の裸単語行自体を
+    コマンド行として検出しない) により、これらの行を報告しない。この
+    既存の非対称性自体は本PRのスコープ外 (TASKS.md Known Issues参照)
+    であり、embedded側の不破棄不変則のみを確認する。"""
+    script = """spine 0
+eye 0,0
+init
+"""
+    parser = StoryParser()
+    parse_result = parser.parse_text(script)
+    normalizer = Normalizer(
+        story_id="TEST_BARE_WORD_UNREGISTERED",
+        story_category="OTHER",
+        commands_config_path=DEFAULT_COMMANDS_CONFIG,
+    )
+    story_json = normalizer.normalize(parse_result)
+    report = story_json["compatibilityReport"]
+
+    assert {c["command"] for c in report["unknownCommands"]} == {
+        "spine",
+        "eye",
+        "init",
+    }
+
+
 def test_branch_choice_script_matches_on_both_paths(tmp_path):
     """branch/#if/#else/#endifを含むスクリプトでも、check_script_
     compatibility.py単体実行とNormalizerのcompatibilityReportが一致する

@@ -247,6 +247,30 @@ DIRECTION_TYPE_MAP: dict[str, str] = {
     "@WebParsonal": "system",
     "@Spine/EyeDown": "character_display",
     "@ChMotionGree": "motion",
+    # bare-word-parameter-token-registration: character/配下の`_spine`系
+    # ファイルに出現する、@接頭辞を持たない継続パラメータ行
+    # (Character_Story_ID_Manifest_Design.md §9.1.2の1、実測32種のうち
+    # カメラ/ポストエフェクト系と機械分類できた14種)。実データ確認の結果、
+    # postProcess/depth/bloom/enable/volumeは既存の"@PostProcess"直後に
+    # 現れる継続パラメータ (postProcess自体がscreen分類のため揃える)、
+    # analogGlitch/retroGlitch/digitalGlitch/mozaiku/fadeは画面全体の
+    # 視覚効果トグル、mask/layer/duplication/shadowは"camera N"直後に
+    # 現れるカメラレイヤー/シャドウ設定であることを確認した
+    # (agents/parser/tokenizer.py の KEYWORD_TOKENS と対で追加)。
+    "postProcess": "screen",
+    "depth": "screen",
+    "bloom": "screen",
+    "enable": "screen",
+    "volume": "screen",
+    "analogGlitch": "screen",
+    "retroGlitch": "screen",
+    "digitalGlitch": "screen",
+    "mozaiku": "screen",
+    "fade": "screen",
+    "mask": "camera",
+    "layer": "camera",
+    "duplication": "camera",
+    "shadow": "camera",
 }
 
 # 表記ゆれ → 正規化
@@ -354,6 +378,11 @@ CASE_VARIANTS_MAP: dict[str, str] = {
     # の case_variants と対で追加)。
     "@motionWait": "@MotionWait",
     "@FadeOutblack": "@FadeOutBlack",
+    # bare-word-parameter-token-registration: character/配下の`_spine`系
+    # ファイルで見つかった表記ゆれ1種 ("caemra"、"camera"のtypo、実データで
+    # 唯一の出現1件がpos/euler/fovのカメラ設定triadと同じ配置で確認できた)。
+    # agents/parser/tokenizer.py の KEYWORD_TOKENS と対で追加。
+    "caemra": "camera",
 }
 
 # 既知の stage_direction コマンドセット

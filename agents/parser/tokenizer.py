@@ -196,6 +196,28 @@ class Tokenizer:
             "vol",
             "{",
             "}",
+            # bare-word-parameter-token-registration: character/配下の
+            # `_spine`系ファイルに出現する、@接頭辞を持たない継続パラメータ行
+            # (Character_Story_ID_Manifest_Design.md §9.1.2の1)。カメラ/
+            # ポストエフェクト系と機械分類できたもの14種+表記ゆれ1種
+            # ("caemra"、"camera"のtypo)。agents/parser/parser.py の
+            # DIRECTION_TYPE_MAP (CASE_VARIANTS_MAPは"caemra"のみ) と対にして
+            # 追加すること。
+            "postProcess",
+            "depth",
+            "bloom",
+            "enable",
+            "volume",
+            "analogGlitch",
+            "retroGlitch",
+            "digitalGlitch",
+            "mozaiku",
+            "fade",
+            "mask",
+            "layer",
+            "duplication",
+            "shadow",
+            "caemra",
         }
     )
 
