@@ -320,6 +320,26 @@ stage_direction:
   - "@WebParsonal"                     # Web個人情報系アセット参照 (system系、既存@Cache同様に安全側分類)
   - "@Spine/EyeDown"                   # キャラ視線 (Spine系) 下 (既存@Spine/EyeRight等の姉妹コマンド)
   - "@ChMotionGree"                    # モーション演出 (@MotionCache/@MotionWaitと同系統のモーション指定)
+  # bare-word-parameter-token-registration: character/配下の`_spine`系
+  # ファイルに出現する、@接頭辞を持たない継続パラメータ行
+  # (Character_Story_ID_Manifest_Design.md §9.1.2の1、実測32種のうち
+  # カメラ/ポストエフェクト系と機械分類できた14種)。agents/parser/tokenizer.py
+  # の KEYWORD_TOKENS、agents/parser/parser.py の DIRECTION_TYPE_MAP と
+  # 対で追加。
+  - "postProcess"               # @PostProcess継続パラメータ (有効/無効フラグ)
+  - "depth"                     # 被写界深度 (length/aperture/distance)
+  - "bloom"                     # ブルーム効果強度
+  - "enable"                    # postProcessブロック内の有効/無効フラグ
+  - "volume"                    # postProcessブロック内のvolumetric設定
+  - "analogGlitch"              # 画面グリッチ演出 (アナログ風)
+  - "retroGlitch"               # 画面グリッチ演出 (レトロ風)
+  - "digitalGlitch"             # 画面グリッチ演出 (デジタル風)
+  - "mozaiku"                   # モザイク (検閲) 演出
+  - "fade"                      # 画面フェード遷移
+  - "mask"                      # カメラマスク (SET/ADD CAMERA0/1)
+  - "layer"                     # カメラ/ポストプロセスレイヤー切替
+  - "duplication"               # カメラ設定直後の複製演出トグル
+  - "shadow"                    # シャドウタイプ設定 (camera設定ブロック内)
 
 # ----------------------------------------------------------------
 # ignored: 無視する行・コマンド
@@ -450,6 +470,10 @@ case_variants:
   # CASE_VARIANTS_MAP と対で追加)。
   "@motionWait": "@MotionWait"
   "@FadeOutblack": "@FadeOutBlack"
+  # bare-word-parameter-token-registration: character/配下の`_spine`系
+  # ファイルで見つかった表記ゆれ1種 ("caemra"、"camera"のtypo。
+  # agents/parser/parser.py の CASE_VARIANTS_MAP と対で追加)。
+  "caemra": "camera"
 
 # ----------------------------------------------------------------
 # new_speech_detection_hints: 新規会話コマンド候補の検出ヒント

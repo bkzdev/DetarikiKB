@@ -184,6 +184,64 @@ class TestRealDataStageDirectionKeywords:
     @pytest.mark.parametrize(
         "line,expected_command",
         [
+            ("postProcess 1\n", "postProcess"),
+            ("depth length 33\n", "depth"),
+            ("bloom intensity 2\n", "bloom"),
+            ("enable 0 false\n", "enable"),
+            ("volume enable true\n", "volume"),
+            ("analogGlitch\n", "analogGlitch"),
+            ("retroGlitch\n", "retroGlitch"),
+            ("digitalGlitch\n", "digitalGlitch"),
+            ("mozaiku koyuki_9 0.018 cutoff\n", "mozaiku"),
+            ("fade\t0\t0\n", "fade"),
+            ("mask SET CAMERA0\n", "mask"),
+            ("layer CAMERA1 true\n", "layer"),
+            ("duplication true\n", "duplication"),
+            ("shadow type None\n", "shadow"),
+            ("caemra 0\n", "caemra"),
+        ],
+    )
+    def test_bare_word_parameter_token_registration_is_keyword(
+        self, line, expected_command
+    ):
+        """bare-word-parameter-token-registration: character/配下の`_spine`系
+        ファイルに出現する、@接頭辞を持たない継続パラメータ行のうち、
+        カメラ/ポストエフェクト系と機械分類できた14種+表記ゆれ1種("caemra")
+        が UNKNOWN ではなく KEYWORD として認識されることを確認する
+        (Character_Story_ID_Manifest_Design.md §9.1.2の1)。"""
+        tokens = tokenize_text(line)
+        assert len(tokens) == 1
+        assert tokens[0].token_type == TokenType.KEYWORD
+        assert tokens[0].command == expected_command
+
+    @pytest.mark.parametrize(
+        "line,expected_command",
+        [
+            # Character_Story_ID_Manifest_Design.md §9.1.2の1の実測32種の
+            # うち、カメラ/ポストエフェクト系として機械分類できず未登録の
+            # ままとした代表例 (spine/eyeはSpine rig系、funcはui_camera/
+            # ui_massage等意味が分岐する汎用ディスパッチャ、initは
+            # postProcessブロックと非カメラ文脈の両方に出現するため
+            # 一意に分類不能)。UNKNOWNのまま維持されることを確認する
+            # (不破棄不変則、AI_CONTEXT.md §13.3)。
+            ("spine 0\n", "spine"),
+            ("eye 0,0\n", "eye"),
+            ("func ui_massage breast1\n", "func"),
+            ("init\n", "init"),
+            ("springEnable\tF_L_ribbon\tfalse\n", "springEnable"),
+        ],
+    )
+    def test_bare_word_parameter_tokens_left_unregistered_remain_unknown(
+        self, line, expected_command
+    ):
+        tokens = tokenize_text(line)
+        assert len(tokens) == 1
+        assert tokens[0].token_type == TokenType.UNKNOWN
+        assert tokens[0].command == expected_command
+
+    @pytest.mark.parametrize(
+        "line,expected_command",
+        [
             ("@TalkPosR\n", "@TalkPosR"),
             ("@TalkPosL\n", "@TalkPosL"),
             ("@ChEyeOff 0\n", "@ChEyeOff"),

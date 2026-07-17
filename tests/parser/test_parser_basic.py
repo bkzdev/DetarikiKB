@@ -889,3 +889,133 @@ def test_dict_spinetalk_variant_only_batch_case_variants_normalize_to_canonical(
     assert scene.blocks[1].raw_command == "@FadeOutblack"
     assert scene.blocks[1].normalized_command == "@FadeOutBlack"
     assert scene.blocks[1].direction_type == "screen"
+
+
+# ----------------------------------------------------------------
+# 裸単語パラメータトークン14種+表記ゆれ1種
+# (bare-word-parameter-token-registration、
+# Character_Story_ID_Manifest_Design.md §9.1.2の1)
+# ----------------------------------------------------------------
+
+
+def test_bare_word_parameter_token_registration_becomes_stage_direction():
+    """character/配下の`_spine`系ファイルに出現する、@接頭辞を持たない
+    継続パラメータ行のうち、カメラ/ポストエフェクト系と機械分類できた
+    14種が、unknownではなくstage_directionとして正しいdirection_typeに
+    分類されることを確認する。"""
+    script = """postProcess 1
+depth length 33
+bloom intensity 2
+enable 0 false
+volume enable true
+analogGlitch
+retroGlitch
+digitalGlitch
+mozaiku koyuki_9 0.018 cutoff
+fade\t0\t0
+mask SET CAMERA0
+layer CAMERA1 true
+duplication true
+shadow type None
+"""
+    parser = StoryParser(preserve_stage_directions=True)
+    result = parser.parse_text(script)
+    scene = result.episodes[0].scenes[0]
+
+    assert len(scene.blocks) == 14
+    for block in scene.blocks:
+        assert block.block_type == "stage_direction"
+
+    expected = [
+        ("postProcess", "screen"),
+        ("depth", "screen"),
+        ("bloom", "screen"),
+        ("enable", "screen"),
+        ("volume", "screen"),
+        ("analogGlitch", "screen"),
+        ("retroGlitch", "screen"),
+        ("digitalGlitch", "screen"),
+        ("mozaiku", "screen"),
+        ("fade", "screen"),
+        ("mask", "camera"),
+        ("layer", "camera"),
+        ("duplication", "camera"),
+        ("shadow", "camera"),
+    ]
+    pairs = zip(scene.blocks, expected, strict=True)
+    for block, (raw_command, direction_type) in pairs:
+        assert block.raw_command == raw_command
+        assert block.direction_type == direction_type
+
+
+def test_bare_word_parameter_token_registration_case_variant_normalizes_to_camera():
+    """ "caemra" ("camera"のtypo) が、CASE_VARIANTS_MAP経由で正規形
+    "camera" へ正規化されつつstage_direction(camera)として分類される
+    ことを確認する。"""
+    script = """caemra 0
+"""
+    parser = StoryParser(preserve_stage_directions=True)
+    result = parser.parse_text(script)
+    scene = result.episodes[0].scenes[0]
+
+    assert len(scene.blocks) == 1
+    block = scene.blocks[0]
+    assert block.block_type == "stage_direction"
+    assert block.raw_command == "caemra"
+    assert block.normalized_command == "camera"
+    assert block.direction_type == "camera"
+
+
+def test_bare_word_parameter_tokens_left_unregistered_remain_unknown():
+    """Character_Story_ID_Manifest_Design.md §9.1.2の1の実測32種のうち、
+    カメラ/ポストエフェクト系として機械分類できず未登録のままとした
+    代表例 (spine/eyeはSpine rig系、funcはui_camera/ui_massage等意味が
+    分岐する汎用ディスパッチャ、initはpostProcessブロックと非カメラ
+    文脈の両方に出現するため一意に分類不能) が、引き続きunknownブロック
+    として保持されること (不破棄不変則、AI_CONTEXT.md §13.3) を確認する。"""
+    script = """spine 0
+eye 0,0
+func ui_massage breast1
+init
+springEnable\tF_L_ribbon\tfalse
+"""
+    parser = StoryParser(preserve_stage_directions=True)
+    result = parser.parse_text(script)
+    scene = result.episodes[0].scenes[0]
+
+    assert len(scene.blocks) == 5
+    for block in scene.blocks:
+        assert block.block_type == "unknown"
+
+
+def test_bare_word_parameter_token_registration_no_regression_on_text_and_keywords():
+    """裸単語パラメータトークン登録が、日本語TEXT行検出・既存keyword
+    (msg/branch/#if等)・既存コマンドの挙動に影響しないこと (無回帰) を
+    確認する。"""
+    script = """$num0 = 26
+@ChTalk 0
+セリフ本文
+msg
+ナレーション本文
+branch 選択肢A 選択肢B
+#if $branch
+@ChTalk 0
+ルートA
+#else
+@ChTalk 0
+ルートB
+#endif
+camera 0
+pos 1,2,3
+"""
+    parser = StoryParser(preserve_stage_directions=True)
+    result = parser.parse_text(script)
+    scene = result.episodes[0].scenes[0]
+
+    unknown_blocks = [b for b in scene.blocks if b.block_type == "unknown"]
+    assert unknown_blocks == []
+
+    block_types = [b.block_type for b in scene.blocks]
+    assert "dialogue" in block_types
+    assert "narration" in block_types
+    assert "choice" in block_types
