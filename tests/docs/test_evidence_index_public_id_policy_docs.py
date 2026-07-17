@@ -538,6 +538,11 @@ def test_public_id_policy_doc_states_naming_v2_1_late_discovery_rule():
     ].split("### 16.7.4", 1)[0]
     assert "末尾seq" in rule_section
     assert "日付順序は崩れる" in rule_section
+    # 2026-07-18ユーザー決定で§16.9へ改定されたため、旧ルールは取り消し線
+    # (~~...~~)付きで記録し、改定先を明示するポインタを併記する
+    assert "~~" in rule_section
+    assert "§16.9" in rule_section
+    assert "改定" in rule_section
 
 
 def test_public_id_policy_doc_states_naming_v2_1_raid_open_question():
@@ -619,6 +624,10 @@ def test_public_id_policy_doc_states_naming_raid_v2_1_numbering_rule():
         or "RAID_{seq:03d}_{YYMMDD}" in rule_section
     )
     assert "raid_numbering_table.tsv" in rule_section
+    # §16.7.3（遅延発見イベントのルール）は2026-07-18に§16.9へ改定済みで
+    # あり、RAIDカテゴリにも改定後ルールが適用される旨が1行追記されている
+    assert "§16.9" in rule_section
+    assert "改定" in rule_section
 
 
 def test_public_id_policy_doc_states_naming_raid_v2_1_rename_mapping_table():
@@ -647,3 +656,103 @@ def test_public_id_policy_doc_states_naming_raid_v2_1_non_goals():
     non_goals_section = section.split("### 16.8.4 本PRのNon-goals", 1)[1]
     assert "raid batch" in non_goals_section
     assert "EVENT" in non_goals_section
+
+
+# ----------------------------------------------------------------
+# feature/late-discovery-anchor-seq-add-rule
+# ----------------------------------------------------------------
+
+NAMING_LATE_DISCOVERY_V2_HEADING = (
+    "## 16.9 遅延発見イベントルールの改定（アンカーseq+ADDマーカー方式、"
+    "2026-07-18ユーザー決定、`feature/late-discovery-anchor-seq-add-rule`で"
+    "設計・適用）"
+)
+
+# 遅延発見6件のうち実データ由来の断片（sourceKeyの日付・slug断片、確定
+# publicStoryId）は、匿名化ルール（`AI_PR_Playbook.md` §5）によりdocsに
+# 一切書かない。REAL_DATA_HINTSへ追加し、文書全体から誤って書き込まれて
+# いないことを機械的に確認する（Registry未登録のため`filter_unregistered_
+# hints`による許可対象にはならない）。
+LATE_DISCOVERY_REAL_DATA_HINTS = (
+    "220706",
+    "220928",
+    "231122",
+    "240430",
+    "240710",
+    "241002",
+    "infection_lala",
+    "bodychange",
+    "4thanniversary_2",
+    "idol_purity9",
+    "swimsuit",
+    "tikan",
+    "EVENT_069_220706_ADD",
+    "EVENT_074_220928_ADD",
+    "EVENT_103_231122_ADD",
+    "EVENT_113_240430_ADD",
+    "EVENT_118_240710_ADD",
+    "EVENT_123_241002_ADD",
+)
+
+
+def _late_discovery_v2_section() -> str:
+    content = _read_doc()
+    return content.split(NAMING_LATE_DISCOVERY_V2_HEADING, 1)[1]
+
+
+def test_public_id_policy_doc_has_late_discovery_v2_section():
+    content = _read_doc()
+    assert NAMING_LATE_DISCOVERY_V2_HEADING in content
+
+
+def test_public_id_policy_doc_states_late_discovery_v2_anchor_seq_rule():
+    section = _late_discovery_v2_section()
+    rule_section = section.split("### 16.9.2 アンカーseq+ADDマーカー方式（決定）", 1)[
+        1
+    ].split("### 16.9.3", 1)[0]
+    assert "アンカーseq" in rule_section
+    assert "_ADD" in rule_section
+    assert "{CATEGORY}_{アンカーseq:03d}_{YYMMDD}_ADD" in rule_section
+    assert "_ADD2" in rule_section
+    assert "ASCII文字列ソート" in rule_section
+    # 実際の適用ID・日付・sourceKeyは書かない方針の合成例のみを使う
+    assert "EVENT_070_990101_ADD" in rule_section
+
+
+def test_public_id_policy_doc_states_late_discovery_v2_deprecates_tail_seq():
+    section = _late_discovery_v2_section()
+    rule_section = section.split("### 16.9.3 §16.7.3（末尾seq方式）の廃止", 1)[1].split(
+        "### 16.9.4", 1
+    )[0]
+    assert "廃止" in rule_section
+    assert "適用実績ゼロ" in rule_section
+
+
+def test_public_id_policy_doc_states_late_discovery_v2_first_application():
+    section = _late_discovery_v2_section()
+    rule_section = section.split(
+        "### 16.9.4 初回適用（event categoryの遅延発見6件）", 1
+    )[1].split("### 16.9.5", 1)[0]
+    assert "168" in rule_section
+    assert "174" in rule_section
+    assert "event_numbering_table.tsv" in rule_section
+    assert "非commit" in rule_section
+
+
+def test_public_id_policy_doc_states_late_discovery_v2_non_goals():
+    section = _late_discovery_v2_section()
+    non_goals_section = section.split("### 16.9.5 本PRのNon-goals", 1)[1]
+    assert "raw配置" in non_goals_section
+    assert "Registry" in non_goals_section
+
+
+def test_public_id_policy_doc_does_not_contain_late_discovery_real_data():
+    content = _read_doc()
+    for forbidden in filter_unregistered_hints(LATE_DISCOVERY_REAL_DATA_HINTS):
+        assert forbidden not in content
+
+
+def test_tasks_md_does_not_contain_late_discovery_real_data():
+    content = TASKS_PATH.read_text(encoding="utf-8")
+    for forbidden in filter_unregistered_hints(LATE_DISCOVERY_REAL_DATA_HINTS):
+        assert forbidden not in content
