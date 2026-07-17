@@ -82,6 +82,10 @@ Wiki生成（`agents/wiki_generator/`）・Public Evidence Index promotion（`kn
 
 PR B〜Eで実装完了したH_scene全パイプライン（normalize→動的部分集合判定→例外変種normalize→extraction+dedup）を`data/raw/character/`全72キャラクターに対してworkspace限定で実行し、本体+H_scene_s 589件・例外変種144件・判定分布759件（部分集合570・例外144・`_VR`45）がいずれも上記の確定値と完全一致することを確認した。実行中に判明した実装上の非対称性・不具合（裸単語コマンドの検出範囲差・未登録キャラクターID記録の代入時点/消費時点の非対称性・`sourceCharacterId`への非ID文字列混入）は`Character_Story_ID_Manifest_Design.md` §9.1に記録した（修正は別PR）。
 
+### 4.3.5 本実行実施済み（build 001、`feature/hscene-internal-kb-build-001`、2026-07-18）
+
+§4.3.4のdry-runで確認した全パイプラインを、辞書完全化・話者誤帰属修正後の完全な状態で本実行し、生成物を正式ローカル配置へ保持した。詳細は`Character_Story_ID_Manifest_Design.md` §9.2を参照。
+
 ## 4.4 技術的裏付け
 
 1キャラクター分15ファイルに対するcompatibility check（2026-07-15実施）の結果は以下のとおりである。
