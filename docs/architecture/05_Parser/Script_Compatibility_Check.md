@@ -410,6 +410,28 @@ JSON/Markdown/コンソールいずれの出力面にも表示されるが、判
 修正の対象外であり、変更していない（`TASKS.md` Backlogのopen questionとして
 別途検討する）。
 
+**`ch N`+`costume`によるスロット再束縛（`feature/costume-slot-binding-fix`、
+2026-07-18実施）**: 実データ（H_scene系）には、`$numX = <キャラID>`・
+`$numY = <衣装ID>`等の代入後、`ch N`（表示スロットN指定の裸コマンド）→直後
+（間に別の`ch`が現れるまでの範囲）の`costume <衣装ID> <キャラID> [ON]`
+（第1引数=衣装ID・**第2引数=キャラID**）でスロットNの実際の話者キャラクター
+が決まるパターンが存在する。この意味論を反映しないと、`$numX→slot X`自動
+バインドにより衣装ID側がスロットへ誤って話者候補として束縛される
+（衣装IDが幻の話者になる誤検出、`docs/runbooks/Character_Dictionary_Review.md`
+§12.7参照）。本チェッカーは`_apply_ch_command`/`_apply_costume_command`
+（`_simulate_id_consumption`の追加ヘルパー）で、`ch N`出現時のNを記憶し、
+直後の`costume`の第2引数（`$`変数なら`variable_map`から解決した値、数字の
+みのリテラルならそのまま）で`slot_map[N]`を再束縛する。`@ScenarioCos`と
+同等の意味論のスロット再束縛として扱う（直接数値指定は§11.0(a)の即時話者
+消費あり、変数経由は代入行としては未検出のまま話者消費のみ即時確定という、
+`@ScenarioCos`/`@ScenarioCosLoad`と同じ2経路）。第2引数が未定義変数・非数値
+の場合は束縛せず、既存の`slot_map`状態を変更しない（「不明情報を破棄しない」
+不変則により、解決できない`costume`引数で既存の正しい束縛を破壊しない）。
+`ch`の引数が数値でない場合（カメラ演出目的の別用法）はウィンドウを無効化
+する。`agents/parser/resolver.py`の`SpeakerResolver.assign_costume_character`
+と1対1で対応する意味論であり、`tests/parser/test_compatibility_consistency.py`
+で両経路の分類一致を確認している。
+
 ---
 
 ## 11.1 出力例

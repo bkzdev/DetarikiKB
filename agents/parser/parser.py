@@ -603,6 +603,10 @@ class StoryParser:
         pending_speaker: Speaker | None = None
         forced_name_override: str | None = None  # name コマンド
         forced_name_label_analysis: SpeakerLabelAnalysis | None = None
+        # ch N (表示スロットN指定の裸コマンド) で直近に指定されたスロット番号。
+        # 直後 (間に別の ch が現れるまでの範囲) に出現する costume コマンドの
+        # スロット再束縛先として参照する (feature/costume-slot-binding-fix)。
+        pending_ch_slot: str | None = None
 
         # 選択肢状態
         current_choice: BlockData | None = None
@@ -876,6 +880,33 @@ class StoryParser:
             # ----------------------------------------------------------------
             if token.token_type == TokenType.KEYWORD:
                 kw = token.command or ""
+
+                # ch N (表示スロットN指定の裸コマンド) → 直後の costume による
+                # スロット再束縛のためNを記憶する (feature/costume-slot-binding-fix)。
+                # 数値スロット引数を伴わない ch (カメラ演出目的の別用法) は
+                # ウィンドウを無効化する (誤ったスロットへ costume を束縛しない
+                # ため)。stage_direction ブロック自体は従来どおり生成するため
+                # continue はしない (下の stage_direction 分岐へフォールスルー)。
+                if kw == "ch":
+                    if token.args and token.args[0].isdigit():
+                        pending_ch_slot = token.args[0]
+                    else:
+                        pending_ch_slot = None
+
+                # costume <衣装ID> <キャラID> [ON] → 直前の ch N で記憶した
+                # スロットNを、第2引数 (キャラID) で再束縛する
+                # (feature/costume-slot-binding-fix、@ScenarioCosと同等の
+                # 意味論のスロット再束縛)。ch が無い場合 (pending_ch_slot が
+                # None) は従来どおり束縛に使わない。こちらも stage_direction
+                # ブロック生成へフォールスルーするため continue はしない。
+                elif kw == "costume":
+                    if pending_ch_slot is not None and len(token.args) >= 2:
+                        resolver.assign_costume_character(
+                            slot=pending_ch_slot,
+                            second_arg=token.args[1],
+                            line_start=token.line_number,
+                            raw=token.raw,
+                        )
 
                 # msg → narration
                 if kw == "msg":

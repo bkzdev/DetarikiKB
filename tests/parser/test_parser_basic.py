@@ -240,6 +240,173 @@ def test_scenario_cos_variable_form_undefined_variable_yields_unknown_speaker(
     assert "slot2" in dlg.speaker.speaker_name
 
 
+# ----------------------------------------------------------------
+# ch N + costume スロット再束縛 (feature/costume-slot-binding-fix)
+# ----------------------------------------------------------------
+
+
+def test_ch_costume_binds_slot_to_second_arg_character_not_costume_id(char_dict):
+    """実データパターン: $num0=キャラID・$num1=衣装IDの代入後、
+    ch N + costume $numY $numX ONで、スロットNが第2引数 (キャラID) へ
+    正しく束縛され、衣装ID側 ($num1) が幻の話者にならないこと。"""
+    script = """$num0 = 26
+$num1 = 40364
+ch 1
+costume $num1 $num0 ON
+@ChTalk 1
+こんにちは、レインです。
+"""
+    parser = StoryParser(char_dict=char_dict)
+    result = parser.parse_text(script)
+    dlg = result.episodes[0].scenes[0].blocks[-1]
+
+    assert dlg.block_type == "dialogue"
+    assert dlg.speaker.speaker_name == "レイン"
+    assert dlg.speaker.is_resolved is True
+    assert dlg.speaker.source_character_id == "26"
+
+
+def test_ch_costume_costume_id_becomes_non_speaker_numeric_assignment(char_dict):
+    """衣装ID ($num1 = 40364) は話者スロットとして一度も消費されず、
+    non_speaker_numeric_assignment_idsへ分類されること
+    (unresolved_character_idsには入らない)。"""
+    script = """$num0 = 26
+$num1 = 40364
+ch 1
+costume $num1 $num0 ON
+@ChTalk 1
+こんにちは、レインです。
+"""
+    parser = StoryParser(char_dict=char_dict)
+    result = parser.parse_text(script)
+    episode = result.episodes[0]
+
+    assert "40364" not in episode.unresolved_character_ids
+    assert "40364" in episode.non_speaker_numeric_assignment_ids
+
+
+def test_ch_costume_direct_numeric_second_arg(char_dict):
+    """costumeの引数が変数ではなく数値直接指定の場合
+    (`costume 40364 26`形式) も同様にスロットを束縛すること。"""
+    script = """ch 2
+costume 40364 26
+@ChTalk 2
+数値直接指定のセリフ
+"""
+    parser = StoryParser(char_dict=char_dict)
+    result = parser.parse_text(script)
+    dlg = result.episodes[0].scenes[0].blocks[-1]
+
+    assert dlg.speaker.speaker_name == "レイン"
+    assert dlg.speaker.is_resolved is True
+
+
+def test_costume_without_preceding_ch_does_not_bind_slot(char_dict):
+    """chが一度も出現していない場合、costumeコマンドはスロット束縛に
+    使われないこと (従来動作の維持)。"""
+    script = """$num1 = 26
+costume 40364 999
+@ChTalk 1
+chが無いセリフ
+"""
+    parser = StoryParser(char_dict=char_dict)
+    result = parser.parse_text(script)
+    dlg = result.episodes[0].scenes[0].blocks[-1]
+
+    # $num1=26による自動バインドがそのまま有効 (costumeで999へ上書きされない)
+    assert dlg.speaker.speaker_name == "レイン"
+
+
+def test_ch_costume_undefined_variable_keeps_existing_binding(char_dict):
+    """costumeの第2引数が未定義変数の場合、既存のスロット束縛
+    ($numX自動バインド) を破壊せず維持すること。"""
+    script = """$num1 = 26
+ch 1
+costume $num2 $numUndefined ON
+@ChTalk 1
+未定義変数を参照するセリフ
+"""
+    parser = StoryParser(char_dict=char_dict)
+    result = parser.parse_text(script)
+    dlg = result.episodes[0].scenes[0].blocks[-1]
+
+    assert dlg.speaker.speaker_name == "レイン"
+    assert dlg.speaker.is_resolved is True
+
+
+def test_ch_costume_loses_to_later_scenario_cos_rebinding(char_dict):
+    """ch+costume束縛後にさらに@ScenarioCosで同じスロットが再束縛された
+    場合、時系列で最後の束縛 (@ScenarioCos) が有効になること
+    (既存意味論どおり後勝ち)。"""
+    script = """$num0 = 26
+$num1 = 40364
+ch 1
+costume $num1 $num0 ON
+@ScenarioCos 1 1
+@ChTalk 1
+後から@ScenarioCosで上書きされたセリフ
+"""
+    parser = StoryParser(char_dict=char_dict)
+    result = parser.parse_text(script)
+    dlg = result.episodes[0].scenes[0].blocks[-1]
+
+    assert dlg.speaker.speaker_name == "赤城陽菜"
+
+
+def test_scenario_cos_loses_to_later_ch_costume_rebinding(char_dict):
+    """逆順 (@ScenarioCosの後にch+costume) の場合も、時系列で最後の
+    束縛 (ch+costume) が有効になること。"""
+    script = """$num0 = 26
+$num1 = 40364
+@ScenarioCos 1 1
+ch 1
+costume $num1 $num0 ON
+@ChTalk 1
+後からch+costumeで上書きされたセリフ
+"""
+    parser = StoryParser(char_dict=char_dict)
+    result = parser.parse_text(script)
+    dlg = result.episodes[0].scenes[0].blocks[-1]
+
+    assert dlg.speaker.speaker_name == "レイン"
+
+
+def test_ch_without_numeric_arg_invalidates_pending_window(char_dict):
+    """ch の引数が数値でない場合 (カメラ演出目的の別用法)、pending window
+    が無効化され、後続のcostumeがスロット束縛に使われないこと。"""
+    script = """$num1 = 26
+ch camera_target
+costume 40364 999
+@ChTalk 1
+非数値ch引数のセリフ
+"""
+    parser = StoryParser(char_dict=char_dict)
+    result = parser.parse_text(script)
+    dlg = result.episodes[0].scenes[0].blocks[-1]
+
+    assert dlg.speaker.speaker_name == "レイン"
+
+
+def test_ch_and_costume_still_produce_stage_direction_blocks(char_dict):
+    """ch/costumeコマンド自体は、スロット束縛の副作用が追加された後も
+    従来どおりstage_directionブロックとして保持されること
+    (preserve_stage_directionsが既定Trueの場合)。"""
+    script = """$num0 = 26
+$num1 = 40364
+ch 1
+costume $num1 $num0 ON
+@ChTalk 1
+こんにちは、レインです。
+"""
+    parser = StoryParser(char_dict=char_dict)
+    result = parser.parse_text(script)
+    blocks = result.episodes[0].scenes[0].blocks
+    stage_directions = [b for b in blocks if b.block_type == "stage_direction"]
+
+    assert any(b.raw_command == "ch" for b in stage_directions)
+    assert any(b.raw_command == "costume" for b in stage_directions)
+
+
 def test_narration():
     script = """msg
 異形生物対策班　本部

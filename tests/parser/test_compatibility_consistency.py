@@ -667,3 +667,134 @@ def test_branch_choice_script_matches_on_both_paths(tmp_path):
     assert standalone["unknownCommands"] == set()
     assert standalone["newSpeechCommands"] == set()
     assert standalone["status"] == "compatible"
+
+
+# ----------------------------------------------------------------
+# ch N + costume スロット再束縛 (feature/costume-slot-binding-fix)
+# ----------------------------------------------------------------
+
+
+def _run_consumption_context_paths(tmp_path: Path, script: str, name: str):
+    """`_run_both_paths`の消費文脈版。unknownCharacterIds/
+    nonSpeakerNumericAssignments/dialogueの話者sourceCharacterIdまで
+    比較するテストで使う共通セットアップ。"""
+    script_path = tmp_path / "synthetic.dec"
+    script_path.write_text(script, encoding="utf-8")
+
+    mod = _load_check_script_module()
+    config = mod.load_command_config(DEFAULT_COMMANDS_CONFIG)
+    known_commands = mod.build_known_command_set(config)
+    speech_commands = mod.get_speech_commands(config)
+    case_variants_map = mod.build_case_variants_map(config)
+    speech_hints = mod.get_new_speech_hints(config)
+
+    standalone_result = mod.check_file(
+        script_path,
+        known_commands,
+        speech_commands,
+        case_variants_map,
+        speech_hints,
+        char_map={},
+    )
+
+    parser = StoryParser()
+    parse_result = parser.parse_text(script)
+    normalizer = Normalizer(
+        story_id=name,
+        story_category="OTHER",
+        commands_config_path=DEFAULT_COMMANDS_CONFIG,
+    )
+    story_json = normalizer.normalize(parse_result)
+    report = story_json["compatibilityReport"]
+    return standalone_result, parse_result, report
+
+
+def test_ch_costume_slot_binding_matches_on_both_paths(tmp_path):
+    """feature/costume-slot-binding-fix: `ch N`+`costume $numY $numX ON`
+    形式によるスロット再束縛が、standalone checkerとembedded (Normalizer)
+    の両経路で対称に分類されること。真の話者ID (26、costumeの第2引数) は
+    unknownCharacterIds (話者消費あり) へ、衣装ID (999、$num1自体の値) は
+    nonSpeakerNumericAssignments (話者消費なし) へ分類される。"""
+    script = """$num0 = 26
+$num1 = 999
+ch 1
+costume $num1 $num0 ON
+@ChTalk 1
+セリフ
+"""
+    standalone_result, parse_result, report = _run_consumption_context_paths(
+        tmp_path, script, "TEST_CH_COSTUME_BINDING"
+    )
+
+    standalone_unknown_ids = set(standalone_result.unknown_character_ids.keys())
+    standalone_non_speaker_ids = set(
+        standalone_result.non_speaker_numeric_assignments.keys()
+    )
+    embedded_unknown_ids = {
+        e["sourceCharacterId"] for e in report["unknownCharacterIds"]
+    }
+    embedded_non_speaker_ids = {
+        e["sourceCharacterId"] for e in report["nonSpeakerNumericAssignments"]
+    }
+
+    assert standalone_unknown_ids == embedded_unknown_ids == {"26"}
+    assert standalone_non_speaker_ids == embedded_non_speaker_ids == {"999"}
+    assert (
+        standalone_result.parser_compatibility
+        == report["parserCompatibility"]
+        == "warning"
+    )
+
+    # dialogueブロックの話者も衣装ID (999) ではなくキャラID (26) であること
+    dlg = parse_result.episodes[0].scenes[0].blocks[-1]
+    assert dlg.speaker.source_character_id == "26"
+
+
+def test_ch_costume_direct_numeric_matches_on_both_paths(tmp_path):
+    """costumeの引数が数値直接指定 (`costume 999 26`形式) の場合も、
+    両経路で対称に分類されること (衣装ID999は代入行として一度も検出
+    されないため、どちらのバケットにも入らない)。"""
+    script = """ch 3
+costume 999 26
+@ChTalk 3
+セリフ
+"""
+    standalone_result, parse_result, report = _run_consumption_context_paths(
+        tmp_path, script, "TEST_CH_COSTUME_DIRECT_NUMERIC"
+    )
+
+    standalone_unknown_ids = set(standalone_result.unknown_character_ids.keys())
+    embedded_unknown_ids = {
+        e["sourceCharacterId"] for e in report["unknownCharacterIds"]
+    }
+
+    assert standalone_unknown_ids == embedded_unknown_ids == {"26"}
+    assert standalone_result.non_speaker_numeric_assignments == {}
+    assert report["nonSpeakerNumericAssignments"] == []
+    assert (
+        standalone_result.parser_compatibility
+        == report["parserCompatibility"]
+        == "warning"
+    )
+
+
+def test_costume_without_preceding_ch_matches_on_both_paths(tmp_path):
+    """chが先行しない場合、costumeはスロット束縛に使われず、従来どおりの
+    分類 (costumeの引数は一切追跡されない) が両経路で一致すること。"""
+    script = """$num1 = 26
+costume 5 6
+@ChTalk 1
+セリフ
+"""
+    standalone_result, parse_result, report = _run_consumption_context_paths(
+        tmp_path, script, "TEST_COSTUME_WITHOUT_CH"
+    )
+
+    standalone_unknown_ids = set(standalone_result.unknown_character_ids.keys())
+    embedded_unknown_ids = {
+        e["sourceCharacterId"] for e in report["unknownCharacterIds"]
+    }
+
+    assert standalone_unknown_ids == embedded_unknown_ids == {"26"}
+    assert standalone_result.non_speaker_numeric_assignments == {}
+    assert report["nonSpeakerNumericAssignments"] == []
