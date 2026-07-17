@@ -271,6 +271,38 @@ DIRECTION_TYPE_MAP: dict[str, str] = {
     "layer": "camera",
     "duplication": "camera",
     "shadow": "camera",
+    # bare-word-parameter-token-batch-002: 上記14種+表記ゆれ1種の登録では
+    # 機械分類できず「要判断」のまま残っていた残り17種 (Character_Story_ID_
+    # Manifest_Design.md §9.1.2の1、実測32種の残部)。Fable決定(2026-07-17)
+    # によりカメラ/screen系との断定を待たず全種を安全側でstage_directionへ
+    # 登録し、direction_typeはPR #153の前例(分類が割れるものは安全側)を
+    # 適用して機械的に割り当てた: spine/eye/hlookは常に隣接して出現する
+    # Spine rig視線パラメータ (character_display)、timeScale/springEnable/
+    # add/moPartはアニメーション再生速度・spring boneコライダー・
+    # アニメーションレイヤートグル・モーションパーツ速度と実データで確認
+    # できたモーション/物理系 (motion、既存の"@SpringBone/*"="motion"等と
+    # 揃える)、残りは"func"(ui_camera/ui_massage等が同一トークンに混在する
+    # 汎用ディスパッチャ)・"log"(デバッグ出力)・"init"(postProcess/非カメラ
+    # 文脈の両方に出現し一意に分類不能)を含め、文脈依存または判断に迷う
+    # ものとして安全側デフォルトのsystemへ分類した
+    # (agents/parser/tokenizer.py の KEYWORD_TOKENS と対で追加)。
+    "spine": "character_display",
+    "eye": "character_display",
+    "hlook": "character_display",
+    "timeScale": "motion",
+    "springEnable": "motion",
+    "add": "motion",
+    "moPart": "motion",
+    "func": "system",
+    "log": "system",
+    "init": "system",
+    "setup": "system",
+    "skin": "system",
+    "segment": "system",
+    "cset": "system",
+    "rdrawMat": "system",
+    "acc": "system",
+    "oneAuto": "system",
 }
 
 # 表記ゆれ → 正規化

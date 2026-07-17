@@ -218,6 +218,29 @@ class Tokenizer:
             "duplication",
             "shadow",
             "caemra",
+            # bare-word-parameter-token-batch-002: 上記14種+表記ゆれ1種の
+            # 登録では機械分類できず「要判断」のまま残っていた残り17種
+            # (Character_Story_ID_Manifest_Design.md §9.1.2の1、実測32種の
+            # 残部)。config/script_commands.yaml の stage_direction、
+            # agents/parser/parser.py の DIRECTION_TYPE_MAP と対にして
+            # 追加すること。
+            "spine",
+            "eye",
+            "hlook",
+            "timeScale",
+            "springEnable",
+            "add",
+            "moPart",
+            "func",
+            "log",
+            "init",
+            "setup",
+            "skin",
+            "segment",
+            "cset",
+            "rdrawMat",
+            "acc",
+            "oneAuto",
         }
     )
 

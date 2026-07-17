@@ -966,24 +966,82 @@ def test_bare_word_parameter_token_registration_case_variant_normalizes_to_camer
     assert block.direction_type == "camera"
 
 
-def test_bare_word_parameter_tokens_left_unregistered_remain_unknown():
-    """Character_Story_ID_Manifest_Design.md §9.1.2の1の実測32種のうち、
-    カメラ/ポストエフェクト系として機械分類できず未登録のままとした
-    代表例 (spine/eyeはSpine rig系、funcはui_camera/ui_massage等意味が
-    分岐する汎用ディスパッチャ、initはpostProcessブロックと非カメラ
-    文脈の両方に出現するため一意に分類不能) が、引き続きunknownブロック
-    として保持されること (不破棄不変則、AI_CONTEXT.md §13.3) を確認する。"""
+# ----------------------------------------------------------------
+# 裸単語パラメータトークン残り17種
+# (bare-word-parameter-token-batch-002、
+# Character_Story_ID_Manifest_Design.md §9.1.2の1)
+# ----------------------------------------------------------------
+
+
+def test_bare_word_parameter_token_batch_002_becomes_stage_direction():
+    """PR #153で「要判断」のまま未登録とした残り17種が、unknownでは
+    なくstage_directionとして正しいdirection_typeに分類されることを
+    確認する。分類はFable決定(2026-07-17)に基づく安全側割り当て
+    (character_display=spine/eye/hlook、motion=timeScale/springEnable/
+    add/moPart、system=それ以外)。"""
     script = """spine 0
 eye 0,0
-func ui_massage breast1
-init
+hlook false
+timeScale -1 1.2
 springEnable\tF_L_ribbon\tfalse
+add 0 animation3 true 0
+moPart speed $common0
+func ui_massage breast1
+log --------------------HighGraphicsFlag:$value7
+init
+setup 0
+skin normal face/H02
+segment\tEye\ttrue $target(Unique,0,Head)
+cset\ti 999 neck\t1,1,1\tmind\t2\ttall\t4\theadBlueMan30/hair30\t-
+rdrawMat tatoo1 keep_alpha 0 @,@,@,@\t@,@,@,1
+acc\t1\twset\tChara/Parts/Accessory/body564_0_acc\t@body564_0_acc\tbody564_0_acc_0
+oneAuto
 """
     parser = StoryParser(preserve_stage_directions=True)
     result = parser.parse_text(script)
     scene = result.episodes[0].scenes[0]
 
-    assert len(scene.blocks) == 5
+    assert len(scene.blocks) == 17
+    for block in scene.blocks:
+        assert block.block_type == "stage_direction"
+
+    expected = [
+        ("spine", "character_display"),
+        ("eye", "character_display"),
+        ("hlook", "character_display"),
+        ("timeScale", "motion"),
+        ("springEnable", "motion"),
+        ("add", "motion"),
+        ("moPart", "motion"),
+        ("func", "system"),
+        ("log", "system"),
+        ("init", "system"),
+        ("setup", "system"),
+        ("skin", "system"),
+        ("segment", "system"),
+        ("cset", "system"),
+        ("rdrawMat", "system"),
+        ("acc", "system"),
+        ("oneAuto", "system"),
+    ]
+    pairs = zip(scene.blocks, expected, strict=True)
+    for block, (raw_command, direction_type) in pairs:
+        assert block.raw_command == raw_command
+        assert block.direction_type == direction_type
+
+
+def test_bare_word_parameter_tokens_left_unregistered_remain_unknown():
+    """PR #153・本PRいずれの登録対象にも含まれない合成裸単語行
+    (実データ由来ではない) が、引き続きunknownブロックとして保持
+    されること (不破棄不変則、AI_CONTEXT.md §13.3) の無回帰を確認する。"""
+    script = """synthUnregisteredBareWordAlpha 0
+synthUnregisteredBareWordBeta true
+"""
+    parser = StoryParser(preserve_stage_directions=True)
+    result = parser.parse_text(script)
+    scene = result.episodes[0].scenes[0]
+
+    assert len(scene.blocks) == 2
     for block in scene.blocks:
         assert block.block_type == "unknown"
 
