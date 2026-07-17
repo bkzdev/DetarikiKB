@@ -197,6 +197,8 @@ confirmedMappings:
 
 このパケットの人間確認が完了した後は、確認済みエントリを既存の`character-dictionary-confirmed-batch-005`（PR実績）に続く**confirmed batch 006相当**として、`knowledge/dictionaries/characters.yaml`へ登録する後続PRを起票する（§9「人間確認済みmappingだけcommitするルール」に従う）。残る867件の誤検出（話者に束縛されない`$numX`/`$valueX`代入）については、この辞書登録とは別に、checker側の消費文脈ベース判定への修正PRで解消する。
 
+**帰結（2026-07-18ユーザー確認完了・`character-dictionary-confirmed-batch-006`）**: パケット6件のうち3件（sourceCharacterId `601`/`600`/`71`）は人間が実データを確認した上でconfirmed化し、`knowledge/dictionaries/characters.yaml`へconfirmed batch 006として登録した。残り3件（`40286`/`40287`/`40364`）は、ユーザーが実ファイルを確認した結果、話者IDではなく`ch N`+`costume <衣装ID> <キャラID>`形式の第1引数（衣装ID）であり、話者に見えていたのはresolverの`$numX→slot X`自動バインドと当該パターンの衝突による誤帰属と判明したため、辞書へは登録しない。この誤帰属自体の修正（`ch`+`costume`のスロット束縛意味論の実装）はBacklog `parser-auto-bind-non-speaker-slot-review`の後続実装として別PRで対応する。
+
 ---
 
 # 13. 関連ドキュメント

@@ -265,6 +265,12 @@ characters:
     aliases: []
     status: "confirmed"
     notes: "review packet batch 003で人間確認済み。"
+  - sourceCharacterId: "71"
+    characterId: "CHAR_071_EMI"
+    displayName: "恵美"
+    aliases: []
+    status: "confirmed"
+    notes: "エミットの変装姿（同一人物）。ユーザー確認 2026-07-18"
   - sourceCharacterId: "80"
     characterId: "CHAR_080_HIWA_SEKI"
     displayName: "比和せき"
@@ -1123,3 +1129,15 @@ characters:
     aliases: []
     status: "confirmed"
     notes: null
+  - sourceCharacterId: "600"
+    characterId: "CHAR_600_KURO_MITO"
+    displayName: "黒美兎"
+    aliases: []
+    status: "confirmed"
+    notes: "ジャマーが水野美兎に変身した姿。シャンドラとは無関係。ユーザー確認 2026-07-18"
+  - sourceCharacterId: "601"
+    characterId: "CHAR_601_SYANDRA_TAICHO"
+    displayName: "隊長"
+    aliases: []
+    status: "confirmed"
+    notes: "シャンドラコラボの来訪主人公（隊長）。ユーザー確認 2026-07-18"
