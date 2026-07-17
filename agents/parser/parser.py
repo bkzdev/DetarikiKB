@@ -479,6 +479,11 @@ class EpisodeData:
     # non_speaker_numeric_assignment_idsから転記。#141のcheckerと同じ
     # 消費文脈ベース分類の(b)側。判定には影響しない情報保持用)
     non_speaker_numeric_assignment_ids: set[str] = field(default_factory=set)
+    # ID形式でない (非リテラル) sourceCharacterId文字列
+    # (feature/non-literal-character-id-handling、SpeakerResolver.
+    # non_literal_speaker_expressionsから転記。sourceCharacterId ->
+    # 話者スロットとして実消費されたか。§9.1.2発見③の解消)
+    non_literal_speaker_expressions: dict[str, bool] = field(default_factory=dict)
     scenes: list[SceneData] = field(default_factory=list)
 
 
@@ -1067,6 +1072,9 @@ class StoryParser:
         episode.unresolved_character_ids = resolver.unresolved_character_ids
         episode.non_speaker_numeric_assignment_ids = (
             resolver.non_speaker_numeric_assignment_ids
+        )
+        episode.non_literal_speaker_expressions = (
+            resolver.non_literal_speaker_expressions
         )
 
         return result

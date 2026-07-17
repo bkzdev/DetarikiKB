@@ -8,12 +8,36 @@ Phase 5 (Parser_Implementation_Plan.md)
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from .speaker_labels import SpeakerLabelAnalysis
+
+# sourceCharacterIdとして妥当な「ID形式」(数字のみ) の正規表現。
+# knowledge/dictionaries/characters.yamlの全confirmedエントリのsourceCharacterId
+# が数字のみの文字列であることを前提とする
+# (Character_Story_ID_Manifest_Design.md §9.1.2発見③の根本原因調査で確認)。
+_CHARACTER_ID_FORMAT = re.compile(r"^\d+$")
+
+
+def _is_literal_character_id(value: str) -> bool:
+    """sourceCharacterIdがID形式 (数字のみ) かどうかを判定する。
+
+    tokenizer.pyのVARIABLE_PATTERN ($numX=/$valueX=) はRHS全体を`\\S+`として
+    緩く捕捉する (カメラ座標等の$valueX代入をそのまま保持するための意図的な
+    設計。スロット自動バインド挙動自体の変更は本関数のスコープ外、Backlog
+    「parser-auto-bind-non-speaker-slot-review」参照)。このため、
+    `$num1 = $split(0,$value11)`のような未評価の関数呼び出し式や、
+    `$value0 = 11.2,-7.7,-24`のような座標様の数値列(カンマ区切り)が、
+    そのままsource_character_idへ渡ってくることがある。
+    これらはID形式ではないため未登録キャラクターID候補として扱わない
+    (`_resolve_character_id`参照)。
+    """
+    return bool(_CHARACTER_ID_FORMAT.match(value))
+
 
 # ----------------------------------------------------------------
 # Speaker データクラス
@@ -293,6 +317,17 @@ class SpeakerResolver:
         # Speakerの内容自体はこのシグナル記録によって一切変化しない。
         self._unresolved_char_id_signals: dict[str, dict[str, bool]] = {}
 
+        # 非ID形式 (非リテラル) のsourceCharacterId文字列の消費文脈シグナル
+        # (feature/non-literal-character-id-handling、
+        # Character_Story_ID_Manifest_Design.md §9.1.2発見③の解消)。
+        # `_unresolved_char_id_signals`と同じ{speaker, hasOccurrence}構造だが、
+        # `_is_literal_character_id`がFalseを返す値 (関数呼び出し式・座標様
+        # 数値列等) はこちらへ分離して記録する。不破棄不変則により削除は
+        # せず、compatibilityReport.nonLiteralSpeakerExpressions
+        # (unknownCharacterIds/nonSpeakerNumericAssignmentsとは別の情報
+        # フィールド) として保持する。
+        self._non_literal_speaker_expression_signals: dict[str, dict[str, bool]] = {}
+
     # ----------------------------------------------------------------
     # 割り当てメソッド
     # ----------------------------------------------------------------
@@ -453,7 +488,12 @@ class SpeakerResolver:
         """
         speaker = self._slot_map.get(str(slot), Speaker.unknown(slot=str(slot)))
         if not speaker.is_resolved and speaker.source_character_id is not None:
-            sig = self._unresolved_char_id_signals.setdefault(
+            signals = (
+                self._unresolved_char_id_signals
+                if _is_literal_character_id(speaker.source_character_id)
+                else self._non_literal_speaker_expression_signals
+            )
+            sig = signals.setdefault(
                 speaker.source_character_id,
                 {"speaker": False, "hasOccurrence": False},
             )
@@ -522,8 +562,16 @@ class SpeakerResolver:
                 is_resolved=True,
             )
         else:
-            # 未登録キャラクターID: 消費文脈シグナルを更新する
-            sig = self._unresolved_char_id_signals.setdefault(
+            # 未登録キャラクターID: 消費文脈シグナルを更新する。
+            # ID形式 (数字のみ) でない値 ($split(...)等の未評価式・座標様
+            # 数値列) は、未登録キャラクターID候補ではないため別バケットへ
+            # 分離する (§9.1.2発見③、_is_literal_character_id参照)。
+            signals = (
+                self._unresolved_char_id_signals
+                if _is_literal_character_id(source_character_id)
+                else self._non_literal_speaker_expression_signals
+            )
+            sig = signals.setdefault(
                 source_character_id, {"speaker": False, "hasOccurrence": False}
             )
             if has_occurrence:
@@ -568,6 +616,29 @@ class SpeakerResolver:
             cid
             for cid, sig in self._unresolved_char_id_signals.items()
             if sig["hasOccurrence"] and not sig["speaker"]
+        }
+
+    @property
+    def non_literal_speaker_expressions(self) -> dict[str, bool]:
+        """ID形式 (数字のみ) でないsourceCharacterId文字列
+        (`$split(...)`等の未評価の関数呼び出し式・座標様の数値列等)。
+
+        `unresolved_character_ids`/`non_speaker_numeric_assignment_ids`とは
+        独立した軸 (「ID形式かどうか」) での分類であり、これらの値は
+        未登録キャラクターID候補として`compatibilityReport.
+        unknownCharacterIds`/`nonSpeakerNumericAssignments`へは計上しない
+        (Character_Story_ID_Manifest_Design.md §9.1.2発見③)。
+        「不明情報を破棄しない」不変則により削除はせず、
+        `compatibilityReport.nonLiteralSpeakerExpressions`として保持する。
+        戻り値: sourceCharacterId文字列 -> 話者スロットとして実際に消費
+        されたか (True/False)。代入行から直接値を取得できなかった
+        (hasOccurrence=False) ものはchecker側の`occurrences`空判定と同様
+        対象外とする。
+        """
+        return {
+            cid: sig["speaker"]
+            for cid, sig in self._non_literal_speaker_expression_signals.items()
+            if sig["hasOccurrence"]
         }
 
     # ----------------------------------------------------------------

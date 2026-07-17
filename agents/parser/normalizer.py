@@ -233,6 +233,22 @@ class Normalizer:
             for cid in ep.non_speaker_numeric_assignment_ids:
                 non_speaker_numeric_assignments.append({"sourceCharacterId": cid})
 
+        # ID形式でない (非リテラル) sourceCharacterId文字列
+        # ($split(...)等の未評価の関数呼び出し式・座標様の数値列等)。
+        # 未登録キャラクターID候補ではないため、unknownCharacterIds/
+        # nonSpeakerNumericAssignmentsとは別の情報フィールドとして保持する
+        # (feature/non-literal-character-id-handling、
+        # Character_Story_ID_Manifest_Design.md §9.1.2発見③)。
+        non_literal_speaker_expressions: list[dict] = []
+        for ep in parse_result.episodes:
+            for cid, consumed_as_speaker in ep.non_literal_speaker_expressions.items():
+                non_literal_speaker_expressions.append(
+                    {
+                        "sourceCharacterId": cid,
+                        "consumedAsSpeaker": consumed_as_speaker,
+                    }
+                )
+
         # unknown commands
         unknown_cmds: list[dict] = []
         for cmd, count in parse_result.unknown_commands.items():
@@ -271,6 +287,7 @@ class Normalizer:
             "newSpeechCommands": new_speech_cmds,
             "unknownCharacterIds": unresolved_ids,
             "nonSpeakerNumericAssignments": non_speaker_numeric_assignments,
+            "nonLiteralSpeakerExpressions": non_literal_speaker_expressions,
             "controlCharsRemoved": parse_result.control_chars_removed,
         }
 

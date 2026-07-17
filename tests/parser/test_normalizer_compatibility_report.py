@@ -204,6 +204,111 @@ costume 2
     assert report["parserCompatibility"] == "warning"
 
 
+# ----------------------------------------------------------------
+# ID形式でない (非リテラル) sourceCharacterId文字列の分離
+# (feature/non-literal-character-id-handling、
+# Character_Story_ID_Manifest_Design.md §9.1.2発見③の解消)
+# ----------------------------------------------------------------
+
+
+def test_compatibility_report_classifies_non_literal_function_call_expression():
+    """$numX = $split(...) のような未評価の関数呼び出し式が話者消費された
+    場合、unknownCharacterIdsへは入らずnonLiteralSpeakerExpressionsへ
+    consumedAsSpeaker=trueで分類され、parserCompatibilityへは影響しない
+    こと。再現条件: data/raw/character配下のH_scene系で確認した
+    `$num1 = $split(0,$value11)` -> `@ScenarioCosLoad 1 $num1 ... ON` ->
+    `@ChTalk 1 ...`のパターン。"""
+    script = """$num1 = $split(0,$value11)
+@ScenarioCosLoad 1 $num1
+@ChTalk 1
+セリフ
+"""
+    parser = StoryParser()
+    parse_result = parser.parse_text(script)
+    normalizer = Normalizer(
+        story_id="TEST_NON_LITERAL_FUNCTION_CALL", story_category="OTHER"
+    )
+    story_json = normalizer.normalize(parse_result)
+
+    report = story_json["compatibilityReport"]
+    assert report["unknownCharacterIds"] == []
+    assert report["nonSpeakerNumericAssignments"] == []
+    assert report["nonLiteralSpeakerExpressions"] == [
+        {"sourceCharacterId": "$split(0,$value11)", "consumedAsSpeaker": True}
+    ]
+    assert report["parserCompatibility"] == "compatible"
+
+
+def test_compatibility_report_classifies_non_literal_coordinate_like_expression():
+    """$valueX = 11.2,-7.7,-24 のような座標様の数値列も同様に
+    nonLiteralSpeakerExpressionsへ分類されること。再現条件: data/raw/
+    character配下で確認した`$value0 = 11.2,-7.7,-24` (num系が一切無い
+    ファイルでの自動slot 0束縛) -> `@ChTalk 0 ...`のパターン。"""
+    script = """$value0 = 11.2,-7.7,-24
+@ChTalk 0
+セリフ
+"""
+    parser = StoryParser()
+    parse_result = parser.parse_text(script)
+    normalizer = Normalizer(
+        story_id="TEST_NON_LITERAL_COORDINATE", story_category="OTHER"
+    )
+    story_json = normalizer.normalize(parse_result)
+
+    report = story_json["compatibilityReport"]
+    assert report["unknownCharacterIds"] == []
+    assert report["nonSpeakerNumericAssignments"] == []
+    assert report["nonLiteralSpeakerExpressions"] == [
+        {"sourceCharacterId": "11.2,-7.7,-24", "consumedAsSpeaker": True}
+    ]
+    assert report["parserCompatibility"] == "compatible"
+
+
+def test_compatibility_report_non_literal_expression_not_consumed_as_speaker():
+    """非リテラル式が代入されただけで話者スロットとして消費されない場合は
+    consumedAsSpeaker=falseで記録され、parserCompatibilityには影響しない
+    こと。"""
+    script = """$value1 = 1.5,-2.5,-3.5
+costume 1
+"""
+    parser = StoryParser()
+    parse_result = parser.parse_text(script)
+    normalizer = Normalizer(
+        story_id="TEST_NON_LITERAL_NOT_CONSUMED", story_category="OTHER"
+    )
+    story_json = normalizer.normalize(parse_result)
+
+    report = story_json["compatibilityReport"]
+    assert report["unknownCharacterIds"] == []
+    assert report["nonSpeakerNumericAssignments"] == []
+    assert report["nonLiteralSpeakerExpressions"] == [
+        {"sourceCharacterId": "1.5,-2.5,-3.5", "consumedAsSpeaker": False}
+    ]
+    assert report["parserCompatibility"] == "compatible"
+
+
+def test_compatibility_report_numeric_id_regression_unaffected_by_non_literal_split():
+    """数値ID経路 (既存の消費文脈ベース分類、unknownCharacterIds/
+    nonSpeakerNumericAssignments) は、非リテラル式の分離ロジック追加に
+    よって一切影響を受けないこと (無回帰)。"""
+    script = """$num0 = 40286
+@ChTalk 0
+セリフ
+"""
+    parser = StoryParser()
+    parse_result = parser.parse_text(script)
+    normalizer = Normalizer(
+        story_id="TEST_NUMERIC_ID_REGRESSION", story_category="OTHER"
+    )
+    story_json = normalizer.normalize(parse_result)
+
+    report = story_json["compatibilityReport"]
+    assert report["unknownCharacterIds"] == [{"sourceCharacterId": "40286"}]
+    assert report["nonSpeakerNumericAssignments"] == []
+    assert report["nonLiteralSpeakerExpressions"] == []
+    assert report["parserCompatibility"] == "warning"
+
+
 def test_compatibility_report_missing_config_file_falls_back_gracefully(tmp_path):
     """指定したcommands_config_pathが存在しない場合でも例外を投げず、
     newSpeechCommandsは空 (hints無し) のまま処理を継続する。"""
