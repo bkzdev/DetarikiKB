@@ -448,21 +448,51 @@ caemra 0
     assert embedded["newSpeechCommands"] == set()
 
 
+def test_bare_word_parameter_token_batch_002_not_unknown_on_either_path(tmp_path):
+    """bare-word-parameter-token-batch-002 (Character_Story_ID_Manifest_
+    Design.md §9.1.2の1) で「要判断」のまま未登録だった残り17種が、
+    登録後はどちらの経路でもunknownCommandsに現れないこと (両経路の
+    対称性) を確認する。"""
+    script = """spine 0
+eye 0,0
+hlook false
+timeScale -1 1.2
+springEnable\tF_L_ribbon\tfalse
+add 0 animation3 true 0
+moPart speed $common0
+func ui_massage breast1
+log --------------------HighGraphicsFlag:$value7
+init
+setup 0
+skin normal face/H02
+segment\tEye\ttrue $target(Unique,0,Head)
+cset\ti 999 neck\t1,1,1\tmind\t2\ttall\t4\theadBlueMan30/hair30\t-
+rdrawMat tatoo1 keep_alpha 0 @,@,@,@\t@,@,@,1
+acc\t1\twset\tChara/Parts/Accessory/body564_0_acc\t@body564_0_acc\tbody564_0_acc_0
+oneAuto
+"""
+    standalone, embedded = _run_both_paths(tmp_path, script)
+
+    assert standalone["unknownCommands"] == set()
+    assert embedded["unknownCommands"] == set()
+    assert standalone["newSpeechCommands"] == set()
+    assert embedded["newSpeechCommands"] == set()
+
+
 def test_bare_word_parameter_tokens_left_unregistered_still_unknown_on_embedded_path(
     tmp_path,
 ):
-    """Character_Story_ID_Manifest_Design.md §9.1.2の1で未登録のまま
-    (要判断) とした裸単語パラメータトークンの代表例が、実parser側では
-    引き続きunknownCommandsに現れること (不破棄不変則) を確認する。
+    """PR #153・本PRいずれの登録対象にも含まれない合成裸単語行
+    (実データ由来ではない) が、実parser側では引き続きunknownCommandsに
+    現れること (不破棄不変則) の無回帰を確認する。
 
     standalone checker側は既存の非対称性 (is_command_lineが@/$接頭辞
     または既知コマンド集合のみを対象とするため、未登録の裸単語行自体を
     コマンド行として検出しない) により、これらの行を報告しない。この
     既存の非対称性自体は本PRのスコープ外 (TASKS.md Known Issues参照)
     であり、embedded側の不破棄不変則のみを確認する。"""
-    script = """spine 0
-eye 0,0
-init
+    script = """synthUnregisteredBareWordAlpha 0
+synthUnregisteredBareWordBeta true
 """
     parser = StoryParser()
     parse_result = parser.parse_text(script)
@@ -475,9 +505,8 @@ init
     report = story_json["compatibilityReport"]
 
     assert {c["command"] for c in report["unknownCommands"]} == {
-        "spine",
-        "eye",
-        "init",
+        "synthUnregisteredBareWordAlpha",
+        "synthUnregisteredBareWordBeta",
     }
 
 

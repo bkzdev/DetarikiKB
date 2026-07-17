@@ -340,6 +340,32 @@ stage_direction:
   - "layer"                     # カメラ/ポストプロセスレイヤー切替
   - "duplication"               # カメラ設定直後の複製演出トグル
   - "shadow"                    # シャドウタイプ設定 (camera設定ブロック内)
+  # bare-word-parameter-token-batch-002: 上記14種+表記ゆれ1種の登録では
+  # 機械分類できず「要判断」のまま残っていた残り17種 (Character_Story_ID_
+  # Manifest_Design.md §9.1.2の1、実測32種の残部)。Fable決定(2026-07-17)
+  # によりカメラ/screen系との断定を待たず全種を安全側でstage_directionへ
+  # 登録し、direction_typeはPR #153の前例(分類が割れるものは安全側)を適用
+  # して機械的に割り当てる (character_display=視線・rig、motion=モーション/
+  # 物理系と確認できたもの、system=汎用・文脈依存系および判断に迷うものの
+  # 安全側デフォルト)。agents/parser/tokenizer.py の KEYWORD_TOKENS、
+  # agents/parser/parser.py の DIRECTION_TYPE_MAP と対で追加。
+  - "spine"                     # Spine rigボーン/パーツ指定 (character_display)
+  - "eye"                       # 視線座標 (spine直後に常時出現、character_display)
+  - "hlook"                     # 頭部視線追従トグル (character_display)
+  - "timeScale"                 # アニメーション再生速度 (motion)
+  - "springEnable"              # spring boneコライダー有効/無効 (リボン等、motion)
+  - "add"                       # アニメーションレイヤー追加/トグル (motion)
+  - "moPart"                    # モーションパーツ速度指定 (motion)
+  - "func"                      # 汎用ディスパッチャ (ui_camera/ui_massage等混在、system)
+  - "log"                       # デバッグログ出力 (system)
+  - "init"                      # 汎用初期化 (postProcess/非カメラ文脈の両方に出現、system)
+  - "setup"                     # 汎用セットアップ (文脈依存、system)
+  - "skin"                      # 顔/体テクスチャ切替 (system)
+  - "segment"                   # segmentCorrection直後の継続パラメータ (system)
+  - "cset"                      # キャラクターコスチューム/パーツ一括指定 (system)
+  - "rdrawMat"                  # マテリアル描画パラメータ (タトゥー等、system)
+  - "acc"                       # アクセサリ装着 (system)
+  - "oneAuto"                   # 単発自動演出フラグ (system)
 
 # ----------------------------------------------------------------
 # ignored: 無視する行・コマンド

@@ -217,18 +217,60 @@ class TestRealDataStageDirectionKeywords:
     @pytest.mark.parametrize(
         "line,expected_command",
         [
-            # Character_Story_ID_Manifest_Design.md §9.1.2の1の実測32種の
-            # うち、カメラ/ポストエフェクト系として機械分類できず未登録の
-            # ままとした代表例 (spine/eyeはSpine rig系、funcはui_camera/
-            # ui_massage等意味が分岐する汎用ディスパッチャ、initは
-            # postProcessブロックと非カメラ文脈の両方に出現するため
-            # 一意に分類不能)。UNKNOWNのまま維持されることを確認する
-            # (不破棄不変則、AI_CONTEXT.md §13.3)。
+            # bare-word-parameter-token-batch-002: PR #153で「要判断」の
+            # まま未登録とした残り17種 (Character_Story_ID_Manifest_
+            # Design.md §9.1.2の1、実測32種の残部)。Fable決定
+            # (2026-07-17) によりcharacter_display/motion/systemへ安全側
+            # 登録し、UNKNOWNではなくKEYWORDとして認識されることを確認
+            # する。
             ("spine 0\n", "spine"),
             ("eye 0,0\n", "eye"),
-            ("func ui_massage breast1\n", "func"),
-            ("init\n", "init"),
+            ("hlook false\n", "hlook"),
+            ("timeScale -1 1.2\n", "timeScale"),
             ("springEnable\tF_L_ribbon\tfalse\n", "springEnable"),
+            ("add 0 animation3 true 0\n", "add"),
+            ("moPart speed $common0\n", "moPart"),
+            ("func ui_massage breast1\n", "func"),
+            ("log --------------------HighGraphicsFlag:$value7\n", "log"),
+            ("init\n", "init"),
+            ("setup 0\n", "setup"),
+            ("skin normal face/H02\n", "skin"),
+            ("segment\tEye\ttrue $target(Unique,0,Head)\n", "segment"),
+            (
+                "cset\ti 999 neck\t1,1,1\tmind\t2\ttall\t4\t"
+                "headBlueMan30/hair30\t-\tfaceBlueMan30/face30\t-\t"
+                "bodyblue30_0_0/bodyblue17_0_0Naked\t-\n",
+                "cset",
+            ),
+            (
+                "rdrawMat tatoo1 keep_alpha 0 @,@,@,@\t@,@,@,1\n",
+                "rdrawMat",
+            ),
+            (
+                "acc\t1\twset\tChara/Parts/Accessory/body564_0_acc\t"
+                "@body564_0_acc\tbody564_0_acc_0\n",
+                "acc",
+            ),
+            ("oneAuto\n", "oneAuto"),
+        ],
+    )
+    def test_bare_word_parameter_token_batch_002_is_keyword(
+        self, line, expected_command
+    ):
+        tokens = tokenize_text(line)
+        assert len(tokens) == 1
+        assert tokens[0].token_type == TokenType.KEYWORD
+        assert tokens[0].command == expected_command
+
+    @pytest.mark.parametrize(
+        "line,expected_command",
+        [
+            # PR #153・本PRいずれの登録対象にも含まれない合成裸単語行
+            # (実データ由来ではない)。未登録の裸単語行がUNKNOWNのまま
+            # 維持されること (不破棄不変則、AI_CONTEXT.md §13.3) の無回帰
+            # を確認する。
+            ("synthUnregisteredBareWordAlpha 0\n", "synthUnregisteredBareWordAlpha"),
+            ("synthUnregisteredBareWordBeta true\n", "synthUnregisteredBareWordBeta"),
         ],
     )
     def test_bare_word_parameter_tokens_left_unregistered_remain_unknown(
