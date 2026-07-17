@@ -237,10 +237,29 @@ Wiki生成（`agents/wiki_generator/`）・Public Evidence Index promotion（`kn
 
 `character-story-id-manifest-design`の設計にあたり実施した`data/raw/character/`ファイル種別全量調査（2,419件、`.gitkeep`除く）で、本文書がこれまで扱ってきたH_sceneN本体・変種・純コマンド演出ファイルの分類に含まれない種別が新たに見つかった。いずれも本文書では決定しない。
 
-- **`episodeN_n`（13件）・`episode_osawariN_start_n`（3件）**: 本編episode系（`episodeN`/純コマンド`episode_osawariN_start`）にも`_n`接尾辞の変種が存在することが判明した。§5.3の全量検証対象はH_scene変種（`H_sceneN`基準の`_n`/`_VR`/`_spine`/`#N`）のみであり、本編episode側の`_n`変種は未検証である。本編episodeは公開対象（軸(B)=Yes、§6）であるため、もしこちら側にも本体との非部分集合関係が存在した場合、内部取り込みだけでなく**公開スコープ判断**（Wiki出力・Evidence Index promotionに変種内容を含めるか）も絡む。H_sceneと同じ動的部分集合判定を適用するかどうかは未決。
+- **`episodeN_n`（13件）・`episode_osawariN_start_n`（3件）**: 本編episode系（`episodeN`/純コマンド`episode_osawariN_start`）にも`_n`接尾辞の変種が存在することが判明した。§5.3の全量検証対象はH_scene変種（`H_sceneN`基準の`_n`/`_VR`/`_spine`/`#N`）のみであり、本編episode側の`_n`変種は未検証だった（2026-07-17に§5.6.1で検証実施・結果確定。**スコープ決定自体は本文書ではまだ行わない**）。本編episodeは公開対象（軸(B)=Yes、§6）であるため、もしこちら側にも本体との非部分集合関係が存在した場合、内部取り込みだけでなく**公開スコープ判断**（Wiki出力・Evidence Index promotionに変種内容を含めるか）も絡む。H_sceneと同じ動的部分集合判定を適用するかどうかは未決。
 - **特殊ファイル群**: `H_sceneN_img`（7件）・`H_scene_test`（1件）・`H_scene_s_tutorial`（1件）・`PinkMan`/`idolVR`/`position`/`talk`/`start`等（既知件数、§4.1参照）。§5.1（純コマンド演出ファイルの扱い）と同じ未決バケットとして扱う。`story_manifest.yaml`側では`fileRole: other`または`direction`で記録するのみとし（`Character_Story_ID_Manifest_Design.md` §8.1）、内部KB対象化・公開スコープの判断はいずれも保留する。
 
 詳細な件数・パターン一覧は`docs/architecture/05_Parser/Character_Story_ID_Manifest_Design.md` §3・§10を参照。
+
+### 5.6.1 本編episode系`_n`変種の部分集合性検証（`episode-n-variant-subset-verification-dry-run`、2026-07-17実施・結果確定）
+
+上記で未検証だった`episodeN_n`（13件）・`episode_osawariN_start_n`（3件）について、それぞれ対応する本体（`episodeN`／`episode_osawariN_start`）に対する部分集合性を機械検証した（**docs-only扱いのdry-run PR、`agents/parser/`・`scripts/`本体の変更なし、H_scene変種検証§5.3・PR Dと同一の比較手法を再利用**: 発話系コマンド（`@ChTalk`系+`@SpineTalk`+既知表記ゆれ）が参照するvoice/textアセットpath＋正規化日本語TEXT行の集合。判定ロジック自体は`agents/parser/hscene_variant_judgment.py`の`extract_identifier_set`/`judge_subset`をそのまま再利用し、新規の判定ロジックは実装していない。ファイル名パターン認識（`episodeN_n`/`episode_osawariN_start_n`の検出）のみを検証スクリプト側で追加した）。
+
+**結果**:
+
+| パターン | 検証件数 | 部分集合成立 | 例外 | 孤立変種（対応本体なし） |
+|---|---|---|---|---|
+| `episode_osawariN_start_n` | 3 | 3 (100%) | 0 (0%) | 0 |
+| `episodeN_n` | 13 | — | — | 13 (100%) |
+
+- **`episode_osawariN_start_n`（3件）**: 全件が対応する`episode_osawariN_start`本体の完全な部分集合として成立した（例外0件）。識別子集合は空ではなく（発話コマンド由来の識別子を含む）、「空集合ゆえに自明に部分集合」ではなく実内容の包含関係として確認できた。
+- **`episodeN_n`（13件）**: 全13件で、ファイル名から機械的に期待される対応本体（`episodeN`、同一ディレクトリ内の同番号ファイル）が**一件も存在しなかった**（孤立変種、§5.3と同じ「黙って除外しない」方針により報告する）。13件はすべて同一の番号を共有している。
+  - **補足検証**（同じ比較手法をそのまま適用、新規ロジックなし）: この孤立変種13件は、同一ディレクトリ内に存在する**同番号のH_sceneN本体**（`03_Scope.md` §4のH_scene系の一部）に対しては、全13件（100%）が完全な部分集合であることを確認した。すなわち、これら13件は命名上`episode`接頭辞を持つものの、内容面ではH_scene系識別子集合に完全に包含される。
+
+**示唆（決定ではない）**: 上記の補足検証結果は、`episodeN_n`13件が実質的にH_scene系コンテンツの命名上の例外（`episode`接頭辞を持つがH_scene系本体に内容が包含される）である可能性を示している。もしこの解釈が採用されれば、H_scene系と同じtwo-tier方針（軸(A)内部KB対象・軸(B)公開対象外）の対象として扱ってよい可能性が高く、`episodeN_n`について新たに公開スコープ判断を要しない可能性がある。`episode_osawariN_start_n`（3件）は例外0件・部分集合完全成立のため、H_scene変種検証における`_VR`と同様（§5.3・§5.5）に、対応本体のみを取り込み対象とし変種は一律対象外としてよい可能性が高い。**いずれも本節では決定しない**（§5.6の「未決」ステータスは維持する。決定は後続タスク`episode-n-variant-scope-decision`で行う）。
+
+検証成果物（実ファイル名・実キャラクター識別子を含む詳細一覧）は`workspace/local_inputs/episode_n_variant_subset_check.py`・`episode_n_variant_subset_verification.md`・同`.json`（いずれも非commit）を参照。
 
 ---
 

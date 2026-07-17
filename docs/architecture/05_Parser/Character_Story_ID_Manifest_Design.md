@@ -326,9 +326,11 @@ Phase 1の「1ファイル=1episode」前提を維持する。`03_Scope.md` §5.
 
 ## 10.1 本編episodeの`_n`変種（新発見）
 
-`episodeN_n` 13件・`episode_osawariN_start_n` 3件（§3.3）。本編episode系にも`_n`変種が存在することが新たに判明した。`03_Scope.md` §5.3の検証対象はH_scene変種のみであり、本編episodeの`_n`変種は未検証である。
+`episodeN_n` 13件・`episode_osawariN_start_n` 3件（§3.3）。本編episode系にも`_n`変種が存在することが新たに判明した。`03_Scope.md` §5.3の検証対象はH_scene変種のみであり、本編episodeの`_n`変種は未検証だった。
 
 本編episodeは公開対象（軸(B)=Yes、`03_Scope.md` §6）であるため、もし本編episode側にも部分集合関係が成立しない例外が存在した場合、内部取り込みだけでなく**公開スコープ判断**（Wiki出力・Evidence Index promotionに変種内容を含めるか）も絡む。H_sceneと同じ動的部分集合判定を適用するかどうかは未決とする。
+
+**検証結果（`episode-n-variant-subset-verification-dry-run`、2026-07-17実施・結果確定、詳細は`03_Scope.md` §5.6.1）**: `episode_osawariN_start_n`（3件）は全件が対応本体の完全な部分集合として成立した（例外0件）。`episodeN_n`（13件）は、ファイル名から期待される対応本体（`episodeN`）が全13件で一件も存在しない孤立変種だったが、補足検証（同一手法の適用範囲拡張）で全13件が同ディレクトリの同番号H_sceneN本体に対して完全な部分集合であることを確認した。この結果は、`episodeN_n`13件が実質的にH_scene系コンテンツの命名上の例外である可能性、`episode_osawariN_start_n`は`_VR`同様に変種を一律対象外としてよい可能性を示唆するが、**いずれもスコープ決定は本文書・`03_Scope.md`のいずれでも行っていない**（未決のまま、決定は後続タスク`episode-n-variant-scope-decision`）。
 
 ## 10.2 特殊ファイル群
 
