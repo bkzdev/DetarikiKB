@@ -546,6 +546,74 @@ costume 1
     )
 
 
+def test_non_literal_speaker_expression_absent_from_unknown_ids_on_both_paths(
+    tmp_path,
+):
+    """feature/non-literal-character-id-handling
+    (Character_Story_ID_Manifest_Design.md §9.1.2発見③): `$split(...)`
+    (未評価の関数呼び出し式) がsourceCharacterIdに混入する場合でも、
+    standalone checker側は元々RHSを`\\d+`/`$変数名`に限定する正規表現
+    (NUM_VAR_PATTERN/VALUE_VAR_PATTERN/SCENARIO_COS_PATTERN) のため、
+    `$`始まりのRHSはそもそも未登録キャラクターID候補として検出しない
+    (対称化の必要が無いことの確認)。embedded (Normalizer) 側も、本PRの
+    修正によりunknownCharacterIds/nonSpeakerNumericAssignmentsへは計上せず
+    nonLiteralSpeakerExpressionsへ分離することを確認する。
+
+    注: RHSが数字で始まるが完全な数字のみではない値
+    (`$value0 = 11.2,-7.7,-24`のような座標様の数値列) については、
+    standalone checker側のNUM_VAR_PATTERN/VALUE_VAR_PATTERNが行末アンカー
+    を持たないため部分一致 (truncated match、例:`"11.2,-7.7,-24"` →
+    `"11"`) が発生する別種の既知の不具合がある (本PRのスコープ外、
+    TASKS.md Known Issues参照)。このテストではRHSが`$`で始まる
+    (部分一致すら発生しない) パターンのみを対象とする。"""
+    script = """$num1 = $split(0,$value11)
+@ScenarioCosLoad 1 $num1
+@ChTalk 1
+セリフ
+$value1 = $split(1,$value11)
+costume 1
+"""
+    script_path = tmp_path / "synthetic.dec"
+    script_path.write_text(script, encoding="utf-8")
+
+    mod = _load_check_script_module()
+    config = mod.load_command_config(DEFAULT_COMMANDS_CONFIG)
+    known_commands = mod.build_known_command_set(config)
+    speech_commands = mod.get_speech_commands(config)
+    case_variants_map = mod.build_case_variants_map(config)
+    speech_hints = mod.get_new_speech_hints(config)
+
+    standalone_result = mod.check_file(
+        script_path,
+        known_commands,
+        speech_commands,
+        case_variants_map,
+        speech_hints,
+        char_map={},
+    )
+
+    parser = StoryParser()
+    parse_result = parser.parse_text(script)
+    normalizer = Normalizer(
+        story_id="TEST_NON_LITERAL_SYMMETRY",
+        story_category="OTHER",
+        commands_config_path=DEFAULT_COMMANDS_CONFIG,
+    )
+    story_json = normalizer.normalize(parse_result)
+    report = story_json["compatibilityReport"]
+
+    assert standalone_result.unknown_character_ids == {}
+    assert standalone_result.non_speaker_numeric_assignments == {}
+    assert report["unknownCharacterIds"] == []
+    assert report["nonSpeakerNumericAssignments"] == []
+    assert {e["sourceCharacterId"] for e in report["nonLiteralSpeakerExpressions"]} == {
+        "$split(0,$value11)",
+        "$split(1,$value11)",
+    }
+    assert standalone_result.parser_compatibility == "compatible"
+    assert report["parserCompatibility"] == "compatible"
+
+
 def test_branch_choice_script_matches_on_both_paths(tmp_path):
     """branch/#if/#else/#endifを含むスクリプトでも、check_script_
     compatibility.py単体実行とNormalizerのcompatibilityReportが一致する

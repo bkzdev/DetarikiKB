@@ -211,6 +211,30 @@
             }
           }
         },
+        "nonLiteralSpeakerExpressions": {
+          "type": "array",
+          "description": "ID形式(数字のみ)でないsourceCharacterId文字列 ($split(...)等の未評価の関数呼び出し式・座標様の数値列等)。tokenizer.pyのVARIABLE_PATTERNがRHS全体を緩く捕捉するため発生する。未登録キャラクターID候補ではないため、unknownCharacterIds/nonSpeakerNumericAssignmentsには計上せずここへ分離する (Character_Story_ID_Manifest_Design.md §9.1.2発見③)。parserCompatibility判定には影響しない情報保持フィールド (不破棄不変則)。任意フィールド (feature/non-literal-character-id-handling、既存fixtureとの後方互換のため必須にしない)。",
+          "items": {
+            "type": "object",
+            "properties": {
+              "sourceCharacterId": { "type": "string" },
+              "consumedAsSpeaker": {
+                "type": "boolean",
+                "description": "話者スロットとして実際に消費されたか (@ChTalk等から解決された場合true)。falseの場合はcostume等の非話者引数専用消費、または完全未消費。"
+              },
+              "sampleLines": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "lineNumber": { "type": "integer" },
+                    "raw": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        },
         "controlCharsRemoved": {
           "type": "integer",
           "description": "制御文字除去件数"

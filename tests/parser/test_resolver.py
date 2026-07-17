@@ -183,6 +183,84 @@ def test_consumption_scenario_cos_load_promotes_existing_occurrence_to_speaker(
     assert "888" not in resolver.non_speaker_numeric_assignment_ids
 
 
+# ----------------------------------------------------------------
+# ID形式でない (非リテラル) sourceCharacterId文字列の分離
+# (feature/non-literal-character-id-handling、
+# Character_Story_ID_Manifest_Design.md §9.1.2発見③の解消)
+# ----------------------------------------------------------------
+
+
+def test_non_literal_function_call_expression_speaker_consumed(char_dict):
+    """$numX = $split(...) のような未評価の関数呼び出し式は、
+    unresolved_character_ids/non_speaker_numeric_assignment_idsのどちらにも
+    入らず、resolve_slotされた (話者消費された) 場合に
+    non_literal_speaker_expressionsへconsumedAsSpeaker=Trueで記録されること。
+    再現条件: data/raw/character配下のH_scene系で確認した
+    `$num1 = $split(0,$value11)` -> `@ScenarioCosLoad 1 $num1 ... ON` ->
+    `@ChTalk 1 ...` の実パターンを合成データで再現する。"""
+    resolver = SpeakerResolver(char_dict)
+    resolver.assign_variable(
+        variable_name="$num1",
+        source_character_id="$split(0,$value11)",
+        num_index=1,
+    )
+    resolver.assign_from_variable(slot="1", variable_name="$num1")
+    resolver.resolve_slot("1")
+
+    assert "$split(0,$value11)" not in resolver.unresolved_character_ids
+    assert "$split(0,$value11)" not in resolver.non_speaker_numeric_assignment_ids
+    assert resolver.non_literal_speaker_expressions.get("$split(0,$value11)") is True
+
+
+def test_non_literal_coordinate_like_expression_speaker_consumed(char_dict):
+    """$valueX = 11.2,-7.7,-24 のような座標様の数値列 (カンマ区切り) も
+    同様にnon_literal_speaker_expressionsへ分類されること。
+    再現条件: data/raw/character配下で確認した`$value0 = 11.2,-7.7,-24`が
+    ($num系が一切無いファイルのため) max_num_index=-1によりそのままslot 0
+    へ自動バインドされ、後続の`@ChTalk 0 ...`で話者消費される実パターン。"""
+    resolver = SpeakerResolver(char_dict)
+    resolver.assign_variable(
+        variable_name="$value0",
+        source_character_id="11.2,-7.7,-24",
+        value_index=0,
+    )
+    resolver.resolve_slot("0")
+
+    assert "11.2,-7.7,-24" not in resolver.unresolved_character_ids
+    assert "11.2,-7.7,-24" not in resolver.non_speaker_numeric_assignment_ids
+    assert resolver.non_literal_speaker_expressions.get("11.2,-7.7,-24") is True
+
+
+def test_non_literal_expression_not_consumed_as_speaker(char_dict):
+    """非リテラル式が代入されただけで話者スロットとして一度も消費されない
+    場合は、non_literal_speaker_expressionsへconsumedAsSpeaker=Falseで
+    記録されること (nonSpeakerNumericAssignments相当の非話者バケット)。"""
+    resolver = SpeakerResolver(char_dict)
+    resolver.assign_variable(
+        variable_name="$value1",
+        source_character_id="1.5,-2.5,-3.5",
+        value_index=1,
+    )
+
+    assert "1.5,-2.5,-3.5" not in resolver.unresolved_character_ids
+    assert "1.5,-2.5,-3.5" not in resolver.non_speaker_numeric_assignment_ids
+    assert resolver.non_literal_speaker_expressions.get("1.5,-2.5,-3.5") is False
+
+
+def test_non_literal_expression_does_not_affect_numeric_id_regression(char_dict):
+    """数値ID経路 (既存の消費文脈ベース分類) は非リテラル判定の追加によって
+    一切影響を受けないこと (無回帰)。"""
+    resolver = SpeakerResolver(char_dict)
+    resolver.assign_variable(
+        variable_name="$num0", source_character_id="40286", num_index=0
+    )
+    resolver.resolve_slot("0")
+
+    assert "40286" in resolver.unresolved_character_ids
+    assert "40286" not in resolver.non_speaker_numeric_assignment_ids
+    assert "40286" not in resolver.non_literal_speaker_expressions
+
+
 def test_forced_name(char_dict):
     resolver = SpeakerResolver(char_dict)
     resolver.set_forced_name("謎の声")
