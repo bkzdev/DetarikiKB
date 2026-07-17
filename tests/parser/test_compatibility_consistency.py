@@ -481,6 +481,71 @@ init
     }
 
 
+def test_consumption_context_unknown_character_ids_match_on_both_paths(tmp_path):
+    """feature/resolver-consumption-context-report: 実parser
+    (agents/parser/resolver.py SpeakerResolver) がstandalone checkerの#141
+    (feature/checker-consumption-context-fix) と同じ消費文脈ベースで
+    unknownCharacterIds/nonSpeakerNumericAssignmentsを分類するように
+    なったことを確認する。$numX代入 + 実際の@ChTalk消費 (話者消費あり) /
+    costumeのみでの消費 (話者消費なし) の両方を含むスクリプトで、両経路の
+    分類・parserCompatibilityが完全一致すること
+    (@SpineTalkの$numN特別扱い等、別の既知の非対称性が絡まない
+    最小構成のスクリプトを使う)。"""
+    script = """$num0 = 555
+@ChTalk 0
+セリフ
+$num1 = 666
+costume 1
+"""
+    script_path = tmp_path / "synthetic.dec"
+    script_path.write_text(script, encoding="utf-8")
+
+    mod = _load_check_script_module()
+    config = mod.load_command_config(DEFAULT_COMMANDS_CONFIG)
+    known_commands = mod.build_known_command_set(config)
+    speech_commands = mod.get_speech_commands(config)
+    case_variants_map = mod.build_case_variants_map(config)
+    speech_hints = mod.get_new_speech_hints(config)
+
+    standalone_result = mod.check_file(
+        script_path,
+        known_commands,
+        speech_commands,
+        case_variants_map,
+        speech_hints,
+        char_map={},
+    )
+
+    parser = StoryParser()
+    parse_result = parser.parse_text(script)
+    normalizer = Normalizer(
+        story_id="TEST_CONSUMPTION_CONTEXT",
+        story_category="OTHER",
+        commands_config_path=DEFAULT_COMMANDS_CONFIG,
+    )
+    story_json = normalizer.normalize(parse_result)
+    report = story_json["compatibilityReport"]
+
+    standalone_unknown_ids = set(standalone_result.unknown_character_ids.keys())
+    standalone_non_speaker_ids = set(
+        standalone_result.non_speaker_numeric_assignments.keys()
+    )
+    embedded_unknown_ids = {
+        e["sourceCharacterId"] for e in report["unknownCharacterIds"]
+    }
+    embedded_non_speaker_ids = {
+        e["sourceCharacterId"] for e in report["nonSpeakerNumericAssignments"]
+    }
+
+    assert standalone_unknown_ids == embedded_unknown_ids == {"555"}
+    assert standalone_non_speaker_ids == embedded_non_speaker_ids == {"666"}
+    assert (
+        standalone_result.parser_compatibility
+        == report["parserCompatibility"]
+        == "warning"
+    )
+
+
 def test_branch_choice_script_matches_on_both_paths(tmp_path):
     """branch/#if/#else/#endifを含むスクリプトでも、check_script_
     compatibility.py単体実行とNormalizerのcompatibilityReportが一致する

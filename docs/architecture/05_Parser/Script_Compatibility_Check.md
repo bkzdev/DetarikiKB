@@ -455,7 +455,10 @@ JSON/Markdown/コンソールいずれの出力面にも表示されるが、判
 
 ## 11.2 Parser側の扱い
 
-未登録キャラクターIDは破棄しない。
+未登録キャラクターIDは破棄しない。ブロック（dialogue/monologue等）の
+`speaker`は、話者スロットとして実際に消費されたかどうかに関わらず、
+従来どおりこの形で保持する（**この形式・スロット自動バインド挙動自体は
+`feature/resolver-consumption-context-report`でも一切変更していない**）。
 
 ```json
 {
@@ -467,6 +470,41 @@ JSON/Markdown/コンソールいずれの出力面にも表示されるが、判
   }
 }
 ```
+
+**`compatibilityReport.unknownCharacterIds`への記録は消費文脈ベースへ対称化済み
+（`feature/resolver-consumption-context-report`、2026-07-17実装）**:
+実parser（`agents/parser/resolver.py`の`SpeakerResolver`）は、以前は
+`$numX`/`$valueX`代入・`@ScenarioCos`/`@ScenarioCosLoad`によるスロット
+**代入時点**で無条件に`unknownCharacterIds`へ記録していた
+（`Character_Story_ID_Manifest_Design.md` §9.1.2発見②）。これを
+standalone checker側の§11.0と同じ**消費時点**ベースの分類へ変更した。
+判定ロジックはstandalone checkerの`_simulate_id_consumption`/
+`_classify_and_record_character_ids`（時系列1パスシミュレーション）を正とし、
+`SpeakerResolver`側では実際のパース過程（`_unresolved_char_id_signals`:
+sourceCharacterId→`{speaker: bool, hasOccurrence: bool}`）から同じ分類を導出する:
+
+- `assign_character`（`@ScenarioCos`直接ID指定）: `hasOccurrence=True`・
+  `speaker=True`を即時記録（checker`_apply_scenario_cos`のdirect-id分岐と同じ）
+- `assign_variable`（`$numX`/`$valueX`代入）: `hasOccurrence=True`のみ即時記録、
+  `speaker`は後続の実消費（`resolve_slot`呼び出し、`@ChTalk`系コマンドから
+  のみ発生）まで確定しない
+- `assign_from_variable`（`@ScenarioCosLoad`/`@ScenarioCos`変数経由）:
+  `hasOccurrence=False`（代入行から直接IDを取得できないため）・
+  `speaker=True`を即時記録（既存の`hasOccurrence`記録と合算される）
+
+最終的に`hasOccurrence`かつ`speaker`が両方Trueのsource CharacterIdのみが
+`unknownCharacterIds`（compatibilityReport）へ、`hasOccurrence`のみTrueで
+`speaker`がFalseのままのIDは`nonSpeakerNumericAssignments`（§11.3）へ分類する。
+**変更したのはcompatibilityReportへの記録・分類のみであり、スロット自動バインド
+挙動・話者解決結果（block.speakerの内容）は1byteも変更していない**
+（合成fixtureテスト: `tests/parser/test_resolver.py`・
+`tests/parser/test_normalizer_compatibility_report.py`・
+`tests/parser/test_compatibility_consistency.py`）。
+
+実測（H_scene全量、`Character_Story_ID_Manifest_Design.md` §9.1.2参照）:
+`unknownCharacterIds`が非空のepisode数は614→162、distinct未登録
+sourceCharacterId数は815→3へ縮小し、実際に話者として表面化する件数と
+一致した（詳細は同§9.1.2の追記を参照）。
 
 ---
 
@@ -482,7 +520,16 @@ JSON/Markdown/コンソールいずれの出力面にも表示されるが、判
   粒度としてはこれで十分であり、詳細な消費経路の区別は`03_Scope.md` §5.2の
   調査用スキャナ側の役割とする）。
 - Parser本体（`agents/parser/parser.py`）は、話者として表面化しないこれらの
-  スロットも引き続き無条件で自動バインドする（本チェッカー修正の対象外）。
+  スロットも引き続き無条件で自動バインドする（スロット自動バインド挙動
+  自体は`feature/resolver-consumption-context-report`でも変更していない。
+  `TASKS.md` Backlog「parser-auto-bind-non-speaker-slot-review」参照）。
+- 実parser側の`compatibilityReport.nonSpeakerNumericAssignments`は
+  `agents/parser/resolver.py`の`SpeakerResolver.non_speaker_numeric_
+  assignment_ids`（§11.2参照）から生成される。standalone checker側と
+  同じ`sourceCharacterId`単位のバケットだが、実parser側は`count`/
+  `sampleLines`は付与せず`sourceCharacterId`のみを記録する
+  （不破棄不変則を満たす最小限の情報保持、既存`unknownCharacterIds`の
+  出力形式踏襲）。
 
 ---
 

@@ -474,6 +474,11 @@ class EpisodeData:
     episode_number: int
     speaker_assignments: list[SpeakerAssignmentRecord] = field(default_factory=list)
     unresolved_character_ids: set[str] = field(default_factory=set)
+    # 話者スロットとして一度も消費されなかった未登録の数値代入
+    # (feature/resolver-consumption-context-report、SpeakerResolver.
+    # non_speaker_numeric_assignment_idsから転記。#141のcheckerと同じ
+    # 消費文脈ベース分類の(b)側。判定には影響しない情報保持用)
+    non_speaker_numeric_assignment_ids: set[str] = field(default_factory=set)
     scenes: list[SceneData] = field(default_factory=list)
 
 
@@ -1060,6 +1065,9 @@ class StoryParser:
         # 話者割り当て記録を episode に格納
         episode.speaker_assignments = resolver.assignment_records
         episode.unresolved_character_ids = resolver.unresolved_character_ids
+        episode.non_speaker_numeric_assignment_ids = (
+            resolver.non_speaker_numeric_assignment_ids
+        )
 
         return result
 

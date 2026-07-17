@@ -83,6 +83,106 @@ def test_scenario_cos_load(char_dict):
     assert resolver.resolve_slot("5").speaker_name == "レイン"
 
 
+# ----------------------------------------------------------------
+# 消費文脈ベースの未登録キャラクターID分類
+# (feature/resolver-consumption-context-report、
+# scripts/check_script_compatibility.pyの#141と対称化)
+# ----------------------------------------------------------------
+
+
+def test_consumption_speaker_bucket_via_num_assignment_and_resolve_slot(char_dict):
+    """$numX代入だけではunresolved_character_idsへ入らず、その後
+    resolve_slot (実際の@ChTalk等の話者消費に相当) されて初めて
+    unresolved_character_idsへ入ること。"""
+    resolver = SpeakerResolver(char_dict)
+    resolver.assign_variable(
+        variable_name="$num0", source_character_id="555", num_index=0
+    )
+    assert "555" not in resolver.unresolved_character_ids
+    assert "555" in resolver.non_speaker_numeric_assignment_ids
+
+    resolver.resolve_slot("0")
+
+    assert "555" in resolver.unresolved_character_ids
+    assert "555" not in resolver.non_speaker_numeric_assignment_ids
+
+
+def test_consumption_non_speaker_bucket_when_never_resolved(char_dict):
+    """$numX代入のみで一度もresolve_slotされない (costume/mo/fa等の非話者
+    引数としてのみ消費される場合・完全未消費の場合の両方を含む) 未登録IDは
+    non_speaker_numeric_assignment_idsへ入り、unresolved_character_idsには
+    入らないこと。"""
+    resolver = SpeakerResolver(char_dict)
+    resolver.assign_variable(
+        variable_name="$num1", source_character_id="666", num_index=1
+    )
+
+    assert "666" not in resolver.unresolved_character_ids
+    assert "666" in resolver.non_speaker_numeric_assignment_ids
+
+
+def test_consumption_registered_id_never_recorded_in_either_bucket(char_dict):
+    """登録済みIDは消費有無に関わらずどちらのバケットにも入らないこと
+    (無回帰)。"""
+    resolver = SpeakerResolver(char_dict)
+    resolver.assign_variable(
+        variable_name="$num0", source_character_id="26", num_index=0
+    )
+    resolver.resolve_slot("0")
+
+    assert "26" not in resolver.unresolved_character_ids
+    assert "26" not in resolver.non_speaker_numeric_assignment_ids
+
+
+def test_consumption_slot_rebinding_does_not_misclassify_overwritten_id(char_dict):
+    """同じスロットへ2回代入した後にresolve_slotされた場合、最終的に
+    バインドされているIDのみが話者消費ありと分類され、上書きされた以前の
+    IDは非話者バケットに残ったままになること (スロット再束縛時の誤分類
+    回帰防止)。"""
+    resolver = SpeakerResolver(char_dict)
+    resolver.assign_variable(
+        variable_name="$num0", source_character_id="111", num_index=0
+    )
+    resolver.assign_variable(
+        variable_name="$num0", source_character_id="222", num_index=0
+    )
+    resolver.resolve_slot("0")
+
+    assert "222" in resolver.unresolved_character_ids
+    assert "111" not in resolver.unresolved_character_ids
+    assert "111" in resolver.non_speaker_numeric_assignment_ids
+    assert "222" not in resolver.non_speaker_numeric_assignment_ids
+
+
+def test_consumption_direct_scenario_cos_assignment_is_immediate_speaker(char_dict):
+    """@ScenarioCos直接指定 (assign_character) は、resolve_slot呼び出しを
+    待たずに即時話者消費ありと分類される (checker側`_apply_scenario_cos`
+    のdirect-id分岐と同じ意味論)。"""
+    resolver = SpeakerResolver(char_dict)
+    resolver.assign_character(slot="0", source_character_id="777")
+
+    assert "777" in resolver.unresolved_character_ids
+    assert "777" not in resolver.non_speaker_numeric_assignment_ids
+
+
+def test_consumption_scenario_cos_load_promotes_existing_occurrence_to_speaker(
+    char_dict,
+):
+    """@ScenarioCosLoad (assign_from_variable) は、対応する変数が既に
+    $numX等で未登録IDとして代入済みの場合、そのIDを即時話者消費ありへ
+    昇格させる (checker側`_apply_scenario_cos_load`と同じ意味論)。"""
+    resolver = SpeakerResolver(char_dict)
+    resolver.assign_variable(
+        variable_name="$num0", source_character_id="888", num_index=0
+    )
+    assert "888" in resolver.non_speaker_numeric_assignment_ids
+
+    resolver.assign_from_variable(slot="5", variable_name="$num0")
+
+    assert "888" in resolver.unresolved_character_ids
+    assert "888" not in resolver.non_speaker_numeric_assignment_ids
+
+
 def test_forced_name(char_dict):
     resolver = SpeakerResolver(char_dict)
     resolver.set_forced_name("謎の声")

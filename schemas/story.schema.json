@@ -173,6 +173,27 @@
         },
         "unknownCharacterIds": {
           "type": "array",
+          "description": "話者スロットとして実際に消費された未登録キャラクターID (消費文脈ベース判定、Script_Compatibility_Check.md §11.0の(a))。parserCompatibility判定に反映される。",
+          "items": {
+            "type": "object",
+            "properties": {
+              "sourceCharacterId": { "type": "string" },
+              "sampleLines": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "lineNumber": { "type": "integer" },
+                    "raw": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "nonSpeakerNumericAssignments": {
+          "type": "array",
+          "description": "話者スロットとして一度も消費されなかった未登録の数値代入 (消費文脈ベース判定、Script_Compatibility_Check.md §11.0の(b)/§11.3)。costume/mo/fa等の非話者引数専用消費・完全未消費のいずれも含む。parserCompatibility判定には影響しない情報保持フィールド (不破棄不変則)。任意フィールド (feature/resolver-consumption-context-report、既存fixtureとの後方互換のため必須にしない)。",
           "items": {
             "type": "object",
             "properties": {
