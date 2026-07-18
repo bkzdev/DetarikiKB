@@ -95,6 +95,15 @@ uv run python scripts/generate_story_summaries.py \
 - `--timeout`はEpisodeの長さに応じて調整する（PoCでの実測を踏まえ600秒を目安値として例示している。既定は120.0秒）
 - 生成directのdraftは`generationStatus: draft`のまま出力される。Step 4のquality gateへ進む
 
+## 6.1 Domain context注入（`summary-domain-context-injection`）
+
+`generate_story_summaries.py`は既定で`knowledge/dictionaries/summary_domain_context.yaml`（**commit対象**）を読み込み、system promptへ「ドメイン前提」として注入する（`--domain-context <path>`で別ファイルを指定、`--no-domain-context`で明示的に無効化も可能）。ファイルが存在しない、または`entries`が空の場合は注入なしで従来動作する（後方互換）。
+
+- **目的**: 話者が明示されないモノローグ（主人公＝プレイヤー本人＝「班長」の内心描写）を、LLMが近くの名前付きキャラクターへ誤帰属する系統的な問題への対策。用語間の関係を記す一般的なglossary注入機能（`TASKS.md` Backlog `summary-generation-glossary-injection`）の初の具体化でもある
+- **編集方法**: `knowledge/dictionaries/summary_domain_context.yaml`の`entries`配列へ、`id`/`text`/`confirmedBy`/`confirmedAt`を持つentryを追加する。`text`はsystem promptへそのまま1行の前提として注入されるため、簡潔な日本語の平叙文で書くこと
+- **運用ルール（重要）**: このファイルに書けるのは**ユーザー本人が事実として確認済みの内容のみ**とする。AIエージェントが単独で推測した設定・裏取りされていない仮説を追加してはならない。新しい事実を追加する場合は、追加前に必ずユーザー本人へ確認を取ること。ゲームタイトル固有名詞・実イベント名・実キャラクター名の羅列など実データ由来の断片も書かない（一般的なゲーム用語・役職名の説明に留める）
+- 実際に非空のdomain contextが注入された場合、出力YAMLの`source.promptVersion`へ`domain-context-v1`が追記される（`agents/summarizer/generator.py`の`_build_provenance`参照）。生成reportにも`Domain context entries injected`として注入entry数が記録される
+
 ---
 
 # 7. Step 4: Quality gate
@@ -106,8 +115,9 @@ uv run python scripts/check_story_summary_drafts.py \
     --report workspace/summary_drafts/<batch>/quality_gate_report.md
 ```
 
-- `--normalized`を指定することで、schema検証・禁止文字列scanに加えてevidenceRefs実在性検証・長文verbatim引用検出（既定閾値30文字）も行われる（`--normalized`省略時はこの2項目がskipされ、reportにその旨が明記される）
-- 検証4項目（schema検証・evidenceRefs実在性・禁止文字列scan・長文verbatim引用検出）のいずれかでblocking issueが検出された場合、exit codeが1になり、そのdraftは昇格不可となる。reportの`## Issues`を確認し、Step 3のprompt調整・再生成、またはStep 5の人間レビューで個別に判断する
+- `--normalized`を指定することで、schema検証・禁止文字列scan・本文中evidence/block ID引用検出に加えてevidenceRefs実在性検証・長文verbatim引用検出（既定閾値30文字）も行われる（`--normalized`省略時はこの2項目がskipされ、reportにその旨が明記される）
+- 検証5項目（schema検証・evidenceRefs実在性・禁止文字列scan・長文verbatim引用検出・本文中evidence/block ID引用検出）のいずれかでblocking issueが検出された場合、exit codeが1になり、そのdraftは昇格不可となる。reportの`## Issues`を確認し、Step 3のprompt調整・再生成、またはStep 5の人間レビューで個別に判断する
+- **本文中evidence/block ID引用検出**（`summary-domain-context-injection`で追加）: `storySummary.text`/`episodeSummaries[].text`に`[A-Z][A-Z0-9_]*_(?:DLG|MONO|NAR|CHOICE|STAGE|SC)\d+`形式のblockIdが出現した場合をFAILとする。`--normalized`の有無に関わらず常に実行される。`generate_story_summaries.py`側の機械的除去（`strip_evidence_id_citations`）をすり抜けたケースを拾う最終防衛線
 - 全PASS（exit code 0）を確認してからStep 5へ進む。人間レビューは機械的検証をすべて通過したdraftのみを対象にする（`Story_Summary_Generation_Plan.md` §8.3の分担原則）
 
 ---

@@ -62,6 +62,17 @@ synthesis`）。
   renumberする。既に一意な昇順（manifest由来の飛び番を含む）の場合は
   renumberせずそのまま維持する。詳細は`_merge_story_documents`の
   docstring参照
+- **domain context注入 (`--domain-context`/`--no-domain-context`、
+  `summary-domain-context-injection`)**: 既定で
+  `knowledge/dictionaries/summary_domain_context.yaml`
+  (`agents.summarizer.DEFAULT_DOMAIN_CONTEXT_PATH`) を読み込み、
+  system promptへ人間確認済みのドメイン前提を注入する。ファイルが
+  存在しない/entriesが空の場合は注入なしで従来動作する (後方互換)。
+  `--domain-context <path>`で別ファイルを指定、`--no-domain-context`で
+  明示的に無効化できる。注入されたentry数はreportの
+  `Domain context entries injected`に記録される。実際に注入された場合、
+  出力YAMLの`source.promptVersion`に`domain-context-v1`が追記される
+  (詳細は`agents/summarizer/generator.py`の`_build_provenance`参照)
 
 hallucination対策の後処理（`agents/summarizer/generator.py`が実装、Plan
 §6.3・§11）は検出結果を自動rejectしない。draftは常に`generationStatus:
@@ -107,6 +118,7 @@ if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
 from agents.summarizer import (  # noqa: E402
+    DEFAULT_DOMAIN_CONTEXT_PATH,
     DEFAULT_MAX_CONTEXT_TOKENS,
     DEFAULT_MAX_INPUT_CHARACTERS,
     DEFAULT_TIMEOUT_SECONDS,
@@ -115,6 +127,7 @@ from agents.summarizer import (  # noqa: E402
     StorySummaryGenerationResult,
     SummaryLLMProvider,
     generate_story_summary_draft,
+    load_domain_context,
 )
 
 DEFAULT_SCHEMA_PATH = _PROJECT_ROOT / "schemas" / "story_summary.schema.json"
@@ -228,6 +241,24 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "生成した各summary (episode/story両方) に対し、同モデルで"
             "自己推敲パスを1周実行する (既定OFF。`summary-generation-"
             "quality-v2`)"
+        ),
+    )
+    parser.add_argument(
+        "--domain-context",
+        default=str(DEFAULT_DOMAIN_CONTEXT_PATH),
+        help=(
+            "system promptへ注入するドメイン前提知識YAMLのパス "
+            f"(デフォルト: {DEFAULT_DOMAIN_CONTEXT_PATH}。ファイルが存在しない/"
+            "entriesが空の場合は注入なしで従来動作する。`--no-domain-context`"
+            "で明示的に無効化も可能。`summary-domain-context-injection`)"
+        ),
+    )
+    parser.add_argument(
+        "--no-domain-context",
+        action="store_true",
+        help=(
+            "domain context注入を明示的に無効化する "
+            "(既定では--domain-contextを読み込む)"
         ),
     )
     parser.add_argument(
@@ -573,6 +604,7 @@ def _build_report_markdown(
     schema_issues: list[str],
     metadata_conflicts: list[dict[str, str]] | None = None,
     renumbered_story_ids: list[str] | None = None,
+    domain_context_entry_count: int = 0,
 ) -> str:
     metadata_conflicts = metadata_conflicts or []
     renumbered_story_ids = renumbered_story_ids or []
@@ -583,6 +615,7 @@ def _build_report_markdown(
         "# Story Summary Generation Report",
         "",
         f"- Input files: {input_count}",
+        f"- Domain context entries injected: {domain_context_entry_count}",
         f"- Story count: {len(story_reports) + len(metadata_conflicts)}",
         f"- Draft files written: {written_count}",
     ]
@@ -769,6 +802,14 @@ def main(
 
     provider = (provider_factory or _default_provider_factory)(args)
 
+    # domain context注入 (`summary-domain-context-injection`): `--no-domain-
+    # context`が指定された場合は明示的に空リスト (注入なし) とする。
+    # それ以外は`--domain-context`のパスを読み込み、ファイルが存在しない/
+    # entriesが空の場合は`load_domain_context`が空リストを返す (後方互換)。
+    domain_context = (
+        [] if args.no_domain_context else load_domain_context(args.domain_context)
+    )
+
     results = [
         generate_story_summary_draft(
             document,
@@ -778,6 +819,7 @@ def main(
             synthesize_story=not args.no_story_synthesis,
             max_context_tokens=args.story_synthesis_max_context_tokens,
             refine=args.refine,
+            domain_context=domain_context,
         )
         for document in grouped_documents
     ]
@@ -795,6 +837,7 @@ def main(
         schema_issues=schema_issues,
         metadata_conflicts=metadata_conflicts,
         renumbered_story_ids=renumbered_story_ids,
+        domain_context_entry_count=len(domain_context),
     )
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text(report_markdown, encoding="utf-8")

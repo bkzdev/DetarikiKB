@@ -19,8 +19,10 @@ from jsonschema import Draft7Validator
 
 from agents.summarizer.generator import (
     DEFAULT_VERBATIM_THRESHOLD,
+    DOMAIN_CONTEXT_PROMPT_VERSION_SUFFIX,
     generate_episode_summary,
     generate_story_summary_draft,
+    strip_evidence_id_citations,
     synthesize_story_summary,
 )
 from agents.summarizer.models import EpisodeSummaryDraft
@@ -532,7 +534,7 @@ def test_generate_story_summary_draft_provenance_prompt_version_and_input_refs()
         document, provider=provider, synthesize_story=False
     )
 
-    assert result.provenance.prompt_version == PROMPT_VERSION == "episode-summary-v3"
+    assert result.provenance.prompt_version == PROMPT_VERSION == "episode-summary-v4"
     assert result.provenance.generated_at is not None
     assert result.provenance.input_refs == ["EVT_SYNTHETIC_SAMPLE_E01"]
     assert result.provenance.model_provider == "fake"
@@ -796,7 +798,7 @@ def test_generate_story_summary_draft_with_synthesis_end_to_end_is_schema_valid(
     # 入力は小さくcontextサイズガードを超えないため)。
     assert (
         document_dict["source"]["promptVersion"]
-        == "episode-summary-v3,story-summary-v2"
+        == "episode-summary-v4,story-summary-v3"
     )
     assert _validate(document_dict) == []
 
@@ -815,7 +817,7 @@ def test_generate_story_summary_draft_no_story_synthesis_flag_keeps_story_summar
     assert result.draft.story_text is None
     document_dict = result.to_document_dict()
     assert document_dict["storySummary"] is None
-    assert document_dict["source"]["promptVersion"] == "episode-summary-v3"
+    assert document_dict["source"]["promptVersion"] == "episode-summary-v4"
     assert _validate(document_dict) == []
 
 
@@ -1073,6 +1075,170 @@ def test_generate_story_summary_draft_refine_false_by_default_omits_suffix():
     result = generate_story_summary_draft(document, provider=provider)
 
     assert REFINE_PROMPT_VERSION_SUFFIX not in result.provenance.prompt_version
+
+
+# ----------------------------------------------------------------
+# (10) domain context注入 (`summary-domain-context-injection`)
+# ----------------------------------------------------------------
+
+_SYNTHETIC_DOMAIN_CONTEXT = ["合成用ドメイン前提テキスト"]
+
+
+def test_generate_episode_summary_domain_context_none_leaves_system_prompt_unchanged():
+    episode = _sample_episode()
+    provider = FakeProvider([_json_response("あらすじ。", [])])
+
+    generate_episode_summary(episode, provider=provider)
+
+    assert _SYNTHETIC_DOMAIN_CONTEXT[0] not in provider.calls[0]["system"]
+
+
+def test_generate_episode_summary_domain_context_injected_into_system_prompt():
+    episode = _sample_episode()
+    provider = FakeProvider([_json_response("あらすじ。", [])])
+
+    generate_episode_summary(
+        episode, provider=provider, domain_context=_SYNTHETIC_DOMAIN_CONTEXT
+    )
+
+    assert _SYNTHETIC_DOMAIN_CONTEXT[0] in provider.calls[0]["system"]
+
+
+def test_generate_story_summary_draft_domain_context_appends_provenance_marker():
+    document = _document("EVT_SYNTHETIC_SAMPLE", [_sample_episode()])
+    provider = FakeProvider(
+        [
+            _json_response("episodeのあらすじ。", ["EVT_SYNTHETIC_SAMPLE_E01_DLG0001"]),
+            _story_json_response("story全体のあらすじ。"),
+        ]
+    )
+
+    result = generate_story_summary_draft(
+        document, provider=provider, domain_context=_SYNTHETIC_DOMAIN_CONTEXT
+    )
+
+    assert DOMAIN_CONTEXT_PROMPT_VERSION_SUFFIX in result.provenance.prompt_version
+    # episode/story合成いずれのsystem promptにも注入されること。
+    assert all(
+        _SYNTHETIC_DOMAIN_CONTEXT[0] in call["system"] for call in provider.calls
+    )
+
+
+def test_generate_story_summary_draft_no_domain_context_omits_provenance_marker():
+    document = _document("EVT_SYNTHETIC_SAMPLE", [_sample_episode()])
+    provider = FakeProvider(
+        [
+            _json_response("episodeのあらすじ。", ["EVT_SYNTHETIC_SAMPLE_E01_DLG0001"]),
+            _story_json_response("story全体のあらすじ。"),
+        ]
+    )
+
+    result = generate_story_summary_draft(document, provider=provider)
+
+    assert DOMAIN_CONTEXT_PROMPT_VERSION_SUFFIX not in result.provenance.prompt_version
+
+
+def test_generate_story_summary_draft_empty_domain_context_omits_provenance_marker():
+    # 空リストはNoneと同様に「注入なし」として扱われる (bool([]) is False)。
+    document = _document("EVT_SYNTHETIC_SAMPLE", [_sample_episode()])
+    provider = FakeProvider(
+        [_json_response("episodeのあらすじ。", ["EVT_SYNTHETIC_SAMPLE_E01_DLG0001"])]
+    )
+
+    result = generate_story_summary_draft(
+        document, provider=provider, synthesize_story=False, domain_context=[]
+    )
+
+    assert DOMAIN_CONTEXT_PROMPT_VERSION_SUFFIX not in result.provenance.prompt_version
+
+
+# ----------------------------------------------------------------
+# (11) 本文中evidence ID引用の機械的除去 (`summary-domain-context-
+#      injection`、防御の二重化)
+# ----------------------------------------------------------------
+
+
+def test_strip_evidence_id_citations_removes_bracketed_id_and_counts():
+    text = "半裸になったのは班長（EVT_E01_DLG0001）。"
+    stripped, count = strip_evidence_id_citations(text)
+    assert count == 1
+    assert "EVT_E01_DLG0001" not in stripped
+    assert "半裸になったのは班長" in stripped
+
+
+def test_strip_evidence_id_citations_no_match_returns_original():
+    text = "括弧書き引用が無い普通のあらすじ文です。"
+    stripped, count = strip_evidence_id_citations(text)
+    assert count == 0
+    assert stripped == text
+
+
+def test_generate_episode_summary_strips_bracketed_citation_and_records_issue():
+    episode = _sample_episode()
+    provider = FakeProvider(
+        [
+            _json_response(
+                "半裸になったのは班長（EVT_SYNTHETIC_SAMPLE_E01_DLG0001）。",
+                ["EVT_SYNTHETIC_SAMPLE_E01_DLG0001"],
+            )
+        ]
+    )
+
+    result = generate_episode_summary(episode, provider=provider)
+
+    assert result.draft is not None
+    assert "EVT_SYNTHETIC_SAMPLE_E01_DLG0001" not in result.draft.text
+    assert result.draft.text == "半裸になったのは班長。"
+    codes = [issue.code for issue in result.issues]
+    assert "evidence-id-citation-stripped" in codes
+    matching = [i for i in result.issues if i.code == "evidence-id-citation-stripped"]
+    assert matching[0].blocking is False
+
+
+def test_generate_episode_summary_no_citation_does_not_record_strip_issue():
+    episode = _sample_episode()
+    provider = FakeProvider([_json_response("括弧書き引用の無いあらすじ。", [])])
+
+    result = generate_episode_summary(episode, provider=provider)
+
+    codes = [issue.code for issue in result.issues]
+    assert "evidence-id-citation-stripped" not in codes
+
+
+def test_synthesize_story_summary_v2_strips_bracketed_citation():
+    episode_id = "EVT_SYNTHETIC_SAMPLE_E01"
+    raw_episode = _episode(
+        episode_id, [_narration_block(f"{episode_id}_NAR0001", "地の文テキストです。")]
+    )
+    draft = EpisodeSummaryDraft(
+        episode_id=episode_id, text="episode要約", episode_number=1
+    )
+    provider = FakeProvider(
+        [_story_json_response(f"半裸になったのは班長（{episode_id}_NAR0001）。")]
+    )
+
+    result = synthesize_story_summary(
+        [draft], provider=provider, episodes=[raw_episode]
+    )
+
+    assert result.story_text == "半裸になったのは班長。"
+    codes = [issue.code for issue in result.issues]
+    assert "evidence-id-citation-stripped" in codes
+
+
+def test_strip_would_empty_text_keeps_original_and_records_issue():
+    episode = _sample_episode()
+    # あらすじ全体が括弧書き引用のみで構成される極端なケース。
+    provider = FakeProvider(
+        [_json_response("（EVT_SYNTHETIC_SAMPLE_E01_DLG0001）", [])]
+    )
+
+    result = generate_episode_summary(episode, provider=provider)
+
+    assert result.draft is not None
+    assert result.draft.text == "（EVT_SYNTHETIC_SAMPLE_E01_DLG0001）"
+    codes = [issue.code for issue in result.issues]
+    assert "evidence-id-citation-strip-would-empty-text" in codes
 
 
 if __name__ == "__main__":

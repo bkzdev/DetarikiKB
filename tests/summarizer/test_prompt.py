@@ -13,6 +13,7 @@ from agents.summarizer.prompt import (
     CHARACTERS_PER_TOKEN_ESTIMATE,
     DEFAULT_MAX_CONTEXT_TOKENS,
     DEFAULT_MAX_INPUT_CHARACTERS,
+    DOMAIN_CONTEXT_BLOCK_HEADER,
     EPISODE_SUMMARY_SYSTEM_PROMPT,
     INCLUDED_BLOCK_TYPES,
     PROMPT_VERSION,
@@ -26,10 +27,15 @@ from agents.summarizer.prompt import (
     EpisodeBlocksInput,
     EpisodeSummaryInput,
     ExtractedBlock,
+    build_domain_context_block,
     build_episode_summary_prompt,
+    build_episode_summary_system_prompt,
     build_refine_prompt,
+    build_refine_system_prompt,
     build_story_summary_prompt,
     build_story_summary_prompt_v2,
+    build_story_summary_system_prompt,
+    build_story_summary_system_prompt_v2,
     estimate_token_count,
     extract_episode_blocks,
     extract_speaker_names,
@@ -446,7 +452,7 @@ def test_system_prompt_instructs_not_to_treat_unresolved_placeholder_as_person_n
 
 
 def test_prompt_version_constant():
-    assert PROMPT_VERSION == "episode-summary-v3"
+    assert PROMPT_VERSION == "episode-summary-v4"
 
 
 def test_default_max_input_characters_is_positive_and_reasonable():
@@ -518,7 +524,7 @@ def test_story_summary_system_prompt_forbids_speculation_and_requires_json_only(
 
 
 def test_story_summary_prompt_version_constant_is_distinct_from_episode_version():
-    assert STORY_SUMMARY_PROMPT_VERSION == "story-summary-v2"
+    assert STORY_SUMMARY_PROMPT_VERSION == "story-summary-v3"
     assert STORY_SUMMARY_PROMPT_VERSION != PROMPT_VERSION
 
 
@@ -715,4 +721,66 @@ def test_refine_system_prompt_mentions_subject_ambiguity_and_json_only():
 
 
 def test_refine_prompt_version_suffix_constant():
-    assert REFINE_PROMPT_VERSION_SUFFIX == "refine-v1"
+    assert REFINE_PROMPT_VERSION_SUFFIX == "refine-v2"
+
+
+# ----------------------------------------------------------------
+# (10) domain context注入 (`summary-domain-context-injection`)
+# ----------------------------------------------------------------
+
+
+def test_build_domain_context_block_empty_returns_empty_string():
+    assert build_domain_context_block(None) == ""
+    assert build_domain_context_block([]) == ""
+
+
+def test_build_domain_context_block_formats_entries_as_bullet_list():
+    block = build_domain_context_block(["事実1", "事実2"])
+    assert DOMAIN_CONTEXT_BLOCK_HEADER in block
+    assert "- 事実1" in block
+    assert "- 事実2" in block
+    assert block.index("事実1") < block.index("事実2")
+
+
+def test_build_episode_summary_system_prompt_without_domain_context_matches_base():
+    assert build_episode_summary_system_prompt() == EPISODE_SUMMARY_SYSTEM_PROMPT
+    assert build_episode_summary_system_prompt([]) == EPISODE_SUMMARY_SYSTEM_PROMPT
+
+
+def test_build_episode_summary_system_prompt_appends_domain_context():
+    prompt = build_episode_summary_system_prompt(["合成用ドメイン前提"])
+    assert prompt.startswith(EPISODE_SUMMARY_SYSTEM_PROMPT)
+    assert "合成用ドメイン前提" in prompt
+
+
+def test_build_story_summary_system_prompt_without_domain_context_matches_base():
+    assert build_story_summary_system_prompt() == STORY_SUMMARY_SYSTEM_PROMPT
+    assert build_story_summary_system_prompt([]) == STORY_SUMMARY_SYSTEM_PROMPT
+
+
+def test_build_story_summary_system_prompt_appends_domain_context():
+    prompt = build_story_summary_system_prompt(["合成用ドメイン前提"])
+    assert prompt.startswith(STORY_SUMMARY_SYSTEM_PROMPT)
+    assert "合成用ドメイン前提" in prompt
+
+
+def test_build_story_summary_system_prompt_v2_without_domain_context_matches_base():
+    assert build_story_summary_system_prompt_v2() == STORY_SUMMARY_SYSTEM_PROMPT_V2
+    assert build_story_summary_system_prompt_v2([]) == STORY_SUMMARY_SYSTEM_PROMPT_V2
+
+
+def test_build_story_summary_system_prompt_v2_appends_domain_context():
+    prompt = build_story_summary_system_prompt_v2(["合成用ドメイン前提"])
+    assert prompt.startswith(STORY_SUMMARY_SYSTEM_PROMPT_V2)
+    assert "合成用ドメイン前提" in prompt
+
+
+def test_build_refine_system_prompt_without_domain_context_matches_base():
+    assert build_refine_system_prompt() == REFINE_SYSTEM_PROMPT
+    assert build_refine_system_prompt([]) == REFINE_SYSTEM_PROMPT
+
+
+def test_build_refine_system_prompt_appends_domain_context():
+    prompt = build_refine_system_prompt(["合成用ドメイン前提"])
+    assert prompt.startswith(REFINE_SYSTEM_PROMPT)
+    assert "合成用ドメイン前提" in prompt

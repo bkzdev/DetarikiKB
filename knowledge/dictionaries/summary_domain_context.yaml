@@ -1,0 +1,49 @@
+# Summary Domain Context (Summary生成promptへ注入するドメイン前提知識)
+#
+# Path: knowledge/dictionaries/summary_domain_context.yaml
+# Version: 0.1
+#
+# 目的: Episode/Story Summary生成prompt (agents/summarizer/prompt.py) の
+# system promptへ「ドメイン前提」として注入するための、人間確認済み事実を
+# 管理する (`summary-domain-context-injection`、Backlog
+# `summary-generation-glossary-injection`の初の具体化)。
+#
+# 背景 (2026-07-19ユーザーレビュー): 3世代のdraftで「話者が明示されない
+# モノローグ (班長=主人公の内心描写) をLLMが近くの名前付きキャラクターへ
+# 誤帰属する」という系統的な帰属誤りが確認された。原因は、このゲームの
+# 主人公がプレイヤー本人であり作中で「班長」と呼ばれる、というゲーム固有の
+# 前提をLLMが知らないこと。ここに前提を明記してprompt注入することで対処する。
+#
+# **運用ルール(重要、docs/runbooks/Story_Summary_Generation_Runbook.md参照)**:
+# - ここに書けるのはユーザー本人が事実として確認済みの内容のみとする。
+#   AIが推測した設定・裏取りされていない仮説は一切追加しないこと。
+# - ゲームタイトル固有名詞・実イベント名・実キャラクター名の羅列など、
+#   実データ由来の断片は書かない。一般的なゲーム用語・役職名の説明に
+#   留める（「班長」「プレイヤー」「主人公」は一般語でありユーザー確認済み
+#   のため記載可）。
+# - 新しい事実を追加する場合は、追加前に必ずユーザー本人へ確認を取ること。
+#   ユーザーの確認を経ずにAIが単独でentryを追加してはならない。
+# - このファイルが存在しない、または`entries`が空の場合、summarizerは
+#   ドメインコンテキストを注入せず従来通り動作する（後方互換、
+#   `agents/summarizer/domain_context.py`の`load_domain_context`参照）。
+#
+# 各entryの`text`は、summary生成prompt (system prompt) へそのまま1行の
+# 前提として注入される (`agents/summarizer/prompt.py`の
+# `build_domain_context_block`)。簡潔な日本語の平叙文で書くこと。
+
+schemaVersion: "0.1"
+
+entries:
+  - id: "protagonist-is-player-hancho"
+    text: >-
+      このゲームの主人公はプレイヤーであり、作中では「班長」と呼ばれる。
+      「班長」は特定キャラクターの役職名ではなく主人公＝プレイヤー本人を指す。
+    confirmedBy: "bkzdev"
+    confirmedAt: "2026-07-19"
+  - id: "unattributed-monologue-likely-hancho"
+    text: >-
+      話者が明示されないモノローグ（内心描写）は、主人公である班長のもので
+      ある可能性が高い。行動や状態の主体を安易に近くの名前付きキャラクター
+      へ帰属させない。
+    confirmedBy: "bkzdev"
+    confirmedAt: "2026-07-19"

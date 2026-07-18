@@ -95,7 +95,15 @@ from typing import Any
 # v3: 主語明確化指示・登場人物リスト注入・本文中evidence ID参照禁止指示の
 # 3点を追加 (`summary-generation-quality-v2`、RAID small batchレビューで
 # 確認された品質問題への対策)。
-PROMPT_VERSION = "episode-summary-v3"
+# v4: domain context注入に対応 (`summary-domain-context-injection`)。
+# system promptの構築を`EPISODE_SUMMARY_SYSTEM_PROMPT`固定値から
+# `build_episode_summary_system_prompt(domain_context)`関数経由に変更した。
+# domain contextが実際に注入されたかどうかはprovenance側で別途
+# `DOMAIN_CONTEXT_PROMPT_VERSION_SUFFIX`として判別できるようにしており
+# (`agents/summarizer/generator.py`の`_build_provenance`)、この値自体は
+# 「domain context注入に対応したprompt実装のversion」を表す
+# (ファイル未設置/空でも動作するコード変更のみでバージョンを上げている)。
+PROMPT_VERSION = "episode-summary-v4"
 
 # 抽出対象のBlock type (Plan §6.1、Evidence Indexの`--policy public-default`
 # と同じ対象type。stage_direction/unknownは対象外)。
@@ -134,6 +142,44 @@ EPISODE_SUMMARY_SYSTEM_PROMPT = (
     "実在の人物名・キャラクター名ではありません。あらすじ本文中でこれを"
     "人物名として扱わないでください。"
 )
+
+
+# ----------------------------------------------------------------
+# Domain context注入 (`summary-domain-context-injection`)
+#
+# `agents/summarizer/domain_context.py`の`load_domain_context`が読み込んだ
+# `knowledge/dictionaries/summary_domain_context.yaml`由来の人間確認済み事実
+# (list[str]) を、各system promptの末尾へ追記する。domain_contextが空/None
+# の場合は元のsystem prompt文字列を一切変更しない (後方互換)。
+# ----------------------------------------------------------------
+
+DOMAIN_CONTEXT_BLOCK_HEADER = (
+    "以下はこの作品のドメイン前提です。人間が事実として確認済みの情報として"
+    "扱い、要約作成時に必ず踏まえてください。"
+)
+
+
+def build_domain_context_block(domain_context: list[str] | None) -> str:
+    """`domain_context`をsystem prompt末尾へ追記するテキストブロックへ
+    整形する。空/Noneの場合は空文字列を返す (呼び出し側の`build_*_system_
+    prompt`系関数はこれをそのまま元のsystem prompt文字列へ連結すればよく、
+    注入なし時は元の文字列を一切変更しない)。
+    """
+    if not domain_context:
+        return ""
+    lines = "\n".join(f"- {line}" for line in domain_context)
+    return f"\n\n{DOMAIN_CONTEXT_BLOCK_HEADER}\n{lines}"
+
+
+def build_episode_summary_system_prompt(
+    domain_context: list[str] | None = None,
+) -> str:
+    """Episode Summary生成用のsystem promptを組み立てる。
+
+    `EPISODE_SUMMARY_SYSTEM_PROMPT`固定値に、`domain_context`があれば
+    `build_domain_context_block`で整形したブロックを追記する。
+    """
+    return EPISODE_SUMMARY_SYSTEM_PROMPT + build_domain_context_block(domain_context)
 
 
 @dataclass(frozen=True)
@@ -338,7 +384,11 @@ def build_episode_summary_prompt(blocks: list[ExtractedBlock]) -> str:
 # prompt_v2`)。contextサイズガードでフォールバックした場合は
 # `STORY_SUMMARY_PROMPT_VERSION_FALLBACK`をprovenanceへ記録する
 # (`agents/summarizer/generator.py`側の責務、このモジュールは定数のみ提供)。
-STORY_SUMMARY_PROMPT_VERSION = "story-summary-v2"
+# v3 (`summary-domain-context-injection`): domain context注入に対応
+# (PROMPT_VERSIONのv4と同じ理由、system promptの構築を`STORY_SUMMARY_
+# SYSTEM_PROMPT_V2`固定値から`build_story_summary_system_prompt_v2`
+# 関数経由に変更した)。
+STORY_SUMMARY_PROMPT_VERSION = "story-summary-v3"
 
 # story-summary-v2のcontextサイズガード発動時 (入力の概算トークン数が
 # `DEFAULT_MAX_CONTEXT_TOKENS`を超えた場合)、または呼び出し側が全episode
@@ -376,6 +426,21 @@ STORY_SUMMARY_SYSTEM_PROMPT_V2 = (
     "実在の人物名・キャラクター名ではありません。あらすじ本文中でこれを"
     "人物名として扱わないでください。"
 )
+
+
+def build_story_summary_system_prompt(domain_context: list[str] | None = None) -> str:
+    """Story Summary合成 (v1、Episode Summary群の再要約方式) 用の
+    system promptを組み立てる (`summary-domain-context-injection`、
+    `build_episode_summary_system_prompt`と同じ方針)。"""
+    return STORY_SUMMARY_SYSTEM_PROMPT + build_domain_context_block(domain_context)
+
+
+def build_story_summary_system_prompt_v2(
+    domain_context: list[str] | None = None,
+) -> str:
+    """Story Summary合成 (v2、全文直接入力方式) 用のsystem promptを
+    組み立てる (`summary-domain-context-injection`)。"""
+    return STORY_SUMMARY_SYSTEM_PROMPT_V2 + build_domain_context_block(domain_context)
 
 
 @dataclass(frozen=True)
@@ -564,7 +629,9 @@ def estimate_token_count(text: str) -> int:
 
 # 推敲使用時にprovenanceの`promptVersion`へ追記するsuffix
 # (`agents/summarizer/generator.py`の`_build_provenance`が使う)。
-REFINE_PROMPT_VERSION_SUFFIX = "refine-v1"
+# v2 (`summary-domain-context-injection`): domain context注入に対応
+# (PROMPT_VERSIONのv4と同じ理由)。
+REFINE_PROMPT_VERSION_SUFFIX = "refine-v2"
 
 REFINE_SYSTEM_PROMPT = (
     "あなたは日本語のあらすじ文章を推敲するアシスタントです。"
@@ -574,6 +641,13 @@ REFINE_SYSTEM_PROMPT = (
     "出力は指示されたJSON形式のみとし、それ以外の文章は一切出力しないで"
     "ください。"
 )
+
+
+def build_refine_system_prompt(domain_context: list[str] | None = None) -> str:
+    """自己推敲パス用のsystem promptを組み立てる
+    (`summary-domain-context-injection`、`build_episode_summary_system_
+    prompt`と同じ方針)。"""
+    return REFINE_SYSTEM_PROMPT + build_domain_context_block(domain_context)
 
 
 def build_refine_prompt(text: str) -> str:

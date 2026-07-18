@@ -291,6 +291,83 @@ def test_forbidden_text_in_review_notes_fails(tmp_path):
 
 
 # ----------------------------------------------------------------
+# 本文中evidence/block ID引用検出 (項目5、`summary-domain-context-
+# injection`で追加。--normalizedの有無に関わらず常に実行される)
+# ----------------------------------------------------------------
+
+
+def test_evidence_id_citation_in_episode_summary_text_fails(tmp_path):
+    bad = _minimal_draft()
+    bad["episodeSummaries"][0]["text"] = (
+        "半裸になったのは班長（EVT_TEST_A_E01_DLG0001）。"
+    )
+    path = _write_yaml(tmp_path / "bad.yaml", bad)
+    result = _run_cli("--input", str(path))
+    assert result.returncode == 1
+    assert "evidence/block ID引用" in result.stderr
+    assert "EVT_TEST_A_E01_DLG0001" in result.stderr
+
+
+def test_evidence_id_citation_in_story_summary_text_fails(tmp_path):
+    bad = _minimal_draft(
+        storySummary={
+            "text": "対策班が集結した（EVT_TEST_A_E01_NAR0003）。",
+            "confidence": 0.5,
+            "evidenceRefs": [],
+        }
+    )
+    path = _write_yaml(tmp_path / "bad.yaml", bad)
+    result = _run_cli("--input", str(path))
+    assert result.returncode == 1
+    assert "evidence/block ID引用" in result.stderr
+
+
+def test_evidence_id_citation_check_runs_without_normalized(tmp_path):
+    # --normalized未指定でも常に実行される (evidenceRefs実在性検証・
+    # verbatim検出とは異なりskipされない)。
+    bad = _minimal_draft()
+    bad["episodeSummaries"][0]["text"] = "地の文に（EVT_TEST_A_E01_MONO0002）を含む。"
+    path = _write_yaml(tmp_path / "bad.yaml", bad)
+    report_path = tmp_path / "report.md"
+    result = _run_cli("--input", str(path), "--report", str(report_path))
+    assert result.returncode == 1
+    content = report_path.read_text(encoding="utf-8")
+    assert "Evidence ID Citation In Body Check" in content
+    assert "- Result: FAIL" in content
+
+
+def test_evidence_id_citation_in_evidence_refs_field_alone_is_not_flagged(tmp_path):
+    # evidenceRefsフィールド自体 (通常の引用形式) はこの検証の対象外
+    # (本文textフィールドのみが対象)。
+    draft = _minimal_draft()
+    path = _write_yaml(tmp_path / "draft.yaml", draft)
+    result = _run_cli("--input", str(path))
+    assert result.returncode == 0, result.stderr
+
+
+def test_evidence_id_citation_no_match_passes(tmp_path):
+    path = _write_yaml(tmp_path / "draft.yaml", _minimal_draft())
+    report_path = tmp_path / "report.md"
+    result = _run_cli("--input", str(path), "--report", str(report_path))
+    assert result.returncode == 0, result.stderr
+    content = report_path.read_text(encoding="utf-8")
+    assert "Evidence ID Citation In Body Check" in content
+    assert "PASS" in content
+
+
+# ----------------------------------------------------------------
+# 既存の公開済みSummary (knowledge/summaries/stories/) が新規検証で
+# 誤検出されないことの確認 (`summary-domain-context-injection`)
+# ----------------------------------------------------------------
+
+
+def test_published_summaries_pass_new_evidence_id_citation_check():
+    published_dir = PROJECT_ROOT / "knowledge" / "summaries" / "stories"
+    result = _run_cli("--input", str(published_dir))
+    assert result.returncode == 0, result.stderr
+
+
+# ----------------------------------------------------------------
 # Verbatim quote detection (threshold boundary, --normalized)
 # ----------------------------------------------------------------
 
