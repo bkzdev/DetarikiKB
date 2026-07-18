@@ -89,7 +89,9 @@ uv run python scripts/generate_story_summaries.py \
 
 - `--output`/`--report`は`workspace/`配下のみ許可される（`knowledge/`配下を指定するとexit code 2で拒否される）
 - 同一`storyId`の複数episodeファイル（Phase 1 parserは1 episode 1ファイルのため、複数episodeを持つstoryは必ず複数ファイルに分かれる）は自動的にstoryId単位でグルーピング・episodeNumberでrenumberされ、1つのdraft YAMLとして出力される（`summary-generation-multi-episode-grouping`/`summary-generation-episode-renumbering`で修正済みのバグ、PR #115/#116参照）
-- Story Summaryは既定で合成される（Episode Summary群からLLM再要約、`--no-story-synthesis`でopt-out可能だが本Runbookの通常フローでは指定しない）
+- Story Summaryは既定で合成される。`summary-generation-quality-v2`以降、既定の合成方式は**story-summary-v2**（全episode本文を時系列で直接入力）であり、`--story-synthesis-max-context-tokens`（既定値は`agents/summarizer/prompt.py`の`DEFAULT_MAX_CONTEXT_TOKENS`）で概算トークン数の上限を超える場合のみ、自動的に**story-summary-v1-fallback**（Episode Summary群の再要約）へフォールバックする（失敗にはせず、生成report・`source.promptVersion`に記録される）。合成自体を止めたい場合は`--no-story-synthesis`でopt-out可能だが本Runbookの通常フローでは指定しない
+- episode要約promptは`episode-summary-v3`（主語明確化・登場人物リスト注入・本文中evidence ID参照禁止の3点を含む）
+- `--refine`（既定OFF）を指定すると、生成した各summary（episode/story両方）に対し同モデルで自己推敲パスを1周追加実行する。使用時は`source.promptVersion`に`refine-v1`が追記される。本Runbookの通常フローでは既定（OFF）のまま進めるが、品質改善の効果を確認したい場合はbatch単位で試行してよい
 - `--timeout`はEpisodeの長さに応じて調整する（PoCでの実測を踏まえ600秒を目安値として例示している。既定は120.0秒）
 - 生成directのdraftは`generationStatus: draft`のまま出力される。Step 4のquality gateへ進む
 
@@ -251,6 +253,9 @@ PoCで以下の傾向が実際に観測された。機械的なquality gate（sc
 
 - 主語の取り違え（イベント名・グループ略称等の固有名詞を行為主体として誤用する）
 - 弱い引用選択（要約文の中核主張に対して、根拠として直接的でない`evidenceRefs`を選ぶ）
+- **（`summary-generation-quality-v2`で緩和策を実装済み）** RAID small batchの人間レビューで、(a) story summaryがEpisode Summary群の再要約という二段圧縮方式に起因する情報欠落、(b) 主語の曖昧さ・指示語の多用、の2点が確認された。(a)はstory-summary-v2（全episode本文の直接入力）、(b)はepisode-summary-v3（主語明確化指示・登場人物リスト注入）でそれぞれ緩和を図ったが、機械的quality gateでは検出できない性質の問題であるため、依然として人間レビューが必須である
+
+`--refine`（既定OFF）は、生成済みsummaryへ同モデルでの推敲パスを追加する任意機能であり、上記(b)のような文体上の問題をさらに軽減する目的で用意した。ただし自動修正であり人間レビューの代替にはならない。
 
 ## 13.3 コンソールがcp932の場合の生成テキスト確認方法
 

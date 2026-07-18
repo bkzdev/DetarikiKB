@@ -41,6 +41,17 @@ synthesis`）。
   書き出さない、exit code 1）、reportに記録する。グルーピング後も万一
   同一出力ファイルパスへ2回書き込みが発生した場合も同様にblocking error
   とし、黙って上書きしない
+- **story-summary-v2 / episode-summary-v3 / `--refine`
+  (`summary-generation-quality-v2`、2026-07-18ユーザー承認済み)**: Story
+  Summary合成の既定方式を、Episode Summary群の再要約(v1)から全episode本文の
+  直接入力(v2)へ変更した。全episode本文の概算トークン数が
+  `--story-synthesis-max-context-tokens` (既定
+  `DEFAULT_MAX_CONTEXT_TOKENS`) を超える場合はv1方式へ自動フォールバック
+  する(失敗にしない、reportに記録)。episode要約promptは
+  `episode-summary-v3`(主語明確化・登場人物リスト注入・本文中evidence ID
+  参照禁止)。`--refine`(既定OFF)で、生成済みの各summaryへ同モデルでの
+  自己推敲パスを1周追加できる。詳細は`agents/summarizer/prompt.py`・
+  `generator.py`のmodule docstring参照
 - **episodeNumberのrenumber**: Phase 1 parserは1ファイル1 episodeで、
   各episodeの`episodeNumber`を常に`1`として出力する。そのため上記の
   storyId単位マージ後、複数episodeを持つstoryでは`episodeNumber`が
@@ -96,6 +107,7 @@ if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
 from agents.summarizer import (  # noqa: E402
+    DEFAULT_MAX_CONTEXT_TOKENS,
     DEFAULT_MAX_INPUT_CHARACTERS,
     DEFAULT_TIMEOUT_SECONDS,
     DEFAULT_VERBATIM_THRESHOLD,
@@ -195,6 +207,27 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help=(
             "Story Summary合成 (Episode Summary群からのLLM再要約、Plan §11) "
             "を行わない (既定では合成を行い、storySummaryを埋める)"
+        ),
+    )
+    parser.add_argument(
+        "--story-synthesis-max-context-tokens",
+        type=int,
+        default=DEFAULT_MAX_CONTEXT_TOKENS,
+        help=(
+            "Story Summary合成v2 (全文直接入力方式) のcontextサイズガード。"
+            "全episode本文の概算トークン数がこの値を超える場合、"
+            "story-summary-v1方式 (Episode Summary群の再要約) へ"
+            f"フォールバックする (デフォルト: {DEFAULT_MAX_CONTEXT_TOKENS}。"
+            "`summary-generation-quality-v2`)"
+        ),
+    )
+    parser.add_argument(
+        "--refine",
+        action="store_true",
+        help=(
+            "生成した各summary (episode/story両方) に対し、同モデルで"
+            "自己推敲パスを1周実行する (既定OFF。`summary-generation-"
+            "quality-v2`)"
         ),
     )
     parser.add_argument(
@@ -445,6 +478,7 @@ def _build_story_report(result: StorySummaryGenerationResult) -> dict[str, Any]:
     if result.story_synthesis is not None:
         story_synthesis_report = {
             "synthesized": not result.story_synthesis.skipped,
+            "promptVersion": result.story_synthesis.prompt_version,
             "evidenceRefCount": len(result.story_synthesis.evidence_refs),
             "issues": [
                 {
@@ -504,20 +538,29 @@ def _story_report_lines(
 
     lines.append("### Story synthesis")
     lines.append("")
-    synthesis = report["storySynthesis"]
-    if synthesis is None:
-        lines.append("- Synthesized: skipped (--no-story-synthesis)")
-    else:
-        lines.append(f"- Synthesized: {synthesis['synthesized']}")
-        lines.append(f"- evidenceRefs (union): {synthesis['evidenceRefCount']}")
-        if synthesis["issues"]:
-            lines.append("- Issues:")
-            for issue in synthesis["issues"]:
-                lines.append(
-                    f"  - [{issue['code']}] {issue['message']} "
-                    f"(blocking={issue['blocking']})"
-                )
+    lines.extend(_story_synthesis_report_lines(report["storySynthesis"]))
     lines.append("")
+    return lines
+
+
+def _story_synthesis_report_lines(synthesis: dict[str, Any] | None) -> list[str]:
+    """`_story_report_lines`の「Story synthesis」節本体を組み立てる
+    (`summary-generation-quality-v2`でprompt version行を追加した際、
+    C901複雑度対策として`_story_report_lines`から分離した)。"""
+    if synthesis is None:
+        return ["- Synthesized: skipped (--no-story-synthesis)"]
+
+    lines = [f"- Synthesized: {synthesis['synthesized']}"]
+    if synthesis["promptVersion"]:
+        lines.append(f"- Prompt version: {synthesis['promptVersion']}")
+    lines.append(f"- evidenceRefs (union): {synthesis['evidenceRefCount']}")
+    if synthesis["issues"]:
+        lines.append("- Issues:")
+        for issue in synthesis["issues"]:
+            lines.append(
+                f"  - [{issue['code']}] {issue['message']} "
+                f"(blocking={issue['blocking']})"
+            )
     return lines
 
 
@@ -733,6 +776,8 @@ def main(
             max_input_characters=args.max_input_characters,
             verbatim_threshold=args.verbatim_threshold,
             synthesize_story=not args.no_story_synthesis,
+            max_context_tokens=args.story_synthesis_max_context_tokens,
+            refine=args.refine,
         )
         for document in grouped_documents
     ]

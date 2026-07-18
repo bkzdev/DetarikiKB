@@ -20,6 +20,30 @@ Episode Summary生成prompt、およびStory Summary合成promptの構築
 - system promptに「話者不明」はplaceholderであり人物名として要約に
   書かないことを明示する一文を追加した (`EPISODE_SUMMARY_SYSTEM_PROMPT`)。
 
+品質改善v2/v3・自己推敲パス (`summary-generation-quality-v2`、RAID small
+batch (`workspace/summary_drafts/raid_batch_001/`) の人間レビューで確認
+された品質問題2点への対策、2026-07-18ユーザー承認済み):
+- **episode-summary-v3**: episode要約promptへ、(a) 各文の主語(人物名)を
+  明示し代名詞・曖昧な指示語を避ける指示、(b) 解決済みspeaker displayName
+  から機械抽出した「登場人物」一覧の注入 (`extract_speaker_names`、未解決
+  話者は含めない)、(c) 本文中にblockIdや括弧書きの参照を書かない指示、の
+  3点を追加した (`PROMPT_VERSION = "episode-summary-v3"`)。
+- **story-summary-v2**: Story Summary合成の入力を、Episode Summary群の
+  再要約(v1)から全episode本文の直接入力(v2)へ変更した
+  (`build_story_summary_prompt_v2`/`render_story_full_text`)。story-level
+  evidenceRefsは引き続き機械的union方式のまま(LLMに選ばせない)。入力の
+  概算トークン数(`estimate_token_count`、実tokenizerは使わない単純な
+  文字数概算)が`DEFAULT_MAX_CONTEXT_TOKENS`を超える場合、
+  `agents/summarizer/generator.py`側でv1方式(`STORY_SUMMARY_PROMPT_VERSION`
+  = `story-summary-v2`ではなく`STORY_SUMMARY_PROMPT_VERSION_FALLBACK`
+  = `story-summary-v1-fallback`)へフォールバックする(失敗にしない)。
+- **自己推敲パス (`--refine`、既定OFF)**: 生成済みのepisode/story summary
+  textに対し、同モデルで`build_refine_prompt`による推敲を1周実行する
+  オプション機能。推敲呼び出し自体の失敗・parse失敗時は元のtextを維持し
+  非blocking issueを記録するのみとする(`agents/summarizer/generator.py`の
+  `_refine_episode_draft`/`_refine_story_text`)。使用時はprovenanceの
+  `promptVersion`へ`REFINE_PROMPT_VERSION_SUFFIX` (`refine-v1`) を追記する。
+
 入力構造（Plan §6.1）:
 - Episode単位のNormalized Story JSON (`schemas/story.schema.json`) から、
   `dialogue`/`monologue`/`narration`/`choice`のBlockのみを再帰的に抽出する
@@ -68,7 +92,10 @@ from typing import Any
 # (draft.source.promptVersionへ格納される、Plan §6.2)。
 # v2: 未解決話者placeholderの「話者不明」統一表記化・system prompt指示追加
 # (Stage 1 small batchレビューで実測された問題への対策)。
-PROMPT_VERSION = "episode-summary-v2"
+# v3: 主語明確化指示・登場人物リスト注入・本文中evidence ID参照禁止指示の
+# 3点を追加 (`summary-generation-quality-v2`、RAID small batchレビューで
+# 確認された品質問題への対策)。
+PROMPT_VERSION = "episode-summary-v3"
 
 # 抽出対象のBlock type (Plan §6.1、Evidence Indexの`--policy public-default`
 # と同じ対象type。stage_direction/unknownは対象外)。
@@ -96,6 +123,11 @@ EPISODE_SUMMARY_SYSTEM_PROMPT = (
     "明示された事実のみに基づく簡潔なあらすじを作成するアシスタントです。"
     "考察・推測・伏線解釈・キャラクター関係の推測・fan theoryは一切書かず、"
     "入力に明記された内容のみを要約してください。"
+    "各文の主語(人物名)を明示し、代名詞(彼・彼女・それ等)や『何か』のような"
+    "曖昧な指示語で人物・物事を指さないでください。userプロンプトに示された"
+    "「登場人物」一覧を参考にしてください。"
+    "あらすじ本文中に、blockIdや括弧書きの参照・出典表記を書かないで"
+    "ください（blockIdの引用はevidenceRefsフィールドのみで行ってください）。"
     "出力は指示されたJSON形式のみとし、それ以外の文章は一切出力しないで"
     "ください。"
     "「話者不明」という表記は話者が特定できていないことを示すラベルであり、"
@@ -202,6 +234,27 @@ def _is_unresolved_speaker(speaker: dict[str, Any], name: str) -> bool:
     return name.startswith(UNRESOLVED_SPEAKER_NAME_PREFIX)
 
 
+def extract_speaker_names(blocks: list[ExtractedBlock]) -> list[str]:
+    """episode中の解決済み話者displayNameを、初出順・重複排除で抽出する
+    (v3「登場人物」リスト注入、`summary-generation-quality-v2`)。
+
+    未解決話者 (`UNRESOLVED_SPEAKER_LABEL`、`speaker_name`が`None`のBlockも
+    含む) は含めない。`ExtractedBlock.speaker_name`は`_speaker_name`により
+    既にunresolved placeholder名を`UNRESOLVED_SPEAKER_LABEL`へ置換済みの
+    ため、ここでは単純な文字列比較で判定できる。
+    """
+    seen: set[str] = set()
+    names: list[str] = []
+    for block in blocks:
+        name = block.speaker_name
+        if not name or name == UNRESOLVED_SPEAKER_LABEL:
+            continue
+        if name not in seen:
+            seen.add(name)
+            names.append(name)
+    return names
+
+
 def format_block_line(block: ExtractedBlock) -> str:
     """`[{blockId}] {話者名}: {text}` 形式相当のテキスト表現を返す。
 
@@ -225,15 +278,24 @@ def build_episode_summary_prompt(blocks: list[ExtractedBlock]) -> str:
       (`Story_Summary_Design.md` §7.1/§7.2)
     - 出力は`{"text": "...", "evidenceRefs": ["BLOCKID", ...]}`形式の
       JSONのみとする (Plan §6.2)
+    - v3 (`summary-generation-quality-v2`): 解決済みspeaker displayNameの
+      「登場人物」一覧を注入し (`extract_speaker_names`)、主語明確化・
+      本文中evidence ID参照禁止の指示を追加する
 
     呼び出し側 (`agents/summarizer/generator.py`) が空リストで呼ぶことは
     想定しない (入力Blockが無いepisodeは生成自体をskipする設計)。
     """
     blocks_text = render_blocks_text(blocks)
+    speaker_names = extract_speaker_names(blocks)
+    speaker_line = (
+        "、".join(speaker_names) if speaker_names else "(解決済みの登場人物なし)"
+    )
     return (
         "以下は、あるepisodeの正規化済みシナリオテキストです。"
         "各行は `[blockId] 話者名: 本文` または `[blockId] 本文` の形式で、"
         "blockIdはそのセリフ・地の文・選択肢の一意な識別子です。\n"
+        "\n"
+        f"登場人物: {speaker_line}\n"
         "\n"
         "--- episode本文 ---\n"
         f"{blocks_text}\n"
@@ -247,9 +309,15 @@ def build_episode_summary_prompt(blocks: list[ExtractedBlock]) -> str:
         "fan theoryは一切書かないでください。\n"
         "2. 元のセリフ・地の文を長文でそのまま引用しないでください。短い"
         "一文引用程度に留めてください。\n"
-        "3. あらすじの各文につき、根拠となるblockIdを最低1つ引用してください"
-        "（例: 文末に blockId を対応付けられるように書く）。\n"
-        "4. 出力は次のJSON形式のみとし、それ以外の説明文・前置き・"
+        "3. 各文の主語(人物名)を明示してください。代名詞(彼・彼女・それ等)や"
+        "『何か』のような曖昧な指示語は避け、上記「登場人物」一覧の名前や"
+        "本文中の具体的な名称を使ってください。\n"
+        "4. あらすじの各文につき、根拠となるblockIdを最低1つ引用してください"
+        "（例: 文末に blockId を対応付けられるように書く）。ただし、"
+        "あらすじ本文中にblockIdや括弧書きの参照・出典表記を書かないで"
+        "ください。blockIdの引用は`evidenceRefs`フィールドのみで行って"
+        "ください。\n"
+        "5. 出力は次のJSON形式のみとし、それ以外の説明文・前置き・"
         "Markdown装飾は一切出力しないでください。\n"
         "\n"
         '{"text": "あらすじ本文", "evidenceRefs": ["引用したblockIdの配列"]}\n'
@@ -265,7 +333,19 @@ def build_episode_summary_prompt(blocks: list[ExtractedBlock]) -> str:
 
 # story合成promptの指示文言・出力formatを変更した場合はこの値も更新する
 # (draft.source.promptVersionへ、episode用PROMPT_VERSIONと併せて格納される)。
-STORY_SUMMARY_PROMPT_VERSION = "story-summary-v1"
+# v2 (`summary-generation-quality-v2`): 合成方式を「Episode Summary群の
+# 再要約」から「全episode本文の直接入力」へ変更した (`build_story_summary_
+# prompt_v2`)。contextサイズガードでフォールバックした場合は
+# `STORY_SUMMARY_PROMPT_VERSION_FALLBACK`をprovenanceへ記録する
+# (`agents/summarizer/generator.py`側の責務、このモジュールは定数のみ提供)。
+STORY_SUMMARY_PROMPT_VERSION = "story-summary-v2"
+
+# story-summary-v2のcontextサイズガード発動時 (入力の概算トークン数が
+# `DEFAULT_MAX_CONTEXT_TOKENS`を超えた場合)、または呼び出し側が全episode
+# 本文を用意できなかった場合に、実際に使われるprompt方式 (v1、Episode
+# Summary群の再要約) を表す値。`agents/summarizer/generator.py`の
+# `StorySynthesisResult.prompt_version`へ格納される。
+STORY_SUMMARY_PROMPT_VERSION_FALLBACK = "story-summary-v1-fallback"
 
 STORY_SUMMARY_SYSTEM_PROMPT = (
     "あなたはゲームシナリオのepisodeごとのあらすじ (Episode Summary) の"
@@ -274,6 +354,27 @@ STORY_SUMMARY_SYSTEM_PROMPT = (
     "入力に明記された内容のみを要約してください。"
     "出力は指示されたJSON形式のみとし、それ以外の文章は一切出力しないで"
     "ください。"
+)
+
+# story-summary-v2 (全文直接入力方式) 用のsystem prompt。入力がepisode
+# summary群ではなく生のdialogue/monologue/narration/choice本文であるため、
+# episode用system promptと同様に主語明確化・未解決話者placeholderの扱いを
+# 明示する (`summary-generation-quality-v2`)。
+STORY_SUMMARY_SYSTEM_PROMPT_V2 = (
+    "あなたはゲームシナリオの正規化済みテキスト (story全体の全episode本文) "
+    "から、明示された事実のみに基づくstory全体の簡潔なあらすじを作成する"
+    "アシスタントです。"
+    "考察・推測・伏線解釈・キャラクター関係の推測・fan theoryは一切書かず、"
+    "入力に明記された内容のみを要約してください。"
+    "各文の主語(人物名)を明示し、代名詞(彼・彼女・それ等)や『何か』のような"
+    "曖昧な指示語で人物・物事を指さないでください。"
+    "あらすじ本文中に、blockIdや括弧書きの参照・出典表記を書かないで"
+    "ください。"
+    "出力は指示されたJSON形式のみとし、それ以外の文章は一切出力しないで"
+    "ください。"
+    "「話者不明」という表記は話者が特定できていないことを示すラベルであり、"
+    "実在の人物名・キャラクター名ではありません。あらすじ本文中でこれを"
+    "人物名として扱わないでください。"
 )
 
 
@@ -341,4 +442,161 @@ def build_story_summary_prompt(items: list[EpisodeSummaryInput]) -> str:
         "Markdown装飾は一切出力しないでください。\n"
         "\n"
         '{"text": "story全体のあらすじ本文"}\n'
+    )
+
+
+# ----------------------------------------------------------------
+# Story Summary合成 v2: 全文直接入力方式 (`summary-generation-quality-v2`)
+#
+# Episode Summary群の再要約 (v1、上記) ではなく、全episodeの本文
+# (dialogue/monologue/narration/choice Blockのみ、blockId付き) を
+# episodeNumber順の時系列でそのまま入力しstory全体を要約させる。
+# story-level evidenceRefsは引き続きLLMに求めない (機械的union方式を維持、
+# `agents/summarizer/generator.py`の`_union_evidence_refs`)。
+# ----------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class EpisodeBlocksInput:
+    """story-summary-v2入力用の1 episode分のBlock群表現。
+
+    `agents/summarizer/generator.py`が、生成済み`EpisodeSummaryDraft`に
+    対応する元episode dictから`extract_episode_blocks`で再抽出した
+    `ExtractedBlock`一覧を保持する (Episode Summary textではなく、episode
+    本文そのものを使うのがv1との違い)。
+    """
+
+    episode_number: int | None
+    blocks: list[ExtractedBlock]
+
+
+def render_story_full_text(items: list[EpisodeBlocksInput]) -> str:
+    """story-summary-v2入力用に、各episodeの本文をepisodeNumber順の時系列で
+    整形した1つのテキストへ変換する。
+
+    Episode境界を`=== Episode {episodeNumber} ===`見出しで区切る。呼び出し
+    側 (`agents/summarizer/generator.py`) がepisodeNumber順に並べたitemsを
+    渡すこと (並び替え自体はこの関数の責務ではない)。
+    """
+    parts: list[str] = []
+    for item in items:
+        number_label = item.episode_number if item.episode_number is not None else "?"
+        parts.append(f"=== Episode {number_label} ===")
+        parts.append(render_blocks_text(item.blocks))
+    return "\n".join(parts)
+
+
+def build_story_summary_prompt_v2(items: list[EpisodeBlocksInput]) -> str:
+    """Story Summary合成 (v2、全文直接入力方式) 用のuser prompt本文を
+    組み立てる (`summary-generation-quality-v2`)。
+
+    - 全episodeの本文をepisodeNumber順の時系列でそのまま埋め込む (v1の
+      「Episode Summary群の再要約」との違い)
+    - story-level textにblockId引用は求めない (evidenceRefsは
+      `agents/summarizer/generator.py`側で機械的union方式のまま決める)
+    - 出力は`{"text": "..."}`形式のJSONのみとする (v1と同じ出力形式)
+    - 主語明確化・本文中evidence ID参照禁止の指示を含む (episode-summary-v3
+      と同じ品質改善方針)
+
+    呼び出し側が空リストで呼ぶことは想定しない (全文入力が組み立てられない
+    場合はv1方式へフォールバックする設計、`generator.py`の責務)。
+    """
+    full_text = render_story_full_text(items)
+    return (
+        "以下は、あるstoryを構成する全episodeの正規化済み本文です。"
+        "各行は `[blockId] 話者名: 本文` または `[blockId] 本文` の形式で、"
+        "`=== Episode 番号 ===` の見出しでepisode境界を区切り、"
+        "episodeNumber順の時系列で並んでいます。\n"
+        "\n"
+        "--- story本文 (全episode、時系列順) ---\n"
+        f"{full_text}\n"
+        "--- story本文ここまで ---\n"
+        "\n"
+        "この内容から、story全体を通した明示された事実のみに基づく簡潔な"
+        "あらすじを日本語で作成してください。以下のルールを厳守してください。\n"
+        "\n"
+        "1. 本文に明記された内容のみを使い、story全体の流れが分かるように"
+        "まとめてください。考察・推測・伏線解釈・キャラクター関係の推測・"
+        "fan theoryは一切書かないでください。\n"
+        "2. 元の台詞・地の文を長文でそのまま引用しないでください。\n"
+        "3. 各文の主語(人物名)を明示してください。代名詞(彼・彼女・それ等)や"
+        "『何か』のような曖昧な指示語は避けてください。\n"
+        "4. あらすじ本文中に、blockIdや括弧書きの参照・出典表記を書かないで"
+        "ください。\n"
+        "5. 出力は次のJSON形式のみとし、それ以外の説明文・前置き・"
+        "Markdown装飾は一切出力しないでください。\n"
+        "\n"
+        '{"text": "story全体のあらすじ本文"}\n'
+    )
+
+
+# story-summary-v2のcontextサイズガード。実tokenizerは導入しない (新規
+# ランタイム依存を追加しない方針、`agents/summarizer/provider.py`参照)。
+# 日本語主体のテキストを想定し、保守的に1token≒2文字という経験則で概算する
+# (実際のtokenizerより少なめの文字数/tokenで見積もることで、context超過を
+# 早期に検出する安全側の概算)。
+CHARACTERS_PER_TOKEN_ESTIMATE = 2
+
+# story-summary-v2入力の概算トークン数上限の既定値。ローカルLLM (Ollama) の
+# 保守的なcontext window目安 (8192 tokens前後) を踏まえた値。超過時は
+# `agents/summarizer/generator.py`側でv1方式(Episode Summary群の再要約)へ
+# フォールバックする (CLI `--story-synthesis-max-context-tokens`で変更可)。
+DEFAULT_MAX_CONTEXT_TOKENS = 8_000
+
+
+def estimate_token_count(text: str) -> int:
+    """テキストの概算トークン数を返す。
+
+    `CHARACTERS_PER_TOKEN_ESTIMATE`文字ごとに1tokenという単純な概算のみを
+    行う (実tokenizerは使わない)。空文字列は0を返す。
+    """
+    if not text:
+        return 0
+    return -(-len(text) // CHARACTERS_PER_TOKEN_ESTIMATE)
+
+
+# ----------------------------------------------------------------
+# 自己推敲パス (`--refine`、既定OFF、`summary-generation-quality-v2`)
+#
+# 生成済みのepisode/story summary textに対し、同モデルで1周だけ推敲させる
+# オプション機能。入力に無い事実の追加・大幅な長さの変更を禁止する。
+# ----------------------------------------------------------------
+
+# 推敲使用時にprovenanceの`promptVersion`へ追記するsuffix
+# (`agents/summarizer/generator.py`の`_build_provenance`が使う)。
+REFINE_PROMPT_VERSION_SUFFIX = "refine-v1"
+
+REFINE_SYSTEM_PROMPT = (
+    "あなたは日本語のあらすじ文章を推敲するアシスタントです。"
+    "主語が曖昧な文・論理の飛躍・不自然な係り受けを修正してください。"
+    "入力に無い事実を追加しないでください。長さは元の本文と同程度を"
+    "保ってください。"
+    "出力は指示されたJSON形式のみとし、それ以外の文章は一切出力しないで"
+    "ください。"
+)
+
+
+def build_refine_prompt(text: str) -> str:
+    """自己推敲パス用のuser prompt本文を組み立てる。
+
+    生成済みのepisode/story summary textを入力とし、同モデルで1周だけ
+    推敲させる。出力は`{"text": "..."}`形式のJSONのみとする (episode
+    summary/story summaryいずれの推敲呼び出しにも共用できる形式)。
+    """
+    return (
+        "以下は、既に生成されたゲームシナリオのあらすじ本文です。\n"
+        "\n"
+        "--- 推敲対象の本文 ---\n"
+        f"{text}\n"
+        "--- 推敲対象の本文ここまで ---\n"
+        "\n"
+        "この本文について、以下のルールを厳守して推敲してください。\n"
+        "\n"
+        "1. 主語が曖昧な文・論理の飛躍・不自然な係り受けを修正してください。\n"
+        "2. 入力に無い事実を追加しないでください。\n"
+        "3. 長さは元の本文と同程度を保ってください。\n"
+        "4. 出力は次のJSON形式のみとし、それ以外の説明文・前置き・"
+        "Markdown装飾は一切出力しないでください。\n"
+        "\n"
+        '{"text": "推敲後の本文"}\n'
     )
