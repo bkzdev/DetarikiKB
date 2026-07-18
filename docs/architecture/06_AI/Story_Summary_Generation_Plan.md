@@ -271,6 +271,8 @@ Evidence Indexの`Evidence_Index_Batch_Promotion_Policy.md` §9（Failed story h
 
 **次PR候補（直近）**: `summary-generation-quality-gate`完了により、§9の実装フェーズはすべて完了した。残る次候補は`summary-generation-poc`（§5 Stage 0の実施、**着手にはユーザーの明示的許可が必要**、実行にはローカルOllamaが必要）のみである。
 
+**追記（`summary-generation-poc-first-commit`、2026-07-18）**: `summary-generation-poc`で確立した生成〜昇格の全手順（`docs/runbooks/Story_Summary_Generation_Runbook.md`が文書化）を、EVENTカテゴリとは別のカテゴリ（RAID、Evidence Index昇格済み1 story・2 episodes）に対しても実行し、ユーザーが人間レビュー・draft内容を事前承認した上で初回commitまで到達した。生成（Ollamaローカル実行）は約24秒、quality gate（`check_story_summary_drafts.py`）は初回・レビュー後修正後の両方でPASS、人間レビューで2点（Episode 1本文の文体統一・係り受け誤読の修正）を修正、Public-safe projection（`internal_id_exposure=0`・`promotion_readiness=promotion-candidate`）を経て`promote_story_summaries.py --execute`で昇格した。これにより、カテゴリを跨いだ生成〜昇格パイプラインの再現性を確認した。公開Summaryは3→4 storyに拡大した。件数・所要時間のみ記録し、実sourceKey・要約本文はここに記載しない。
+
 ---
 
 # 10. Non-goals（本PR固有の再掲）
