@@ -75,12 +75,43 @@ docstring参照):
   推敲呼び出しを1周追加実行する。推敲呼び出し自体の失敗・応答parse失敗は
   非blocking issueとして記録し、元のtextを維持する(draftを潰さない)。
   使用時は`_build_provenance`が`promptVersion`へ`refine-v1`を追記する
+
+domain context注入・本文中evidence ID引用の機械的除去
+(`summary-domain-context-injection`、2026-07-19ユーザーレビューで確認
+された「話者不明モノローグ(班長=主人公)の近くの名前付きキャラクターへの
+誤帰属」対策、実promptの設計理由は`agents/summarizer/prompt.py`のmodule
+docstring参照):
+- **domain context注入**: `generate_episode_summary`/
+  `synthesize_story_summary`/`generate_story_summary_draft`いずれも
+  `domain_context: list[str] | None = None`引数を追加した。
+  `agents/summarizer/domain_context.py`の`load_domain_context`が返す
+  人間確認済みドメイン前提のlistをそのまま各system prompt (episode/
+  story v1/v2/refine全て) へ渡す。Noneまたは空リストの場合は既存の
+  system prompt文字列を一切変更しない (後方互換)。非空のdomain_contextが
+  実際に渡された場合のみ、`_build_provenance`が`promptVersion`へ
+  `DOMAIN_CONTEXT_PROMPT_VERSION_SUFFIX` (`domain-context-v1`) を追記する
+  (`PROMPT_VERSION`のバージョン番号自体はdomain contextファイルの有無に
+  関わらず同じ値であるため、実際に注入されたかどうかはこの追記の有無で
+  provenanceから判別する設計)
+- **本文中evidence ID引用の機械的除去 (防御の二重化)**:
+  `strip_evidence_id_citations`/`EVIDENCE_ID_PATTERN`を追加した。LLM
+  応答から得たtext (episode summary/story summary/推敲後textいずれも)
+  に対し、括弧書き (半角/全角丸括弧・角括弧・隅付き括弧) で囲まれた
+  blockId引用を機械的に除去してから既存の禁止文字列scan・verbatim検出
+  へ渡す。除去した場合は非blocking issue `evidence-id-citation-stripped`
+  として件数を記録する (`_strip_evidence_id_citations_with_issue`)。
+  除去によりtextが空になってしまう場合は元のtextを維持し、非blocking
+  issue `evidence-id-citation-strip-would-empty-text`を記録する。
+  `scripts/check_story_summary_drafts.py`の新規quality gate検証
+  (`summary-domain-context-injection`で追加) が、このstripが除去し損ねた
+  ケース (括弧を伴わない裸のID出現等) を最終防衛線として引き続き検出する
 """
 
 from __future__ import annotations
 
 import difflib
 import json
+import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
@@ -91,21 +122,21 @@ from .models import EpisodeSummaryDraft, StorySummaryDraft, SummaryProvenance
 from .prompt import (
     DEFAULT_MAX_CONTEXT_TOKENS,
     DEFAULT_MAX_INPUT_CHARACTERS,
-    EPISODE_SUMMARY_SYSTEM_PROMPT,
     PROMPT_VERSION,
     REFINE_PROMPT_VERSION_SUFFIX,
-    REFINE_SYSTEM_PROMPT,
     STORY_SUMMARY_PROMPT_VERSION,
     STORY_SUMMARY_PROMPT_VERSION_FALLBACK,
-    STORY_SUMMARY_SYSTEM_PROMPT,
-    STORY_SUMMARY_SYSTEM_PROMPT_V2,
     EpisodeBlocksInput,
     EpisodeSummaryInput,
     ExtractedBlock,
     build_episode_summary_prompt,
+    build_episode_summary_system_prompt,
     build_refine_prompt,
+    build_refine_system_prompt,
     build_story_summary_prompt,
     build_story_summary_prompt_v2,
+    build_story_summary_system_prompt,
+    build_story_summary_system_prompt_v2,
     estimate_token_count,
     extract_episode_blocks,
     render_blocks_text,
@@ -120,6 +151,81 @@ from .provider import LLMProviderError, SummaryLLMProvider
 DEFAULT_VERBATIM_THRESHOLD = 30
 
 _VERBATIM_QUOTE_PREVIEW_LENGTH = 40
+
+# domain contextが実際に注入された (非空list) 場合にprovenanceの
+# `promptVersion`へ追記するmarker (`summary-domain-context-injection`)。
+# `PROMPT_VERSION`/`STORY_SUMMARY_PROMPT_VERSION`自体はdomain context注入に
+# 対応したprompt実装のversionを表すのみで、ファイル未設置/空の場合でも
+# 同じ値になる。実際に注入されたかどうかをprovenanceから判別できるように、
+# このmarkerを別途追記する (`_build_provenance`)。
+DOMAIN_CONTEXT_PROMPT_VERSION_SUFFIX = "domain-context-v1"
+
+# ----------------------------------------------------------------
+# 本文中evidence/block ID引用の機械的除去 (`summary-domain-context-
+# injection`、防御の二重化)
+#
+# `scripts/check_story_summary_drafts.py`のquality gateが検出する
+# パターンと同じID正規表現を使い、括弧書き (半角/全角括弧・角括弧・
+# 隅付き括弧) で囲まれたID引用を生成text後処理で機械的に除去する。
+# gate側の検出は「防御の最終防衛線」として引き続き有効なまま残す
+# (このstripが除去し損ねたケース、括弧を伴わない裸のID出現等を拾う)。
+# ----------------------------------------------------------------
+
+# `[A-Z][A-Z0-9_]*_(DLG|MONO|NAR|CHOICE|STAGE|SC)数字` 形式のblockId
+# (`agents/parser/normalizer.py`の`IdGenerator`が発番するblockId形式)。
+EVIDENCE_ID_PATTERN = re.compile(r"[A-Z][A-Z0-9_]*_(?:DLG|MONO|NAR|CHOICE|STAGE|SC)\d+")
+
+_BRACKET_CHARS = "()（）[]【】"
+_EVIDENCE_ID_CITATION_PATTERN = re.compile(
+    r"[\(（\[【][^()\[\]（）【】]*"
+    + EVIDENCE_ID_PATTERN.pattern
+    + r"[^()\[\]（）【】]*[\)）\]】]"
+)
+
+
+def strip_evidence_id_citations(text: str) -> tuple[str, int]:
+    """`text`中の括弧書きevidence/block ID引用を機械的に除去する。
+
+    戻り値: (除去後のtext, 除去した件数)。括弧 (半角/全角丸括弧・角括弧・
+    隅付き括弧) の中に`EVIDENCE_ID_PATTERN`に一致する文字列を含む場合、
+    その括弧書き全体を除去する。除去後に生じた連続空白は単一の半角
+    スペースへ畳み、前後の空白をtrimする。一致が無ければ`text`をそのまま
+    返す (件数0)。
+    """
+    if not text:
+        return text, 0
+    stripped, count = _EVIDENCE_ID_CITATION_PATTERN.subn("", text)
+    if count:
+        stripped = re.sub(r"[ 　]{2,}", " ", stripped).strip()
+    return stripped, count
+
+
+def _strip_evidence_id_citations_with_issue(
+    text: str,
+) -> tuple[str, list[GenerationIssue]]:
+    """`strip_evidence_id_citations`を実行し、除去件数を`GenerationIssue`
+    (非blocking) として記録する。除去の結果textが空/空白のみになって
+    しまう場合は元のtextを維持し、人間レビューを促すissueへ切り替える
+    (draftが空textのまま生成される事態を避ける安全弁)。
+    """
+    stripped, count = strip_evidence_id_citations(text)
+    if count == 0:
+        return text, []
+    if not stripped:
+        return text, [
+            GenerationIssue(
+                "evidence-id-citation-strip-would-empty-text",
+                "括弧書きevidence/block ID引用の除去によりtextが空になるため、"
+                "元のtextを維持しました (人間レビューが必要です)",
+            )
+        ]
+    return stripped, [
+        GenerationIssue(
+            "evidence-id-citation-stripped",
+            f"生成textから括弧書きのevidence/block ID引用を{count}件、"
+            "機械的に除去しました",
+        )
+    ]
 
 
 @dataclass(frozen=True)
@@ -390,6 +496,7 @@ def generate_episode_summary(
     max_input_characters: int = DEFAULT_MAX_INPUT_CHARACTERS,
     verbatim_threshold: int = DEFAULT_VERBATIM_THRESHOLD,
     refine: bool = False,
+    domain_context: list[str] | None = None,
 ) -> EpisodeSummaryGenerationResult:
     """1 episode分のEpisode Summary draftを生成する。
 
@@ -403,6 +510,12 @@ def generate_episode_summary(
     同モデルで`build_refine_prompt`呼び出し)、`draft.text`を推敲後のtextへ
     差し替える。推敲パス自体が失敗した場合は元のtextを維持し、非blocking
     issueを追加するのみとする (draft自体は必ず生成される設計を維持)。
+
+    `domain_context` (既定None、`summary-domain-context-injection`) は
+    `agents/summarizer/domain_context.py`の`load_domain_context`が返す
+    人間確認済みドメイン前提のlistで、system promptへそのまま注入される
+    (`build_episode_summary_system_prompt`)。Noneまたは空リストの場合は
+    system promptを一切変更しない (後方互換)。
     """
     episode_id = episode.get("episodeId")
 
@@ -440,10 +553,9 @@ def generate_episode_summary(
         )
 
     prompt = build_episode_summary_prompt(blocks)
+    system_prompt = build_episode_summary_system_prompt(domain_context)
     try:
-        completion = provider.generate(
-            prompt, system=EPISODE_SUMMARY_SYSTEM_PROMPT, format_json=True
-        )
+        completion = provider.generate(prompt, system=system_prompt, format_json=True)
     except LLMProviderError as exc:
         return EpisodeSummaryGenerationResult(
             episode_id=episode_id,
@@ -467,9 +579,10 @@ def generate_episode_summary(
             model_name=completion.model_name,
         )
 
-    text = parsed["text"]
+    text, citation_issues = _strip_evidence_id_citations_with_issue(parsed["text"])
     valid_block_ids = frozenset(block.block_id for block in blocks)
     issues: list[GenerationIssue] = list(parse_issues)
+    issues.extend(citation_issues)
     issues.extend(_check_evidence_refs_exist(parsed["evidenceRefs"], valid_block_ids))
     issues.extend(_check_forbidden_text(text))
     issues.extend(check_verbatim_quotes(text, blocks, threshold=verbatim_threshold))
@@ -485,7 +598,11 @@ def generate_episode_summary(
     if refine:
         issues.extend(
             _refine_episode_draft(
-                draft, blocks, provider=provider, verbatim_threshold=verbatim_threshold
+                draft,
+                blocks,
+                provider=provider,
+                verbatim_threshold=verbatim_threshold,
+                domain_context=domain_context,
             )
         )
 
@@ -509,19 +626,21 @@ def _refine_episode_draft(
     *,
     provider: SummaryLLMProvider,
     verbatim_threshold: int,
+    domain_context: list[str] | None = None,
 ) -> list[GenerationIssue]:
     """`draft.text`へ自己推敲パスを1周適用する (in-place)。
 
     推敲呼び出し自体の失敗・応答parse失敗の場合は元のtextを維持し、
     非blockingのissueを記録するのみとする (推敲は既に成立しているdraftへの
     追加処理であり、失敗させてdraft自体を潰さない)。推敲成功時は、推敲後の
-    textに対して禁止文字列scan・長文verbatim引用検出を再実行する。
+    textに対して括弧書きevidence ID引用の除去・禁止文字列scan・長文
+    verbatim引用検出を再実行する。`domain_context`は`build_refine_system_
+    prompt`へそのまま渡す (`summary-domain-context-injection`)。
     """
     prompt = build_refine_prompt(draft.text)
+    system_prompt = build_refine_system_prompt(domain_context)
     try:
-        completion = provider.generate(
-            prompt, system=REFINE_SYSTEM_PROMPT, format_json=True
-        )
+        completion = provider.generate(prompt, system=system_prompt, format_json=True)
     except LLMProviderError as exc:
         return [
             GenerationIssue(
@@ -540,8 +659,12 @@ def _refine_episode_draft(
             for issue in parse_issues
         ]
 
+    refined_text, citation_issues = _strip_evidence_id_citations_with_issue(
+        refined_text
+    )
     draft.text = refined_text
-    issues = _check_forbidden_text(refined_text)
+    issues = list(citation_issues)
+    issues.extend(_check_forbidden_text(refined_text))
     issues.extend(
         check_verbatim_quotes(refined_text, blocks, threshold=verbatim_threshold)
     )
@@ -549,21 +672,21 @@ def _refine_episode_draft(
 
 
 def _refine_story_text(
-    text: str, *, provider: SummaryLLMProvider
+    text: str, *, provider: SummaryLLMProvider, domain_context: list[str] | None = None
 ) -> tuple[str, list[GenerationIssue]]:
     """story_textへ自己推敲パスを1周適用する。
 
     `_refine_episode_draft`と同じ方針: 推敲呼び出し自体の失敗・応答parse
     失敗時は元のtextを維持し、非blocking issueを記録するのみとする。
     story合成は元々verbatim引用検出を行わない設計のため
-    (`synthesize_story_summary`のdocstring参照)、推敲後のtextに対しても
-    禁止文字列scanのみ再実行する。
+    (`synthesize_story_summary`のdocstring参照)、推敲後のtextに対しては
+    括弧書きevidence ID引用の除去・禁止文字列scanのみ再実行する。
+    `domain_context`は`build_refine_system_prompt`へそのまま渡す。
     """
     prompt = build_refine_prompt(text)
+    system_prompt = build_refine_system_prompt(domain_context)
     try:
-        completion = provider.generate(
-            prompt, system=REFINE_SYSTEM_PROMPT, format_json=True
-        )
+        completion = provider.generate(prompt, system=system_prompt, format_json=True)
     except LLMProviderError as exc:
         return text, [
             GenerationIssue(
@@ -582,7 +705,12 @@ def _refine_story_text(
             for issue in parse_issues
         ]
 
-    return refined_text, _check_forbidden_text(refined_text)
+    refined_text, citation_issues = _strip_evidence_id_citations_with_issue(
+        refined_text
+    )
+    issues = list(citation_issues)
+    issues.extend(_check_forbidden_text(refined_text))
+    return refined_text, issues
 
 
 # ----------------------------------------------------------------
@@ -738,7 +866,9 @@ def _build_full_text_items(
 
 
 def _synthesize_story_summary_full_text(
-    full_text_items: list[EpisodeBlocksInput], provider: SummaryLLMProvider
+    full_text_items: list[EpisodeBlocksInput],
+    provider: SummaryLLMProvider,
+    domain_context: list[str] | None = None,
 ) -> _SynthesisAttempt:
     """story-summary-v2 (全文直接入力方式) でのLLM呼び出し + 後処理。
 
@@ -746,10 +876,9 @@ def _synthesize_story_summary_full_text(
     場合は合成が成立しなかった(blocking issueが`issues`にある)ことを表す。
     """
     prompt = build_story_summary_prompt_v2(full_text_items)
+    system_prompt = build_story_summary_system_prompt_v2(domain_context)
     try:
-        completion = provider.generate(
-            prompt, system=STORY_SUMMARY_SYSTEM_PROMPT_V2, format_json=True
-        )
+        completion = provider.generate(prompt, system=system_prompt, format_json=True)
     except LLMProviderError as exc:
         return (
             None,
@@ -768,7 +897,9 @@ def _synthesize_story_summary_full_text(
     if text is None:
         return None, parse_issues, completion.provider_name, completion.model_name
 
+    text, citation_issues = _strip_evidence_id_citations_with_issue(text)
     issues = list(parse_issues)
+    issues.extend(citation_issues)
     issues.extend(_check_forbidden_text(text))
     return text, issues, completion.provider_name, completion.model_name
 
@@ -777,6 +908,7 @@ def _synthesize_story_summary_from_episode_summaries(
     ordered_episode_drafts: list[EpisodeSummaryDraft],
     provider: SummaryLLMProvider,
     max_input_characters: int,
+    domain_context: list[str] | None = None,
 ) -> _SynthesisAttempt:
     """story-summary-v1 (Episode Summary群の再要約方式) でのLLM呼び出し +
     後処理。story-summary-v2のcontextサイズガード超過時のフォールバック、
@@ -807,10 +939,9 @@ def _synthesize_story_summary_from_episode_summaries(
         )
 
     prompt = build_story_summary_prompt(inputs)
+    system_prompt = build_story_summary_system_prompt(domain_context)
     try:
-        completion = provider.generate(
-            prompt, system=STORY_SUMMARY_SYSTEM_PROMPT, format_json=True
-        )
+        completion = provider.generate(prompt, system=system_prompt, format_json=True)
     except LLMProviderError as exc:
         return (
             None,
@@ -829,7 +960,9 @@ def _synthesize_story_summary_from_episode_summaries(
     if text is None:
         return None, parse_issues, completion.provider_name, completion.model_name
 
+    text, citation_issues = _strip_evidence_id_citations_with_issue(text)
     issues = list(parse_issues)
+    issues.extend(citation_issues)
     issues.extend(_check_forbidden_text(text))
     return text, issues, completion.provider_name, completion.model_name
 
@@ -843,6 +976,7 @@ def synthesize_story_summary(
     episodes: list[dict[str, Any]] | None = None,
     max_context_tokens: int = DEFAULT_MAX_CONTEXT_TOKENS,
     refine: bool = False,
+    domain_context: list[str] | None = None,
 ) -> StorySynthesisResult:
     """生成済みEpisode Summary群からStory Summaryを合成する (Plan §11、
     `summary-generation-quality-v2`で入力方式をv2 (全文直接入力) へ変更)。
@@ -880,6 +1014,9 @@ def synthesize_story_summary(
     - `refine=True` (既定OFF) の場合、合成成功後にさらに自己推敲パスを1周
       実行する (`_refine_story_text`)。推敲自体の失敗は元のtextを維持し
       非blocking issueを記録するのみとする
+    - `domain_context` (既定None、`summary-domain-context-injection`) は
+      v1/v2いずれのsystem promptにもそのまま注入される
+      (`build_story_summary_system_prompt`/`_v2`)
     """
     if not episode_drafts:
         return StorySynthesisResult(
@@ -904,7 +1041,9 @@ def synthesize_story_summary(
         estimated_tokens = estimate_token_count(full_text)
         if estimated_tokens <= max_context_tokens:
             text, issues, model_provider, model_name = (
-                _synthesize_story_summary_full_text(full_text_items, provider)
+                _synthesize_story_summary_full_text(
+                    full_text_items, provider, domain_context
+                )
             )
             prompt_version = STORY_SUMMARY_PROMPT_VERSION
         else:
@@ -916,14 +1055,14 @@ def synthesize_story_summary(
             )
             text, issues, model_provider, model_name = (
                 _synthesize_story_summary_from_episode_summaries(
-                    ordered, provider, max_input_characters
+                    ordered, provider, max_input_characters, domain_context
                 )
             )
             prompt_version = STORY_SUMMARY_PROMPT_VERSION_FALLBACK
     else:
         text, issues, model_provider, model_name = (
             _synthesize_story_summary_from_episode_summaries(
-                ordered, provider, max_input_characters
+                ordered, provider, max_input_characters, domain_context
             )
         )
         prompt_version = STORY_SUMMARY_PROMPT_VERSION_FALLBACK
@@ -952,7 +1091,9 @@ def synthesize_story_summary(
         )
 
     if refine:
-        text, refine_issues = _refine_story_text(text, provider=provider)
+        text, refine_issues = _refine_story_text(
+            text, provider=provider, domain_context=domain_context
+        )
         issues.extend(refine_issues)
 
     return StorySynthesisResult(
@@ -979,6 +1120,7 @@ def generate_story_summary_draft(
     synthesize_story: bool = True,
     max_context_tokens: int = DEFAULT_MAX_CONTEXT_TOKENS,
     refine: bool = False,
+    domain_context: list[str] | None = None,
 ) -> StorySummaryGenerationResult:
     """Normalized Story JSON 1 story分から、Episode Summary群のdraftと
     (既定で) 合成済みStory Summaryを含む`StorySummaryDraft`を組み立てる。
@@ -991,6 +1133,14 @@ def generate_story_summary_draft(
     contextサイズガード (`summary-generation-quality-v2`、
     `synthesize_story_summary`参照)。`refine=True` (既定OFF) の場合、
     episode/story summaryいずれの生成にも自己推敲パスを1周適用する。
+
+    `domain_context` (既定None、`summary-domain-context-injection`) は
+    `agents/summarizer/domain_context.py`の`load_domain_context`が返す
+    人間確認済みドメイン前提のlist。episode生成・story合成・(有効な場合)
+    自己推敲パスの全system promptへそのまま渡す。Noneまたは空リストの
+    場合は従来通りdomain context注入なしで動作する (後方互換)。実際に
+    非空のdomain_contextが渡された場合、`_build_provenance`が
+    `promptVersion`へ`DOMAIN_CONTEXT_PROMPT_VERSION_SUFFIX`を追記する。
     """
     story_id = document.get("storyId")
     episodes = document.get("episodes", []) or []
@@ -1002,6 +1152,7 @@ def generate_story_summary_draft(
             max_input_characters=max_input_characters,
             verbatim_threshold=verbatim_threshold,
             refine=refine,
+            domain_context=domain_context,
         )
         for episode in episodes
     ]
@@ -1025,9 +1176,15 @@ def generate_story_summary_draft(
             episodes=episodes,
             max_context_tokens=max_context_tokens,
             refine=refine,
+            domain_context=domain_context,
         )
 
-    provenance = _build_provenance(episode_results, story_synthesis, refine=refine)
+    provenance = _build_provenance(
+        episode_results,
+        story_synthesis,
+        refine=refine,
+        domain_context_injected=bool(domain_context),
+    )
 
     notes = _build_notes(episode_results, story_synthesis)
 
@@ -1058,6 +1215,7 @@ def _build_provenance(
     story_synthesis: StorySynthesisResult | None = None,
     *,
     refine: bool = False,
+    domain_context_injected: bool = False,
 ) -> SummaryProvenance:
     """成功した最初のepisode結果からmodel provenanceを引き継ぐ
     (episode側が全て失敗している場合は、成功したstory synthesisの値で
@@ -1070,8 +1228,13 @@ def _build_provenance(
     `STORY_SUMMARY_PROMPT_VERSION_FALLBACK`) をカンマ区切りで併記する
     (schema上`source.promptVersion`は単一文字列のため、
     `summary-generation-quality-v2`でどちらの方式が実際に使われたかを
-    provenanceから判別できるようにした)。`refine=True`の場合はさらに
-    `REFINE_PROMPT_VERSION_SUFFIX` (`refine-v1`) を追記する。
+    provenanceから判別できるようにした)。`domain_context_injected=True`の
+    場合はさらに`DOMAIN_CONTEXT_PROMPT_VERSION_SUFFIX`
+    (`domain-context-v1`) を追記する (`summary-domain-context-injection`。
+    `PROMPT_VERSION`/`STORY_SUMMARY_PROMPT_VERSION`自体はdomain context
+    ファイルの有無に関わらず同じ値になるため、実際に注入されたかどうかは
+    この追記の有無でprovenanceから判別する)。`refine=True`の場合はさらに
+    `REFINE_PROMPT_VERSION_SUFFIX` (`refine-v2`) を追記する。
     """
     model_provider: str | None = None
     model_name: str | None = None
@@ -1089,6 +1252,8 @@ def _build_provenance(
         prompt_versions.append(
             story_synthesis.prompt_version or STORY_SUMMARY_PROMPT_VERSION
         )
+    if domain_context_injected:
+        prompt_versions.append(DOMAIN_CONTEXT_PROMPT_VERSION_SUFFIX)
     if refine:
         prompt_versions.append(REFINE_PROMPT_VERSION_SUFFIX)
 

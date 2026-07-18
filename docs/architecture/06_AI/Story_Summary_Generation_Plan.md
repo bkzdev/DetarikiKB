@@ -206,6 +206,21 @@ Evidence Indexの`Evidence_Index_Batch_Promotion_Policy.md` §9（Failed story h
 - episode本文がLLMのcontext長を超える場合、Scene単位またはBlock群単位でchunk分割し、chunkごとに部分要約→部分要約群を再統合してEpisode Summaryにする2段階要約を想定する
 - 分割・再統合ロジックの具体的な実装（chunk境界の決め方、再統合prompt）は実装PR側で設計する。本PRでは「分割が必要になりうる」という方針と、分割してもBlockId引用の実在性検証は変わらず機能するという設計要件のみを明記する
 
+## 6.5 Domain context注入（`summary-domain-context-injection`で確定）
+
+**背景**: `summary-generation-quality-v2`のRAID small batch人間レビューを経てもなお、2026-07-19のユーザーレビューで3世代のdraftに共通する系統的な帰属誤りが確認された。「半裸になったのは班長」のように話者が明示されないモノローグ（このゲームの主人公＝プレイヤー本人を指す「班長」の内心描写）を、LLMがその都度異なる近くの名前付きキャラクターへ誤帰属する、というパターンである。原因は、ゲーム固有の前提（主人公＝プレイヤー＝「班長」という呼称）をLLMが知らないことにあり、`episode-summary-v3`の「登場人物」リスト注入（解決済みspeaker displayNameのみ）だけでは対策できない種類の誤りだった。
+
+**設計方針（確定）**:
+
+- ユーザーが事実として確認済みの前提知識を、`knowledge/dictionaries/summary_domain_context.yaml`（**commit対象**）としてYAML管理する。ファイルヘッダに「人間確認済みの事実のみを記載する」運用ルールを明記し、AIが単独で新しい事実を追加することを禁止する（`docs/runbooks/Story_Summary_Generation_Runbook.md`の編集手順参照）
+- `agents/summarizer/domain_context.py`の`load_domain_context`がこのYAMLを読み込み、`entries[].text`のlistを返す。ファイルが存在しない、または`entries`が空の場合は空listを返し、呼び出し側はこれを「注入なし・従来動作」として扱う（**後方互換**）
+- `agents/summarizer/prompt.py`の`build_episode_summary_system_prompt`/`build_story_summary_system_prompt`/`build_story_summary_system_prompt_v2`/`build_refine_system_prompt`が、domain contextのlistを各system prompt固定値の末尾へ追記する（`build_domain_context_block`）。episode要約・story合成（v1/v2いずれも）・自己推敲パスの全system promptが対象
+- `PROMPT_VERSION`（`episode-summary-v4`）・`STORY_SUMMARY_PROMPT_VERSION`（`story-summary-v3`）・`REFINE_PROMPT_VERSION_SUFFIX`（`refine-v2`）は、domain context注入に対応したprompt実装のversionを表す（ファイルの有無に関わらず同じ値）。実際にdomain contextが注入されたかどうかは、`agents/summarizer/generator.py`の`_build_provenance`が非空のdomain_context受領時のみ追記する`DOMAIN_CONTEXT_PROMPT_VERSION_SUFFIX`（`domain-context-v1`）の有無でprovenanceから判別できる
+- 初期entryは2件のみ: (a) 主人公＝プレイヤー＝「班長」という呼称の説明、(b) 話者不明モノローグは班長のものである可能性が高いという帰属ヒント。いずれも2026-07-19にユーザー本人が確認済みの事実であり、AI推測の設定・実データ由来の固有名詞は含まない
+- 汎用的な用語間関係（glossary）の注入自体（`TASKS.md` Backlog `summary-generation-glossary-injection`）は、本項目の初の具体化として実装されたのみで、今後運用でentryを追加していく方針とする
+
+**quality gateの盲点修正（同PRで併せて対処）**: `summary-generation-poc-first-commit`のRAID batchレビューで、summary本文中に括弧書きのblockId引用がそのまま残るケースを`check_story_summary_drafts.py`が検出できていないことが判明した（§8.1「本文中evidence/block ID引用検出」項目を参照）。`agents/summarizer/generator.py`側でも、LLM出力から括弧書きのblockId引用を機械的に除去する後処理（`strip_evidence_id_citations`）を追加し、quality gateの検出を「最終防衛線」とする二重防御構成にした。
+
 ---
 
 # 7. Provider抽象の配置
@@ -238,6 +253,7 @@ Evidence Indexの`Evidence_Index_Batch_Promotion_Policy.md` §9（Failed story h
 | 禁止文字列scan | raw text/rawコマンド禁止パターン | `validate_story_summaries.py`の既存raw/source text禁止文字列検出、`FORBIDDEN_TEXT_PATTERNS`相当 |
 | 長文verbatim引用検出 | 参照元本文との連続一致検出（§6.3） | 新規実装が必要（既存scriptには無い） |
 | public ID projection検証 | `publicStoryId`/`publicEpisodeId`欠落・exposure scan（§4.3） | Evidence Indexの`project_evidence_index_public_ids.py`のsourceKey由来ID exposure scanと同じヒューリスティック |
+| 本文中evidence/block ID引用検出（`summary-domain-context-injection`で追加） | `storySummary.text`/`episodeSummaries[].text`本文中への括弧書きblockId引用の検出（§6.5参照、前回batchレビューで判明したquality gateの盲点） | 新規実装（`scripts/check_story_summary_drafts.py`、既存の禁止文字列scanとは独立したパターン） |
 
 ## 8.2 人間レビュー（人手対応）
 

@@ -10,7 +10,7 @@ AI生成したStory/Episode Summary draft（`schemas/story_summary.schema.json`
 (check-onlyのscript、`scripts/check_evidence_index_promotion.py`と同じ
 gatekeeperパターン、`summary-generation-quality-gate`)。
 
-機械的検証項目（Plan §8.1の表のうち、本scriptが対象とする4項目。
+機械的検証項目（Plan §8.1の表に、本PRで項目5を追加した5項目。
 「public ID projection検証」は`scripts/project_story_summary_public_ids.py`
 の責務であり本scriptの対象外）:
 
@@ -39,6 +39,18 @@ gatekeeperパターン、`summary-generation-quality-gate`)。
    story合成では同じ理由でverbatim検出を行わない設計としているのと
    同じ判断: story合成の入力は既にsafeなepisode summary群であり、
    生のBlock本文そのものではないため)
+5. **本文中evidence/block ID引用検出** (`summary-domain-context-
+   injection`で追加、Plan §8.1表には無い項目。前回batch
+   `summary-generation-poc-first-commit`のRAID batchレビューで判明した
+   quality gateの盲点を塞ぐ): `storySummary.text`/
+   `episodeSummaries[].text`に、`agents.summarizer.EVIDENCE_ID_PATTERN`
+   (`[A-Z][A-Z0-9_]*_(?:DLG|MONO|NAR|CHOICE|STAGE|SC)\\d+`形式のblockId)
+   に一致する文字列が出現した場合をFAILとする（`--normalized`の有無に
+   関わらず常に実行。evidenceRefsフィールド自体は対象外、本文
+   テキスト中への括弧書き引用のみを検出する）。検出はblocking。
+   `agents/summarizer/generator.py`側の`strip_evidence_id_citations`
+   （生成時の機械的除去、防御の二重化の1段目）をすり抜けたケースを
+   拾う最終防衛線
 
 **人間レビュー項目（Plan §8.2: 内容正確性・文体・`review.status`の判定）は
 本scriptの対象外である。** 機械的検証をすべて通過したdraftのみが人間レビュー
@@ -85,6 +97,7 @@ if str(_PROJECT_ROOT) not in sys.path:
 
 from agents.summarizer import (  # noqa: E402
     DEFAULT_VERBATIM_THRESHOLD,
+    EVIDENCE_ID_PATTERN,
     ExtractedBlock,
     check_verbatim_quotes,
     extract_episode_blocks,
@@ -335,6 +348,45 @@ def _check_forbidden_text(document: StorySummaryDocument) -> list[str]:
 
 
 # ----------------------------------------------------------------
+# 本文中evidence/block ID引用検出 (項目5、`summary-domain-context-
+# injection`で追加。--normalizedの有無に関わらず常に実行する)
+# ----------------------------------------------------------------
+
+
+def _scan_text_for_evidence_id_citation(label: str, text: str | None) -> list[str]:
+    if not text:
+        return []
+    matches = sorted(set(EVIDENCE_ID_PATTERN.findall(text)))
+    if not matches:
+        return []
+    return [
+        f"{label}: summary本文中にevidence/block ID引用と思われる文字列を"
+        f"検出しました: {', '.join(matches)}"
+    ]
+
+
+def _check_evidence_id_citation_in_body(document: StorySummaryDocument) -> list[str]:
+    """`storySummary.text`/`episodeSummaries[].text`のみを対象とする
+    (evidenceRefsフィールド自体・notes・review.notesは対象外、項目3の
+    禁止文字列scanとは独立した検証)。"""
+    issues: list[str] = []
+    story_id = document.story_id
+    if document.story_summary is not None:
+        issues.extend(
+            _scan_text_for_evidence_id_citation(
+                f"storyId={story_id!r} storySummary.text", document.story_summary.text
+            )
+        )
+    for entry in document.episode_summaries:
+        issues.extend(
+            _scan_text_for_evidence_id_citation(
+                f"episodeId={entry.episode_id!r} text", entry.text
+            )
+        )
+    return issues
+
+
+# ----------------------------------------------------------------
 # evidenceRefs実在性検証 (項目2、--normalized指定時のみ)
 # ----------------------------------------------------------------
 
@@ -462,6 +514,12 @@ def _build_report_lines(report: dict[str, Any]) -> list[str]:
         lines, "## Forbidden Text Pattern Scan", report["forbiddenTextIssues"]
     )
 
+    _append_result_section(
+        lines,
+        "## Evidence ID Citation In Body Check",
+        report["evidenceIdCitationIssues"],
+    )
+
     lines.append("## Verbatim Quote Detection (episode-level only)")
     lines.append("")
     if report["verbatimCheck"]["status"] == "skipped":
@@ -528,8 +586,12 @@ def _build_report(
     documents = [parse_story_summary_document(raw) for _, raw in raw_documents]
 
     forbidden_text_issues: list[str] = []
+    evidence_id_citation_issues: list[str] = []
     for document in documents:
         forbidden_text_issues.extend(_check_forbidden_text(document))
+        evidence_id_citation_issues.extend(
+            _check_evidence_id_citation_in_body(document)
+        )
 
     warnings: list[str] = list(normalized_load_errors)
 
@@ -562,6 +624,7 @@ def _build_report(
     passed = not (
         schema_issues
         or forbidden_text_issues
+        or evidence_id_citation_issues
         or evidence_refs_check["issues"]
         or verbatim_check["issues"]
     )
@@ -574,6 +637,7 @@ def _build_report(
         "episodeSummaryCount": episode_summary_count,
         "schemaIssues": schema_issues,
         "forbiddenTextIssues": forbidden_text_issues,
+        "evidenceIdCitationIssues": evidence_id_citation_issues,
         "evidenceRefsCheck": evidence_refs_check,
         "verbatimCheck": verbatim_check,
         "warnings": warnings,
@@ -599,6 +663,10 @@ def _print_report(report: dict[str, Any], *, quiet: bool) -> None:
     )
     _print_issue_block("schema検証に失敗しました", report["schemaIssues"])
     _print_issue_block("禁止文字列を検出しました", report["forbiddenTextIssues"])
+    _print_issue_block(
+        "本文中にevidence/block ID引用を検出しました",
+        report["evidenceIdCitationIssues"],
+    )
     _print_issue_block(
         "evidenceRefs実在性検証に失敗しました", report["evidenceRefsCheck"]["issues"]
     )

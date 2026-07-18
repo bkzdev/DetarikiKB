@@ -453,7 +453,7 @@ def test_generate_refine_flag_triggers_extra_calls_and_records_prompt_version(
         document = yaml.safe_load(f)
     assert document["episodeSummaries"][0]["text"] == "推敲後のepisodeあらすじです。"
     assert document["storySummary"]["text"] == "推敲後のstoryあらすじです。"
-    assert document["source"]["promptVersion"].endswith(",refine-v1")
+    assert document["source"]["promptVersion"].endswith(",refine-v2")
     assert _validate_schema(document) == []
 
 
@@ -682,6 +682,159 @@ def test_generate_invalid_story_id_fails_schema_validation_returns_1(
     assert not (output_dir / "evt_lowercase_invalid.yaml").exists()
     report_text = report_path.read_text(encoding="utf-8")
     assert "schemaValid: false" in report_text
+
+
+# ----------------------------------------------------------------
+# domain context注入 (`summary-domain-context-injection`)
+# ----------------------------------------------------------------
+
+
+def test_generate_domain_context_injected_by_default_when_file_given(
+    module: ModuleType, tmp_path: Path
+):
+    input_path = _write_json(
+        tmp_path / "story.json",
+        _document("EVT_CLI_SAMPLE", [_sample_episode()]),
+    )
+    output_dir = tmp_path / "drafts"
+    report_path = tmp_path / "report.md"
+    domain_context_path = tmp_path / "domain_context.yaml"
+    domain_context_path.write_text(
+        yaml.safe_dump(
+            {"entries": [{"id": "fact-a", "text": "合成用ドメイン前提テキスト"}]},
+            allow_unicode=True,
+        ),
+        encoding="utf-8",
+    )
+    fake_provider = _FakeProvider(
+        [
+            _json_response("あらすじ。", ["EVT_CLI_SAMPLE_E01_DLG0001"]),
+            json.dumps({"text": "story全体のあらすじ。"}, ensure_ascii=False),
+        ]
+    )
+
+    exit_code = module.main(
+        [
+            "--input",
+            str(input_path),
+            "--output",
+            str(output_dir),
+            "--model",
+            "unused-model",
+            "--report",
+            str(report_path),
+            "--domain-context",
+            str(domain_context_path),
+        ],
+        provider_factory=lambda args: fake_provider,
+    )
+
+    assert exit_code == 0
+    assert all(
+        "合成用ドメイン前提テキスト" in call["system"] for call in fake_provider.calls
+    )
+    draft_path = output_dir / "EVT_CLI_SAMPLE.yaml"
+    with open(draft_path, encoding="utf-8") as f:
+        document = yaml.safe_load(f)
+    assert "domain-context-v1" in document["source"]["promptVersion"]
+    report_text = report_path.read_text(encoding="utf-8")
+    assert "Domain context entries injected: 1" in report_text
+
+
+def test_generate_no_domain_context_flag_disables_injection(
+    module: ModuleType, tmp_path: Path
+):
+    input_path = _write_json(
+        tmp_path / "story.json",
+        _document("EVT_CLI_SAMPLE", [_sample_episode()]),
+    )
+    output_dir = tmp_path / "drafts"
+    report_path = tmp_path / "report.md"
+    domain_context_path = tmp_path / "domain_context.yaml"
+    domain_context_path.write_text(
+        yaml.safe_dump(
+            {"entries": [{"id": "fact-a", "text": "合成用ドメイン前提テキスト"}]},
+            allow_unicode=True,
+        ),
+        encoding="utf-8",
+    )
+    fake_provider = _FakeProvider(
+        [
+            _json_response("あらすじ。", ["EVT_CLI_SAMPLE_E01_DLG0001"]),
+            json.dumps({"text": "story全体のあらすじ。"}, ensure_ascii=False),
+        ]
+    )
+
+    exit_code = module.main(
+        [
+            "--input",
+            str(input_path),
+            "--output",
+            str(output_dir),
+            "--model",
+            "unused-model",
+            "--report",
+            str(report_path),
+            "--domain-context",
+            str(domain_context_path),
+            "--no-domain-context",
+        ],
+        provider_factory=lambda args: fake_provider,
+    )
+
+    assert exit_code == 0
+    assert all(
+        "合成用ドメイン前提テキスト" not in call["system"]
+        for call in fake_provider.calls
+    )
+    draft_path = output_dir / "EVT_CLI_SAMPLE.yaml"
+    with open(draft_path, encoding="utf-8") as f:
+        document = yaml.safe_load(f)
+    assert "domain-context-v1" not in document["source"]["promptVersion"]
+    report_text = report_path.read_text(encoding="utf-8")
+    assert "Domain context entries injected: 0" in report_text
+
+
+def test_generate_domain_context_missing_file_falls_back_without_injection(
+    module: ModuleType, tmp_path: Path
+):
+    # --domain-context省略時の既定パスは未commit環境では存在しない可能性が
+    # あるため、明示的に存在しないpathを指定しても後方互換で従来動作
+    # (注入なし) することを確認する。
+    input_path = _write_json(
+        tmp_path / "story.json",
+        _document("EVT_CLI_SAMPLE", [_sample_episode()]),
+    )
+    output_dir = tmp_path / "drafts"
+    report_path = tmp_path / "report.md"
+    fake_provider = _FakeProvider(
+        [_json_response("あらすじ。", ["EVT_CLI_SAMPLE_E01_DLG0001"])]
+    )
+
+    exit_code = module.main(
+        [
+            "--input",
+            str(input_path),
+            "--output",
+            str(output_dir),
+            "--model",
+            "unused-model",
+            "--report",
+            str(report_path),
+            "--domain-context",
+            str(tmp_path / "does_not_exist.yaml"),
+            "--no-story-synthesis",
+        ],
+        provider_factory=lambda args: fake_provider,
+    )
+
+    assert exit_code == 0
+    draft_path = output_dir / "EVT_CLI_SAMPLE.yaml"
+    with open(draft_path, encoding="utf-8") as f:
+        document = yaml.safe_load(f)
+    assert "domain-context-v1" not in document["source"]["promptVersion"]
+    report_text = report_path.read_text(encoding="utf-8")
+    assert "Domain context entries injected: 0" in report_text
 
 
 def test_default_provider_factory_builds_ollama_provider(module: ModuleType):
