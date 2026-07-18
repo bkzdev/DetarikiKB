@@ -861,6 +861,174 @@ def test_default_provider_factory_builds_ollama_provider(module: ModuleType):
 
 
 # ----------------------------------------------------------------
+# (2b) `--think {auto,off,on}`のOllamaProviderへの伝搬 (`ollama-think-
+#      parameter-support`)。auto(既定)=think未指定(`think=None`)、
+#      off=`think=False`、on=`think=True`の3分岐を確認する。
+# ----------------------------------------------------------------
+
+
+def _build_args_with_think(module: ModuleType, think: str | None = None):
+    argv = [
+        "--input",
+        "unused",
+        "--output",
+        "unused",
+        "--model",
+        "llama3",
+        "--report",
+        "unused",
+    ]
+    if think is not None:
+        argv.extend(["--think", think])
+    return module.parse_args(argv)
+
+
+def test_default_provider_factory_think_defaults_to_auto_omits_param(
+    module: ModuleType,
+):
+    args = _build_args_with_think(module)
+    assert args.think == "auto"
+    provider = module._default_provider_factory(args)
+    assert provider.think is None
+
+
+def test_default_provider_factory_think_off_sets_false(module: ModuleType):
+    args = _build_args_with_think(module, "off")
+    provider = module._default_provider_factory(args)
+    assert provider.think is False
+
+
+def test_default_provider_factory_think_on_sets_true(module: ModuleType):
+    args = _build_args_with_think(module, "on")
+    provider = module._default_provider_factory(args)
+    assert provider.think is True
+
+
+def test_generate_report_omits_think_line_when_auto(module: ModuleType, tmp_path: Path):
+    input_path = _write_json(
+        tmp_path / "story.json",
+        _document("EVT_CLI_THINK_AUTO", [_sample_episode("EVT_CLI_THINK_AUTO_E01")]),
+    )
+    output_dir = tmp_path / "drafts"
+    report_path = tmp_path / "report.md"
+    fake_provider = _FakeProvider(
+        [
+            _json_response("あらすじ。", ["EVT_CLI_THINK_AUTO_E01_DLG0001"]),
+            json.dumps({"text": "story全体のあらすじ。"}, ensure_ascii=False),
+        ]
+    )
+
+    exit_code = module.main(
+        [
+            "--input",
+            str(input_path),
+            "--output",
+            str(output_dir),
+            "--model",
+            "unused-model",
+            "--report",
+            str(report_path),
+        ],
+        provider_factory=lambda args: fake_provider,
+    )
+
+    assert exit_code == 0
+    report_text = report_path.read_text(encoding="utf-8")
+    assert "Think parameter" not in report_text
+
+
+def test_generate_report_records_think_off_setting(module: ModuleType, tmp_path: Path):
+    input_path = _write_json(
+        tmp_path / "story.json",
+        _document("EVT_CLI_THINK_OFF", [_sample_episode("EVT_CLI_THINK_OFF_E01")]),
+    )
+    output_dir = tmp_path / "drafts"
+    report_path = tmp_path / "report.md"
+    fake_provider = _FakeProvider(
+        [
+            _json_response("あらすじ。", ["EVT_CLI_THINK_OFF_E01_DLG0001"]),
+            json.dumps({"text": "story全体のあらすじ。"}, ensure_ascii=False),
+        ]
+    )
+
+    exit_code = module.main(
+        [
+            "--input",
+            str(input_path),
+            "--output",
+            str(output_dir),
+            "--model",
+            "unused-model",
+            "--report",
+            str(report_path),
+            "--think",
+            "off",
+        ],
+        provider_factory=lambda args: fake_provider,
+    )
+
+    assert exit_code == 0
+    report_text = report_path.read_text(encoding="utf-8")
+    assert "Think parameter: off" in report_text
+    # promptVersionはthinkとは無関係に不変であること。
+    draft_path = output_dir / "EVT_CLI_THINK_OFF.yaml"
+    with open(draft_path, encoding="utf-8") as f:
+        document = yaml.safe_load(f)
+    assert "think" not in document["source"]["promptVersion"]
+
+
+# ----------------------------------------------------------------
+# (2c) 空response検出時のエラーメッセージへの`--think off`ヒント
+#      (`ollama-think-parameter-support`)。CLI経由でLLMProviderErrorが
+#      generation reportのissueへ伝搬し、ヒント文言を含むことを確認する。
+# ----------------------------------------------------------------
+
+
+class _EmptyResponseProvider:
+    """常に空response相当のLLMProviderErrorを送出するfake provider。"""
+
+    def generate(self, prompt, *, system=None, format_json=False):
+        from agents.summarizer.provider import LLMProviderError
+
+        raise LLMProviderError(
+            "Ollama response contained no non-empty 'response' text "
+            "(thinkingモデルの場合、出力全体が'thinking'フィールドへ"
+            "吸収され'response'が空になっている可能性があります。"
+            "--think off を試してください)"
+        )
+
+
+def test_generate_report_includes_think_off_hint_on_empty_response(
+    module: ModuleType, tmp_path: Path
+):
+    input_path = _write_json(
+        tmp_path / "story.json",
+        _document("EVT_CLI_THINK_HINT", [_sample_episode("EVT_CLI_THINK_HINT_E01")]),
+    )
+    output_dir = tmp_path / "drafts"
+    report_path = tmp_path / "report.md"
+
+    exit_code = module.main(
+        [
+            "--input",
+            str(input_path),
+            "--output",
+            str(output_dir),
+            "--model",
+            "unused-model",
+            "--report",
+            str(report_path),
+            "--no-story-synthesis",
+        ],
+        provider_factory=lambda args: _EmptyResponseProvider(),
+    )
+
+    assert exit_code == 0
+    report_text = report_path.read_text(encoding="utf-8")
+    assert "--think off" in report_text
+
+
+# ----------------------------------------------------------------
 # (3) storyId単位のグルーピング (PoC実施中に発見されたバグの修正、
 #     summary-generation-multi-episode-grouping)
 #

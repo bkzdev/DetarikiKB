@@ -73,6 +73,17 @@ synthesis`）。
   `Domain context entries injected`に記録される。実際に注入された場合、
   出力YAMLの`source.promptVersion`に`domain-context-v1`が追記される
   (詳細は`agents/summarizer/generator.py`の`_build_provenance`参照)
+- **`--think {auto,off,on}` (既定`auto`、`ollama-think-parameter-support`)**:
+  Ollama `/api/generate`の`think`パラメータ制御。qwen3.6等のthinkingモデルは
+  `think`未指定だと応答テキスト全体が`thinking`フィールドへ吸収され
+  `response`が空になり生成が失敗する
+  (`workspace/summary_drafts/raid_batch_001_qwen36/`の実行ログで確認済み)。
+  `auto`=`think`パラメータを一切送らない(既定動作、非thinkingモデルとの
+  後方互換)、`off`=`"think": false`を付与、`on`=`"think": true`を付与し
+  応答の`thinking`フィールドは破棄して`response`のみ使う。`off`/`on`使用時は
+  reportへ`Think parameter`として記録される(`promptVersion`は変更しない)。
+  空`response`検出時のエラーメッセージには`--think off`を試すヒントが
+  含まれる(`agents/summarizer/provider.py`の`OllamaProvider.generate`参照)
 
 hallucination対策の後処理（`agents/summarizer/generator.py`が実装、Plan
 §6.3・§11）は検出結果を自動rejectしない。draftは常に`generationStatus:
@@ -183,6 +194,19 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help=f"LLM呼び出しのtimeout秒数 (デフォルト: {DEFAULT_TIMEOUT_SECONDS})",
     )
     parser.add_argument(
+        "--think",
+        choices=("auto", "off", "on"),
+        default="auto",
+        help=(
+            "Ollama `/api/generate`の`think`パラメータ制御 (デフォルト: auto)。"
+            "auto=`think`パラメータを送らない (既定動作、非thinkingモデルとの"
+            '後方互換)、off=`"think": false`を付与 (qwen3.6等のthinkingモデルで'
+            "応答テキストが`thinking`フィールドへ吸収され`response`が空になる事象"
+            'への対策)、on=`"think": true`を付与し応答の`thinking`フィールドは'
+            "破棄して`response`のみ使う (`ollama-think-parameter-support`)"
+        ),
+    )
+    parser.add_argument(
         "--verbatim-threshold",
         type=int,
         default=DEFAULT_VERBATIM_THRESHOLD,
@@ -275,9 +299,21 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+# CLIの`--think {auto,off,on}`文字列 -> `OllamaProvider(think=...)`への変換。
+# auto=Noneを渡す (thinkパラメータを一切送らない既定動作を維持)。
+_THINK_CLI_TO_PARAM: dict[str, bool | None] = {
+    "auto": None,
+    "off": False,
+    "on": True,
+}
+
+
 def _default_provider_factory(args: argparse.Namespace) -> SummaryLLMProvider:
     return OllamaProvider(
-        model=args.model, host=args.host, timeout_seconds=args.timeout
+        model=args.model,
+        host=args.host,
+        timeout_seconds=args.timeout,
+        think=_THINK_CLI_TO_PARAM[args.think],
     )
 
 
@@ -605,6 +641,7 @@ def _build_report_markdown(
     metadata_conflicts: list[dict[str, str]] | None = None,
     renumbered_story_ids: list[str] | None = None,
     domain_context_entry_count: int = 0,
+    think_setting: str = "auto",
 ) -> str:
     metadata_conflicts = metadata_conflicts or []
     renumbered_story_ids = renumbered_story_ids or []
@@ -616,9 +653,17 @@ def _build_report_markdown(
         "",
         f"- Input files: {input_count}",
         f"- Domain context entries injected: {domain_context_entry_count}",
-        f"- Story count: {len(story_reports) + len(metadata_conflicts)}",
-        f"- Draft files written: {written_count}",
     ]
+    # `--think off/on`使用時のみprovenanceとして記録する (既定`auto`時は
+    # 従来どおり出力しない、`ollama-think-parameter-support`)。
+    if think_setting != "auto":
+        lines.append(f"- Think parameter: {think_setting}")
+    lines.extend(
+        [
+            f"- Story count: {len(story_reports) + len(metadata_conflicts)}",
+            f"- Draft files written: {written_count}",
+        ]
+    )
     if metadata_conflicts:
         lines.append(f"- Metadata conflicts (blocked): {len(metadata_conflicts)}")
     if renumbered_story_ids:
@@ -838,6 +883,7 @@ def main(
         metadata_conflicts=metadata_conflicts,
         renumbered_story_ids=renumbered_story_ids,
         domain_context_entry_count=len(domain_context),
+        think_setting=args.think,
     )
     report_path.parent.mkdir(parents=True, exist_ok=True)
     report_path.write_text(report_markdown, encoding="utf-8")

@@ -187,6 +187,7 @@ class OllamaProvider(SummaryLLMProvider):
         host: str | None = None,
         timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS,
         options: dict[str, Any] | None = None,
+        think: bool | None = None,
         transport: PostJsonFn | None = None,
     ) -> None:
         if not model:
@@ -195,6 +196,14 @@ class OllamaProvider(SummaryLLMProvider):
         self._host = resolve_ollama_host(host)
         self._timeout_seconds = timeout_seconds
         self._options = dict(options) if options else None
+        # `think`: Noneの場合は`/api/generate`へ`think`パラメータを一切送らない
+        # (既定、非thinkingモデルとの後方互換)。True/Falseの場合はそのまま
+        # payloadへ`"think": true/false`として送出する
+        # (`ollama-think-parameter-support`、qwen3.6等のthinkingモデル対応。
+        # `think: false`を送らないと、応答テキスト全体が`thinking`フィールドへ
+        # 吸収され`response`が空になり生成が失敗する事象を
+        # `workspace/summary_drafts/raid_batch_001_qwen36/`の実行ログで確認済み)。
+        self._think = think
         self._transport: PostJsonFn = transport or _default_post_json
 
     @property
@@ -204,6 +213,10 @@ class OllamaProvider(SummaryLLMProvider):
     @property
     def host(self) -> str:
         return self._host
+
+    @property
+    def think(self) -> bool | None:
+        return self._think
 
     def generate(
         self,
@@ -223,6 +236,8 @@ class OllamaProvider(SummaryLLMProvider):
             payload["format"] = "json"
         if self._options:
             payload["options"] = self._options
+        if self._think is not None:
+            payload["think"] = self._think
 
         url = f"{self._host}{OLLAMA_GENERATE_PATH}"
         start = time.monotonic()
@@ -243,10 +258,15 @@ class OllamaProvider(SummaryLLMProvider):
                 f"(got {type(response_body).__name__})"
             )
 
+        # thinkingモデル(`think: true`相当の応答)であっても、`thinking`
+        # フィールドは破棄し`response`のみを生成テキストとして扱う。
         text = response_body.get("response")
         if not text:
             raise LLMProviderError(
-                "Ollama response contained no non-empty 'response' text"
+                "Ollama response contained no non-empty 'response' text "
+                "(thinkingモデルの場合、出力全体が'thinking'フィールドへ"
+                "吸収され'response'が空になっている可能性があります。"
+                "--think off を試してください)"
             )
 
         return LLMCompletion(
