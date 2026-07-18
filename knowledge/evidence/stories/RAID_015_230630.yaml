@@ -1,0 +1,1478 @@
+evidenceIndexVersion: 1
+generatedFrom: null
+entries:
+- evidenceId: RAID_015_230630_E01_NAR0001
+  evidenceType: narration
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_NAR0001
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: RAID_015_230630_E01_DLG0001
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0001
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: RAID_015_230630_E01_NAR0002
+  evidenceType: narration
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_NAR0002
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: RAID_015_230630_E01_DLG0002
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0002
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_028_RAPHAM
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_028_RAPHAM
+- evidenceId: RAID_015_230630_E01_DLG0003
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0003
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_219_BRAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_219_BRAIN
+- evidenceId: RAID_015_230630_E01_DLG0004
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0004
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_256_MINI_EVE
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_256_MINI_EVE
+- evidenceId: RAID_015_230630_E01_DLG0005
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0005
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_220_FREESIA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_220_FREESIA
+- evidenceId: RAID_015_230630_E01_DLG0006
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0006
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_218_VIORA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_218_VIORA
+- evidenceId: RAID_015_230630_E01_DLG0007
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0007
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_028_RAPHAM
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_028_RAPHAM
+- evidenceId: RAID_015_230630_E01_DLG0008
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0008
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_028_RAPHAM
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_028_RAPHAM
+- evidenceId: RAID_015_230630_E01_NAR0003
+  evidenceType: narration
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_NAR0003
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: RAID_015_230630_E01_NAR0004
+  evidenceType: narration
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_NAR0004
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: RAID_015_230630_E01_DLG0009
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0009
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_256_MINI_EVE
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_256_MINI_EVE
+- evidenceId: RAID_015_230630_E01_DLG0010
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0010
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_220_FREESIA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_220_FREESIA
+- evidenceId: RAID_015_230630_E01_NAR0005
+  evidenceType: narration
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_NAR0005
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: RAID_015_230630_E01_DLG0011
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0011
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_028_RAPHAM
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_028_RAPHAM
+- evidenceId: RAID_015_230630_E01_NAR0006
+  evidenceType: narration
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_NAR0006
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: RAID_015_230630_E01_NAR0007
+  evidenceType: narration
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_NAR0007
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: RAID_015_230630_E01_DLG0012
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0012
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_218_VIORA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_218_VIORA
+- evidenceId: RAID_015_230630_E01_DLG0013
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0013
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_028_RAPHAM
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_028_RAPHAM
+- evidenceId: RAID_015_230630_E01_DLG0014
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0014
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_218_VIORA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_218_VIORA
+- evidenceId: RAID_015_230630_E01_DLG0015
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0015
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_028_RAPHAM
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_028_RAPHAM
+- evidenceId: RAID_015_230630_E01_DLG0016
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0016
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_218_VIORA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_218_VIORA
+- evidenceId: RAID_015_230630_E01_DLG0017
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0017
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_028_RAPHAM
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_028_RAPHAM
+- evidenceId: RAID_015_230630_E01_DLG0018
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0018
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_219_BRAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_219_BRAIN
+- evidenceId: RAID_015_230630_E01_DLG0019
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0019
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_028_RAPHAM
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_028_RAPHAM
+- evidenceId: RAID_015_230630_E01_DLG0020
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0020
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_219_BRAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_219_BRAIN
+- evidenceId: RAID_015_230630_E01_NAR0008
+  evidenceType: narration
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_NAR0008
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: RAID_015_230630_E01_DLG0021
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0021
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_028_RAPHAM
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_028_RAPHAM
+- evidenceId: RAID_015_230630_E01_NAR0009
+  evidenceType: narration
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_NAR0009
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: RAID_015_230630_E01_DLG0022
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0022
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_028_RAPHAM
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_028_RAPHAM
+- evidenceId: RAID_015_230630_E01_DLG0023
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0023
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_218_VIORA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_218_VIORA
+- evidenceId: RAID_015_230630_E01_DLG0024
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0024
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_256_MINI_EVE
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_256_MINI_EVE
+- evidenceId: RAID_015_230630_E01_DLG0025
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0025
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_219_BRAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_219_BRAIN
+- evidenceId: RAID_015_230630_E01_NAR0010
+  evidenceType: narration
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_NAR0010
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: RAID_015_230630_E01_NAR0011
+  evidenceType: narration
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_NAR0011
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: RAID_015_230630_E01_DLG0026
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0026
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_008_SHINONOME_WAKA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_008_SHINONOME_WAKA
+- evidenceId: RAID_015_230630_E01_DLG0027
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0027
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_008_SHINONOME_WAKA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_008_SHINONOME_WAKA
+- evidenceId: RAID_015_230630_E01_DLG0028
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0028
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_219_BRAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_219_BRAIN
+- evidenceId: RAID_015_230630_E01_DLG0029
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0029
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_008_SHINONOME_WAKA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_008_SHINONOME_WAKA
+- evidenceId: RAID_015_230630_E01_NAR0012
+  evidenceType: narration
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_NAR0012
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: RAID_015_230630_E01_DLG0030
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0030
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_220_FREESIA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_220_FREESIA
+- evidenceId: RAID_015_230630_E01_DLG0031
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0031
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_028_RAPHAM
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_028_RAPHAM
+- evidenceId: RAID_015_230630_E01_DLG0032
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0032
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_219_BRAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_219_BRAIN
+- evidenceId: RAID_015_230630_E01_DLG0033
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0033
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_028_RAPHAM
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_028_RAPHAM
+- evidenceId: RAID_015_230630_E01_DLG0034
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0034
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_256_MINI_EVE
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_256_MINI_EVE
+- evidenceId: RAID_015_230630_E01_DLG0035
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0035
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_028_RAPHAM
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_028_RAPHAM
+- evidenceId: RAID_015_230630_E01_NAR0013
+  evidenceType: narration
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_NAR0013
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: RAID_015_230630_E01_DLG0036
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0036
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_008_SHINONOME_WAKA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_008_SHINONOME_WAKA
+- evidenceId: RAID_015_230630_E01_NAR0014
+  evidenceType: narration
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_NAR0014
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: RAID_015_230630_E01_DLG0037
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0037
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_008_SHINONOME_WAKA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_008_SHINONOME_WAKA
+- evidenceId: RAID_015_230630_E01_NAR0015
+  evidenceType: narration
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_NAR0015
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: RAID_015_230630_E01_DLG0038
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0038
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_008_SHINONOME_WAKA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_008_SHINONOME_WAKA
+- evidenceId: RAID_015_230630_E01_NAR0016
+  evidenceType: narration
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_NAR0016
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: RAID_015_230630_E01_DLG0039
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0039
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_008_SHINONOME_WAKA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_008_SHINONOME_WAKA
+- evidenceId: RAID_015_230630_E01_DLG0040
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0040
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_220_FREESIA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_220_FREESIA
+- evidenceId: RAID_015_230630_E01_DLG0041
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_DLG0041
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_008_SHINONOME_WAKA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_008_SHINONOME_WAKA
+- evidenceId: RAID_015_230630_E01_NAR0017
+  evidenceType: narration
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_NAR0017
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: RAID_015_230630_E01_NAR0018
+  evidenceType: narration
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_NAR0018
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: RAID_015_230630_E01_NAR0019
+  evidenceType: narration
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E01
+  publicEvidenceId: RAID_015_230630_E01_NAR0019
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E01
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: RAID_015_230630_E02_DLG0001
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_DLG0001
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: RAID_015_230630_E02_DLG0002
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_DLG0002
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_221_YUKINO_OHARA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_221_YUKINO_OHARA
+- evidenceId: RAID_015_230630_E02_DLG0003
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_DLG0003
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
+- evidenceId: RAID_015_230630_E02_DLG0004
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_DLG0004
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: RAID_015_230630_E02_DLG0005
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_DLG0005
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_028_RAPHAM
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_028_RAPHAM
+- evidenceId: RAID_015_230630_E02_NAR0001
+  evidenceType: narration
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_NAR0001
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: RAID_015_230630_E02_DLG0006
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_DLG0006
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_052_MIZUNO_MITO
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_052_MIZUNO_MITO
+- evidenceId: RAID_015_230630_E02_NAR0002
+  evidenceType: narration
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_NAR0002
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: RAID_015_230630_E02_DLG0007
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_DLG0007
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_052_MIZUNO_MITO
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_052_MIZUNO_MITO
+- evidenceId: RAID_015_230630_E02_DLG0008
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_DLG0008
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
+- evidenceId: RAID_015_230630_E02_DLG0009
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_DLG0009
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_221_YUKINO_OHARA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_221_YUKINO_OHARA
+- evidenceId: RAID_015_230630_E02_NAR0003
+  evidenceType: narration
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_NAR0003
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: RAID_015_230630_E02_DLG0010
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_DLG0010
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_221_YUKINO_OHARA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_221_YUKINO_OHARA
+- evidenceId: RAID_015_230630_E02_DLG0011
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_DLG0011
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
+- evidenceId: RAID_015_230630_E02_DLG0012
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_DLG0012
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: RAID_015_230630_E02_DLG0013
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_DLG0013
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_052_MIZUNO_MITO
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_052_MIZUNO_MITO
+- evidenceId: RAID_015_230630_E02_NAR0004
+  evidenceType: narration
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_NAR0004
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: RAID_015_230630_E02_DLG0014
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_DLG0014
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_028_RAPHAM
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_028_RAPHAM
+- evidenceId: RAID_015_230630_E02_NAR0005
+  evidenceType: narration
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_NAR0005
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: RAID_015_230630_E02_DLG0015
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_DLG0015
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
+- evidenceId: RAID_015_230630_E02_DLG0016
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_DLG0016
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_221_YUKINO_OHARA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_221_YUKINO_OHARA
+- evidenceId: RAID_015_230630_E02_DLG0017
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_DLG0017
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_028_RAPHAM
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_028_RAPHAM
+- evidenceId: RAID_015_230630_E02_NAR0006
+  evidenceType: narration
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_NAR0006
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: RAID_015_230630_E02_DLG0018
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_DLG0018
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_210_MULIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_210_MULIN
+- evidenceId: RAID_015_230630_E02_DLG0019
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_DLG0019
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_028_RAPHAM
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_028_RAPHAM
+- evidenceId: RAID_015_230630_E02_DLG0020
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_DLG0020
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_221_YUKINO_OHARA
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_221_YUKINO_OHARA
+- evidenceId: RAID_015_230630_E02_DLG0021
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_DLG0021
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_028_RAPHAM
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_028_RAPHAM
+- evidenceId: RAID_015_230630_E02_NAR0007
+  evidenceType: narration
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_NAR0007
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: RAID_015_230630_E02_DLG0022
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_DLG0022
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: RAID_015_230630_E02_DLG0023
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_DLG0023
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_052_MIZUNO_MITO
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_052_MIZUNO_MITO
+- evidenceId: RAID_015_230630_E02_DLG0024
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_DLG0024
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: RAID_015_230630_E02_NAR0008
+  evidenceType: narration
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_NAR0008
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: RAID_015_230630_E02_DLG0025
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_DLG0025
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_052_MIZUNO_MITO
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_052_MIZUNO_MITO
+- evidenceId: RAID_015_230630_E02_DLG0026
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_DLG0026
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: RAID_015_230630_E02_DLG0027
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_DLG0027
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_052_MIZUNO_MITO
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_052_MIZUNO_MITO
+- evidenceId: RAID_015_230630_E02_DLG0028
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_DLG0028
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: RAID_015_230630_E02_NAR0009
+  evidenceType: narration
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_NAR0009
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+- evidenceId: RAID_015_230630_E02_DLG0029
+  evidenceType: dialogue
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_DLG0029
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+  speaker:
+    speakerId: CHAR_RAIN
+    displayName: null
+    resolutionStatus: resolved
+  relatedEntities:
+  - entityType: character
+    id: CHAR_RAIN
+- evidenceId: RAID_015_230630_E02_NAR0010
+  evidenceType: narration
+  storyId: RAID_015_230630
+  episodeId: RAID_015_230630_E02
+  publicEvidenceId: RAID_015_230630_E02_NAR0010
+  publicStoryId: RAID_015_230630
+  publicEpisodeId: RAID_015_230630_E02
+  visibility:
+    public: true
+    rawTextIncluded: false
+notes: Generated by scripts/build_evidence_index_candidates.py (dry-run candidate,
+  not human-reviewed).

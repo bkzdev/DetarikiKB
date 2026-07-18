@@ -68,3 +68,38 @@ stories:
         episodeOrder: 1
       - publicEpisodeId: EVENT_086_230315_E02
         episodeOrder: 2
+  - publicStoryId: RAID_012_221118
+    category: raid
+    episodes:
+      - publicEpisodeId: RAID_012_221118_E01
+        episodeOrder: 1
+      - publicEpisodeId: RAID_012_221118_E02
+        episodeOrder: 2
+  - publicStoryId: RAID_013_221230
+    category: raid
+    episodes:
+      - publicEpisodeId: RAID_013_221230_E01
+        episodeOrder: 1
+      - publicEpisodeId: RAID_013_221230_E02
+        episodeOrder: 2
+  - publicStoryId: RAID_001
+    category: raid
+    episodes:
+      - publicEpisodeId: RAID_001_E01
+        episodeOrder: 1
+      - publicEpisodeId: RAID_001_E02
+        episodeOrder: 2
+  - publicStoryId: RAID_015_230630
+    category: raid
+    episodes:
+      - publicEpisodeId: RAID_015_230630_E01
+        episodeOrder: 1
+      - publicEpisodeId: RAID_015_230630_E02
+        episodeOrder: 2
+  - publicStoryId: RAID_005_210702
+    category: raid
+    episodes:
+      - publicEpisodeId: RAID_005_210702_E01
+        episodeOrder: 1
+      - publicEpisodeId: RAID_005_210702_E02
+        episodeOrder: 2
