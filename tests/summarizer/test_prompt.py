@@ -10,22 +10,34 @@ promptの構築) のテスト。
 from __future__ import annotations
 
 from agents.summarizer.prompt import (
+    CHARACTERS_PER_TOKEN_ESTIMATE,
+    DEFAULT_MAX_CONTEXT_TOKENS,
     DEFAULT_MAX_INPUT_CHARACTERS,
     EPISODE_SUMMARY_SYSTEM_PROMPT,
     INCLUDED_BLOCK_TYPES,
     PROMPT_VERSION,
+    REFINE_PROMPT_VERSION_SUFFIX,
+    REFINE_SYSTEM_PROMPT,
     STORY_SUMMARY_PROMPT_VERSION,
+    STORY_SUMMARY_PROMPT_VERSION_FALLBACK,
     STORY_SUMMARY_SYSTEM_PROMPT,
+    STORY_SUMMARY_SYSTEM_PROMPT_V2,
     UNRESOLVED_SPEAKER_LABEL,
+    EpisodeBlocksInput,
     EpisodeSummaryInput,
     ExtractedBlock,
     build_episode_summary_prompt,
+    build_refine_prompt,
     build_story_summary_prompt,
+    build_story_summary_prompt_v2,
+    estimate_token_count,
     extract_episode_blocks,
+    extract_speaker_names,
     format_block_line,
     format_episode_summary_line,
     render_blocks_text,
     render_episode_summaries_text,
+    render_story_full_text,
 )
 
 
@@ -434,7 +446,7 @@ def test_system_prompt_instructs_not_to_treat_unresolved_placeholder_as_person_n
 
 
 def test_prompt_version_constant():
-    assert PROMPT_VERSION == "episode-summary-v2"
+    assert PROMPT_VERSION == "episode-summary-v3"
 
 
 def test_default_max_input_characters_is_positive_and_reasonable():
@@ -506,5 +518,201 @@ def test_story_summary_system_prompt_forbids_speculation_and_requires_json_only(
 
 
 def test_story_summary_prompt_version_constant_is_distinct_from_episode_version():
-    assert STORY_SUMMARY_PROMPT_VERSION == "story-summary-v1"
+    assert STORY_SUMMARY_PROMPT_VERSION == "story-summary-v2"
     assert STORY_SUMMARY_PROMPT_VERSION != PROMPT_VERSION
+
+
+def test_story_summary_prompt_version_fallback_constant_is_distinct():
+    # contextサイズガード超過時にprovenanceへ記録される値
+    # (`summary-generation-quality-v2`)。
+    assert STORY_SUMMARY_PROMPT_VERSION_FALLBACK == "story-summary-v1-fallback"
+    assert STORY_SUMMARY_PROMPT_VERSION_FALLBACK != STORY_SUMMARY_PROMPT_VERSION
+
+
+# ----------------------------------------------------------------
+# (5) episode-summary-v3: 登場人物リスト注入・主語明確化・本文中evidence ID
+#     参照禁止 (`summary-generation-quality-v2`)
+# ----------------------------------------------------------------
+
+
+def test_extract_speaker_names_dedups_and_preserves_first_appearance_order():
+    blocks = [
+        ExtractedBlock("EVT_E01_DLG0001", "dialogue", "Speaker A", "台詞1"),
+        ExtractedBlock("EVT_E01_DLG0002", "dialogue", "Speaker B", "台詞2"),
+        ExtractedBlock("EVT_E01_DLG0003", "dialogue", "Speaker A", "台詞3"),
+    ]
+    assert extract_speaker_names(blocks) == ["Speaker A", "Speaker B"]
+
+
+def test_extract_speaker_names_excludes_unresolved_and_none():
+    blocks = [
+        ExtractedBlock("EVT_E01_DLG0001", "dialogue", "Speaker A", "台詞1"),
+        ExtractedBlock(
+            "EVT_E01_DLG0002", "dialogue", UNRESOLVED_SPEAKER_LABEL, "台詞2"
+        ),
+        ExtractedBlock("EVT_E01_NAR0001", "narration", None, "地の文"),
+    ]
+    assert extract_speaker_names(blocks) == ["Speaker A"]
+
+
+def test_build_episode_summary_prompt_injects_character_list():
+    blocks = [
+        ExtractedBlock("EVT_E01_DLG0001", "dialogue", "Speaker A", "台詞1"),
+        ExtractedBlock("EVT_E01_DLG0002", "dialogue", "Speaker B", "台詞2"),
+        ExtractedBlock("EVT_E01_DLG0003", "dialogue", "Speaker A", "台詞3"),
+    ]
+    prompt = build_episode_summary_prompt(blocks)
+    assert "登場人物" in prompt
+    assert "Speaker A、Speaker B" in prompt
+    # 重複した2回目のSpeaker Aは登場人物一覧行には現れない(1回のみ列挙)。
+    assert prompt.count("Speaker A、Speaker B") == 1
+
+
+def test_build_episode_summary_prompt_character_list_excludes_unresolved():
+    blocks = [
+        ExtractedBlock(
+            "EVT_E01_DLG0001", "dialogue", UNRESOLVED_SPEAKER_LABEL, "台詞1"
+        ),
+    ]
+    prompt = build_episode_summary_prompt(blocks)
+    assert "登場人物: (解決済みの登場人物なし)" in prompt
+
+
+def test_build_episode_summary_prompt_requests_subject_clarity():
+    blocks = [ExtractedBlock("EVT_E01_NAR0001", "narration", None, "地の文")]
+    prompt = build_episode_summary_prompt(blocks)
+    assert "主語" in prompt
+    assert "指示語" in prompt
+
+
+def test_build_episode_summary_prompt_forbids_evidence_id_in_body():
+    blocks = [ExtractedBlock("EVT_E01_NAR0001", "narration", None, "地の文")]
+    prompt = build_episode_summary_prompt(blocks)
+    assert "括弧書き" in prompt
+
+
+def test_episode_summary_system_prompt_requests_subject_clarity_and_forbids_citation():
+    assert "主語" in EPISODE_SUMMARY_SYSTEM_PROMPT
+    assert "指示語" in EPISODE_SUMMARY_SYSTEM_PROMPT
+    assert "括弧書き" in EPISODE_SUMMARY_SYSTEM_PROMPT
+
+
+# ----------------------------------------------------------------
+# (6) story-summary-v2: 全文直接入力方式 (`summary-generation-quality-v2`)
+# ----------------------------------------------------------------
+
+
+def test_render_story_full_text_joins_episodes_in_order_with_headers():
+    items = [
+        EpisodeBlocksInput(
+            episode_number=1,
+            blocks=[
+                ExtractedBlock("EVT_E01_DLG0001", "dialogue", "Speaker A", "台詞1")
+            ],
+        ),
+        EpisodeBlocksInput(
+            episode_number=2,
+            blocks=[ExtractedBlock("EVT_E02_NAR0001", "narration", None, "地の文2")],
+        ),
+    ]
+    full_text = render_story_full_text(items)
+    assert "=== Episode 1 ===" in full_text
+    assert "=== Episode 2 ===" in full_text
+    assert "[EVT_E01_DLG0001] Speaker A: 台詞1" in full_text
+    assert "[EVT_E02_NAR0001] 地の文2" in full_text
+    assert full_text.index("=== Episode 1 ===") < full_text.index("=== Episode 2 ===")
+
+
+def test_render_story_full_text_uses_placeholder_for_missing_episode_number():
+    items = [EpisodeBlocksInput(episode_number=None, blocks=[])]
+    assert "=== Episode ? ===" in render_story_full_text(items)
+
+
+def test_build_story_summary_prompt_v2_embeds_full_episode_text():
+    items = [
+        EpisodeBlocksInput(
+            episode_number=1,
+            blocks=[
+                ExtractedBlock("EVT_E01_DLG0001", "dialogue", "Speaker A", "台詞1")
+            ],
+        ),
+    ]
+    prompt = build_story_summary_prompt_v2(items)
+    assert "[EVT_E01_DLG0001] Speaker A: 台詞1" in prompt
+    assert '"text"' in prompt
+
+
+def test_build_story_summary_prompt_v2_requests_text_only_json_output():
+    items = [
+        EpisodeBlocksInput(
+            episode_number=1,
+            blocks=[ExtractedBlock("EVT_E01_NAR0001", "narration", None, "地の文")],
+        )
+    ]
+    prompt = build_story_summary_prompt_v2(items)
+    assert '"text"' in prompt
+    assert '"evidenceRefs"' not in prompt
+
+
+def test_build_story_summary_prompt_v2_forbids_speculation_and_requests_clarity():
+    items = [
+        EpisodeBlocksInput(
+            episode_number=1,
+            blocks=[ExtractedBlock("EVT_E01_NAR0001", "narration", None, "地の文")],
+        )
+    ]
+    prompt = build_story_summary_prompt_v2(items)
+    assert "考察" in prompt or "推測" in prompt
+    assert "主語" in prompt
+
+
+def test_story_summary_system_prompt_v2_forbids_speculation_and_requires_json_only():
+    assert "考察" in STORY_SUMMARY_SYSTEM_PROMPT_V2
+    assert "推測" in STORY_SUMMARY_SYSTEM_PROMPT_V2
+    assert "JSON" in STORY_SUMMARY_SYSTEM_PROMPT_V2
+    assert UNRESOLVED_SPEAKER_LABEL in STORY_SUMMARY_SYSTEM_PROMPT_V2
+
+
+def test_estimate_token_count_empty_string_is_zero():
+    assert estimate_token_count("") == 0
+
+
+def test_estimate_token_count_scales_with_characters_per_token_estimate():
+    text = "あ" * (CHARACTERS_PER_TOKEN_ESTIMATE * 10)
+    assert estimate_token_count(text) == 10
+
+
+def test_estimate_token_count_rounds_up_partial_token():
+    text = "あ" * (CHARACTERS_PER_TOKEN_ESTIMATE + 1)
+    assert estimate_token_count(text) == 2
+
+
+def test_default_max_context_tokens_is_positive():
+    assert isinstance(DEFAULT_MAX_CONTEXT_TOKENS, int)
+    assert DEFAULT_MAX_CONTEXT_TOKENS > 0
+
+
+# ----------------------------------------------------------------
+# (7) 自己推敲パス (`--refine`、`summary-generation-quality-v2`)
+# ----------------------------------------------------------------
+
+
+def test_build_refine_prompt_embeds_input_text_and_requests_json_only():
+    prompt = build_refine_prompt("推敲対象のあらすじ本文")
+    assert "推敲対象のあらすじ本文" in prompt
+    assert '"text"' in prompt
+
+
+def test_build_refine_prompt_requests_no_new_facts_and_similar_length():
+    prompt = build_refine_prompt("あらすじ本文")
+    assert "無い事実" in prompt
+    assert "長さ" in prompt
+
+
+def test_refine_system_prompt_mentions_subject_ambiguity_and_json_only():
+    assert "主語" in REFINE_SYSTEM_PROMPT
+    assert "JSON" in REFINE_SYSTEM_PROMPT
+
+
+def test_refine_prompt_version_suffix_constant():
+    assert REFINE_PROMPT_VERSION_SUFFIX == "refine-v1"

@@ -408,6 +408,101 @@ def test_generate_no_story_synthesis_flag_keeps_story_summary_null(
     assert "Synthesized: skipped (--no-story-synthesis)" in report_text
 
 
+def test_generate_refine_flag_triggers_extra_calls_and_records_prompt_version(
+    module: ModuleType, tmp_path: Path
+):
+    input_path = _write_json(
+        tmp_path / "story.json",
+        _document("EVT_CLI_SAMPLE", [_sample_episode()]),
+    )
+    output_dir = tmp_path / "drafts"
+    report_path = tmp_path / "report.md"
+    # --refine: episode生成+推敲、story合成+推敲の計4回消費する。
+    fake_provider = _FakeProvider(
+        [
+            _json_response(
+                "これはCLI合成テストのあらすじです。", ["EVT_CLI_SAMPLE_E01_DLG0001"]
+            ),
+            json.dumps({"text": "推敲後のepisodeあらすじです。"}, ensure_ascii=False),
+            json.dumps(
+                {"text": "story全体のCLI合成あらすじです。"}, ensure_ascii=False
+            ),
+            json.dumps({"text": "推敲後のstoryあらすじです。"}, ensure_ascii=False),
+        ]
+    )
+
+    exit_code = module.main(
+        [
+            "--input",
+            str(input_path),
+            "--output",
+            str(output_dir),
+            "--model",
+            "unused-model",
+            "--report",
+            str(report_path),
+            "--refine",
+        ],
+        provider_factory=lambda args: fake_provider,
+    )
+
+    assert exit_code == 0
+    assert len(fake_provider.calls) == 4
+    draft_path = output_dir / "EVT_CLI_SAMPLE.yaml"
+    with open(draft_path, encoding="utf-8") as f:
+        document = yaml.safe_load(f)
+    assert document["episodeSummaries"][0]["text"] == "推敲後のepisodeあらすじです。"
+    assert document["storySummary"]["text"] == "推敲後のstoryあらすじです。"
+    assert document["source"]["promptVersion"].endswith(",refine-v1")
+    assert _validate_schema(document) == []
+
+
+def test_generate_story_synthesis_max_context_tokens_forces_fallback(
+    module: ModuleType, tmp_path: Path
+):
+    input_path = _write_json(
+        tmp_path / "story.json",
+        _document("EVT_CLI_SAMPLE", [_sample_episode()]),
+    )
+    output_dir = tmp_path / "drafts"
+    report_path = tmp_path / "report.md"
+    fake_provider = _FakeProvider(
+        [
+            _json_response(
+                "これはCLI合成テストのあらすじです。", ["EVT_CLI_SAMPLE_E01_DLG0001"]
+            ),
+            json.dumps(
+                {"text": "story全体のCLI合成あらすじです。"}, ensure_ascii=False
+            ),
+        ]
+    )
+
+    exit_code = module.main(
+        [
+            "--input",
+            str(input_path),
+            "--output",
+            str(output_dir),
+            "--model",
+            "unused-model",
+            "--report",
+            str(report_path),
+            "--story-synthesis-max-context-tokens",
+            "1",
+        ],
+        provider_factory=lambda args: fake_provider,
+    )
+
+    assert exit_code == 0
+    # story合成promptがv1形式 (Episode Summary再要約) にフォールバックする。
+    story_prompt = fake_provider.calls[-1]["prompt"]
+    assert "[Episode 1] これはCLI合成テストのあらすじです。" in story_prompt
+
+    report_text = report_path.read_text(encoding="utf-8")
+    assert "story-synthesis-context-fallback" in report_text
+    assert "story-summary-v1-fallback" in report_text
+
+
 def test_generate_story_synthesis_skip_recorded_when_no_episode_summaries(
     module: ModuleType, tmp_path: Path
 ):
@@ -1086,11 +1181,17 @@ def test_generate_renumbers_duplicate_episode_numbers_after_merge(
     assert document["episodeSummaries"][1]["episodeId"] == ep2_id
     assert document["episodeSummaries"][1]["episodeNumber"] == 2
 
-    # story合成promptのラベルにもrenumber後の値が反映される (重複した
-    # [Episode 1]が2つ現れることはない)。
+    # story合成prompt (既定でstory-summary-v2、全文直接入力方式) の
+    # episode見出しにもrenumber後の値が反映される (重複した
+    # === Episode 1 ===が2つ現れることはない)。
     story_prompt = fake_provider.calls[-1]["prompt"]
-    assert "[Episode 1] 第1話のあらすじ。" in story_prompt
-    assert "[Episode 2] 第2話のあらすじ。" in story_prompt
+    assert "=== Episode 1 ===" in story_prompt
+    assert "=== Episode 2 ===" in story_prompt
+    assert f"[{ep1_id}_DLG0001] Speaker A: 第1話の台詞。" in story_prompt
+    assert f"[{ep2_id}_DLG0001] Speaker B: 第2話の台詞。" in story_prompt
+    assert story_prompt.index("=== Episode 1 ===") < story_prompt.index(
+        "=== Episode 2 ==="
+    )
 
     report_text = report_path.read_text(encoding="utf-8")
     assert "Episode numbers renumbered (story count): 1" in report_text

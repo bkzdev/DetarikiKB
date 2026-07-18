@@ -51,6 +51,30 @@ draftは生成される）。
 長文episodeの2段階chunk分割要約 (Plan §6.4) は本PRのスコープ外。
 `max_input_characters`超過時は生成をskipするのみで、分割・再統合は
 実装しない (PoC後の必要性判断に委ねる)。
+
+品質改善v2/v3・自己推敲パス (`summary-generation-quality-v2`、RAID small
+batchの人間レビューで確認された品質問題2点への対策、2026-07-18ユーザー
+承認済み。実promptの設計理由は`agents/summarizer/prompt.py`のmodule
+docstring参照):
+- **story-summary-v2**: `synthesize_story_summary`のStory Summary合成を、
+  Episode Summary群の再要約(v1)から全episode本文の直接入力(v2、既定)へ
+  変更した。`episodes`(元episode dict一覧)が与えられ、入力の概算トークン数
+  (`estimate_token_count`) が`max_context_tokens`以下であればv2を使う。
+  超過時、または`episodes`が与えられない/対応する元episode dictが見つから
+  ない場合はv1へフォールバックする(失敗にしない。フォールバック時のみ
+  非blocking issue `story-synthesis-context-fallback`を記録する)。実際に
+  使われた方式は`StorySynthesisResult.prompt_version`に記録され、
+  `_build_provenance`がdraft全体の`source.promptVersion`へ反映する
+- **episode-summary-v3**: `generate_episode_summary`自体のロジックは
+  不変。`agents/summarizer/prompt.py`の`PROMPT_VERSION`更新
+  (主語明確化指示・登場人物リスト注入・本文中evidence ID参照禁止指示) が
+  反映される
+- **自己推敲パス (`refine`引数、既定OFF)**: `generate_episode_summary`/
+  `synthesize_story_summary`両方に`refine`引数を追加した。`True`の場合、
+  生成成功後に`_refine_episode_draft`/`_refine_story_text`で同モデルへの
+  推敲呼び出しを1周追加実行する。推敲呼び出し自体の失敗・応答parse失敗は
+  非blocking issueとして記録し、元のtextを維持する(draftを潰さない)。
+  使用時は`_build_provenance`が`promptVersion`へ`refine-v1`を追記する
 """
 
 from __future__ import annotations
@@ -65,18 +89,28 @@ from agents.wiki_generator.story_summaries import FORBIDDEN_TEXT_PATTERNS
 
 from .models import EpisodeSummaryDraft, StorySummaryDraft, SummaryProvenance
 from .prompt import (
+    DEFAULT_MAX_CONTEXT_TOKENS,
     DEFAULT_MAX_INPUT_CHARACTERS,
     EPISODE_SUMMARY_SYSTEM_PROMPT,
     PROMPT_VERSION,
+    REFINE_PROMPT_VERSION_SUFFIX,
+    REFINE_SYSTEM_PROMPT,
     STORY_SUMMARY_PROMPT_VERSION,
+    STORY_SUMMARY_PROMPT_VERSION_FALLBACK,
     STORY_SUMMARY_SYSTEM_PROMPT,
+    STORY_SUMMARY_SYSTEM_PROMPT_V2,
+    EpisodeBlocksInput,
     EpisodeSummaryInput,
     ExtractedBlock,
     build_episode_summary_prompt,
+    build_refine_prompt,
     build_story_summary_prompt,
+    build_story_summary_prompt_v2,
+    estimate_token_count,
     extract_episode_blocks,
     render_blocks_text,
     render_episode_summaries_text,
+    render_story_full_text,
 )
 from .provider import LLMProviderError, SummaryLLMProvider
 
@@ -128,6 +162,13 @@ class StorySynthesisResult:
     `evidence_refs`はLLM出力からではなく、`_union_evidence_refs`による
     episode-level evidenceRefsの機械的unionである (`story_text`がNoneの
     場合は常に空リスト)。
+
+    `prompt_version`は実際に使われたprompt方式を表す
+    (`summary-generation-quality-v2`)。全文直接入力(v2)が成立した場合は
+    `STORY_SUMMARY_PROMPT_VERSION` (`story-summary-v2`)、contextサイズ
+    ガードで超過した場合・全episode本文を用意できなかった場合は
+    `STORY_SUMMARY_PROMPT_VERSION_FALLBACK` (`story-summary-v1-fallback`)。
+    `story_text`がNoneの場合 (合成が成立しなかった場合) は`None`のまま。
     """
 
     story_text: str | None
@@ -135,6 +176,7 @@ class StorySynthesisResult:
     issues: list[GenerationIssue] = field(default_factory=list)
     model_provider: str | None = None
     model_name: str | None = None
+    prompt_version: str | None = None
 
     @property
     def skipped(self) -> bool:
@@ -347,6 +389,7 @@ def generate_episode_summary(
     provider: SummaryLLMProvider,
     max_input_characters: int = DEFAULT_MAX_INPUT_CHARACTERS,
     verbatim_threshold: int = DEFAULT_VERBATIM_THRESHOLD,
+    refine: bool = False,
 ) -> EpisodeSummaryGenerationResult:
     """1 episode分のEpisode Summary draftを生成する。
 
@@ -354,6 +397,12 @@ def generate_episode_summary(
     (`build_episode_summary_prompt`) -> LLM呼び出し
     (`provider.generate(..., format_json=True)`) -> 応答parse -> 後処理
     (hallucination対策) -> `EpisodeSummaryDraft`組み立て、の順で処理する。
+
+    `refine=True` (既定OFF、`summary-generation-quality-v2`) の場合、
+    draft組み立て後にさらに自己推敲パスを1周実行し (`_refine_episode_draft`、
+    同モデルで`build_refine_prompt`呼び出し)、`draft.text`を推敲後のtextへ
+    差し替える。推敲パス自体が失敗した場合は元のtextを維持し、非blocking
+    issueを追加するのみとする (draft自体は必ず生成される設計を維持)。
     """
     episode_id = episode.get("episodeId")
 
@@ -433,6 +482,13 @@ def generate_episode_summary(
         episode_number=episode.get("episodeNumber"),
     )
 
+    if refine:
+        issues.extend(
+            _refine_episode_draft(
+                draft, blocks, provider=provider, verbatim_threshold=verbatim_threshold
+            )
+        )
+
     return EpisodeSummaryGenerationResult(
         episode_id=episode_id,
         draft=draft,
@@ -443,8 +499,144 @@ def generate_episode_summary(
 
 
 # ----------------------------------------------------------------
+# 自己推敲パス (`--refine`、既定OFF、`summary-generation-quality-v2`)
+# ----------------------------------------------------------------
+
+
+def _refine_episode_draft(
+    draft: EpisodeSummaryDraft,
+    blocks: list[ExtractedBlock],
+    *,
+    provider: SummaryLLMProvider,
+    verbatim_threshold: int,
+) -> list[GenerationIssue]:
+    """`draft.text`へ自己推敲パスを1周適用する (in-place)。
+
+    推敲呼び出し自体の失敗・応答parse失敗の場合は元のtextを維持し、
+    非blockingのissueを記録するのみとする (推敲は既に成立しているdraftへの
+    追加処理であり、失敗させてdraft自体を潰さない)。推敲成功時は、推敲後の
+    textに対して禁止文字列scan・長文verbatim引用検出を再実行する。
+    """
+    prompt = build_refine_prompt(draft.text)
+    try:
+        completion = provider.generate(
+            prompt, system=REFINE_SYSTEM_PROMPT, format_json=True
+        )
+    except LLMProviderError as exc:
+        return [
+            GenerationIssue(
+                "refine-llm-provider-error",
+                f"推敲パスのLLM呼び出しに失敗しました(元のtextを維持しました): {exc}",
+            )
+        ]
+
+    refined_text, parse_issues = _parse_refine_response(completion.text)
+    if refined_text is None:
+        return [
+            GenerationIssue(
+                issue.code,
+                f"推敲応答のparseに失敗したため元のtextを維持しました: {issue.message}",
+            )
+            for issue in parse_issues
+        ]
+
+    draft.text = refined_text
+    issues = _check_forbidden_text(refined_text)
+    issues.extend(
+        check_verbatim_quotes(refined_text, blocks, threshold=verbatim_threshold)
+    )
+    return issues
+
+
+def _refine_story_text(
+    text: str, *, provider: SummaryLLMProvider
+) -> tuple[str, list[GenerationIssue]]:
+    """story_textへ自己推敲パスを1周適用する。
+
+    `_refine_episode_draft`と同じ方針: 推敲呼び出し自体の失敗・応答parse
+    失敗時は元のtextを維持し、非blocking issueを記録するのみとする。
+    story合成は元々verbatim引用検出を行わない設計のため
+    (`synthesize_story_summary`のdocstring参照)、推敲後のtextに対しても
+    禁止文字列scanのみ再実行する。
+    """
+    prompt = build_refine_prompt(text)
+    try:
+        completion = provider.generate(
+            prompt, system=REFINE_SYSTEM_PROMPT, format_json=True
+        )
+    except LLMProviderError as exc:
+        return text, [
+            GenerationIssue(
+                "refine-llm-provider-error",
+                f"推敲パスのLLM呼び出しに失敗しました(元のtextを維持しました): {exc}",
+            )
+        ]
+
+    refined_text, parse_issues = _parse_refine_response(completion.text)
+    if refined_text is None:
+        return text, [
+            GenerationIssue(
+                issue.code,
+                f"推敲応答のparseに失敗したため元のtextを維持しました: {issue.message}",
+            )
+            for issue in parse_issues
+        ]
+
+    return refined_text, _check_forbidden_text(refined_text)
+
+
+# ----------------------------------------------------------------
 # Story Summary合成 (Episode Summary群 -> Story Summary、Plan §11)
 # ----------------------------------------------------------------
+
+
+def _parse_single_text_field_response(
+    raw_text: str,
+    *,
+    not_json_code: str,
+    not_object_code: str,
+    missing_key_code: str,
+) -> tuple[str | None, list[GenerationIssue]]:
+    """`{"text": "..."}`のみを期待する応答を共通parseするヘルパー。
+
+    story合成 (`_parse_story_summary_response`) と自己推敲パス
+    (`_parse_refine_response`) の両方から使う (`summary-generation-
+    quality-v2`でのリファクタ、issue codeは呼び出し側が指定する)。
+    parse失敗・object以外・`text`キー欠落/空はいずれもblocking issueとして
+    扱う (blocking扱いをどう解釈するかは呼び出し側の責務。自己推敲パスの
+    呼び出し元は失敗時に元のtextを維持し非blocking issueへ読み替える)。
+    """
+    try:
+        parsed = json.loads(raw_text)
+    except (json.JSONDecodeError, TypeError) as exc:
+        return None, [
+            GenerationIssue(
+                not_json_code,
+                f"LLM応答のJSON parseに失敗しました: {exc}",
+                blocking=True,
+            )
+        ]
+
+    if not isinstance(parsed, dict):
+        return None, [
+            GenerationIssue(
+                not_object_code,
+                f"LLM応答がJSON objectではありません (got {type(parsed).__name__})",
+                blocking=True,
+            )
+        ]
+
+    text_value = parsed.get("text")
+    if not isinstance(text_value, str) or not text_value.strip():
+        return None, [
+            GenerationIssue(
+                missing_key_code,
+                "LLM応答に非空の'text'キーがありません",
+                blocking=True,
+            )
+        ]
+
+    return text_value.strip(), []
 
 
 def _parse_story_summary_response(
@@ -455,39 +647,32 @@ def _parse_story_summary_response(
     episode側の`_parse_llm_response`と異なり、story-level出力は
     `{"text": "..."}`のみを期待する (`evidenceRefs`はLLMに求めない、Plan
     §11)。parse失敗・object以外・`text`キー欠落/空はいずれもblocking issue
-    として扱う。
+    として扱う。v1方式(Episode Summary群の再要約)・v2方式(全文直接入力)の
+    いずれの合成呼び出しからも共用する (出力formatはv1/v2で同一)。
     """
-    try:
-        parsed = json.loads(raw_text)
-    except (json.JSONDecodeError, TypeError) as exc:
-        return None, [
-            GenerationIssue(
-                "response-not-json",
-                f"LLM応答のJSON parseに失敗しました: {exc}",
-                blocking=True,
-            )
-        ]
+    return _parse_single_text_field_response(
+        raw_text,
+        not_json_code="response-not-json",
+        not_object_code="response-not-object",
+        missing_key_code="missing-text-key",
+    )
 
-    if not isinstance(parsed, dict):
-        return None, [
-            GenerationIssue(
-                "response-not-object",
-                f"LLM応答がJSON objectではありません (got {type(parsed).__name__})",
-                blocking=True,
-            )
-        ]
 
-    text_value = parsed.get("text")
-    if not isinstance(text_value, str) or not text_value.strip():
-        return None, [
-            GenerationIssue(
-                "missing-text-key",
-                "LLM応答に非空の'text'キーがありません",
-                blocking=True,
-            )
-        ]
-
-    return text_value.strip(), []
+def _parse_refine_response(
+    raw_text: str,
+) -> tuple[str | None, list[GenerationIssue]]:
+    """自己推敲パスのLLM応答テキストをparseし、`text`を取り出す
+    (`summary-generation-quality-v2`)。出力formatはstory合成応答と同じ
+    `{"text": "..."}`。issue codeは`refine-`prefixで区別する (呼び出し側は
+    parse失敗時、blockingフラグを無視して元のtextを維持し非blocking issue
+    として記録する)。
+    """
+    return _parse_single_text_field_response(
+        raw_text,
+        not_json_code="refine-response-not-json",
+        not_object_code="refine-response-not-object",
+        missing_key_code="refine-missing-text-key",
+    )
 
 
 def _order_episode_drafts_by_number(
@@ -520,29 +705,181 @@ def _union_evidence_refs(
     return result
 
 
+_SynthesisAttempt = tuple[str | None, list[GenerationIssue], str | None, str | None]
+
+
+def _build_full_text_items(
+    ordered_episode_drafts: list[EpisodeSummaryDraft],
+    episodes: list[dict[str, Any]],
+) -> list[EpisodeBlocksInput]:
+    """story-summary-v2 (全文直接入力方式) 用に、`ordered_episode_drafts`の
+    各episodeに対応する元episode dictから`extract_episode_blocks`で本文を
+    再抽出し、`EpisodeBlocksInput`一覧を組み立てる (`summary-generation-
+    quality-v2`)。
+
+    いずれかのdraftに対応する元episode dictが`episodes`中に見つからない
+    場合は、全体を空リストで返す (部分的な全文入力は作らない安全側の判断。
+    呼び出し側`synthesize_story_summary`はこれをv1方式へのフォールバック
+    条件として扱う)。
+    """
+    episodes_by_id = {ep.get("episodeId"): ep for ep in episodes if ep.get("episodeId")}
+    items: list[EpisodeBlocksInput] = []
+    for draft in ordered_episode_drafts:
+        episode = episodes_by_id.get(draft.episode_id)
+        if episode is None:
+            return []
+        items.append(
+            EpisodeBlocksInput(
+                episode_number=draft.episode_number,
+                blocks=extract_episode_blocks(episode),
+            )
+        )
+    return items
+
+
+def _synthesize_story_summary_full_text(
+    full_text_items: list[EpisodeBlocksInput], provider: SummaryLLMProvider
+) -> _SynthesisAttempt:
+    """story-summary-v2 (全文直接入力方式) でのLLM呼び出し + 後処理。
+
+    戻り値: `(text, issues, model_provider, model_name)`。`text`が`None`の
+    場合は合成が成立しなかった(blocking issueが`issues`にある)ことを表す。
+    """
+    prompt = build_story_summary_prompt_v2(full_text_items)
+    try:
+        completion = provider.generate(
+            prompt, system=STORY_SUMMARY_SYSTEM_PROMPT_V2, format_json=True
+        )
+    except LLMProviderError as exc:
+        return (
+            None,
+            [
+                GenerationIssue(
+                    "llm-provider-error",
+                    f"LLM呼び出しに失敗しました: {exc}",
+                    blocking=True,
+                )
+            ],
+            None,
+            None,
+        )
+
+    text, parse_issues = _parse_story_summary_response(completion.text)
+    if text is None:
+        return None, parse_issues, completion.provider_name, completion.model_name
+
+    issues = list(parse_issues)
+    issues.extend(_check_forbidden_text(text))
+    return text, issues, completion.provider_name, completion.model_name
+
+
+def _synthesize_story_summary_from_episode_summaries(
+    ordered_episode_drafts: list[EpisodeSummaryDraft],
+    provider: SummaryLLMProvider,
+    max_input_characters: int,
+) -> _SynthesisAttempt:
+    """story-summary-v1 (Episode Summary群の再要約方式) でのLLM呼び出し +
+    後処理。story-summary-v2のcontextサイズガード超過時のフォールバック、
+    および全文入力を組み立てられない場合 (`episodes`未指定等) に使う。
+
+    戻り値: `(text, issues, model_provider, model_name)`。`text`が`None`の
+    場合は合成が成立しなかった(blocking issueが`issues`にある)ことを表す。
+    """
+    inputs = [
+        EpisodeSummaryInput(episode_number=draft.episode_number, text=draft.text)
+        for draft in ordered_episode_drafts
+    ]
+    rendered_text = render_episode_summaries_text(inputs)
+    if len(rendered_text) > max_input_characters:
+        return (
+            None,
+            [
+                GenerationIssue(
+                    "input-too-long",
+                    f"入力テキスト(Episode Summary群)が{len(rendered_text)}"
+                    f"文字で、上限{max_input_characters}文字を超えています "
+                    "(chunk分割は未実装、Story Summary合成をskipしました)",
+                    blocking=True,
+                )
+            ],
+            None,
+            None,
+        )
+
+    prompt = build_story_summary_prompt(inputs)
+    try:
+        completion = provider.generate(
+            prompt, system=STORY_SUMMARY_SYSTEM_PROMPT, format_json=True
+        )
+    except LLMProviderError as exc:
+        return (
+            None,
+            [
+                GenerationIssue(
+                    "llm-provider-error",
+                    f"LLM呼び出しに失敗しました: {exc}",
+                    blocking=True,
+                )
+            ],
+            None,
+            None,
+        )
+
+    text, parse_issues = _parse_story_summary_response(completion.text)
+    if text is None:
+        return None, parse_issues, completion.provider_name, completion.model_name
+
+    issues = list(parse_issues)
+    issues.extend(_check_forbidden_text(text))
+    return text, issues, completion.provider_name, completion.model_name
+
+
 def synthesize_story_summary(
     episode_drafts: list[EpisodeSummaryDraft],
     *,
     provider: SummaryLLMProvider,
     max_input_characters: int = DEFAULT_MAX_INPUT_CHARACTERS,
     episodes_with_issues: list[str] | None = None,
+    episodes: list[dict[str, Any]] | None = None,
+    max_context_tokens: int = DEFAULT_MAX_CONTEXT_TOKENS,
+    refine: bool = False,
 ) -> StorySynthesisResult:
-    """生成済みEpisode Summary群からStory Summaryを合成する (Plan §11)。
+    """生成済みEpisode Summary群からStory Summaryを合成する (Plan §11、
+    `summary-generation-quality-v2`で入力方式をv2 (全文直接入力) へ変更)。
 
     - `episode_drafts`が空の場合は合成不能としてblocking issueを立てて
       skipする (LLM呼び出しは行わない)
-    - 入力テキスト (episodeNumber順に整形したEpisode Summary text群) の
-      合計文字数が`max_input_characters`を超える場合もblocking issueを
-      立ててskipする (episode側と同じ安全弁パターン、chunk分割は未実装)
-    - LLM呼び出し失敗・応答parse失敗・`text`キー欠落/空はblocking
+    - **story-summary-v2 (既定)**: `episodes` (元episode dict一覧、通常は
+      `generate_story_summary_draft`が`document["episodes"]`をそのまま渡す)
+      が与えられ、全episode分の元episode dictが解決できる場合、全episode
+      本文をepisodeNumber順の時系列で直接入力しstory全体を要約する
+      (`build_story_summary_prompt_v2`)。入力の概算トークン数
+      (`estimate_token_count`) が`max_context_tokens`を超える場合は
+      **story-summary-v1 (Episode Summary群の再要約) へフォールバックし、
+      非blocking issue `story-synthesis-context-fallback`を記録する
+      (失敗にはしない)**
+    - `episodes`が与えられない、または対応する元episode dictが見つからない
+      場合も同様にv1方式へフォールバックする (この場合はissueを追加しない。
+      呼び出し側が意図的にv1相当のみを使うケースを含むため)
+    - v1方式では、入力テキスト (episodeNumber順に整形したEpisode Summary
+      text群) の合計文字数が`max_input_characters`を超える場合もblocking
+      issueを立ててskipする (episode側と同じ安全弁パターン、chunk分割は
+      未実装)
+    - LLM呼び出し失敗・応答parse失敗・`text`キー欠落/空はいずれもblocking
+      (v1/v2共通)
     - 禁止文字列scanは非blocking (`FORBIDDEN_TEXT_PATTERNS`再利用)。
-      **verbatim引用検出は行わない** (入力が既にsafeなepisode summaryの
-      ため、Plan §11)
+      **verbatim引用検出は行わない** (v1: 入力が既にsafeなepisode summary
+      のため。v2: story全体の粒度でのverbatim検出は対象外とする方針を
+      踏襲、Plan §11)
     - `episodes_with_issues` (episode-level issueを持つepisodeIdのlist) が
       非空の場合、合成自体は行った上で非blocking issue
       `source-episode-has-issues`として記録する (Plan §11)
     - `evidence_refs`はLLM出力からではなく、`_union_evidence_refs`による
-      機械的unionを設定する (合成成功時のみ、skip時は空リスト)
+      機械的unionを設定する (v1/v2いずれの方式でも共通、合成成功時のみ、
+      skip時は空リスト)
+    - `refine=True` (既定OFF) の場合、合成成功後にさらに自己推敲パスを1周
+      実行する (`_refine_story_text`)。推敲自体の失敗は元のtextを維持し
+      非blocking issueを記録するのみとする
     """
     if not episode_drafts:
         return StorySynthesisResult(
@@ -558,53 +895,51 @@ def synthesize_story_summary(
         )
 
     ordered = _order_episode_drafts_by_number(episode_drafts)
-    inputs = [
-        EpisodeSummaryInput(episode_number=draft.episode_number, text=draft.text)
-        for draft in ordered
-    ]
-    rendered_text = render_episode_summaries_text(inputs)
-    if len(rendered_text) > max_input_characters:
-        return StorySynthesisResult(
-            story_text=None,
-            issues=[
-                GenerationIssue(
-                    "input-too-long",
-                    f"入力テキスト(Episode Summary群)が{len(rendered_text)}"
-                    f"文字で、上限{max_input_characters}文字を超えています "
-                    "(chunk分割は未実装、Story Summary合成をskipしました)",
-                    blocking=True,
-                )
-            ],
-        )
 
-    prompt = build_story_summary_prompt(inputs)
-    try:
-        completion = provider.generate(
-            prompt, system=STORY_SUMMARY_SYSTEM_PROMPT, format_json=True
-        )
-    except LLMProviderError as exc:
-        return StorySynthesisResult(
-            story_text=None,
-            issues=[
-                GenerationIssue(
-                    "llm-provider-error",
-                    f"LLM呼び出しに失敗しました: {exc}",
-                    blocking=True,
-                )
-            ],
-        )
+    full_text_items = _build_full_text_items(ordered, episodes) if episodes else []
+    context_fallback_issue: GenerationIssue | None = None
 
-    text, parse_issues = _parse_story_summary_response(completion.text)
+    if full_text_items:
+        full_text = render_story_full_text(full_text_items)
+        estimated_tokens = estimate_token_count(full_text)
+        if estimated_tokens <= max_context_tokens:
+            text, issues, model_provider, model_name = (
+                _synthesize_story_summary_full_text(full_text_items, provider)
+            )
+            prompt_version = STORY_SUMMARY_PROMPT_VERSION
+        else:
+            context_fallback_issue = GenerationIssue(
+                "story-synthesis-context-fallback",
+                f"全episode本文の概算トークン数({estimated_tokens})が上限"
+                f"({max_context_tokens})を超えたため、story-summary-v1方式"
+                "(Episode Summary群の再要約) へフォールバックしました",
+            )
+            text, issues, model_provider, model_name = (
+                _synthesize_story_summary_from_episode_summaries(
+                    ordered, provider, max_input_characters
+                )
+            )
+            prompt_version = STORY_SUMMARY_PROMPT_VERSION_FALLBACK
+    else:
+        text, issues, model_provider, model_name = (
+            _synthesize_story_summary_from_episode_summaries(
+                ordered, provider, max_input_characters
+            )
+        )
+        prompt_version = STORY_SUMMARY_PROMPT_VERSION_FALLBACK
+
     if text is None:
         return StorySynthesisResult(
             story_text=None,
-            issues=parse_issues,
-            model_provider=completion.provider_name,
-            model_name=completion.model_name,
+            issues=issues,
+            model_provider=model_provider,
+            model_name=model_name,
+            prompt_version=prompt_version,
         )
 
-    issues: list[GenerationIssue] = list(parse_issues)
-    issues.extend(_check_forbidden_text(text))
+    if context_fallback_issue is not None:
+        issues.append(context_fallback_issue)
+
     if episodes_with_issues:
         joined = ", ".join(str(episode_id) for episode_id in episodes_with_issues)
         issues.append(
@@ -616,12 +951,17 @@ def synthesize_story_summary(
             )
         )
 
+    if refine:
+        text, refine_issues = _refine_story_text(text, provider=provider)
+        issues.extend(refine_issues)
+
     return StorySynthesisResult(
         story_text=text,
         evidence_refs=_union_evidence_refs(ordered),
         issues=issues,
-        model_provider=completion.provider_name,
-        model_name=completion.model_name,
+        model_provider=model_provider,
+        model_name=model_name,
+        prompt_version=prompt_version,
     )
 
 
@@ -637,6 +977,8 @@ def generate_story_summary_draft(
     max_input_characters: int = DEFAULT_MAX_INPUT_CHARACTERS,
     verbatim_threshold: int = DEFAULT_VERBATIM_THRESHOLD,
     synthesize_story: bool = True,
+    max_context_tokens: int = DEFAULT_MAX_CONTEXT_TOKENS,
+    refine: bool = False,
 ) -> StorySummaryGenerationResult:
     """Normalized Story JSON 1 story分から、Episode Summary群のdraftと
     (既定で) 合成済みStory Summaryを含む`StorySummaryDraft`を組み立てる。
@@ -644,6 +986,11 @@ def generate_story_summary_draft(
     `synthesize_story=False`の場合、Story Summary合成自体を行わない
     (`draft.story_text`は常に`None`、`story_synthesis`は`None`のまま)。
     既定は`True` (Plan §11「story合成は既定で有効」)。
+
+    `max_context_tokens`はstory-summary-v2 (全文直接入力方式) の
+    contextサイズガード (`summary-generation-quality-v2`、
+    `synthesize_story_summary`参照)。`refine=True` (既定OFF) の場合、
+    episode/story summaryいずれの生成にも自己推敲パスを1周適用する。
     """
     story_id = document.get("storyId")
     episodes = document.get("episodes", []) or []
@@ -654,6 +1001,7 @@ def generate_story_summary_draft(
             provider=provider,
             max_input_characters=max_input_characters,
             verbatim_threshold=verbatim_threshold,
+            refine=refine,
         )
         for episode in episodes
     ]
@@ -674,9 +1022,12 @@ def generate_story_summary_draft(
             provider=provider,
             max_input_characters=max_input_characters,
             episodes_with_issues=episodes_with_issues,
+            episodes=episodes,
+            max_context_tokens=max_context_tokens,
+            refine=refine,
         )
 
-    provenance = _build_provenance(episode_results, story_synthesis)
+    provenance = _build_provenance(episode_results, story_synthesis, refine=refine)
 
     notes = _build_notes(episode_results, story_synthesis)
 
@@ -705,15 +1056,22 @@ def generate_story_summary_draft(
 def _build_provenance(
     episode_results: list[EpisodeSummaryGenerationResult],
     story_synthesis: StorySynthesisResult | None = None,
+    *,
+    refine: bool = False,
 ) -> SummaryProvenance:
     """成功した最初のepisode結果からmodel provenanceを引き継ぐ
     (episode側が全て失敗している場合は、成功したstory synthesisの値で
     補完する)。
 
     `prompt_version`は、story synthesisが実際にstory_textを生成できた
-    場合のみ、episode用`PROMPT_VERSION`にstory用
-    `STORY_SUMMARY_PROMPT_VERSION`をカンマ区切りで併記する
-    (schema上`source.promptVersion`は単一文字列のため)。
+    場合のみ、episode用`PROMPT_VERSION`にstory synthesisで実際に使われた
+    方式 (`story_synthesis.prompt_version`、v2成功時は
+    `STORY_SUMMARY_PROMPT_VERSION`、v1フォールバック時は
+    `STORY_SUMMARY_PROMPT_VERSION_FALLBACK`) をカンマ区切りで併記する
+    (schema上`source.promptVersion`は単一文字列のため、
+    `summary-generation-quality-v2`でどちらの方式が実際に使われたかを
+    provenanceから判別できるようにした)。`refine=True`の場合はさらに
+    `REFINE_PROMPT_VERSION_SUFFIX` (`refine-v1`) を追記する。
     """
     model_provider: str | None = None
     model_name: str | None = None
@@ -728,7 +1086,11 @@ def _build_provenance(
 
     prompt_versions = [PROMPT_VERSION]
     if story_synthesis is not None and story_synthesis.story_text is not None:
-        prompt_versions.append(STORY_SUMMARY_PROMPT_VERSION)
+        prompt_versions.append(
+            story_synthesis.prompt_version or STORY_SUMMARY_PROMPT_VERSION
+        )
+    if refine:
+        prompt_versions.append(REFINE_PROMPT_VERSION_SUFFIX)
 
     return SummaryProvenance(
         model_provider=model_provider,
