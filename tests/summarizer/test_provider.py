@@ -147,6 +147,61 @@ def test_generate_options_dict_is_copied_not_aliased():
 
 
 # ----------------------------------------------------------------
+# (1b) `think`パラメータ伝搬 (`ollama-think-parameter-support`):
+#      think=None(既定)はpayloadへ`think`を一切含めない (auto、非thinking
+#      モデルとの後方互換)。True/Falseはそのままpayloadへ送出する。
+# ----------------------------------------------------------------
+
+
+def test_generate_omits_think_by_default():
+    transport = _RecordingTransport(response={"response": "ok"})
+    provider = OllamaProvider(model="llama3", transport=transport)
+
+    provider.generate("prompt")
+
+    _url, payload, _timeout = transport.calls[0]
+    assert "think" not in payload
+
+
+def test_generate_sends_think_false_when_think_off():
+    transport = _RecordingTransport(response={"response": "ok"})
+    provider = OllamaProvider(model="llama3", think=False, transport=transport)
+
+    provider.generate("prompt")
+
+    _url, payload, _timeout = transport.calls[0]
+    assert payload["think"] is False
+
+
+def test_generate_sends_think_true_when_think_on():
+    transport = _RecordingTransport(response={"response": "ok"})
+    provider = OllamaProvider(model="llama3", think=True, transport=transport)
+
+    provider.generate("prompt")
+
+    _url, payload, _timeout = transport.calls[0]
+    assert payload["think"] is True
+
+
+def test_generate_uses_response_field_and_discards_thinking_field():
+    # thinkingモデルの応答は`thinking`と`response`が別フィールドで返る。
+    # `think=True`でも常に`response`のみをtextとして採用し、`thinking`は
+    # 破棄する (`raw_response`には両方残ることを確認する)。
+    transport = _RecordingTransport(
+        response={"thinking": "内部思考テキスト", "response": "最終応答テキスト"}
+    )
+    provider = OllamaProvider(model="llama3", think=True, transport=transport)
+
+    result = provider.generate("prompt")
+
+    assert result.text == "最終応答テキスト"
+    assert result.raw_response == {
+        "thinking": "内部思考テキスト",
+        "response": "最終応答テキスト",
+    }
+
+
+# ----------------------------------------------------------------
 # (2) timeout引き渡し・model必須
 # ----------------------------------------------------------------
 
@@ -256,6 +311,17 @@ def test_generate_raises_on_empty_response_text():
     provider = OllamaProvider(model="llama3", transport=transport)
 
     with pytest.raises(LLMProviderError):
+        provider.generate("prompt")
+
+
+def test_generate_empty_response_error_includes_think_off_hint():
+    # thinkingモデルとの互換対応(`ollama-think-parameter-support`)。空
+    # response検出時のエラーメッセージに`--think off`を試すヒントが
+    # 含まれることを確認する。
+    transport = _RecordingTransport(response={"thinking": "内部思考のみ"})
+    provider = OllamaProvider(model="llama3", transport=transport)
+
+    with pytest.raises(LLMProviderError, match="--think off"):
         provider.generate("prompt")
 
 

@@ -94,6 +94,7 @@ uv run python scripts/generate_story_summaries.py \
 - `--refine`（既定OFF）を指定すると、生成した各summary（episode/story両方）に対し同モデルで自己推敲パスを1周追加実行する。使用時は`source.promptVersion`に`refine-v1`が追記される。本Runbookの通常フローでは既定（OFF）のまま進めるが、品質改善の効果を確認したい場合はbatch単位で試行してよい
 - `--timeout`はEpisodeの長さに応じて調整する（PoCでの実測を踏まえ600秒を目安値として例示している。既定は120.0秒）
 - 生成directのdraftは`generationStatus: draft`のまま出力される。Step 4のquality gateへ進む
+- `--think {auto,off,on}`（既定`auto`、`ollama-think-parameter-support`）: Ollama `/api/generate`の`think`パラメータ制御。qwen3.6等のthinkingモデルは`think`未指定だと応答テキスト全体が`thinking`フィールドへ吸収され`response`が空になり生成が失敗する（実行ログで確認済みの互換性問題）。`auto`は`think`パラメータを一切送らない既定動作（非thinkingモデルとの後方互換）、`off`は`"think": false`を付与、`on`は`"think": true`を付与し応答の`thinking`フィールドは破棄して`response`のみ使う。thinkingモデルを使う場合は`--think off`を指定する。`off`/`on`使用時は生成reportへ`Think parameter`として記録される（`source.promptVersion`は変更しない）。空`response`検出時のエラーメッセージには`--think off`を試すヒントが含まれる
 
 ## 6.1 Domain context注入（`summary-domain-context-injection`）
 
