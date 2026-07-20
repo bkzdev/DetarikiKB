@@ -5,61 +5,42 @@ publicStoryId: RAID_012_221118
 language: ja
 generationStatus: generated
 storySummary:
-  text: ブラックレインがブレインとして対策班に加わり、ペンギン組のメンバーたちと関わるようになる。アイはブレインに対して不満を示し、他のメンバーも彼女の訓練に対する恐怖や困惑を感じていた。特訓後、ブレインはアイたちの成長を称え、アイは感謝の言葉を述べる。カエデとルカはアイの態度を認めつつも、ブレインの冷たい態度に戸惑うが、最終的には彼の微笑みで物語を締めくくる。
+  text: ブレインはゼラフィムとの戦いに備え、ペンギン組を特訓する。過去の因縁を抱えるアイはブレインの言葉を信じると告げ、ブレインも仲間に救われていると実感する。
   confidence: null
   evidenceRefs:
-  - RAID_012_221118_E01_NAR0004
-  - RAID_012_221118_E01_DLG0005
-  - RAID_012_221118_E01_DLG0013
-  - RAID_012_221118_E01_DLG0018
-  - RAID_012_221118_E01_NAR0010
-  - RAID_012_221118_E02_DLG0001
-  - RAID_012_221118_E02_DLG0002
-  - RAID_012_221118_E02_NAR0004
-  - RAID_012_221118_E02_DLG0007
-  - RAID_012_221118_E02_MONO0001
+  - RAID_012_221118_E01_DLG0008
+  - RAID_012_221118_E01_DLG0033
   - RAID_012_221118_E02_DLG0018
-  - RAID_012_221118_E02_DLG0024
   - RAID_012_221118_E02_MONO0002
-  - RAID_012_221118_E02_NAR0006
 episodeSummaries:
 - episodeId: RAID_012_221118_E01
   publicEpisodeId: RAID_012_221118_E01
   episodeNumber: 1
-  text: ブラックレインがブレインと名前を変え、対策班に協力することになった。彼女は現在、ゆるい雰囲気で過ごしている。ペンギン組のメンバーたちが集まり、アイはブレインに対して不満を漏らす。ブレインはアイに嫌味を言い、カエデとルカも、王藩都を狙うゼラフィムとの戦いについて話し合う。ブレインの訓練がペンギン組に回ってきたことで恐怖を感じているメンバーたちがいる。アイはブレインに対して激しい反応を示し、他のメンバーは彼女を止める。
+  text: ブレインはゼラフィムとの戦いに備え、ペンギン組を特訓する。過去の因縁を抱えるアイは、ブレインと衝突する。
   confidence: null
   evidenceRefs:
-  - RAID_012_221118_E01_NAR0004
-  - RAID_012_221118_E01_DLG0005
   - RAID_012_221118_E01_DLG0008
-  - RAID_012_221118_E01_DLG0013
-  - RAID_012_221118_E01_DLG0018
-  - RAID_012_221118_E01_NAR0010
+  - RAID_012_221118_E01_DLG0027
+  - RAID_012_221118_E01_MONO0002
+  - RAID_012_221118_E01_DLG0033
 - episodeId: RAID_012_221118_E02
   publicEpisodeId: RAID_012_221118_E02
   episodeNumber: 2
-  text: 特訓が終わり、ブレインはアイたちの成長を称える。アイはそれに対して静かに感謝し、ルイはブレインの意図を理解しようと説明するが、ブレインはその善意を皮肉る。アイは自分がブレインの言葉を信じていると告げる。カエデとルカはアイの態度を認めつつも、ブレインの冷たい言動に困惑する。しかし最後には、ブレインの心に何かが伝わったのか、彼は「ダーリン」に向かって微笑みかける。
+  text: 特訓後、アイはブレインの言葉を信じると明かす。ブレインもペンギン組に救われ、仲間の良さを実感する。
   confidence: null
   evidenceRefs:
-  - RAID_012_221118_E02_DLG0001
   - RAID_012_221118_E02_DLG0002
-  - RAID_012_221118_E02_NAR0004
-  - RAID_012_221118_E02_DLG0007
-  - RAID_012_221118_E02_MONO0001
+  - RAID_012_221118_E02_DLG0014
   - RAID_012_221118_E02_DLG0018
-  - RAID_012_221118_E02_DLG0024
   - RAID_012_221118_E02_MONO0002
-  - RAID_012_221118_E02_NAR0006
 source:
   sourceType: ai_generated
-  model: ollama/qwen2.5:14b-instruct
-  promptVersion: episode-summary-v2,story-summary-v1
-  generatedAt: '2026-07-18T10:07:18Z'
+  model: codex-gpt (openai-codex-cli)
+  promptVersion: codex-synopsis-rewrite-v1
+  generatedAt: '2026-07-20T08:09:10Z'
 review:
   status: approved
   reviewer: bkzdev
-  reviewedAt: '2026-07-18'
-  notes: 人間レビューにより2点を修正済み。(1) Episode 1本文の文体統一（括弧書きevidence ID表記を削除し、Episode 2と同じ地の文形式へ統一）。(2)
-    Episode 1の係り受け誤読を修正（「ゼラフィムが王藩都を狙う」構造を正しく反映）。原文典拠としてEpisode 1のDLG0008 blockをevidenceRefsへ追加した。Story
-    Summary・Episode 2は生成のまま承認。
-notes: null
+  reviewedAt: '2026-07-20'
+  notes: Codex（openai-codex-cli）生成のあらすじ粒度版。既存詳細粒度Summaryの差し替え。人間レビュー済み・内容承認。班長=主人公の帰属・造語/多言語混入なしを確認。
+notes: 詳細粒度Summaryをあらすじ粒度へ作り直すためのdraft（rewrite_batch_001）。

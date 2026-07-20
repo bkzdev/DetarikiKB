@@ -5,50 +5,44 @@ publicStoryId: EVENT_164_260425
 language: ja
 generationStatus: generated
 storySummary:
-  text: きゃらめる☆ミルキーウェイ（キャミ）のセイナとイヴに解散ドッキリが仕掛けられる。二人が取り乱さず解散を受け入れるかのような本音を漏らしたことから、ムーリンはキャミへの愛着とメンバーへの誇りを熱く語り、二人に思いをぶつける。
+  text: レインとムーリンは、キャミ解散のドッキリでイヴとセイナの本音を探る。解散を受け入れる二人に動揺するが、ムーリンの訴えが二人に本心を語らせる。
   confidence: null
   evidenceRefs:
   - EVENT_164_260425_E01_DLG0030
-  - EVENT_164_260425_E01_DLG0047
-  - EVENT_164_260425_E01_DLG0060
-  - EVENT_164_260425_E01_DLG0070
-  - EVENT_164_260425_E01_DLG0072
-  - EVENT_164_260425_E02_DLG0010
-  - EVENT_164_260425_E02_DLG0059
-  - EVENT_164_260425_E02_DLG0062
-  - EVENT_164_260425_E02_DLG0067
-  - EVENT_164_260425_E02_DLG0072
+  - EVENT_164_260425_E01_DLG0069
+  - EVENT_164_260425_E01_DLG0073
+  - EVENT_164_260425_E02_DLG0039
+  - EVENT_164_260425_E02_DLG0071
+  - EVENT_164_260425_E02_DLG0076
 episodeSummaries:
 - episodeId: EVENT_164_260425_E01
   publicEpisodeId: EVENT_164_260425_E01
   episodeNumber: 1
-  text: きゃらめる☆ミルキーウェイ（キャミ）のセイナとイヴに、今回のプロジェクトを最後にキャミが解散するというドッキリが仕掛けられる。二人は取り乱すことなく、解散を受け入れるかのような本音を漏らし、仕掛けた側のレインとムーリンは驚く。
+  text: レインとムーリンはキャミ解散のドッキリを仕掛ける。イヴとセイナは解散を淡々と受け入れ、二人を動揺させる。
   confidence: null
   evidenceRefs:
   - EVENT_164_260425_E01_DLG0030
   - EVENT_164_260425_E01_DLG0047
-  - EVENT_164_260425_E01_DLG0060
-  - EVENT_164_260425_E01_DLG0070
-  - EVENT_164_260425_E01_DLG0072
+  - EVENT_164_260425_E01_DLG0069
+  - EVENT_164_260425_E01_DLG0073
 - episodeId: EVENT_164_260425_E02
   publicEpisodeId: EVENT_164_260425_E02
   episodeNumber: 2
-  text: 解散ドッキリを続ける中で、レインたちはセイナとイヴの本音を探る。イヴは自分のやりたいことを優先したい、セイナは普通の女の子に戻りたいという気持ちが明らかになる一方、ムーリンはキャミへの愛着とメンバーや活動への誇りを熱く語り、二人に思いをぶつける。
+  text: レインとムーリンはキャミへの思いを訴える。二人の熱意を受け、イヴとセイナは本心を明かそうとする。
   confidence: null
   evidenceRefs:
-  - EVENT_164_260425_E02_DLG0010
-  - EVENT_164_260425_E02_DLG0059
-  - EVENT_164_260425_E02_DLG0062
-  - EVENT_164_260425_E02_DLG0067
-  - EVENT_164_260425_E02_DLG0072
+  - EVENT_164_260425_E02_DLG0039
+  - EVENT_164_260425_E02_DLG0069
+  - EVENT_164_260425_E02_DLG0071
+  - EVENT_164_260425_E02_DLG0076
 source:
   sourceType: ai_generated
-  model: ollama/qwen2.5:14b-instruct
-  promptVersion: episode-summary-v1,story-summary-v1
-  generatedAt: '2026-07-13T02:40:02Z'
+  model: codex-gpt (openai-codex-cli)
+  promptVersion: codex-synopsis-rewrite-v1
+  generatedAt: '2026-07-20T08:09:10Z'
 review:
   status: approved
   reviewer: bkzdev
-  reviewedAt: '2026-07-13'
-  notes: PoC Stage 0の人間レビュー。AI生成draftの主語誤り（イベント名を行為主体として誤用）と根拠の弱い引用を、原文blockの確認に基づき人手修正した。
-notes: AI生成後にレビュー担当者が本文とevidenceRefsを修正した（sourceはai_generatedのまま）。
+  reviewedAt: '2026-07-20'
+  notes: Codex（openai-codex-cli）生成のあらすじ粒度版。既存詳細粒度Summaryの差し替え。人間レビュー済み・内容承認。班長=主人公の帰属・造語/多言語混入なしを確認。
+notes: 詳細粒度Summaryをあらすじ粒度へ作り直すためのdraft（rewrite_batch_001）。

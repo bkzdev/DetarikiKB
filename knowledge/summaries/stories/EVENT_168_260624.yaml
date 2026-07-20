@@ -5,40 +5,34 @@ publicStoryId: EVENT_168_260624
 language: ja
 generationStatus: generated
 storySummary:
-  text: 対策班がジャマーと遭遇する。最初にくじで順番を決めて磯部香織里が挑戦することになり、彼女は緊張して電車での不可抗力のキスという展開に直面し失敗してしまう。
+  text: 班長たちは、男女を恋愛物語の場面へ転移させるジャマーを調査する。白馬の王子役に続き満員電車の場面へ挑むが、香織里は恥ずかしさに耐えきれず失敗する。
   confidence: null
   evidenceRefs:
-  - EVENT_168_260624_E01_DLG0053
-  - EVENT_168_260624_E01_DLG0057
-  - EVENT_168_260624_E01_DLG0059
-  - EVENT_168_260624_E01_NAR0008
-  - EVENT_168_260624_E01_DLG0077
-  - EVENT_168_260624_E01_DLG0079
+  - EVENT_168_260624_E01_DLG0003
+  - EVENT_168_260624_E01_DLG0016
+  - EVENT_168_260624_E01_DLG0044
   - EVENT_168_260624_E01_DLG0062
-  - EVENT_168_260624_E01_DLG0080
+  - EVENT_168_260624_E01_DLG0079
 episodeSummaries:
 - episodeId: EVENT_168_260624_E01
   publicEpisodeId: EVENT_168_260624_E01
   episodeNumber: 1
-  text: 対策班がジャマーと遭遇し、一人ずつ挑戦することになる。最初にくじで決まった順番通りに磯部香織里が挑むことになった。しかし、彼女は緊張してしまい電車での不可抗力のキスという展開を耐えきれずに失敗してしまう。
+  text: 班長たちは恋愛場面へ転移させるジャマーを調査する。満員電車の場面に挑む香織里は、恥ずかしさに耐えきれず失敗する。
   confidence: null
   evidenceRefs:
-  - EVENT_168_260624_E01_DLG0053
-  - EVENT_168_260624_E01_DLG0057
-  - EVENT_168_260624_E01_DLG0059
-  - EVENT_168_260624_E01_NAR0008
-  - EVENT_168_260624_E01_DLG0077
-  - EVENT_168_260624_E01_DLG0079
+  - EVENT_168_260624_E01_DLG0003
+  - EVENT_168_260624_E01_DLG0016
+  - EVENT_168_260624_E01_DLG0044
   - EVENT_168_260624_E01_DLG0062
-  - EVENT_168_260624_E01_DLG0080
+  - EVENT_168_260624_E01_DLG0079
 source:
   sourceType: ai_generated
-  model: ollama/qwen2.5:14b-instruct
-  promptVersion: episode-summary-v1,story-summary-v1
-  generatedAt: '2026-07-13T05:39:55Z'
+  model: codex-gpt (openai-codex-cli)
+  promptVersion: codex-synopsis-rewrite-v1
+  generatedAt: '2026-07-20T08:09:10Z'
 review:
   status: approved
   reviewer: bkzdev
-  reviewedAt: '2026-07-13'
-  notes: Stage 1人間レビュー。本文は原文照合で正確と確認し、中核主張を支える引用2件を人手で追加補強した。
-notes: AI生成後にレビュー担当者がevidenceRefsを補強した（sourceはai_generatedのまま）。
+  reviewedAt: '2026-07-20'
+  notes: Codex（openai-codex-cli）生成のあらすじ粒度版。既存詳細粒度Summaryの差し替え。人間レビュー済み・内容承認。班長=主人公の帰属・造語/多言語混入なしを確認。
+notes: 詳細粒度Summaryをあらすじ粒度へ作り直すためのdraft（rewrite_batch_001）。
