@@ -1,0 +1,48 @@
+schemaVersion: 0.1.0
+documentType: story_summary
+storyId: RAID_001
+publicStoryId: RAID_001
+language: ja
+generationStatus: generated
+storySummary:
+  text: ラファムは再生能力を持つ巨大ジャマーに回収装置を付け、エナジーを集める。班長たちは各支部の応援を得て再生を封じるが、ラファムはパンツを奪って転送を妨害し、班長をパンツの山に埋めて逃走する。
+  confidence: null
+  evidenceRefs:
+  - RAID_001_E01_DLG0028
+  - RAID_001_E01_DLG0037
+  - RAID_001_E01_DLG0058
+  - RAID_001_E01_DLG0065
+  - RAID_001_E02_DLG0007
+  - RAID_001_E02_DLG0018
+  - RAID_001_E02_DLG0019
+episodeSummaries:
+- episodeId: RAID_001_E01
+  publicEpisodeId: RAID_001_E01
+  episodeNumber: 1
+  text: ラファムは再生能力を持つ巨大ジャマーでエナジーを集める。班長は転送に失敗した対策班のため、各支部へ応援を求める。
+  confidence: null
+  evidenceRefs:
+  - RAID_001_E01_DLG0028
+  - RAID_001_E01_DLG0037
+  - RAID_001_E01_DLG0058
+  - RAID_001_E01_DLG0065
+- episodeId: RAID_001_E02
+  publicEpisodeId: RAID_001_E02
+  episodeNumber: 2
+  text: 班長たちは総攻撃で巨大ジャマーを追い詰める。ラファムはパンツを奪って転送を妨害し、班長をパンツの山に埋めて逃げる。
+  confidence: null
+  evidenceRefs:
+  - RAID_001_E02_DLG0007
+  - RAID_001_E02_DLG0018
+  - RAID_001_E02_DLG0019
+source:
+  sourceType: ai_generated
+  model: codex-gpt (openai-codex-cli)
+  promptVersion: codex-synopsis-v1
+  generatedAt: '2026-07-20T05:43:31Z'
+review:
+  status: approved
+  reviewer: bkzdev
+  reviewedAt: '2026-07-20'
+  notes: Codex（openai-codex-cli）生成のあらすじ粒度draft。人間レビュー済み・内容承認。班長=主人公の帰属・造語/多言語混入なしを確認。
+notes: null

@@ -1,0 +1,50 @@
+schemaVersion: 0.1.0
+documentType: story_summary
+storyId: RAID_005_210702
+publicStoryId: RAID_005_210702
+language: ja
+generationStatus: generated
+storySummary:
+  text: 無人島で救助を待つ班長たちは、海から現れた巨大ジャマーの猛攻を受ける。班長は仲間を海側と陸側に分けて指揮し、巨大ジャマーを浜辺へ押し返す。班長たちは敵の隙を突く総攻撃で転送に成功し、無人島を脱出する。
+  confidence: null
+  evidenceRefs:
+  - RAID_005_210702_E01_DLG0021
+  - RAID_005_210702_E01_DLG0023
+  - RAID_005_210702_E01_DLG0043
+  - RAID_005_210702_E01_NAR0024
+  - RAID_005_210702_E02_DLG0001
+  - RAID_005_210702_E02_NAR0004
+  - RAID_005_210702_E02_NAR0012
+  - RAID_005_210702_E02_NAR0020
+episodeSummaries:
+- episodeId: RAID_005_210702_E01
+  publicEpisodeId: RAID_005_210702_E01
+  episodeNumber: 1
+  text: 無人島の班長たちは、海から現れた巨大ジャマーの猛攻を受ける。班長は仲間を海側と陸側に分けて反撃を指揮する。
+  confidence: null
+  evidenceRefs:
+  - RAID_005_210702_E01_DLG0021
+  - RAID_005_210702_E01_DLG0023
+  - RAID_005_210702_E01_DLG0043
+  - RAID_005_210702_E01_NAR0024
+- episodeId: RAID_005_210702_E02
+  publicEpisodeId: RAID_005_210702_E02
+  episodeNumber: 2
+  text: 班長たちは巨大ジャマーを浜辺へ押し返し、隙を突く総攻撃で転送する。班長たちは大きな怪我なく戦いを終え、無人島を脱出する。
+  confidence: null
+  evidenceRefs:
+  - RAID_005_210702_E02_DLG0001
+  - RAID_005_210702_E02_NAR0004
+  - RAID_005_210702_E02_NAR0012
+  - RAID_005_210702_E02_NAR0020
+source:
+  sourceType: ai_generated
+  model: codex-gpt (openai-codex-cli)
+  promptVersion: codex-synopsis-v1
+  generatedAt: '2026-07-20T05:43:31Z'
+review:
+  status: approved
+  reviewer: bkzdev
+  reviewedAt: '2026-07-20'
+  notes: Codex（openai-codex-cli）生成のあらすじ粒度draft。人間レビュー済み・内容承認。班長=主人公の帰属・造語/多言語混入なしを確認。
+notes: null

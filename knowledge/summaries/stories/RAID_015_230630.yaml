@@ -1,0 +1,48 @@
+schemaVersion: 0.1.0
+documentType: story_summary
+storyId: RAID_015_230630
+publicStoryId: RAID_015_230630
+language: ja
+generationStatus: generated
+storySummary:
+  text: ラファムたちの設定が重なり、班長たちは五十体の敵を倒すまで仮想演習場から出られなくなる。班長たちは外部の仲間を援軍に呼び、全敵を撃破する。ムーリンとユキノは騒動を起こしたラファムに全員分の仕事を命じる。
+  confidence: null
+  evidenceRefs:
+  - RAID_015_230630_E01_NAR0004
+  - RAID_015_230630_E01_DLG0015
+  - RAID_015_230630_E01_DLG0031
+  - RAID_015_230630_E01_DLG0033
+  - RAID_015_230630_E02_DLG0002
+  - RAID_015_230630_E02_DLG0018
+  - RAID_015_230630_E02_DLG0020
+episodeSummaries:
+- episodeId: RAID_015_230630_E01
+  publicEpisodeId: RAID_015_230630_E01
+  episodeNumber: 1
+  text: 班長たちは五十体の敵を倒すまで仮想演習場から出られなくなる。班長たちは外部から仲間を呼び、全敵との戦いに臨む。
+  confidence: null
+  evidenceRefs:
+  - RAID_015_230630_E01_NAR0004
+  - RAID_015_230630_E01_DLG0015
+  - RAID_015_230630_E01_DLG0031
+  - RAID_015_230630_E01_DLG0033
+- episodeId: RAID_015_230630_E02
+  publicEpisodeId: RAID_015_230630_E02
+  episodeNumber: 2
+  text: 班長たちは援軍と全敵を撃破する。ムーリンとユキノは騒動を起こしたラファムに、止まった全員分の仕事を命じる。
+  confidence: null
+  evidenceRefs:
+  - RAID_015_230630_E02_DLG0002
+  - RAID_015_230630_E02_DLG0018
+  - RAID_015_230630_E02_DLG0020
+source:
+  sourceType: ai_generated
+  model: codex-gpt (openai-codex-cli)
+  promptVersion: codex-synopsis-v1
+  generatedAt: '2026-07-20T05:43:31Z'
+review:
+  status: approved
+  reviewer: bkzdev
+  reviewedAt: '2026-07-20'
+  notes: Codex（openai-codex-cli）生成のあらすじ粒度draft。人間レビュー済み・内容承認。班長=主人公の帰属・造語/多言語混入なしを確認。
+notes: null
