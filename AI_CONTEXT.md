@@ -1,7 +1,7 @@
 # AI_CONTEXT
 
 Project: Detariki Knowledge Base (DKB)
-Audience: Antigravity / Claude Code / GPT-OSS120B / future AI coding agents
+Audience: Antigravity / Claude Code / Codex / GPT-OSS120B / future AI coding agents
 Language policy: ドキュメントは日本語、コード/データキーは英語
 
 このファイルはAIエージェントが作業開始前に必ず読む「短い前提情報」である。詳細な設計・手順・完了済み履歴はここに書かず、各詳細docsへリンクする。作業状態・優先順位は`TASKS.md`を正とする。
