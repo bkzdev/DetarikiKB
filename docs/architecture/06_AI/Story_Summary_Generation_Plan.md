@@ -51,7 +51,7 @@ Path: `docs/architecture/06_AI/Story_Summary_Generation_Plan.md`
 
 | 項目 | 内容 |
 |---|---|
-| LLM provider方針 | ローカルLLM（Ollama、devcontainerに既設。`docker-compose.yml`の`ollama`サービス、`OLLAMA_HOST`環境変数）をデフォルトとする。外部provider（API系）はopt-in。APIキーはcommit禁止（既存方針`TASKS.md` Rules・`AI_CONTEXT.md` §3.11どおり） |
+| LLM provider方針 | ~~ローカルLLM（Ollama、devcontainerに既設。`docker-compose.yml`の`ollama`サービス、`OLLAMA_HOST`環境変数）をデフォルトとする。外部provider（API系）はopt-in。~~ **（2026-07-20更新: 標準providerはOpenAI Codex CLIへ変更、ローカルLLMは標準・予備いずれからも除外。§13参照）** APIキーはcommit禁止（既存方針`TASKS.md` Rules・`AI_CONTEXT.md` §3.11どおり） |
 | 生成単位 | Episode Summaryを先に生成し、Story SummaryはEpisode Summary群から合成する2段構成 |
 | 入力 | Normalized Story JSON（parser経由の正規化済みテキスト）。raw `.dec`を直接LLMに渡さない（`AI_CONTEXT.md` §3.1） |
 | 出力先 | draftは`workspace/summary_drafts/`（`.gitignore`済み）→人間review→reviewed/approvedのみ`knowledge/summaries/stories/`へ昇格（`Story_Summary_Design.md` §5.4の既存workflowどおり） |
@@ -337,3 +337,11 @@ Evidence Indexの`Evidence_Index_Batch_Promotion_Policy.md` §9（Failed story h
 - `scripts/project_evidence_index_public_ids.py` / `scripts/check_public_episode_ids.py`（本文書が踏襲するprojection/registry実装パターン）
 - `AI_CONTEXT.md` §4（LLM呼び出し本体着手の制約方針）
 - `TASKS.md`（次PR候補の追跡）
+
+---
+
+# 13. 標準経路の確定（2026-07-20追記）
+
+2026-07-18〜20のユーザー評価により、Story/Episode Summary生成の標準経路を確定した。標準providerは**OpenAI Codex CLI**（ChatGPTサブスクリプション同梱）とする。ローカルLLM（qwen2.5:14b/qwen3.6:35b-a3b）は、あらすじ粒度に切り替えた後の評価でも班長=主人公の帰属誤り・幻覚evidenceRef・多言語混入が解消されず実用未満と判断され、標準・予備いずれからも除外した。Claude Code内での生成も品質は高いが、開発方針自体のCodex移行に合わせ標準はCodexとし、Claude Codeは代替手段として位置づける。§7（Provider抽象の配置）が確定した`agents/summarizer/provider.py`のOllama provider実装自体は変更しないが、実運用上の既定providerとしては採用しない。
+
+標準粒度は**あらすじ水準（synopsis）**とする: Story Summary 3文以内・約150字以内、Episode Summary 2文以内・約80字以内。目的は「読者がその話を読むか判断するための短いあらすじ」であり、本文の圧縮リライト（retelling）ではない。実測圧縮率の目安は本文セリフ全文の約10〜14%（詳細版で試行した43〜54%は本末転倒と判断され不採用）。標準経路の詳細な生成フロー・人間レビューチェックリストは`docs/runbooks/Story_Summary_Generation_Runbook.md` §17を正とする。
