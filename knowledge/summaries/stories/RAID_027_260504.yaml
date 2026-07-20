@@ -5,36 +5,34 @@ publicStoryId: RAID_027_260504
 language: ja
 generationStatus: generated
 storySummary:
-  text: 班長と連絡がつかず、エミットは端末の電源が入っていないことに苛立つ。園乃とカラーもリグラスの呼びかけに応答しないが、使用人からの連絡で二人が公園にいることが判明する。公園ではジャマー出現の混乱の中で避難誘導が始まり、弱気になっていた園乃は同行者にたしなめられながら、ジャマーと向き合おうとする。
+  text: 班長は、幼くなったカラーと園乃を連れて公園へ出かける。獣型ジャマーの出現に遭遇すると、カラーは怖がる園乃を奮い立たせ、二人で迎撃に臨む。
   confidence: null
   evidenceRefs:
-  - RAID_027_260504_E01_DLG0050
-  - RAID_027_260504_E01_DLG0052
-  - RAID_027_260504_E01_DLG0054
-  - RAID_027_260504_E01_DLG0061
-  - RAID_027_260504_E01_NAR0020
-  - RAID_027_260504_E01_DLG0072
+  - RAID_027_260504_E01_DLG0005
+  - RAID_027_260504_E01_DLG0067
+  - RAID_027_260504_E01_DLG0070
+  - RAID_027_260504_E01_NAR0026
+  - RAID_027_260504_E01_NAR0029
 episodeSummaries:
 - episodeId: RAID_027_260504_E01
   publicEpisodeId: RAID_027_260504_E01
   episodeNumber: 1
-  text: 班長と連絡がつかず、エミットは端末の電源が入っていないことに苛立つ。園乃とカラーもリグラスの呼びかけに応答しないが、使用人からの連絡で二人が公園にいることが判明する。公園ではジャマー出現の混乱の中で避難誘導が始まり、弱気になっていた園乃は同行者にたしなめられながら、ジャマーと向き合おうとする。
+  text: 班長は幼くなったカラーと園乃を連れて公園へ出かける。獣型ジャマーに遭遇し、二人は迎撃に臨む。
   confidence: null
   evidenceRefs:
-  - RAID_027_260504_E01_DLG0050
-  - RAID_027_260504_E01_DLG0052
-  - RAID_027_260504_E01_DLG0054
-  - RAID_027_260504_E01_DLG0061
-  - RAID_027_260504_E01_NAR0020
-  - RAID_027_260504_E01_DLG0072
+  - RAID_027_260504_E01_DLG0005
+  - RAID_027_260504_E01_DLG0067
+  - RAID_027_260504_E01_DLG0070
+  - RAID_027_260504_E01_NAR0026
+  - RAID_027_260504_E01_NAR0029
 source:
   sourceType: ai_generated
-  model: ollama/qwen2.5:14b-instruct
-  promptVersion: episode-summary-v1,story-summary-v1
-  generatedAt: '2026-07-13T05:40:05Z'
+  model: codex-gpt (openai-codex-cli)
+  promptVersion: codex-synopsis-rewrite-v1
+  generatedAt: '2026-07-20T08:09:10Z'
 review:
   status: approved
   reviewer: bkzdev
-  reviewedAt: '2026-07-13'
-  notes: Stage 1人間レビュー。情報源の取り違え（連絡経路の歪曲）・未解決話者プレースホルダーの人物名としての混入・ニュアンス誤りを原文blockの確認に基づき人手修正した。
-notes: AI生成後にレビュー担当者が本文とevidenceRefsを修正した（sourceはai_generatedのまま）。
+  reviewedAt: '2026-07-20'
+  notes: Codex（openai-codex-cli）生成のあらすじ粒度版。既存詳細粒度Summaryの差し替え。人間レビュー済み・内容承認。班長=主人公の帰属・造語/多言語混入なしを確認。
+notes: 詳細粒度Summaryをあらすじ粒度へ作り直すためのdraft（rewrite_batch_001）。
