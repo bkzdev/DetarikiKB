@@ -50,7 +50,7 @@ PR種別: {docs-only | 実装 | dry-run}（§4参照）
 4. 作業を実施する（§4のPR種別プリセットに従う）
 5. §6の標準検証コマンドをすべて実行し、PASSを確認する
 6. `git status --short`で差分を確認し、§4の許容差分・§7のcommit禁止リストと照合する
-7. 意図したファイルのみを`git add`し、`Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>`を含むcommitメッセージでcommitする
+7. 意図したファイルのみを`git add`し、実作業を行ったAIツールの帰属trailerを含むcommitメッセージでcommitする。帰属trailerの形式はツールごとの慣習に従う（例: Claude Codeは`Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>`をharnessが自動付与する。Codex等の他ツールを使う場合は、そのツール実際の慣習に従い、存在しないemail/trailerを捏造しない）
 8. `git push -u origin <branch-name>`し、`gh pr create`でPRを作成する（Summary/Non-goals/Test planを含む本文）
 9. `gh pr checks <PR番号> --watch`（または同等の方法）でCI PASSを確認する
 10. §8の最終報告テンプレートに従ってユーザーへ報告する
