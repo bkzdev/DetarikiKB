@@ -1,0 +1,50 @@
+schemaVersion: 0.1.0
+documentType: story_summary
+storyId: RAID_013_221230
+publicStoryId: RAID_013_221230
+language: ja
+generationStatus: generated
+storySummary:
+  text: フリージアはパンダ組の特訓相手を務め、個性的な仲間たちの親密さに憧れる。特訓後、瑛里は悩みを抱え込みがちなフリージアを見抜き、相談相手になると申し出る。フリージアは瑛里の厚意を受け入れ、班長たちとの食事へ向かう。
+  confidence: null
+  evidenceRefs:
+  - RAID_013_221230_E01_MONO0001
+  - RAID_013_221230_E01_DLG0021
+  - RAID_013_221230_E01_DLG0035
+  - RAID_013_221230_E01_NAR0018
+  - RAID_013_221230_E02_DLG0016
+  - RAID_013_221230_E02_DLG0022
+  - RAID_013_221230_E02_DLG0025
+  - RAID_013_221230_E02_DLG0030
+episodeSummaries:
+- episodeId: RAID_013_221230_E01
+  publicEpisodeId: RAID_013_221230_E01
+  episodeNumber: 1
+  text: フリージアは信頼に応えようと、パンダ組の特訓相手を務める。フリージアは個性的な仲間たちの親密さに憧れる。
+  confidence: null
+  evidenceRefs:
+  - RAID_013_221230_E01_MONO0001
+  - RAID_013_221230_E01_DLG0021
+  - RAID_013_221230_E01_DLG0035
+  - RAID_013_221230_E01_NAR0018
+- episodeId: RAID_013_221230_E02
+  publicEpisodeId: RAID_013_221230_E02
+  episodeNumber: 2
+  text: 瑛里は悩みを抱え込みがちなフリージアを見抜き、相談相手を申し出る。フリージアは瑛里の厚意を受け入れ、班長たちとの食事へ向かう。
+  confidence: null
+  evidenceRefs:
+  - RAID_013_221230_E02_DLG0016
+  - RAID_013_221230_E02_DLG0022
+  - RAID_013_221230_E02_DLG0025
+  - RAID_013_221230_E02_DLG0030
+source:
+  sourceType: ai_generated
+  model: codex-gpt (openai-codex-cli)
+  promptVersion: codex-synopsis-v1
+  generatedAt: '2026-07-20T05:43:31Z'
+review:
+  status: approved
+  reviewer: bkzdev
+  reviewedAt: '2026-07-20'
+  notes: Codex（openai-codex-cli）生成のあらすじ粒度draft。人間レビュー済み・内容承認。班長=主人公の帰属・造語/多言語混入なしを確認。
+notes: null
