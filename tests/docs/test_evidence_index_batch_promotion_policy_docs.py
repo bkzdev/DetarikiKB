@@ -327,6 +327,7 @@ def test_promotion_copy_runbook_batch_dry_run_does_not_contain_real_data_hints()
 def test_tasks_md_lists_batch_tooling_and_manifest_next_candidates():
     content = TASKS_PATH.read_text(encoding="utf-8")
     assert "evidence-index-promotion-batch-tooling" in content
+    assert "evidence-index-promotion-human-review-ingestion" in content
     assert "story-manifest-public-story-id-real-data-assignment" in content
 
 
@@ -411,6 +412,11 @@ def test_batch_policy_doc_states_batch_tooling_cli_usage_and_outputs():
     assert "promotionCandidateStoryIds" in section
     assert "--public-profile default" in section
     assert "commitしない" in section
+    assert "first-pass screening" in section
+    assert 'unknownRatioBand: "human-review-required"' in section
+    assert "humanReviewRequired: true" in section
+    assert "decisionReasonCodes" in section
+    assert "classification: null" in section
 
 
 def test_batch_policy_doc_marks_batch_tooling_implemented_after_original_non_goal():

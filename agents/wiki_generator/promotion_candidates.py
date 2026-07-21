@@ -12,12 +12,16 @@ EXCLUDED = "excluded"
 VALID_CLASSIFICATIONS = frozenset(
     {PROMOTION_CANDIDATE, PARSER_IMPROVEMENT_WAIT, EXCLUDED}
 )
+UNKNOWN_RATIO_ACCEPTABLE = "acceptable"
+UNKNOWN_RATIO_HUMAN_REVIEW_REQUIRED = "human-review-required"
+UNKNOWN_RATIO_BLOCKING = "blocking"
 VALID_PARSER_COMPATIBILITIES = frozenset(
     {"compatible", "warning", "needs_update", "blocked"}
 )
 MEANINGFUL_EVIDENCE_TYPES = frozenset({"dialogue", "monologue", "narration", "choice"})
 
 UNKNOWN_RATIO_MAX_PERCENT = 10
+UNKNOWN_RATIO_HUMAN_REVIEW_MAX_PERCENT = 30
 MEANINGFUL_RATIO_MIN_PERCENT = 70
 ENTRY_COUNT_REVIEW_THRESHOLD = 600
 
@@ -33,11 +37,14 @@ class PromotionCandidateResult:
     meaningful_ratio: float
     other_entry_count: int
     unknown_ratio_acceptable: bool
+    unknown_ratio_band: str
     meaningful_ratio_acceptable: bool
     parser_compatibility: str
     parser_compatibility_acceptable: bool
     entry_count_review_required: bool
-    classification: str
+    human_review_required: bool
+    decision_reason_codes: tuple[str, ...]
+    classification: str | None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -48,10 +55,13 @@ class PromotionCandidateResult:
             "meaningfulRatio": self.meaningful_ratio,
             "otherEntryCount": self.other_entry_count,
             "unknownRatioAcceptable": self.unknown_ratio_acceptable,
+            "unknownRatioBand": self.unknown_ratio_band,
             "meaningfulRatioAcceptable": self.meaningful_ratio_acceptable,
             "parserCompatibility": self.parser_compatibility,
             "parserCompatibilityAcceptable": self.parser_compatibility_acceptable,
             "entryCountReviewRequired": self.entry_count_review_required,
+            "humanReviewRequired": self.human_review_required,
+            "decisionReasonCodes": list(self.decision_reason_codes),
             "classification": self.classification,
         }
 
@@ -103,6 +113,13 @@ def classify_promotion_candidate(
     unknown_acceptable = (
         total > 0 and unknown * 100 <= total * UNKNOWN_RATIO_MAX_PERCENT
     )
+    unknown_ratio_band = (
+        UNKNOWN_RATIO_ACCEPTABLE
+        if unknown_acceptable
+        else UNKNOWN_RATIO_HUMAN_REVIEW_REQUIRED
+        if total > 0 and unknown * 100 <= total * UNKNOWN_RATIO_HUMAN_REVIEW_MAX_PERCENT
+        else UNKNOWN_RATIO_BLOCKING
+    )
     meaningful_acceptable = (
         total > 0 and meaningful * 100 >= total * MEANINGFUL_RATIO_MIN_PERCENT
     )
@@ -112,12 +129,31 @@ def classify_promotion_candidate(
         and meaningful_acceptable
     )
 
-    if total > 0 and unknown_acceptable and meaningful_acceptable and parser_acceptable:
+    if parser_compatibility in {"needs_update", "blocked"}:
+        classification = EXCLUDED
+        human_review_required = False
+        decision_reason_codes = (f"parser-compatibility-{parser_compatibility}",)
+    elif unknown_ratio_band == UNKNOWN_RATIO_HUMAN_REVIEW_REQUIRED:
+        classification = None
+        human_review_required = True
+        decision_reason_codes = ("unknown-ratio-human-review-required",)
+    elif (
+        total > 0 and unknown_acceptable and meaningful_acceptable and parser_acceptable
+    ):
         classification = PROMOTION_CANDIDATE
-    elif not unknown_acceptable and parser_compatibility == "warning" and total > 0:
+        human_review_required = False
+        decision_reason_codes = ("all-automatic-criteria-satisfied",)
+    elif (
+        unknown_ratio_band == UNKNOWN_RATIO_BLOCKING
+        and parser_compatibility == "warning"
+    ):
         classification = PARSER_IMPROVEMENT_WAIT
+        human_review_required = False
+        decision_reason_codes = ("unknown-ratio-blocking-with-parser-warning",)
     else:
         classification = EXCLUDED
+        human_review_required = False
+        decision_reason_codes = ("automatic-criteria-not-satisfied",)
 
     return PromotionCandidateResult(
         total_entry_count=total,
@@ -127,9 +163,12 @@ def classify_promotion_candidate(
         meaningful_ratio=meaningful_ratio,
         other_entry_count=other,
         unknown_ratio_acceptable=unknown_acceptable,
+        unknown_ratio_band=unknown_ratio_band,
         meaningful_ratio_acceptable=meaningful_acceptable,
         parser_compatibility=parser_compatibility,
         parser_compatibility_acceptable=parser_acceptable,
         entry_count_review_required=total > ENTRY_COUNT_REVIEW_THRESHOLD,
+        human_review_required=human_review_required,
+        decision_reason_codes=decision_reason_codes,
         classification=classification,
     )

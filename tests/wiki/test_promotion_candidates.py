@@ -21,14 +21,17 @@ def test_unknown_ratio_at_ten_percent_is_acceptable():
     assert result.classification == PROMOTION_CANDIDATE
 
 
-def test_unknown_ratio_above_ten_percent_with_warning_waits_for_parser():
+def test_unknown_ratio_above_ten_percent_requires_human_review():
     result = classify_promotion_candidate(
         {"dialogue": 70, "unknown": 11, "future_type": 19},
         "warning",
     )
 
     assert result.unknown_ratio_acceptable is False
-    assert result.classification == PARSER_IMPROVEMENT_WAIT
+    assert result.unknown_ratio_band == "human-review-required"
+    assert result.human_review_required is True
+    assert result.decision_reason_codes == ("unknown-ratio-human-review-required",)
+    assert result.classification is None
 
 
 def test_meaningful_ratio_at_seventy_percent_is_acceptable():
@@ -163,3 +166,37 @@ def test_2039_entries_with_about_ninety_percent_unknown_waits_for_parser():
     assert result.total_entry_count == 2039
     assert result.unknown_ratio == pytest.approx(1834 / 2039)
     assert result.classification == PARSER_IMPROVEMENT_WAIT
+
+
+@pytest.mark.parametrize(
+    ("unknown_count", "parser_compatibility", "band", "classification"),
+    [
+        (10, "compatible", "acceptable", PROMOTION_CANDIDATE),
+        (11, "compatible", "human-review-required", None),
+        (30, "warning", "human-review-required", None),
+        (31, "warning", "blocking", PARSER_IMPROVEMENT_WAIT),
+    ],
+)
+def test_unknown_ratio_bands_use_exact_integer_boundaries(
+    unknown_count,
+    parser_compatibility,
+    band,
+    classification,
+):
+    result = classify_promotion_candidate(
+        {"dialogue": 100 - unknown_count, "unknown": unknown_count},
+        parser_compatibility,
+    )
+
+    assert result.unknown_ratio_band == band
+    assert result.classification == classification
+    assert result.human_review_required is (classification is None)
+
+
+def test_hard_parser_blocker_takes_priority_over_human_review_band():
+    result = classify_promotion_candidate({"dialogue": 89, "unknown": 11}, "blocked")
+
+    assert result.unknown_ratio_band == "human-review-required"
+    assert result.human_review_required is False
+    assert result.classification == EXCLUDED
+    assert result.decision_reason_codes == ("parser-compatibility-blocked",)

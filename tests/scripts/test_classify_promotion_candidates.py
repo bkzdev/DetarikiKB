@@ -7,6 +7,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 SCRIPT_PATH = PROJECT_ROOT / "scripts" / "classify_promotion_candidates.py"
 DEFAULT_TYPES = ["choice", "dialogue", "monologue", "narration", "unknown"]
@@ -214,3 +216,80 @@ def test_cli_rejects_invalid_parser_compatibility(tmp_path):
 
     assert result.returncode == 2
     assert "parserCompatibility" in result.stderr
+
+
+@pytest.mark.parametrize(
+    ("story_id", "unknown_count", "parser_status", "band", "classification"),
+    [
+        ("TEST_EXACT_TEN", 10, "compatible", "acceptable", "promotion-candidate"),
+        ("TEST_ABOVE_TEN", 11, "warning", "human-review-required", None),
+        ("TEST_EXACT_THIRTY", 30, "compatible", "human-review-required", None),
+        ("TEST_ABOVE_THIRTY", 31, "warning", "blocking", "parser-improvement-wait"),
+    ],
+)
+def test_cli_unknown_ratio_bands_and_candidate_exclusion(
+    tmp_path,
+    story_id,
+    unknown_count,
+    parser_status,
+    band,
+    classification,
+):
+    report_path = _write_json(
+        tmp_path / "report.json",
+        _report(
+            [
+                _story_report(
+                    story_id,
+                    {"dialogue": 100 - unknown_count, "unknown": unknown_count},
+                )
+            ]
+        ),
+    )
+    normalized_path = _write_json(
+        tmp_path / "normalized.json", _normalized(story_id, parser_status)
+    )
+    output_dir = tmp_path / "out"
+
+    result = _run_cli(report_path, normalized_path, output_dir)
+
+    assert result.returncode == 0, result.stderr
+    output = json.loads(
+        (output_dir / "classification_report.json").read_text(encoding="utf-8")
+    )
+    story = output["stories"][0]
+    assert story["unknownRatioBand"] == band
+    assert story["classification"] == classification
+    if band == "human-review-required":
+        assert story["humanReviewRequired"] is True
+        assert story["decisionReasonCodes"] == ["unknown-ratio-human-review-required"]
+        assert output["promotionCandidateStoryIds"] == []
+        assert "human-review-required" in (
+            output_dir / "classification_report.md"
+        ).read_text(encoding="utf-8")
+    elif classification == "promotion-candidate":
+        assert output["promotionCandidateStoryIds"] == [story_id]
+    else:
+        assert output["promotionCandidateStoryIds"] == []
+
+
+def test_cli_hard_parser_blocker_excludes_human_review_band(tmp_path):
+    story_id = "TEST_BLOCKED"
+    report_path = _write_json(
+        tmp_path / "report.json",
+        _report([_story_report(story_id, {"dialogue": 89, "unknown": 11})]),
+    )
+    normalized_path = _write_json(
+        tmp_path / "normalized.json", _normalized(story_id, "needs_update")
+    )
+
+    result = _run_cli(report_path, normalized_path, tmp_path / "out")
+
+    assert result.returncode == 0, result.stderr
+    output = json.loads(
+        (tmp_path / "out" / "classification_report.json").read_text(encoding="utf-8")
+    )
+    story = output["stories"][0]
+    assert story["classification"] == "excluded"
+    assert story["humanReviewRequired"] is False
+    assert story["decisionReasonCodes"] == ["parser-compatibility-needs_update"]

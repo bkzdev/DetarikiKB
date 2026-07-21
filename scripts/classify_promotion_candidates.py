@@ -314,12 +314,17 @@ def _build_markdown(report: dict[str, Any]) -> str:
             if story["entryCountReviewRequired"]
             else "候補可（600以下）"
         )
+        classification = (
+            "human-review-required"
+            if story["humanReviewRequired"]
+            else story["classification"]
+        )
         lines.append(
             f"| `{story['storyId']}` | {story['totalEntryCount']} | "
             f"{_format_percent(story['unknownRatio'])} | "
             f"{_format_percent(story['meaningfulRatio'])} | "
             f"{story['parserCompatibility']} | {entry_count_status} | "
-            f"{story['classification']} |"
+            f"{classification} |"
         )
     lines.append("")
     return "\n".join(lines)
