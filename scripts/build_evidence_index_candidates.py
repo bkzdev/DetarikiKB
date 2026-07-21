@@ -637,11 +637,32 @@ def _validate_raw_document(
     return validate_evidence_index_collection(collection)
 
 
+def _build_story_reports(
+    story_documents: dict[str, dict[str, Any]],
+) -> list[dict[str, Any]]:
+    reports: list[dict[str, Any]] = []
+    for story_id, data in sorted(story_documents.items()):
+        counts: dict[str, int] = {}
+        for entry in data["entries"]:
+            evidence_type = entry.get("evidenceType")
+            if isinstance(evidence_type, str) and evidence_type:
+                counts[evidence_type] = counts.get(evidence_type, 0) + 1
+        reports.append(
+            {
+                "storyId": story_id,
+                "entryCount": sum(counts.values()),
+                "entriesByEvidenceType": dict(sorted(counts.items())),
+            }
+        )
+    return reports
+
+
 def _build_report_dict(
     *,
     input_file_count: int,
     extraction_file_count: int,
     story_count: int,
+    story_documents: dict[str, dict[str, Any]],
     stats: GenerationStats,
     written_files: list[str],
     validation_issues: dict[str, list[str]],
@@ -669,6 +690,7 @@ def _build_report_dict(
         "skippedBlockCount": stats.skipped_block_count,
         "skippedReasonCounts": stats.skipped_reason_counts,
         "entriesByEvidenceType": stats.entries_by_evidence_type,
+        "storyReports": _build_story_reports(story_documents),
         "rawTextFieldsIgnoredCount": stats.raw_text_fields_ignored_count,
         "candidateReferencesAttachedCount": candidate_reference_count,
         "outputFiles": written_files,
@@ -780,6 +802,7 @@ def _write_report(
         extraction_file_count=extraction_file_count,
         story_count=len(story_documents),
         stats=stats,
+        story_documents=story_documents,
         written_files=written_files,
         validation_issues=validation_issues,
         public_profile=public_profile,

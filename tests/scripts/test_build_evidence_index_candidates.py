@@ -383,6 +383,25 @@ def test_report_json_has_expected_counts(tmp_path):
         str(Path("stories") / "TEST_S01_C01.yaml"),
         str(Path("stories") / "TEST_S02_SOLO.yaml"),
     }
+    assert report["storyReports"] == [
+        {
+            "storyId": "TEST_S01_C01",
+            "entryCount": 8,
+            "entriesByEvidenceType": {
+                "choice": 1,
+                "dialogue": 3,
+                "monologue": 1,
+                "narration": 1,
+                "stage_direction": 1,
+                "unknown": 1,
+            },
+        },
+        {
+            "storyId": "TEST_S02_SOLO",
+            "entryCount": 1,
+            "entriesByEvidenceType": {"dialogue": 1},
+        },
+    ]
 
 
 def test_report_md_mentions_key_sections(tmp_path):

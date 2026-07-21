@@ -112,16 +112,30 @@ Path: `docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md`
 各候補storyを以下の3分類のいずれかに判定する。
 
 - **`promotion-candidate`**: (a)〜(c)をすべて満たす（(d)は考慮事項であり分類そのものは左右しない）
-- **`parser-improvement-wait`**: (a)または(b)を満たさないが、原因がparser未対応コマンド（unknown block化）であり、`config/script_commands.yaml`・`agents/parser/parser.py`の辞書拡充で改善が見込めるもの
+- **`parser-improvement-wait`**: (a)または(b)を満たさないが、原因がparser未対応コマンド（unknown block化）であり、`config/script_commands.yaml`・`agents/parser/parser.py`の辞書拡充で改善が見込めるもの。ただし、10%超〜30%以下は人間の個別判断前にこの分類へ畳み込まない。
 - **`excluded`**: `needs_update`/`blocked`、またはその他の理由で当面対象外
+
+10%超〜30%以下のstoryは、first-pass screening時点では最終3分類が未確定の保留状態とする。review noteによる個別許可または不許可が決まった後にのみ、上記3分類のいずれかを確定する。
 
 ### 4.3.3 判定手順（story単位）
 
 1. `build_evidence_index_candidates.py --public-profile default`で候補生成
 2. `report.json`/`report.md`の`entries by evidenceType`から(a)(b)(d)を算出
 3. Normalized Story JSONの`compatibilityReport`から(c)を確認
-4. 3分類のいずれかに判定し、判定結果をbatch dry-run report（workspace限定）に記録
+4. 自動確定できるstoryは3分類のいずれかに判定し、10%超〜30%以下は人間レビュー待ちとして、判定結果をbatch dry-run report（workspace限定）に記録
 5. `promotion-candidate`のstoryのみが以降のRegistry候補作成・projection工程へ進める
+
+### 4.3.3.1 機械的first-pass screening CLI（`evidence-index-promotion-batch-tooling`で実装済み）
+
+§4.3.1〜§4.3.3の指標算出と、自動確定可能なstoryの3分類は、`scripts/classify_promotion_candidates.py`で機械的に実行できる。これは**first-pass screening**であり、`build_evidence_index_candidates.py --public-profile default`が出力した`report.json`（`storyReports[].entriesByEvidenceType`にstory別のfilter後件数を保持）と、その対象storyのNormalized Story JSONを入力にする。
+
+```powershell
+uv run python scripts/classify_promotion_candidates.py --report workspace/evidence_index_dry_runs/<run>/default/report.json --normalized-input data/normalized/<category> --output workspace/evidence_index_dry_runs/<run>/classification
+```
+
+- 出力先には`classification_report.json`と`classification_report.md`を生成する。Markdownには§4.3.4のstory別matrixを記録し、JSONには同じ判定結果と、次工程へ進める`promotionCandidateStoryIds`を含める。unknown比率10%超〜30%以下は`unknownRatioBand: "human-review-required"`・`humanReviewRequired: true`・`decisionReasonCodes`を出力し、最終3分類は`classification: null`のままにする。
+- 判定対象は`--public-profile default`でfilter後のentry構成に限定する。別public profileやfilter前のentry数を混ぜて判定しない。
+- `workspace/evidence_index_dry_runs/`配下の入力・出力はdry-run生成物であり、**commitしない**。review noteの入力・取り込み・個別許可の確定は未実装であり、該当storyが観測された時点でBacklog項目`evidence-index-promotion-human-review-ingestion`を実装する。実promotion、Registry変更、公開IDの確定はこのCLIのスコープ外である。
 
 ### 4.3.4 記録様式
 
@@ -151,9 +165,12 @@ batch dry-run report（workspace限定、非commit）に以下のmatrixを記録
 3. `evidence-index-promotion-second-batch-dry-run`: 改善後parser＋selection基準＋導線確認込みの再dry-run（最大3 story）
 4. `evidence-index-promotion-first-real-batch`: 全条件PASS後の初回実batch promotion（最大3 story）
 
-### 4.3.8 本PRでは実装しないこと
+### 4.3.8 当初のNon-goalと後続tooling実装
 
-- selection基準の`check_evidence_index_promotion.py`等への実装（機械的な自動判定化）は、`evidence-index-promotion-batch-tooling`候補としてBacklogに残す（本PRでは行わない）
+この節を設計PRとして追加した時点では、selection基準の機械的な自動判定化は本PRでは実装せず、`evidence-index-promotion-batch-tooling`としてBacklogに残していた。後続の同タスクで、純粋な判定module、候補builder reportのstory別集計、`scripts/classify_promotion_candidates.py`、合成fixtureテストを実装済みである（使い方は§4.3.3.1）。`check_evidence_index_promotion.py`本体への統合は行わず、実promotionも実行していない。
+
+設計PR当時に未実施だった事項は次のとおりであり、以下の記録は当時のスコープを示す。
+
 - `config/script_commands.yaml`・`agents/parser/parser.py`の変更（次PR`script-command-dictionary-expansion-batch-001`）
 - `story_manifest.yaml`の実データ変更・再normalize/merge・second batch dry-run・real batch promotionの実行
 
