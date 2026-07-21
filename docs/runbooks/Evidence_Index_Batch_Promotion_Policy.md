@@ -123,6 +123,18 @@ Path: `docs/runbooks/Evidence_Index_Batch_Promotion_Policy.md`
 4. 3分類のいずれかに判定し、判定結果をbatch dry-run report（workspace限定）に記録
 5. `promotion-candidate`のstoryのみが以降のRegistry候補作成・projection工程へ進める
 
+### 4.3.3.1 自動判定CLI（`evidence-index-promotion-batch-tooling`で実装済み）
+
+§4.3.1〜§4.3.3の判定は、`scripts/classify_promotion_candidates.py`で機械的に実行できる。`build_evidence_index_candidates.py --public-profile default`が出力した`report.json`（`storyReports[].entriesByEvidenceType`にstory別のfilter後件数を保持）と、その対象storyのNormalized Story JSONを入力にする。
+
+```powershell
+uv run python scripts/classify_promotion_candidates.py --report workspace/evidence_index_dry_runs/<run>/default/report.json --normalized-input data/normalized/<category> --output workspace/evidence_index_dry_runs/<run>/classification
+```
+
+- 出力先には`classification_report.json`と`classification_report.md`を生成する。Markdownには§4.3.4のstory別matrixを記録し、JSONには同じ判定結果と、次工程へ進める`promotionCandidateStoryIds`を含める。
+- 判定対象は`--public-profile default`でfilter後のentry構成に限定する。別public profileやfilter前のentry数を混ぜて判定しない。
+- `workspace/evidence_index_dry_runs/`配下の入力・出力はdry-run生成物であり、**commitしない**。実promotion、Registry変更、公開IDの確定はこのCLIのスコープ外である。
+
 ### 4.3.4 記録様式
 
 batch dry-run report（workspace限定、非commit）に以下のmatrixを記録する。docsへ転記する場合は匿名化した統計値のみとする。
@@ -151,9 +163,12 @@ batch dry-run report（workspace限定、非commit）に以下のmatrixを記録
 3. `evidence-index-promotion-second-batch-dry-run`: 改善後parser＋selection基準＋導線確認込みの再dry-run（最大3 story）
 4. `evidence-index-promotion-first-real-batch`: 全条件PASS後の初回実batch promotion（最大3 story）
 
-### 4.3.8 本PRでは実装しないこと
+### 4.3.8 当初のNon-goalと後続tooling実装
 
-- selection基準の`check_evidence_index_promotion.py`等への実装（機械的な自動判定化）は、`evidence-index-promotion-batch-tooling`候補としてBacklogに残す（本PRでは行わない）
+この節を設計PRとして追加した時点では、selection基準の機械的な自動判定化は本PRでは実装せず、`evidence-index-promotion-batch-tooling`としてBacklogに残していた。後続の同タスクで、純粋な判定module、候補builder reportのstory別集計、`scripts/classify_promotion_candidates.py`、合成fixtureテストを実装済みである（使い方は§4.3.3.1）。`check_evidence_index_promotion.py`本体への統合は行わず、実promotionも実行していない。
+
+設計PR当時に未実施だった事項は次のとおりであり、以下の記録は当時のスコープを示す。
+
 - `config/script_commands.yaml`・`agents/parser/parser.py`の変更（次PR`script-command-dictionary-expansion-batch-001`）
 - `story_manifest.yaml`の実データ変更・再normalize/merge・second batch dry-run・real batch promotionの実行
 

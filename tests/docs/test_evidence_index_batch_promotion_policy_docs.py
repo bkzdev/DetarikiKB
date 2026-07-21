@@ -397,6 +397,29 @@ def test_batch_policy_doc_states_pr102_classification():
     assert "PR #102" in section
 
 
+def test_batch_policy_doc_states_batch_tooling_cli_usage_and_outputs():
+    section = _selection_criteria_section()
+    assert "scripts/classify_promotion_candidates.py" in section
+    assert "storyReports[].entriesByEvidenceType" in section
+    assert (
+        "--report workspace/evidence_index_dry_runs/<run>/default/report.json"
+        in section
+    )
+    assert "--normalized-input data/normalized/<category>" in section
+    assert "classification_report.json" in section
+    assert "classification_report.md" in section
+    assert "promotionCandidateStoryIds" in section
+    assert "--public-profile default" in section
+    assert "commitしない" in section
+
+
+def test_batch_policy_doc_marks_batch_tooling_implemented_after_original_non_goal():
+    section = _selection_criteria_section()
+    assert "evidence-index-promotion-batch-tooling" in section
+    assert "実装済み" in section
+    assert "当初のNon-goal" in section
+
+
 def test_batch_policy_doc_selection_criteria_does_not_contain_real_data_hints():
     section = _selection_criteria_section()
     for forbidden in REAL_DATA_HINTS + ("260624", "260504", "CAB-csl"):
