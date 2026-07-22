@@ -250,7 +250,7 @@ evidence/{publicEpisodeId or episodeId}.md#EVT_SAMPLE_E01_DLG0001
 - 候補A（単一ページ）は初期実装は簡単だが、story数・episode数の増加でページが際限なく巨大化し、`Wiki_Output_Design.md`で繰り返し指摘されてきた「表が横長すぎる」問題と同種のスケーラビリティ問題を招く
 - 候補C（Episode別）はEpisode pageとの対応は良いが、Story Summary側のevidenceRefs（story横断の場合がある）とEpisode単位ページの対応がやや複雑になる
 - `publicStoryId`優先→`storyId`へのfallback方針（`resolve_story_path_id`と同じパターン）をEvidence page pathにもそのまま適用できる想定
-- Episode pageからも、同じStory Evidence pageの該当anchorへリンクできる（§11.2）
+- ~~Episode pageからも、同じStory Evidence pageの該当anchorへリンクできる（§11.2）~~ → `episode-page-evidence-linking-review`で限定契約を確定した。後続PR `episode-page-summary-evidence-linking`は対象Episodeの表示可能なEpisode Summary本文と直下の`evidenceRefs`のみを追加し、解決済み参照は同じStory別Evidence pageの該当anchorへ公開ID優先でリンクする。未解決時は入力IDのbacktick fallbackを維持する。general Story Evidence index link、Episode別Evidence page/episode絞込anchor、schema/storage/CLI option/path変更は含めず、manual review後に必要性を再判断する
 
 **本PRではURL構造・path helper実装は行わない。** 次PR（`evidence-index-renderer-integration`）で実装する。
 
@@ -286,9 +286,11 @@ evidence/{publicEpisodeId or episodeId}.md#EVT_SAMPLE_E01_DLG0001
 | Phase 4.24: `story-manifest-public-story-id-real-data-assignment`（PR #105） | 対象2 storyの`publicStoryId`/`publicEpisodeId`確定→再normalize/merge→Story page導線動作確認、second batch dry-run | 完了（tooling・導線ともPASS、実commitなし） |
 | Phase 4.25: `evidence-index-promotion-first-real-batch`（本PR） | Phase 3初回実batch promotion。2 story分のPublic ID Registry実データentry追加＋`knowledge/evidence/stories/`への実昇格 | **完了（本PR、2 story昇格）** |
 | Phase 5.1: `internal-review-evidence-packet-design` | Packetのbundle/data model、内部ID mapping、raw/context、validation、review/retention/cleanup境界を設計 | **完了（設計のみ）** |
-| Phase 5.2: `internal-review-evidence-packet-schema-validator` | Public側とは別のmanifest/story schema、合成fixture、専用validator | 未着手 |
-| Phase 5.3: `internal-review-evidence-packet-generator` | Normalized Storyと既存mappingからworkspace限定Packetを生成 | 未着手 |
-| Phase 5.4: `internal-review-evidence-packet-operations` | runbook、inventory、期限warning、dry-run既定cleanup | 未着手 |
+| Phase 5.2: `internal-review-evidence-packet-schema-validator` | Public側とは別のmanifest/story schema、合成fixture、専用validator | 完了 |
+| Phase 5.3: `internal-review-evidence-packet-generator` | Normalized Storyと既存mappingからworkspace限定Packetを生成 | 完了 |
+| Phase 5.4: `internal-review-evidence-packet-operations` | runbook、inventory、期限warning、dry-run既定cleanup | 完了 |
+| Phase 6: `episode-page-evidence-linking-review` | Episode pageへ追加するSummary/evidenceRefs導線を限定レビュー | 完了（docs-only） |
+| Phase 6.1: `episode-page-summary-evidence-linking` | 対象Episodeの表示可能なEpisode Summary本文と直下の`evidenceRefs`のみを実装し、その後manual review | 次PR |
 
 **実装状況（`feature/evidence-index-schema-implementation`で実施）**: `schemas/evidence_index.schema.json`（§13データモデル案をそのまま実装。`evidenceType`10種enum・`visibility.rawTextIncluded`を`const: false`で固定）、`agents/wiki_generator/evidence_index.py`（loader/validator、`build_evidence_id_index`/`group_entries_by_story`/`group_entries_by_public_story`/`group_entries_by_episode`/`group_entries_by_public_episode`等のhelper）、`scripts/validate_evidence_index.py`（schema検証・duplicate evidenceId検出・raw text禁止文字列検出・`visibility.public`/`rawTextIncluded`検証）、`docs/templates/evidence_index_template.yaml`、合成fixture（`tests/fixtures/evidence_index/`）を追加した。保存場所は`knowledge/evidence/stories/`を採用し`.gitkeep`のみで実データ未投入。
 
@@ -341,13 +343,15 @@ evidence/{publicEpisodeId or episodeId}.md#EVT_SAMPLE_E01_DLG0001
 ## 11.1 Story page
 
 - Story Summary / Episode SummariesのevidenceRefsを表示する（実装済み、PR #81）
-- 将来、`evidenceRefs`をEvidence pageへリンクする（§9、次PR以降）
-- Story単位Evidence pageへの導線を持つ可能性がある（Story page内に「Evidence一覧」的なリンクを追加する案、次PR以降で検討）
+- `evidenceRefs`をStory別Evidence pageの該当anchorへリンクする（実装済み、`evidence-index-renderer-integration`）
+- Story pageのReview Linksから、該当storyのEvidence Indexが存在する場合だけStory別Evidence pageへリンクする（実装済み、`evidence-index-renderer-integration`）
 
 ## 11.2 Episode page
 
-- 現時点ではsummary/evidenceRefsを表示していない（`Story_Page_Design.md`のNon-goalsの通り、本PRでも変更しない）
-- 将来Episode Summaryを表示する場合、同じStory単位のEvidence page（該当anchor）へリンクできる
+- 現時点の実装ではsummary/evidenceRefsを表示していない。この状態は過去PR時点の履歴であり、`episode-page-evidence-linking-review`で後続実装を推奨する決定に更新した
+- 後続PR `episode-page-summary-evidence-linking`は、対象EpisodeとID照合できる表示可能なEpisode Summary本文と、その直下の`evidenceRefs`のみを追加する。`generationStatus: generated`、`review.status: reviewed`/`approved`、内部/公開ID矛盾なしを満たさなければ表示しない。欠落・非表示・空本文ならsectionを出さず、Story Summaryは再掲しない
+- `evidenceRefs`は空なら行を出さない。解決済みは同じStory別Evidence pageの該当anchorへ公開ID優先でリンクし、未解決時は入力IDのbacktick fallbackを維持する。public-safe projection済みのSummary/Evidence入力を前提とし、既存helperの解決挙動は変更しない
+- general Story Evidence index link、Episode別Evidence page/episode絞込anchor、schema/storage/CLI option/path変更は後続実装にも含めず、manual review後に必要性を再判断する
 - Episode pageは詳細確認・review用途としてEvidence indexとの相性が良い（既存のCandidate Counts/Related Charactersと同じ「詳細確認ページ」という役割、`Story_Page_Design.md` §7）
 
 ## 11.3 Summary（Story Summary / Episode Summary）
