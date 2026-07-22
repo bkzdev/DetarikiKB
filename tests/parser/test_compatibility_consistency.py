@@ -580,7 +580,7 @@ def test_non_literal_speaker_expression_absent_from_unknown_ids_on_both_paths(
 ):
     """feature/non-literal-character-id-handling
     (Character_Story_ID_Manifest_Design.md §9.1.2発見③): `$split(...)`
-    (未評価の関数呼び出し式) がsourceCharacterIdに混入する場合でも、
+    (未評価の関数呼び出し式) や座標様数値列がsourceCharacterIdに混入しても、
     standalone checker側は元々RHSを`\\d+`/`$変数名`に限定する正規表現
     (NUM_VAR_PATTERN/VALUE_VAR_PATTERN/SCENARIO_COS_PATTERN) のため、
     `$`始まりのRHSはそもそも未登録キャラクターID候補として検出しない
@@ -588,14 +588,12 @@ def test_non_literal_speaker_expression_absent_from_unknown_ids_on_both_paths(
     修正によりunknownCharacterIds/nonSpeakerNumericAssignmentsへは計上せず
     nonLiteralSpeakerExpressionsへ分離することを確認する。
 
-    注: RHSが数字で始まるが完全な数字のみではない値
-    (`$value0 = 11.2,-7.7,-24`のような座標様の数値列) については、
-    standalone checker側のNUM_VAR_PATTERN/VALUE_VAR_PATTERNが行末アンカー
-    を持たないため部分一致 (truncated match、例:`"11.2,-7.7,-24"` →
-    `"11"`) が発生する別種の既知の不具合がある (本PRのスコープ外、
-    TASKS.md Known Issues参照)。このテストではRHSが`$`で始まる
-    (部分一致すら発生しない) パターンのみを対象とする。"""
-    script = """$num1 = $split(0,$value11)
+    数字始まりの非リテラル値を先頭整数で部分一致する旧checkerの不具合は、
+    `codex/checker-variable-assignment-exact-match`で解消済み。"""
+    script = """$value0 = 11.2,-7.7,-24
+@ChTalk 0
+セリフ
+$num1 = $split(0,$value11)
 @ScenarioCosLoad 1 $num1
 @ChTalk 1
 セリフ
@@ -636,6 +634,7 @@ costume 1
     assert report["unknownCharacterIds"] == []
     assert report["nonSpeakerNumericAssignments"] == []
     assert {e["sourceCharacterId"] for e in report["nonLiteralSpeakerExpressions"]} == {
+        "11.2,-7.7,-24",
         "$split(0,$value11)",
         "$split(1,$value11)",
     }

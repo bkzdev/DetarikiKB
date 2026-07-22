@@ -95,10 +95,13 @@ CONTROL_CHARS_PATTERN = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 # ハイフン行パターン (演出命令の補助指定)
 HYPHEN_LINE_PATTERN = re.compile(r"^-\s+\S")
 
-# $numX = ID
-NUM_VAR_PATTERN = re.compile(r"^\$num(\d+)\s*=\s*(\d+)")
-# $valueX = ID
-VALUE_VAR_PATTERN = re.compile(r"^\$value(\d+)\s*=\s*(\d+)")
+# $numX = ID（parserと同じくRHSの先頭トークンを値とし、数字の右境界を必須化）
+NUM_VAR_PATTERN = re.compile(r"^\$num(\d+)\s*=\s*(\d+)(?=\s|$)")
+# $valueX = ID（parserと同じくRHSの先頭トークンを値とし、数字の右境界を必須化）
+VALUE_VAR_PATTERN = re.compile(r"^\$value(\d+)\s*=\s*(\d+)(?=\s|$)")
+# 数値ID以外も含む$numX/$valueX代入行。ID候補の抽出には使わず、
+# 正規の変数代入をunknown command扱いしないためだけに使う。
+NUM_VALUE_ASSIGNMENT_PATTERN = re.compile(r"^\$(?:num|value)\d+\s*=\s*\S+")
 # @ScenarioCos slot id (数値直接指定) または @ScenarioCos slot $var (変数経由)
 SCENARIO_COS_PATTERN = re.compile(r"^@ScenarioCos\s+(\d+)\s+(\d+|\$[\w\d]+)")
 # @ScenarioCosLoad slot var
@@ -347,7 +350,7 @@ def _strip_control_chars(raw_line: str, result: FileCompatibilityResult) -> str:
     return cleaned.strip()
 
 
-def _is_character_id_assignment_line(line: str) -> bool:
+def _is_supported_assignment_line(line: str) -> bool:
     """$numX / $valueX / @ScenarioCos / @ScenarioCosLoad 行かどうかを判定する。
 
     キャラクターIDの記録自体は、ファイル単位の消費文脈シミュレーション
@@ -356,10 +359,13 @@ def _is_character_id_assignment_line(line: str) -> bool:
     「通常のコマンド行処理 (`_check_command_line`) をスキップすべきか」の
     判定のみを行う (挙動は分割前と同一: これらの行はunknown commandとして
     扱われない)。
+
+    `$numX`/`$valueX`は非リテラル値もparserが変数代入として受理するため、
+    数値ID専用のNUM_VAR_PATTERN/VALUE_VAR_PATTERNではなく汎用パターンで
+    判定する。非リテラル式をcharacter ID候補としては記録しない。
     """
     return bool(
-        NUM_VAR_PATTERN.match(line)
-        or VALUE_VAR_PATTERN.match(line)
+        NUM_VALUE_ASSIGNMENT_PATTERN.match(line)
         or SCENARIO_COS_PATTERN.match(line)
         or SCENARIO_COS_LOAD_PATTERN.match(line)
     )
@@ -746,7 +752,7 @@ def _process_line(
 
     キャラクターID代入行 (`$numX`/`$valueX`/`@ScenarioCos`/`@ScenarioCosLoad`)
     の記録自体は`check_file`側の消費文脈シミュレーションで一括処理済みのため、
-    ここでは`_is_character_id_assignment_line`でそれらの行をunknown command
+    ここでは`_is_supported_assignment_line`でそれらの行をunknown command
     判定から除外するだけに留める (制御文字除去は`check_file`側で一度だけ行う
     ため、ここでは受け取らない)。
     """
@@ -760,7 +766,7 @@ def _process_line(
     parts = line.split()
     first_token = parts[0] if parts else ""
 
-    if _is_character_id_assignment_line(line):
+    if _is_supported_assignment_line(line):
         return
 
     if _check_branch_syntax(first_token, line, line_number, branch_stack, result):
