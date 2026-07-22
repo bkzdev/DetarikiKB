@@ -1,0 +1,42 @@
+{
+  "packetVersion": 1,
+  "packetId": "erp-20990101T000000Z-a1b2c3d4",
+  "classification": "internal-review-local",
+  "purpose": "evidence-review",
+  "selectionMode": "public-candidate",
+  "commitAllowed": false,
+  "retentionClass": "ephemeral",
+  "generatorVersion": "test-fixture-1",
+  "createdAt": "2099-01-01T00:00:00Z",
+  "expiresAt": "2099-01-02T00:00:00Z",
+  "sourceSnapshot": {
+    "normalizedStoryFileCount": 1,
+    "normalizedStoryDigest": "1111111111111111111111111111111111111111111111111111111111111111",
+    "extractionDigest": null,
+    "projectionMappingDigest": "2222222222222222222222222222222222222222222222222222222222222222",
+    "publicCandidateDigest": "3333333333333333333333333333333333333333333333333333333333333333",
+    "registryDigest": null,
+    "projectionMode": "public-safe",
+    "projectionPolicy": "public-default"
+  },
+  "components": [
+    {
+      "relativePath": "mappings/evidence-id-map.csv",
+      "mediaType": "text/csv",
+      "recordCount": 1,
+      "sha256": "ee7cb822f725be2d744163cabaa0648b572e9d67d6767db6238bd895417d9134"
+    },
+    {
+      "relativePath": "stories/story-0001.json",
+      "mediaType": "application/json",
+      "recordCount": 1,
+      "sha256": "bd9b095930b8366deb8b29b7ec809c6a87b363b794a54b6af65578d5e17cb8f8"
+    },
+    {
+      "relativePath": "reports/validation.json",
+      "mediaType": "application/json",
+      "recordCount": 0,
+      "sha256": "26f194ccb2016233ad27444ebed401f271623e44537b88f920a0ca34f19ad786"
+    }
+  ]
+}

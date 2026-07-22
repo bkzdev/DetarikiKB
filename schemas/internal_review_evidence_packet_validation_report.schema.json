@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://detariki-kb/schemas/internal_review_evidence_packet_validation_report.schema.json",
+  "title": "Internal Review Evidence Packet Validation Report",
+  "description": "Internal Review Evidence Packet用のsafe aggregate validation report。raw内容、内部ID、title、sourceKey、local pathは保持しない。",
+  "type": "object",
+  "required": ["reportVersion", "packetVersion", "packetId", "status", "validatedAt", "storyCount", "entryCount", "componentCount", "errorCount", "warningCount", "issues"],
+  "additionalProperties": false,
+  "properties": {
+    "reportVersion": { "type": "integer", "const": 1 },
+    "packetVersion": { "type": "integer", "const": 1 },
+    "packetId": { "type": "string", "pattern": "^erp-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}$" },
+    "status": { "type": "string", "const": "valid" },
+    "validatedAt": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$" },
+    "storyCount": { "type": "integer", "minimum": 1 },
+    "entryCount": { "type": "integer", "minimum": 1 },
+    "componentCount": { "type": "integer", "minimum": 3 },
+    "errorCount": { "type": "integer", "const": 0 },
+    "warningCount": { "type": "integer", "minimum": 0 },
+    "issues": { "type": "array", "items": { "$ref": "#/definitions/Issue" } }
+  },
+  "definitions": {
+    "Issue": {
+      "type": "object",
+      "required": ["issueCode", "severity", "reviewStoryKey", "reviewEntryId", "componentPath"],
+      "additionalProperties": false,
+      "properties": {
+        "issueCode": { "type": "string", "maxLength": 64, "pattern": "^[A-Za-z][A-Za-z0-9._-]*$" },
+        "severity": { "type": "string", "const": "warning" },
+        "reviewStoryKey": { "oneOf": [{ "type": "string", "pattern": "^story-[0-9]{4}$" }, { "type": "null" }] },
+        "reviewEntryId": { "oneOf": [{ "type": "string", "pattern": "^entry-[0-9]{6}$" }, { "type": "null" }] },
+        "componentPath": { "oneOf": [{ "type": "string", "pattern": "^(?:manifest\\.json|mappings/evidence-id-map\\.csv|stories/story-[0-9]{4}\\.json|reports/validation\\.json)$" }, { "type": "null" }] }
+      }
+    }
+  }
+}

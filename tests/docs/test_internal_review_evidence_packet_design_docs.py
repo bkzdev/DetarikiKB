@@ -168,3 +168,30 @@ def test_tasks_records_design_complete_and_followup_phases():
     assert "internal-review-evidence-packet-schema-validator" in content
     assert "internal-review-evidence-packet-generator" in content
     assert "internal-review-evidence-packet-operations" in content
+
+
+def test_packet_design_records_phase_5_2_implementation_boundary():
+    content = _read_design()
+    for term in (
+        "Phase 5.1設計確定・Phase 5.2 schema/validator実装済み",
+        "internal_review_evidence_packet_validation_report.schema.json",
+        "validatorは固定root配下の既存bundleを**read-only**で検査する",
+        (
+            "外部のsource candidate、Normalized Story、Registry入力とのcross-checkは、"
+            "入力を読むPhase 5.3 generatorの責務"
+        ),
+        "Phase 5.2 validatorはbundle内の次を検証する",
+        "| Phase 5.2: `internal-review-evidence-packet-schema-validator`",
+        "**完了**",
+    ):
+        assert term in content
+
+
+def test_canonical_status_distinguishes_validator_from_generator_and_cleanup():
+    context = AI_CONTEXT_PATH.read_text(encoding="utf-8")
+    tasks = TASKS_PATH.read_text(encoding="utf-8")
+    assert "manifest/story/selection/safe validation reportの4 schema" in context
+    assert "既存bundleを変更しないvalidatorは実装済み" in context
+    assert "generator、およびcleanup運用CLIは未実装" in context
+    assert "internal-review-evidence-packet-schema-validator`で実装完了" in tasks
+    assert "外部入力とのcross-checkはgeneratorへ分離" in tasks

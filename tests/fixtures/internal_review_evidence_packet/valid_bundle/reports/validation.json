@@ -1,0 +1,13 @@
+{
+  "reportVersion": 1,
+  "packetVersion": 1,
+  "packetId": "erp-20990101T000000Z-a1b2c3d4",
+  "status": "valid",
+  "validatedAt": "2099-01-01T00:00:00Z",
+  "storyCount": 1,
+  "entryCount": 1,
+  "componentCount": 3,
+  "errorCount": 0,
+  "warningCount": 0,
+  "issues": []
+}
