@@ -173,7 +173,10 @@ def test_tasks_records_design_complete_and_followup_phases():
 def test_packet_design_records_phase_5_2_implementation_boundary():
     content = _read_design()
     for term in (
-        "Phase 5.1設計確定・Phase 5.2 schema/validator・Phase 5.3 generator実装済み",
+        (
+            "Phase 5.1設計確定・Phase 5.2 schema/validator・Phase 5.3 generator・"
+            "Phase 5.4 operations実装済み"
+        ),
         "internal_review_evidence_packet_validation_report.schema.json",
         "validatorは固定root配下の既存bundleを**read-only**で検査する",
         (
@@ -208,16 +211,36 @@ def test_packet_design_records_phase_5_3_generator_contract():
         assert term in content
 
 
-def test_canonical_status_distinguishes_completed_generator_from_pending_operations():
+def test_canonical_status_records_completed_packet_operations():
     context = AI_CONTEXT_PATH.read_text(encoding="utf-8")
     tasks = TASKS_PATH.read_text(encoding="utf-8")
     assert "manifest/story/selection/safe validation reportの4 schema" in context
     assert "既存bundleを変更しないvalidatorは実装済み" in context
     assert "generatorは実装済み" in context
+    assert "manage_internal_review_evidence_packets.py" in context
     assert (
-        "cleanup/inventory/runbook、実データPacket生成、"
-        "context opt-in、review note/promotionは未実装" in context
+        "safe aggregate inventory、期限warning、1 packetId・dry-run既定cleanup"
+        in context
+    )
+    assert (
+        "実データPacket生成、context opt-in、review note取り込み・promotionは未実装"
+        in context
     )
     assert "internal-review-evidence-packet-schema-validator`で実装完了" in tasks
     assert "internal-review-evidence-packet-generator`で実装完了" in tasks
-    assert "internal-review-evidence-packet-operations" in tasks
+    assert "internal-review-evidence-packet-operations`: Phase 5.4" in tasks
+
+
+def test_packet_design_records_phase_5_4_operations_contract():
+    content = _read_design()
+    for term in (
+        "manage_internal_review_evidence_packets.py inventory",
+        "cleanup --packet-id <opaque-id> [--execute]",
+        "unknown/temp entry",
+        "1件だけ明示",
+        "dry-run既定",
+        "secure eraseは保証しない",
+        "Internal_Review_Evidence_Packet_Operations.md",
+        "**完了**",
+    ):
+        assert term in content
