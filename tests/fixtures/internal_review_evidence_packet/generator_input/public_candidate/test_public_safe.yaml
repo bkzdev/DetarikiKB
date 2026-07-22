@@ -1,0 +1,36 @@
+evidenceIndexVersion: 1
+generatedFrom: null
+entries:
+  - evidenceId: TEST_PUBLIC_001_E01_DLG0001
+    evidenceType: dialogue
+    storyId: TEST_PUBLIC_001
+    publicStoryId: TEST_PUBLIC_001
+    episodeId: TEST_PUBLIC_001_E01
+    publicEpisodeId: TEST_PUBLIC_001_E01
+    publicEvidenceId: TEST_PUBLIC_001_E01_DLG0001
+    sceneId: null
+    blockId: null
+    speaker: null
+    relatedEntities: []
+    referencedBy: null
+    visibility:
+      public: true
+      rawTextIncluded: false
+    notes: null
+  - evidenceId: TEST_PUBLIC_001_E01_UNK0001
+    evidenceType: unknown
+    storyId: TEST_PUBLIC_001
+    publicStoryId: TEST_PUBLIC_001
+    episodeId: TEST_PUBLIC_001_E01
+    publicEpisodeId: TEST_PUBLIC_001_E01
+    publicEvidenceId: TEST_PUBLIC_001_E01_UNK0001
+    sceneId: null
+    blockId: null
+    speaker: null
+    relatedEntities: []
+    referencedBy: null
+    visibility:
+      public: true
+      rawTextIncluded: false
+    notes: null
+notes: null

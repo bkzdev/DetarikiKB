@@ -1,0 +1,55 @@
+{
+  "schemaVersion": "0.1",
+  "documentType": "episode_extraction",
+  "episodeId": "TEST_PACKET_EPISODE",
+  "storyId": "TEST_PACKET_STORY",
+  "storyCategory": "MAIN",
+  "extractionRun": {
+    "extractionVersion": "0.1.0",
+    "extractionMethod": "rule_based",
+    "modelProvider": null,
+    "modelName": null,
+    "promptVersion": null,
+    "extractedAt": null,
+    "parserCompatibilityAtExtraction": "compatible"
+  },
+  "evidenceIndex": {
+    "TEST_PACKET_DIALOGUE": {
+      "sourceId": "TEST_PACKET_DIALOGUE",
+      "storyId": "TEST_PACKET_STORY",
+      "episodeId": "TEST_PACKET_EPISODE",
+      "sceneId": "TEST_PACKET_SCENE",
+      "confidence": 0.9
+    }
+  },
+  "characters": [
+    {
+      "id": "TEST_PACKET_CANDIDATE",
+      "type": "character_candidate",
+      "sourceType": "ai_extracted",
+      "confidence": 0.9,
+      "evidenceIds": ["TEST_PACKET_DIALOGUE"],
+      "extractionRun": {
+        "extractionVersion": "0.1.0",
+        "extractionMethod": "rule_based",
+        "modelProvider": null,
+        "modelName": null,
+        "promptVersion": null,
+        "extractedAt": null,
+        "parserCompatibilityAtExtraction": "compatible"
+      },
+      "existingCharacterId": "CHAR_TEST",
+      "sourceCharacterId": "26",
+      "nameCandidates": ["Synthetic Speaker"],
+      "fields": {}
+    }
+  ],
+  "organizations": [],
+  "locations": [],
+  "items": [],
+  "lore": [],
+  "events": [],
+  "relationships": [],
+  "timelineCandidates": [],
+  "extractionErrors": []
+}
