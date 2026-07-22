@@ -117,7 +117,7 @@ EVENT_164_260425_E03
 - **長期方針として候補B（Public ID Registry）を採用する**。`story_manifest.yaml`は内部情報（`sourceKey`/`rawPath`/`title`/`subtitle`等）を含む可能性があるため、公開repoに置く場合はPublic IDだけを別ファイルへ分離する
 - **ただし本PRでは大きく実装しすぎない**。Registryのschema・簡易validator・assignment候補提案scriptまでを実装し、実registryへの実データ追加・`project_evidence_index_public_ids.py`側でのregistry入力への本格対応は後続PRに委ねる（§6・§9）
 - `story_manifest.yaml`自体の役割・スコープ・commit禁止方針は変更しない（`Story_Manifest_Design.md`のまま）。Registryは`story_manifest.yaml`の代替ではなく、「公開してよい部分集合を安全にcommitできる形で持つ」ための補完的な仕組みである
-- internal storyId/episodeIdとの対応関係（mapping）は、Registry側には持たせない。必要な場合は`workspace/`側・Internal Review Evidence Packet側（`internal-review-evidence-packet-design`、未実装）で扱う方針とする
+- internal storyId/episodeIdとの対応関係（mapping）は、Registry側には持たせない。必要な場合は`workspace/review_packets/evidence/<packetId>/mappings/evidence-id-map.csv`で扱う（`Internal_Review_Evidence_Packet_Design.md` §8、詳細設計済み・generator未実装）
 
 ---
 
@@ -155,7 +155,7 @@ schema自体が`additionalProperties: false`を全階層で指定しているた
 
 - `publicStoryId`/`publicEpisodeId`という値そのものは、引き続き人間が`story_manifest.yaml`側で個別に確定する運用を継続する（`Story_Manifest_Design.md` §13.2の既存運用は変更しない）
 - Public ID Registryは、`story_manifest.yaml`で確定した値のうち**公開してよい部分だけを転記した副次的な記録**という位置づけにする（source of truthは引き続き`story_manifest.yaml`側）
-- internal storyId ⇔ publicStoryIdの対応そのもの（mapping）は、Registry側ではなくInternal Review Evidence Packet側またはworkspace限定のmapping（`project_evidence_index_public_ids.py`の`--mapping-output`と同じ位置づけ）で扱う
+- internal storyId ⇔ publicStoryIdの対応そのもの（mapping）は、Registry側ではなくInternal Review Evidence Packet側で扱う。Packetは`project_evidence_index_public_ids.py --mapping-output`をcandidate/Normalized Storyとcross-reference検証して取り込み、公開IDを再採番しない（`Internal_Review_Evidence_Packet_Design.md` §6・§8）
 
 ---
 
@@ -355,6 +355,7 @@ suggestions:
 
 - `docs/architecture/06_AI/Evidence_Index_Public_ID_Policy.md`（`publicEvidenceId`形式・prefix mapping・Public-safe projection方針、§6.4-§6.9）
 - `docs/architecture/06_AI/Evidence_Index_Design.md`（Evidence Indexの役割・実装フェーズ）
+- `docs/architecture/06_AI/Internal_Review_Evidence_Packet_Design.md`（Registryへ置かない内部ID mappingの正式なローカル保存境界）
 - `docs/architecture/06_AI/Evidence_Index_Promotion_Policy.md`（promotion criteria/exclusion criteria）
 - `docs/architecture/05_Parser/Story_ID_Policy_Decision.md`（`publicStoryId`/`publicEpisodeId`のfield naming採用決定、§7）
 - `docs/architecture/05_Parser/Story_Manifest_Design.md`（`story_manifest.yaml`の`publicStoryId`/`publicEpisodeId`実装、§13.2）
