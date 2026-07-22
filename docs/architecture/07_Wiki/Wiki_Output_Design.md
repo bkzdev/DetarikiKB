@@ -190,6 +190,8 @@ Relationship page（独立ページ）は現時点では見送り、Character/Or
 
 **title/subtitle表示方針（`feature/wiki-episode-title-display-integration`で実装完了）**: `docs/architecture/05_Parser/Story_Manifest_Design.md`で設計した`story_manifest.yaml`由来の値が、`normalize_story.py --manifest`（Normalized Story JSONの`metadata.storyTitle`/`episodes[].metadata.episodeSubtitle`/`displayTitle`/`metadataStatus`）→Extractor（`episode_extraction`の`storyTitle`/`episodeSubtitle`/`displayTitle`/`metadataStatus`、任意フィールド）→Merger（`sourceDocuments[]`の同名フィールド、任意フィールド）→Wiki rendererまで伝播するようになった。`render_episode_page`はSummary tableへStory Title/Episode Subtitle/Display Title/Metadata Statusの4行を追加する（既存の見出し`# {episodeId}`・`Episode ID`行は変更しない）。値がnullまたはキー自体が無い場合（story_manifest.yaml未使用の既存fixture含む）は「未登録」と表示し、クラッシュしない。`metadataStatus`は`pending`/`confirmed`/`title_unknown`/`deprecated`に日本語の補足を付けて表示し、未知の値も破棄せずそのまま表示する。`render_story_index_page`は「Display Title」列を追加し、`displayTitle > episodeSubtitle > storyTitle > episodeId`の優先順位でfallbackした値を表示する（どれも未設定なら既存どおりepisodeId）。AI-generated titleは生成せず、公式title/subtitleと混在させない（§3の情報分離方針を踏襲）。**このPRでは実タイトル・実サブタイトルの投入は行っていない**（合成fixtureのみで検証）。
 
+**後続方針（`episode-page-evidence-linking-review`でレビュー完了）**: 後続PR `episode-page-summary-evidence-linking`は、Episode pageへ対象Episodeの表示可能なEpisode Summary本文と、その直下の`evidenceRefs`だけを追加する。表示は既存Story pageと同じ`generationStatus: generated`、`review.status: reviewed`/`approved`、内部/公開ID照合矛盾時は非表示という契約に従う。Summaryが欠落・非表示・空本文なら`## Episode Summary` sectionを出さず、既存出力を維持する。Story Summaryは再掲しない。参照は既存Story別Evidence pageの該当anchorへ公開ID優先でリンクし、未解決時は入力IDをbacktickで表示する。general Story Evidence index link、Episode別Evidence page/episode絞込anchor、schema/storage/CLI option/path変更は含めず、manual review後に必要性を再判断する。
+
 ## 9.4 Character page
 
 - source: `entities.characters`（`status: merged`のみ。§5参照）
@@ -479,6 +481,7 @@ templates/wiki/unresolved_report.md.j2
 6. **real data local render dry-run**: ローカルignored領域で、実データ由来のmerged knowledge collectionから実際にレンダリングしてみる（`docs/runbooks/Real_Data_Dry_Run.md`と同じ運用: 生成物はcommitしない）
 7. **public publishing workflow**: GitHub Pages / Cloudflare Pages等への公開ワークフロー（Non-goals、別PRで検討）
 8. **wiki-story-page-renderer**: `docs/architecture/07_Wiki/Story_Page_Design.md`で設計したStory pageの実装（Story page path helper・Story index→Story pageリンク・Episode一覧・Story/Episode Summary placeholder。詳細スコープは同文書§13参照）
+9. **episode-page-summary-evidence-linking**: 対象Episodeの表示可能なEpisode Summary本文と、その直下の`evidenceRefs`をEpisode pageへ限定追加する。実装後にmanual reviewを行い、Episode別Evidence page等の拡張要否を再判断する。
 
 各PRは小さく、`uv run pytest`の全通過と、実データを使わない自作fixtureによる検証を維持する（`Merged_Knowledge_Design.md` §13と同じ進め方）。
 
@@ -498,6 +501,7 @@ templates/wiki/unresolved_report.md.j2
 - キャラクター辞書の推測confirmed化
 - Parser大規模再設計
 - Jinja2等テンプレートエンジンの依存追加可否の確定（§12.2の通り実装PRで判断）
+- general Story Evidence index link、Episode別Evidence page/episode絞込anchor、schema/storage/CLI option/path変更（Episode page Summary/evidenceRefsの後続実装にも含めない）
 
 ---
 
