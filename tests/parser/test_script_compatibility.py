@@ -275,6 +275,70 @@ def test_unregistered_id_unconsumed_assignment_not_flagged_as_warning(
     assert result.parser_compatibility == "compatible"
 
 
+@pytest.mark.parametrize(
+    "assignment",
+    [
+        "$value0 = 11.2,-7.7,-24",
+        "$value12 = 14.3,-6.66,-7.39",
+        "$num4 = 12abc",
+    ],
+)
+def test_non_literal_variable_assignment_not_truncated_to_character_id(
+    assignment, dummy_config, tmp_path
+):
+    """数字始まりの座標・式を先頭の整数部分だけでID判定しないこと。
+
+    未列挙indexを含む非リテラル代入も正規の変数代入行として扱い、unknown
+    commandにはしない。旧実装ではそれぞれ11/14/12をID候補としていた。
+    """
+    script_path = tmp_path / "non_literal_assignment.dec"
+    script_path.write_text(f"{assignment}\n", encoding="utf-8")
+
+    result = check_file(
+        file_path=script_path,
+        known_commands=dummy_config["known_commands"],
+        speech_commands=dummy_config["speech_commands"],
+        case_variants_map=dummy_config["case_variants_map"],
+        speech_hints=dummy_config["speech_hints"],
+        char_map={},
+    )
+
+    assert result.unknown_character_ids == {}
+    assert result.non_speaker_numeric_assignments == {}
+    assert result.unknown_commands == {}
+    assert result.parser_compatibility == "compatible"
+
+
+def test_numeric_token_before_expression_preserves_parser_semantics(
+    dummy_config, tmp_path
+):
+    """RHS先頭の独立した数値トークンは後続式があってもIDとして扱う。
+
+    tokenizer/parserも`\\S+`で先頭トークン`10`を値として採用するため、checker
+    だけを行末必須にして既存の両経路の意味論を変えない。
+    """
+    script_content = """$value4 = 10 + $random(0,9)
+@ChTalk 4
+セリフ
+"""
+    script_path = tmp_path / "numeric_token_expression.dec"
+    script_path.write_text(script_content, encoding="utf-8")
+
+    result = check_file(
+        file_path=script_path,
+        known_commands=dummy_config["known_commands"],
+        speech_commands=dummy_config["speech_commands"],
+        case_variants_map=dummy_config["case_variants_map"],
+        speech_hints=dummy_config["speech_hints"],
+        char_map={},
+    )
+
+    assert set(result.unknown_character_ids) == {"10"}
+    assert result.non_speaker_numeric_assignments == {}
+    assert result.unknown_commands == {}
+    assert result.parser_compatibility == "warning"
+
+
 def test_registered_id_never_recorded_in_either_bucket(dummy_config, tmp_path):
     """登録済みIDは話者消費の有無にかかわらず、どちらのバケットにも
     記録されないこと (無回帰)。"""
