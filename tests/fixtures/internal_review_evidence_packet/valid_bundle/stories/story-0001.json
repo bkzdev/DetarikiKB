@@ -1,0 +1,41 @@
+{
+  "packetVersion": 1,
+  "reviewStoryKey": "story-0001",
+  "identifiers": {
+    "internal": { "storyId": "TEST_STORY" },
+    "public": { "publicStoryId": "TEST_PUBLIC_001" }
+  },
+  "entries": [
+    {
+      "reviewEntryId": "entry-000001",
+      "identifiers": {
+        "internal": {
+          "episodeId": "TEST_EPISODE",
+          "evidenceId": "TEST_EVIDENCE",
+          "sceneId": "TEST_SCENE",
+          "blockId": "TEST_BLOCK"
+        },
+        "public": {
+          "publicEpisodeId": "TEST_PUBLIC_001_E01",
+          "publicEvidenceId": "TEST_PUBLIC_001_E01_DLG0001"
+        }
+      },
+      "evidenceType": "dialogue",
+      "rawContent": {
+        "reason": "evidence-review",
+        "text": "Synthetic review text.",
+        "rawCommand": null,
+        "arguments": []
+      },
+      "context": { "before": [], "after": [] },
+      "speaker": {
+        "sourceLabel": "Synthetic Speaker",
+        "sourceCharacterId": "26",
+        "speakerId": "CHAR_TEST",
+        "resolutionStatus": "resolved"
+      },
+      "extraction": null,
+      "diagnostics": []
+    }
+  ]
+}

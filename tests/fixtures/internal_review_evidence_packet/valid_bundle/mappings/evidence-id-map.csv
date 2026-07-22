@@ -1,0 +1,2 @@
+storyId,publicStoryId,episodeId,publicEpisodeId,evidenceId,publicEvidenceId,evidenceType,sceneId,blockId,episodeOrder,publicEpisodeIdSource,registryMatched,registryConflict,registryPublicEpisodeId
+TEST_STORY,TEST_PUBLIC_001,TEST_EPISODE,TEST_PUBLIC_001_E01,TEST_EVIDENCE,TEST_PUBLIC_001_E01_DLG0001,dialogue,TEST_SCENE,TEST_BLOCK,1,input,False,False,

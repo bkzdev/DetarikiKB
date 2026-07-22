@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://detariki-kb/schemas/internal_review_evidence_packet_manifest.schema.json",
+  "title": "Internal Review Evidence Packet Manifest",
+  "description": "ローカル限定のInternal Review Evidence Packet bundle用safe manifest。raw内容および内部IDは含めない。",
+  "type": "object",
+  "required": ["packetVersion", "packetId", "classification", "purpose", "selectionMode", "commitAllowed", "retentionClass", "generatorVersion", "createdAt", "expiresAt", "sourceSnapshot", "components"],
+  "additionalProperties": false,
+  "properties": {
+    "packetVersion": { "type": "integer", "const": 1 },
+    "packetId": { "type": "string", "pattern": "^erp-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}$" },
+    "classification": { "type": "string", "const": "internal-review-local" },
+    "purpose": { "type": "string", "const": "evidence-review" },
+    "selectionMode": { "type": "string", "enum": ["public-candidate", "explicit-entry-list"] },
+    "commitAllowed": { "type": "boolean", "const": false },
+    "retentionClass": { "type": "string", "const": "ephemeral" },
+    "generatorVersion": { "type": "string", "maxLength": 64, "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$" },
+    "createdAt": { "$ref": "#/definitions/UtcTimestamp" },
+    "expiresAt": { "$ref": "#/definitions/UtcTimestamp" },
+    "sourceSnapshot": { "$ref": "#/definitions/SourceSnapshot" },
+    "components": { "type": "array", "minItems": 3, "items": { "$ref": "#/definitions/Component" } }
+  },
+  "definitions": {
+    "Sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "UtcTimestamp": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$" },
+    "NullableSha256": { "oneOf": [{ "$ref": "#/definitions/Sha256" }, { "type": "null" }] },
+    "SourceSnapshot": {
+      "type": "object",
+      "required": ["normalizedStoryFileCount", "normalizedStoryDigest", "extractionDigest", "projectionMappingDigest", "publicCandidateDigest", "registryDigest", "projectionMode", "projectionPolicy"],
+      "additionalProperties": false,
+      "properties": {
+        "normalizedStoryFileCount": { "type": "integer", "minimum": 1 },
+        "normalizedStoryDigest": { "$ref": "#/definitions/Sha256" },
+        "extractionDigest": { "$ref": "#/definitions/NullableSha256" },
+        "projectionMappingDigest": { "$ref": "#/definitions/Sha256" },
+        "publicCandidateDigest": { "$ref": "#/definitions/Sha256" },
+        "registryDigest": { "$ref": "#/definitions/NullableSha256" },
+        "projectionMode": { "type": "string", "const": "public-safe" },
+        "projectionPolicy": { "type": "string", "const": "public-default" }
+      }
+    },
+    "Component": {
+      "type": "object",
+      "required": ["relativePath", "mediaType", "recordCount", "sha256"],
+      "additionalProperties": false,
+      "properties": {
+        "relativePath": { "type": "string", "pattern": "^(?:mappings/evidence-id-map\\.csv|stories/story-[0-9]{4}\\.json|reports/validation\\.json)$" },
+        "mediaType": { "type": "string", "enum": ["text/csv", "application/json"] },
+        "recordCount": { "type": "integer", "minimum": 0 },
+        "sha256": { "$ref": "#/definitions/Sha256" }
+      }
+    }
+  }
+}

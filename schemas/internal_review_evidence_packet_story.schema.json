@@ -1,0 +1,173 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://detariki-kb/schemas/internal_review_evidence_packet_story.schema.json",
+  "title": "Internal Review Evidence Packet Story Component",
+  "description": "Internal Review Evidence Packetのsensitive story component。raw内容は許可されたrawContent位置にだけ保持する。",
+  "type": "object",
+  "required": ["packetVersion", "reviewStoryKey", "identifiers", "entries"],
+  "additionalProperties": false,
+  "properties": {
+    "packetVersion": { "type": "integer", "const": 1 },
+    "reviewStoryKey": { "type": "string", "pattern": "^story-[0-9]{4}$" },
+    "identifiers": { "$ref": "#/definitions/StoryIdentifiers" },
+    "entries": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/Entry" } }
+  },
+  "definitions": {
+    "InternalId": { "type": "string", "maxLength": 256, "pattern": "^[A-Z][A-Z0-9_]*$" },
+    "PublicId": { "type": "string", "maxLength": 256, "pattern": "^[A-Z][A-Z0-9_]*$" },
+    "NullableInternalId": { "oneOf": [{ "$ref": "#/definitions/InternalId" }, { "type": "null" }] },
+    "NullablePublicId": { "oneOf": [{ "$ref": "#/definitions/PublicId" }, { "type": "null" }] },
+    "NullableSpeakerLabel": { "oneOf": [{ "type": "string", "maxLength": 500 }, { "type": "null" }] },
+    "NullableSourceCharacterId": { "oneOf": [{ "type": "string", "maxLength": 256 }, { "type": "null" }] },
+    "NullableSha256": { "oneOf": [{ "type": "string", "pattern": "^[0-9a-f]{64}$" }, { "type": "null" }] },
+    "StoryIdentifiers": {
+      "type": "object",
+      "required": ["internal", "public"],
+      "additionalProperties": false,
+      "properties": {
+        "internal": {
+          "type": "object",
+          "required": ["storyId"],
+          "additionalProperties": false,
+          "properties": { "storyId": { "$ref": "#/definitions/InternalId" } }
+        },
+        "public": {
+          "type": "object",
+          "required": ["publicStoryId"],
+          "additionalProperties": false,
+          "properties": { "publicStoryId": { "$ref": "#/definitions/NullablePublicId" } }
+        }
+      }
+    },
+    "EntryIdentifiers": {
+      "type": "object",
+      "required": ["internal", "public"],
+      "additionalProperties": false,
+      "properties": {
+        "internal": {
+          "type": "object",
+          "required": ["episodeId", "evidenceId", "sceneId", "blockId"],
+          "additionalProperties": false,
+          "properties": {
+            "episodeId": { "$ref": "#/definitions/InternalId" },
+            "evidenceId": { "$ref": "#/definitions/InternalId" },
+            "sceneId": { "$ref": "#/definitions/NullableInternalId" },
+            "blockId": { "$ref": "#/definitions/NullableInternalId" }
+          }
+        },
+        "public": {
+          "type": "object",
+          "required": ["publicEpisodeId", "publicEvidenceId"],
+          "additionalProperties": false,
+          "properties": {
+            "publicEpisodeId": { "$ref": "#/definitions/NullablePublicId" },
+            "publicEvidenceId": { "$ref": "#/definitions/NullablePublicId" }
+          }
+        }
+      }
+    },
+    "RawContent": {
+      "type": "object",
+      "required": ["reason", "text", "rawCommand", "arguments"],
+      "additionalProperties": false,
+      "properties": {
+        "reason": { "type": "string", "enum": ["evidence-review", "parser-diagnostic", "speaker-resolution", "extraction-diagnostic"] },
+        "text": { "oneOf": [{ "type": "string", "maxLength": 20000 }, { "type": "null" }] },
+        "rawCommand": { "oneOf": [{ "type": "string", "maxLength": 128 }, { "type": "null" }] },
+        "arguments": { "type": "array", "maxItems": 16, "items": { "type": "string", "maxLength": 256 } }
+      },
+      "allOf": [
+        {
+          "anyOf": [
+            { "properties": { "text": { "type": "string", "minLength": 1 } } },
+            { "properties": { "rawCommand": { "type": "string", "minLength": 1 } } }
+          ]
+        },
+        {
+          "if": { "properties": { "rawCommand": { "type": "null" } }, "required": ["rawCommand"] },
+          "then": { "properties": { "arguments": { "maxItems": 0 } } },
+          "else": { "properties": { "reason": { "const": "parser-diagnostic" } } }
+        }
+      ]
+    },
+    "ContextItem": {
+      "type": "object",
+      "required": ["internalBlockId", "text", "truncated", "originalTextSha256"],
+      "additionalProperties": false,
+      "properties": {
+        "internalBlockId": { "$ref": "#/definitions/InternalId" },
+        "text": { "type": "string", "maxLength": 500 },
+        "truncated": { "type": "boolean" },
+        "originalTextSha256": { "$ref": "#/definitions/NullableSha256" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "truncated": { "const": false } }, "required": ["truncated"] },
+          "then": { "properties": { "originalTextSha256": { "type": "null" } } },
+          "else": { "properties": { "originalTextSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" } } }
+        }
+      ]
+    },
+    "Context": {
+      "type": "object",
+      "required": ["before", "after"],
+      "additionalProperties": false,
+      "properties": {
+        "before": { "type": "array", "maxItems": 1, "items": { "$ref": "#/definitions/ContextItem" } },
+        "after": { "type": "array", "maxItems": 1, "items": { "$ref": "#/definitions/ContextItem" } }
+      }
+    },
+    "Speaker": {
+      "type": "object",
+      "required": ["sourceLabel", "sourceCharacterId", "speakerId", "resolutionStatus"],
+      "additionalProperties": false,
+      "properties": {
+        "sourceLabel": { "$ref": "#/definitions/NullableSpeakerLabel" },
+        "sourceCharacterId": { "$ref": "#/definitions/NullableSourceCharacterId" },
+        "speakerId": { "$ref": "#/definitions/NullableInternalId" },
+        "resolutionStatus": { "type": "string", "enum": ["resolved", "unresolved", "ambiguous", "unknown"] }
+      }
+    },
+    "ExtractionCandidate": {
+      "type": "object",
+      "required": ["candidateId", "candidateType", "confidence"],
+      "additionalProperties": false,
+      "properties": {
+        "candidateId": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "candidateType": { "type": "string", "enum": ["character_candidate", "location_candidate", "organization_candidate", "item_candidate", "lore_candidate", "event_candidate", "relationship_candidate", "timeline_candidate", "special_speaker_label_candidate"] },
+        "confidence": { "oneOf": [{ "type": "number", "minimum": 0, "maximum": 1 }, { "type": "null" }] }
+      }
+    },
+    "Extraction": {
+      "type": "object",
+      "required": ["candidates"],
+      "additionalProperties": false,
+      "properties": { "candidates": { "type": "array", "maxItems": 64, "items": { "$ref": "#/definitions/ExtractionCandidate" } } }
+    },
+    "Diagnostic": {
+      "type": "object",
+      "required": ["issueCode", "severity", "reviewEntryId"],
+      "additionalProperties": false,
+      "properties": {
+        "issueCode": { "type": "string", "maxLength": 64, "pattern": "^[A-Za-z][A-Za-z0-9._-]*$" },
+        "severity": { "type": "string", "enum": ["error", "warning"] },
+        "reviewEntryId": { "type": "string", "pattern": "^entry-[0-9]{6}$" }
+      }
+    },
+    "Entry": {
+      "type": "object",
+      "required": ["reviewEntryId", "identifiers", "evidenceType", "rawContent", "context", "speaker", "extraction", "diagnostics"],
+      "additionalProperties": false,
+      "properties": {
+        "reviewEntryId": { "type": "string", "pattern": "^entry-[0-9]{6}$" },
+        "identifiers": { "$ref": "#/definitions/EntryIdentifiers" },
+        "evidenceType": { "type": "string", "enum": ["dialogue", "monologue", "narration", "choice", "stage_direction", "speaker_label", "scene", "episode", "story", "unknown"] },
+        "rawContent": { "oneOf": [{ "$ref": "#/definitions/RawContent" }, { "type": "null" }] },
+        "context": { "$ref": "#/definitions/Context" },
+        "speaker": { "oneOf": [{ "$ref": "#/definitions/Speaker" }, { "type": "null" }] },
+        "extraction": { "oneOf": [{ "$ref": "#/definitions/Extraction" }, { "type": "null" }] },
+        "diagnostics": { "type": "array", "items": { "$ref": "#/definitions/Diagnostic" } }
+      }
+    }
+  }
+}
