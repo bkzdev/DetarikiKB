@@ -173,7 +173,7 @@ def test_tasks_records_design_complete_and_followup_phases():
 def test_packet_design_records_phase_5_2_implementation_boundary():
     content = _read_design()
     for term in (
-        "Phase 5.1設計確定・Phase 5.2 schema/validator実装済み",
+        "Phase 5.1設計確定・Phase 5.2 schema/validator・Phase 5.3 generator実装済み",
         "internal_review_evidence_packet_validation_report.schema.json",
         "validatorは固定root配下の既存bundleを**read-only**で検査する",
         (
@@ -187,11 +187,37 @@ def test_packet_design_records_phase_5_2_implementation_boundary():
         assert term in content
 
 
-def test_canonical_status_distinguishes_validator_from_generator_and_cleanup():
+def test_packet_design_records_phase_5_3_generator_contract():
+    content = _read_design()
+    for term in (
+        "--normalized-input",
+        "--public-candidate",
+        "--projection-mapping",
+        "--extractions",
+        "--registry",
+        "--selection-file",
+        "--retention-days",
+        "binary digest",
+        "projection reportを機械入力にしない",
+        "context.before`と`context.after`を常に空配列",
+        "text`、`rawText`、`choiceText`の順",
+        "safe `reports/validation.json`を自ら作成",
+        "no-clobber atomic publish",
+        "| Phase 5.3: `internal-review-evidence-packet-generator`",
+    ):
+        assert term in content
+
+
+def test_canonical_status_distinguishes_completed_generator_from_pending_operations():
     context = AI_CONTEXT_PATH.read_text(encoding="utf-8")
     tasks = TASKS_PATH.read_text(encoding="utf-8")
     assert "manifest/story/selection/safe validation reportの4 schema" in context
     assert "既存bundleを変更しないvalidatorは実装済み" in context
-    assert "generator、およびcleanup運用CLIは未実装" in context
+    assert "generatorは実装済み" in context
+    assert (
+        "cleanup/inventory/runbook、実データPacket生成、"
+        "context opt-in、review note/promotionは未実装" in context
+    )
     assert "internal-review-evidence-packet-schema-validator`で実装完了" in tasks
-    assert "外部入力とのcross-checkはgeneratorへ分離" in tasks
+    assert "internal-review-evidence-packet-generator`で実装完了" in tasks
+    assert "internal-review-evidence-packet-operations" in tasks

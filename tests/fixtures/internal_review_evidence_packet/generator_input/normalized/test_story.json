@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "0.2",
+  "documentType": "normalized_story",
+  "storyId": "TEST_PACKET_STORY",
+  "storyCategory": "MAIN",
+  "metadata": {
+    "storyTitle": "Synthetic Packet Story",
+    "publicStoryId": "TEST_PUBLIC_001"
+  },
+  "parser": {
+    "parserName": "Synthetic Parser",
+    "parserVersion": "0.0.0",
+    "parserMode": "game_script",
+    "preserveStageDirections": true
+  },
+  "source": {
+    "sourceFile": "synthetic_packet_input",
+    "sourceFormat": "game_script"
+  },
+  "episodes": [
+    {
+      "episodeId": "TEST_PACKET_EPISODE",
+      "episodeNumber": 1,
+      "metadata": { "publicEpisodeId": "TEST_PUBLIC_001_E01" },
+      "scenes": [
+        {
+          "sceneId": "TEST_PACKET_SCENE",
+          "sceneNumber": 1,
+          "blocks": [
+            {
+              "id": "TEST_PACKET_DIALOGUE",
+              "type": "dialogue",
+              "speaker": {
+                "speakerId": "CHAR_TEST",
+                "speakerName": "Synthetic Speaker",
+                "sourceCharacterId": "26",
+                "isResolved": true
+              },
+              "text": "Synthetic dialogue text for packet review.",
+              "rawText": "Synthetic dialogue text for packet review.",
+              "source": { "sourceFile": "synthetic_packet_input", "lineStart": 1, "lineEnd": 1 }
+            },
+            {
+              "id": "TEST_PACKET_UNKNOWN",
+              "type": "unknown",
+              "rawText": "Synthetic unknown diagnostic text.",
+              "source": { "sourceFile": "synthetic_packet_input", "lineStart": 2, "lineEnd": 2 }
+            },
+            {
+              "id": "TEST_PACKET_STAGE",
+              "type": "stage_direction",
+              "directionType": "background",
+              "rawCommand": "@SyntheticCommand",
+              "args": ["foreground", "fade"],
+              "normalizedCommand": "synthetic_background",
+              "source": { "sourceFile": "synthetic_packet_input", "lineStart": 3, "lineEnd": 3 }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
