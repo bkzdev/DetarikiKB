@@ -26,8 +26,9 @@ directoryを指定すると、Story pageの`## Story Summary`/`## Episode Summar
 placeholderを、`review.status`が`reviewed`/`approved`・`generationStatus`が
 `generated`のSummary本文で置き換える（未指定・非表示条件のSummaryは従来通り
 「未生成」のまま、`docs/architecture/06_AI/Story_Summary_Design.md` §6.3）。
-Episode pageへのSummary表示はこのCLIでは行わない
-(feature/story-summary-renderer-integration)。
+Episode pageには対象EpisodeとID照合できる表示可能なEpisode Summaryだけを
+表示する。欠落・非表示・空本文の場合はsectionもplaceholderも出さない
+(`episode-page-summary-evidence-linking`)。
 
 `--evidence-index`（任意）で`knowledge/evidence/stories/`相当のfileまたは
 directoryを指定すると、Story別Evidence page（`evidence/{publicStoryId or
@@ -467,7 +468,8 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help=(
             "knowledge/summaries/stories/相当のfileまたはdirectoryのパス (任意)。"
-            "指定した場合のみStory pageのStory/Episode Summaryを、"
+            "指定した場合のみStory pageのStory/Episode SummaryとEpisode pageの"
+            "対象Episode Summaryを、"
             "review.statusがreviewed/approved・generationStatusがgeneratedの"
             "Summary本文で表示する。未指定でも既存の生成結果は変わらない"
         ),
