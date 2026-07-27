@@ -332,7 +332,7 @@ notes: null
 2. `agents/wiki_generator/`（または`agents/parser/`）にsummary loaderを追加し、`knowledge/summaries/stories/{storyId}.yaml`群を読み込んで`storyId`をキーにした索引を構築する（`character_profiles.py`の`build_character_profile_index`と同じパターン）
 3. `storyId`（無ければ`publicStoryId`）でStory Summaryを、`episodeId`（無ければ`publicEpisodeId`）でEpisode Summaryを照合する
 4. `review.status`が`reviewed`/`approved`のSummaryのみ、Story pageのplaceholderを実テキストへ置き換える（§6.3）。それ以外は従来通り「未生成」のまま表示する
-5. ~~Episode pageへのEpisode Summary表示可否は本文書では決定しない（後続PRで判断、§4 Non-goals）~~ → `episode-page-evidence-linking-review`で後続実装を推奨する決定を行った。後続PR `episode-page-summary-evidence-linking`では、対象Episodeの表示可能なEpisode Summary本文と、その直下の`evidenceRefs`のみを追加する。表示条件は既存Story pageと同一（`generationStatus: generated`、`review.status: reviewed`/`approved`、内部/公開ID照合矛盾時は非表示）であり、欠落・非表示・空本文なら`## Episode Summary` sectionを出さない。Story Summaryは再掲しない。`evidenceRefs`が空なら行を出さず、解決済みはStory別Evidence pageの該当anchorへ公開ID優先でリンクし、未解決時は入力IDのbacktick fallbackを維持する。
+5. ~~Episode pageへのEpisode Summary表示可否は本文書では決定しない（後続PRで判断、§4 Non-goals）~~ → `episode-page-evidence-linking-review`で限定契約を決定し、`episode-page-summary-evidence-linking`で実装した。対象Episodeの表示可能なEpisode Summary本文と、その直下の`evidenceRefs`のみを追加する。表示条件は既存Story pageと同一（`generationStatus: generated`、`review.status: reviewed`/`approved`、内部/公開ID照合矛盾時は非表示）であり、欠落・非表示・空本文なら`## Episode Summary` sectionを出さない。Story Summaryは再掲しない。`evidenceRefs`が空なら行を出さず、解決済みはStory別Evidence pageの該当anchorへ公開ID優先でリンクし、未解決時は入力IDのbacktick fallbackを維持する。
 
 **実装状況（`feature/story-summary-schema-implementation`で実施）**: 上記1〜4の土台となるloader（`load_story_summary`/`load_story_summaries`/`build_story_summary_index`/`build_public_story_summary_index`/`find_episode_summary`/`find_episode_summary_by_public_id`/`is_displayable_summary`）を`agents/wiki_generator/story_summaries.py`に実装した。**`render_wiki.py`/`renderer.py`への統合自体は行っていない**（次PR`story-summary-renderer-integration`のスコープ）。
 
@@ -345,6 +345,8 @@ notes: null
 - `agents/wiki_generator/renderer.py`の`_render_story_summary_section`/`_render_episode_summaries_section`/`render_story_page`/`build_pages`に`story_summary_lookup`（任意引数、デフォルトNone）を追加し、表示可能なSummaryが見つかった場合のみ本文を表示、それ以外は従来通り「未生成」を表示するようにした
 - **Episode pageへのSummary表示は行っていない**（§4 Non-goalsのまま、Character page/Characters index/Unresolved reportにも影響なし）
 - evidenceRefsの表示は行っていない（summary textのみ表示、§9末尾の通り次PR候補`story-summary-evidence-display`に持ち越し）
+
+上記2点は`feature/story-summary-renderer-integration`時点の履歴である。Story pageのevidenceRefs表示・リンク化は後続PRで実装済みであり、Episode pageへの限定表示も`episode-page-summary-evidence-linking`で実装した。Character page/Characters index/Unresolved reportには引き続き影響しない。
 
 ---
 
@@ -373,7 +375,7 @@ notes: null
 | `evidence-index-renderer-integration` | Story別Evidence page生成、evidenceRefsのEvidence indexへのリンク化 | 完了 |
 | `story-summary-generation-planning` | AI要約生成パイプライン（LLM provider/prompt実装）の着手時期・方式検討。実装計画は`docs/architecture/06_AI/Story_Summary_Generation_Plan.md`として確定した（§15参照） | **完了（設計のみ、本PR）** |
 | `episode-page-evidence-linking-review` | Episode pageへの限定導線をレビューし、後続実装を推奨。general Story Evidence index link、Episode別Evidence page/episode絞込anchor、schema/storage/CLI option/path変更は除外 | 完了（docs-only） |
-| `episode-page-summary-evidence-linking` | 対象Episodeの表示可能なEpisode Summary本文と直下の`evidenceRefs`のみをEpisode pageへ追加し、合成fixtureで回帰テスト。local manual reviewは実装完了後の別作業 | 次PR |
+| `episode-page-summary-evidence-linking` | 対象Episodeの表示可能なEpisode Summary本文と直下の`evidenceRefs`のみをEpisode pageへ追加し、合成fixtureで回帰テスト。local manual reviewは実装完了後の別作業 | 完了（local manual reviewも完了） |
 
 ---
 
@@ -393,14 +395,14 @@ notes: null
 - Evidence index実装
 - AI Analysis / Speculation schema実装
 
-上記は本文書の初版（`story-summary-schema-design`）時点でのNon-goalsの記録である。schema/loader/validator/template/fixture、Story page renderer統合、evidenceRefs表示、AI要約生成はそれぞれ後続PRで実装済みであり、この履歴は現在の未実装状態を意味しない。Episode pageへの限定的なSummary/evidenceRefs表示は`episode-page-evidence-linking-review`で後続実装を推奨する決定へ更新した。一方、general Story Evidence index link、Episode別Evidence page/episode絞込anchor、schema/storage/CLI option/path変更は今回の後続実装でも対象外である。
+上記は本文書の初版（`story-summary-schema-design`）時点でのNon-goalsの記録である。schema/loader/validator/template/fixture、Story page renderer統合、evidenceRefs表示、AI要約生成、Episode pageへの限定的なSummary/evidenceRefs表示はそれぞれ後続PRで実装済みであり、この履歴は現在の未実装状態を意味しない。一方、general Story Evidence index link、Episode別Evidence page/episode絞込anchor、schema/storage/CLI option/path変更は今回の実装でも対象外である。
 
 ---
 
 # 14. Open questions（未確定事項）
 
 - Episode Summaryの複数版（改訂履歴）を持たせるかどうか（現状は1 episodeにつき0〜1個のみ設計）
-- ~~Episode pageにもEpisode Summaryを表示するかどうか（§10.5、後続PRで判断）~~ → 限定表示は決定済み。実装後のmanual reviewを踏まえ、追加の導線が必要かだけ再評価する
+- ~~Episode pageにもEpisode Summaryを表示するかどうか（§10.5、後続PRで判断）~~ → 限定表示とlocal manual reviewは完了し、現時点で追加導線は不要と判断した
 - Summary text自体の文字数上限（`character_profiles.yaml`の`selfIntroduction`同様、著作権・引用量の観点は本文書のスコープ外）
 - ~~Evidence indexとの具体的な連携方式（`Wiki_Output_Design.md` §9.16が未実装のため）~~ → Story pageではStory別Evidence pageと該当anchorへのリンクを実装済み。Episode pageの限定実装も同じ連携方式を再利用する
 - `knowledge/summaries/`へのcommit可否判定を、人間の目視確認以外の方法（CIチェック等）でも担保すべきか。`scripts/validate_story_summaries.py --require-reviewed`は実装したが、CIへの組み込み自体はまだ行っていない

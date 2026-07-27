@@ -35,7 +35,8 @@ def test_review_records_limited_episode_page_contract():
     ):
         assert required in content
     assert "合成fixtureで回帰テスト" in content
-    assert "別作業としてlocal manual review" in content
+    assert "local manual review" in content
+    assert "問題が無いことを確認" in content
 
 
 def test_review_records_evidence_ref_resolution_contract():
@@ -76,12 +77,13 @@ def test_tasks_records_review_follow_up_and_packet_trial_fail_closed():
         assert required in content
 
 
-def test_canonical_context_records_review_complete_and_next_implementation():
+def test_canonical_context_records_review_and_implementation_complete():
     content = AI_CONTEXT.read_text(encoding="utf-8")
     for required in (
         "episode-page-evidence-linking-review",
         "対象Episodeの表示可能なEpisode Summary本文と直下の`evidenceRefs`だけ",
         "episode-page-summary-evidence-linking",
-        "Episode pageへの表示は未実装",
+        "Episode pageへの限定表示は",
+        "実装済み",
     ):
         assert required in content

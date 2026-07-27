@@ -124,7 +124,7 @@ Episode pageは残す。役割は以下の通り、Story pageとは明確に分�
 - Evidence references
 - Debug / review寄りの情報
 
-**後続実装の決定（`episode-page-evidence-linking-review`でレビュー完了）**: Episode pageには、対象Episodeの表示可能なEpisode Summary本文と、その直下の`evidenceRefs`のみを追加する。表示条件は既存Story pageと共通で、`generationStatus: generated`かつ`review.status: reviewed`/`approved`であり、内部/公開ID照合に矛盾があれば安全側で非表示とする。Summaryが欠落・非表示・空本文なら`## Episode Summary` section自体を出さず、placeholderは置かない。Story Summaryの再掲もしない。
+**実装状況（`episode-page-evidence-linking-review`で決定、`episode-page-summary-evidence-linking`で実装）**: Episode pageには、対象Episodeの表示可能なEpisode Summary本文と、その直下の`evidenceRefs`のみを追加する。表示条件は既存Story pageと共通で、`generationStatus: generated`かつ`review.status: reviewed`/`approved`であり、内部/公開ID照合に矛盾があれば安全側で非表示とする。Summaryが欠落・非表示・空本文なら`## Episode Summary` section自体を出さず、placeholderは置かない。Story Summaryの再掲もしない。
 
 `evidenceRefs`はSummary本文の直下に置き、空なら行を出さない。解決済みの参照は既存のStory別Evidence pageの該当anchorへリンクし、公開IDを優先する。解決できない参照は既存Story pageの契約どおり入力IDをbacktickで表示する。公開配布時はpublic-safe projection済みのSummary/Evidence入力を前提とし、既存helperの解決・fallback挙動は変更しない。
 
@@ -186,7 +186,7 @@ Episode pageは残す。役割は以下の通り、Story pageとは明確に分�
 
 **Evidence index renderer統合（`feature/evidence-index-renderer-integration`で実施）**: `scripts/render_wiki.py --evidence-index <path>`を追加し、Story別Evidence page（`render_evidence_page`、`evidence/{publicStoryId or storyId}.md`）を生成するようにした。Story pageの「Review Links」section（`_render_story_review_links_section`、従来はUnresolved reportへの導線のみ）に、該当storyのEvidence Indexデータが存在する場合のみEvidence pageへのリンクを追加する（存在しない場合はUnresolved report導線のみで従来通り）。§9.3のevidenceRefs表示（`Evidence refs: `ID1`, `ID2``）も、該当`evidenceId`がEvidence Indexに存在すればEvidence pageの該当anchorへのMarkdownリンクへ差し替わる（存在しない場合は従来通りID表示のまま、非エラー）。**Episode pageへの変更・Evidence index自動生成・Internal Review Evidence Packet生成は行っていない**。詳細は`docs/architecture/06_AI/Evidence_Index_Design.md` §10参照。
 
-**Episode page導線の後続実装（`episode-page-evidence-linking-review`で決定）**: 上記の「Episode pageへの変更なし」は当該PR時点の履歴である。後続PR `episode-page-summary-evidence-linking`で、§7.1の限定されたEpisode Summary/evidenceRefs表示だけを実装し、合成fixtureで回帰テストする。実装完了後の別作業としてlocal manual reviewを行う。general Story Evidence index link、Episode別Evidence page/episode絞込anchor、schema/storage/CLI option/path変更は今回も後続実装にも含めず、目視review後に必要性を再判断する。
+**Episode page導線の実装（`episode-page-summary-evidence-linking`で実施）**: 上記の「Episode pageへの変更なし」は当該PR時点の履歴である。§7.1の限定されたEpisode Summary/evidenceRefs表示だけを実装し、合成fixtureで回帰テストした。別作業のlocal manual reviewでも通常幅・狭幅表示、Evidence anchor遷移、非表示時のsection省略に問題が無いことを確認した。general Story Evidence index link、Episode別Evidence page/episode絞込anchor、schema/storage/CLI option/path変更は実装に含めず、現時点で追加導線は不要と判断した。
 
 ---
 
@@ -302,7 +302,7 @@ stories/{publicStoryId or storyId}/{publicEpisodeId or episodeId}.md
 - **story-summary-schema-design**: Story Summary/Episode Summaryのデータ構造（schema）設計（AI要約生成パイプライン自体はさらに後続）
 - **story-page-manual-review**: 実データ小規模サンプルでStory page表示（Story index→Story page→Episode pageの導線、Related Characters集約）を目視確認する
 - Related Locations/Organizationsのstory page表示、AI Analysisリンク（中期・長期方針、§5参照）
-- **episode-page-summary-evidence-linking**: §7.1の限定契約を実装し、その後にmanual reviewを行う。実データのSummary/Evidence生成・commitは含めない。
+- ~~**episode-page-summary-evidence-linking**~~: §7.1の限定契約を実装し、合成fixtureでの回帰テストとlocal manual reviewまで完了した。実データのSummary/Evidence生成・commitは含めていない。
 
 ---
 

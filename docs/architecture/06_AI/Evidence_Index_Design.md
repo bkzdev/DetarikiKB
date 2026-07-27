@@ -290,7 +290,9 @@ evidence/{publicEpisodeId or episodeId}.md#EVT_SAMPLE_E01_DLG0001
 | Phase 5.3: `internal-review-evidence-packet-generator` | Normalized Storyと既存mappingからworkspace限定Packetを生成 | 完了 |
 | Phase 5.4: `internal-review-evidence-packet-operations` | runbook、inventory、期限warning、dry-run既定cleanup | 完了 |
 | Phase 6: `episode-page-evidence-linking-review` | Episode pageへ追加するSummary/evidenceRefs導線を限定レビュー | 完了（docs-only） |
-| Phase 6.1: `episode-page-summary-evidence-linking` | 対象Episodeの表示可能なEpisode Summary本文と直下の`evidenceRefs`のみを実装し、その後manual review | 次PR |
+| Phase 6.1: `episode-page-summary-evidence-linking` | 対象Episodeの表示可能なEpisode Summary本文と直下の`evidenceRefs`のみを実装し、その後manual review | 完了（実装・合成fixture検証・local manual review） |
+
+**実装状況（`episode-page-summary-evidence-linking`で実施）**: `render_episode_page`/`build_pages`へ既存の`StorySummaryLookup`/`EvidenceIndexLookup`を任意で伝播し、対象EpisodeとID照合できる表示可能なEpisode Summary本文だけを`## Episode Summary`へ追加した。表示条件と内部/公開ID矛盾時の非表示は既存`get_displayable_episode_summary`、Evidence参照の公開ID優先link・未解決backtick fallback・空参照行省略は既存`_render_evidence_refs_line`を再利用する。欠落・非表示・空本文ではsectionもplaceholderも出さず、Story Summaryは再掲しない。general Story Evidence index link、Episode別Evidence page/episode絞込anchor、schema/storage/CLI option/pathは変更していない。合成fixtureによる回帰テストとlocal manual reviewを完了し、通常幅・狭幅表示、内部/公開ID系双方のEvidence anchor遷移、非表示時のsection省略に問題が無いことを確認した。
 
 **実装状況（`feature/evidence-index-schema-implementation`で実施）**: `schemas/evidence_index.schema.json`（§13データモデル案をそのまま実装。`evidenceType`10種enum・`visibility.rawTextIncluded`を`const: false`で固定）、`agents/wiki_generator/evidence_index.py`（loader/validator、`build_evidence_id_index`/`group_entries_by_story`/`group_entries_by_public_story`/`group_entries_by_episode`/`group_entries_by_public_episode`等のhelper）、`scripts/validate_evidence_index.py`（schema検証・duplicate evidenceId検出・raw text禁止文字列検出・`visibility.public`/`rawTextIncluded`検証）、`docs/templates/evidence_index_template.yaml`、合成fixture（`tests/fixtures/evidence_index/`）を追加した。保存場所は`knowledge/evidence/stories/`を採用し`.gitkeep`のみで実データ未投入。
 
@@ -348,10 +350,9 @@ evidence/{publicEpisodeId or episodeId}.md#EVT_SAMPLE_E01_DLG0001
 
 ## 11.2 Episode page
 
-- 現時点の実装ではsummary/evidenceRefsを表示していない。この状態は過去PR時点の履歴であり、`episode-page-evidence-linking-review`で後続実装を推奨する決定に更新した
-- 後続PR `episode-page-summary-evidence-linking`は、対象EpisodeとID照合できる表示可能なEpisode Summary本文と、その直下の`evidenceRefs`のみを追加する。`generationStatus: generated`、`review.status: reviewed`/`approved`、内部/公開ID矛盾なしを満たさなければ表示しない。欠落・非表示・空本文ならsectionを出さず、Story Summaryは再掲しない
+- `episode-page-summary-evidence-linking`で、対象EpisodeとID照合できる表示可能なEpisode Summary本文と、その直下の`evidenceRefs`のみを実装した。`generationStatus: generated`、`review.status: reviewed`/`approved`、内部/公開ID矛盾なしを満たさなければ表示しない。欠落・非表示・空本文ならsectionを出さず、Story Summaryは再掲しない
 - `evidenceRefs`は空なら行を出さない。解決済みは同じStory別Evidence pageの該当anchorへ公開ID優先でリンクし、未解決時は入力IDのbacktick fallbackを維持する。public-safe projection済みのSummary/Evidence入力を前提とし、既存helperの解決挙動は変更しない
-- general Story Evidence index link、Episode別Evidence page/episode絞込anchor、schema/storage/CLI option/path変更は後続実装にも含めず、manual review後に必要性を再判断する
+- general Story Evidence index link、Episode別Evidence page/episode絞込anchor、schema/storage/CLI option/path変更は実装に含めず、manual review後に必要性を再判断する
 - Episode pageは詳細確認・review用途としてEvidence indexとの相性が良い（既存のCandidate Counts/Related Charactersと同じ「詳細確認ページ」という役割、`Story_Page_Design.md` §7）
 
 ## 11.3 Summary（Story Summary / Episode Summary）

@@ -1946,20 +1946,171 @@ def test_story_summary_lookup_does_not_affect_unresolved_report(synthetic_collec
     assert "合成Story Summary本文。" not in pages["reports/unresolved.md"]
 
 
-def test_story_summary_lookup_does_not_affect_episode_page(synthetic_collection):
-    """Episode pageへのSummary表示はこのPRでは対象外
-    (story-summary-renderer-integration Non-goals)。"""
+@pytest.mark.parametrize("review_status", ["reviewed", "approved"])
+def test_displayable_episode_summary_is_displayed_on_episode_page(
+    synthetic_collection, review_status
+):
     lookup = _summary_lookup(
         _raw_summary_document(
             episodeSummaries=[
                 {"episodeId": "EP_TEST_001", "text": "合成Episode Summary本文。"}
-            ]
+            ],
+            review={
+                "status": review_status,
+                "reviewer": None,
+                "reviewedAt": None,
+                "notes": None,
+            },
         )
     )
     pages = build_pages(synthetic_collection, story_summary_lookup=lookup)
     episode_page = pages["stories/EP_TEST_001.md"]
-    assert "合成Episode Summary本文。" not in episode_page
+    assert "## Episode Summary" in episode_page
+    assert "合成Episode Summary本文。" in episode_page
     assert "本文セリフはこのページに掲載しません" in episode_page
+
+
+def test_episode_page_resolves_summary_by_public_ids(synthetic_collection):
+    """内部IDが一致しなくてもpublic Story/Episode IDで照合できる。"""
+    source_document = next(
+        doc
+        for doc in synthetic_collection["sourceDocuments"]
+        if doc.get("episodeId") == "EP_TEST_PUBLIC_001"
+    )
+    lookup = _summary_lookup(
+        _raw_summary_document(
+            storyId="SOME_OTHER_INTERNAL_STORY",
+            publicStoryId="PUBLIC_TEST_STORY_001",
+            episodeSummaries=[
+                {
+                    "episodeId": "SOME_OTHER_INTERNAL_EPISODE",
+                    "publicEpisodeId": "PUBLIC_TEST_STORY_001_E01",
+                    "text": "公開ID照合で表示するEpisode Summary。",
+                }
+            ],
+        )
+    )
+    page = render_episode_page(
+        source_document,
+        synthetic_collection,
+        story_summary_lookup=lookup,
+    )
+    assert "## Episode Summary" in page
+    assert "公開ID照合で表示するEpisode Summary。" in page
+
+
+@pytest.mark.parametrize(
+    ("document_overrides", "entry"),
+    [
+        ({}, None),
+        (
+            {
+                "review": {
+                    "status": "needs_revision",
+                    "reviewer": None,
+                    "reviewedAt": None,
+                    "notes": None,
+                }
+            },
+            {"episodeId": "EP_TEST_001", "text": "非表示の要約。"},
+        ),
+        (
+            {"generationStatus": "draft"},
+            {"episodeId": "EP_TEST_001", "text": "非表示の要約。"},
+        ),
+        ({}, {"episodeId": "EP_TEST_001", "text": "   "}),
+    ],
+)
+def test_episode_page_omits_summary_section_when_not_displayable(
+    synthetic_collection, document_overrides, entry
+):
+    """欠落・未review・未生成・空本文ではsectionもplaceholderも出さない。"""
+    lookup = _summary_lookup(
+        _raw_summary_document(
+            episodeSummaries=[] if entry is None else [entry],
+            **document_overrides,
+        )
+    )
+    pages = build_pages(synthetic_collection, story_summary_lookup=lookup)
+    episode_page = pages["stories/EP_TEST_001.md"]
+    assert "## Episode Summary" not in episode_page
+    assert "非表示の要約。" not in episode_page
+    assert "未生成" not in episode_page
+
+
+def test_episode_page_does_not_repeat_story_summary(synthetic_collection):
+    lookup = _summary_lookup(
+        _raw_summary_document(
+            storySummary={"text": "Episode pageへ再掲しないStory Summary。"},
+            episodeSummaries=[
+                {"episodeId": "EP_TEST_001", "text": "表示するEpisode Summary。"}
+            ],
+        )
+    )
+    pages = build_pages(synthetic_collection, story_summary_lookup=lookup)
+    episode_page = pages["stories/EP_TEST_001.md"]
+    assert "表示するEpisode Summary。" in episode_page
+    assert "Episode pageへ再掲しないStory Summary。" not in episode_page
+    assert "## Story Summary" not in episode_page
+
+
+def test_episode_page_hides_summary_on_story_id_conflict(synthetic_collection):
+    """storyId一致とpublicStoryId一致が別documentなら安全側で非表示。"""
+    source_document = {
+        **synthetic_collection["sourceDocuments"][0],
+        "publicStoryId": "PUBLIC_TEST_STORY_001",
+    }
+    lookup = _summary_lookup(
+        _raw_summary_document(
+            publicStoryId="SOME_OTHER_PUBLIC_ID",
+            episodeSummaries=[{"episodeId": "EP_TEST_001", "text": "内部ID側の要約。"}],
+        ),
+        _raw_summary_document(
+            storyId="TEST_PUBLIC_ID_STORY",
+            publicStoryId="PUBLIC_TEST_STORY_001",
+            episodeSummaries=[{"episodeId": "EP_TEST_001", "text": "公開ID側の要約。"}],
+        ),
+    )
+    page = render_episode_page(
+        source_document,
+        synthetic_collection,
+        story_summary_lookup=lookup,
+    )
+    assert "## Episode Summary" not in page
+    assert "内部ID側の要約。" not in page
+    assert "公開ID側の要約。" not in page
+
+
+def test_episode_page_hides_summary_on_episode_id_conflict(synthetic_collection):
+    """episodeId一致とpublicEpisodeId一致が別entryなら安全側で非表示。"""
+    source_document = {
+        **synthetic_collection["sourceDocuments"][0],
+        "publicEpisodeId": "PUBLIC_TEST_STORY_001_E01",
+    }
+    lookup = _summary_lookup(
+        _raw_summary_document(
+            episodeSummaries=[
+                {
+                    "episodeId": "EP_TEST_001",
+                    "publicEpisodeId": "SOME_OTHER_PUBLIC_EPISODE",
+                    "text": "内部ID側の要約。",
+                },
+                {
+                    "episodeId": "SOME_OTHER_INTERNAL_EPISODE",
+                    "publicEpisodeId": "PUBLIC_TEST_STORY_001_E01",
+                    "text": "公開ID側の要約。",
+                },
+            ]
+        )
+    )
+    page = render_episode_page(
+        source_document,
+        synthetic_collection,
+        story_summary_lookup=lookup,
+    )
+    assert "## Episode Summary" not in page
+    assert "内部ID側の要約。" not in page
+    assert "公開ID側の要約。" not in page
 
 
 def test_build_pages_with_story_summary_lookup_generates_same_page_set(
@@ -2311,9 +2462,9 @@ def test_evidence_refs_ignores_non_string_entries(synthetic_collection):
     assert "Evidence refs: `TEST_S01_C01_E01_DLG0001`" in section
 
 
-def test_evidence_refs_display_does_not_affect_episode_page(synthetic_collection):
-    """Episode pageへのevidenceRefs表示はこのPRでは対象外
-    (story-summary-evidence-display Non-goals)。"""
+def test_episode_page_evidence_ref_stays_plain_without_evidence_lookup(
+    synthetic_collection,
+):
     lookup = _summary_lookup(
         _raw_summary_document(
             episodeSummaries=[
@@ -2327,8 +2478,8 @@ def test_evidence_refs_display_does_not_affect_episode_page(synthetic_collection
     )
     pages = build_pages(synthetic_collection, story_summary_lookup=lookup)
     episode_page = pages["stories/EP_TEST_001.md"]
-    assert "Evidence refs" not in episode_page
-    assert "TEST_S01_C01_E01_DLG0001" not in episode_page
+    assert "Evidence refs: `TEST_S01_C01_E01_DLG0001`" in episode_page
+    assert "](../evidence/" not in episode_page
 
 
 # ----------------------------------------------------------------
@@ -2447,6 +2598,70 @@ def test_episode_summary_evidence_ref_is_linked_when_present(synthetic_collectio
         "Evidence refs: [`TEST_S01_C01_E01_DLG0001`]"
         "(../evidence/TEST_S01_C01.md#test_s01_c01_e01_dlg0001)" in section
     )
+
+
+def test_episode_page_evidence_refs_use_public_link_and_unresolved_fallback(
+    synthetic_collection,
+):
+    """Episode pageでも既存helperの公開ID優先linkと未解決fallbackを使う。"""
+    summary_lookup = _summary_lookup(
+        _raw_summary_document(
+            episodeSummaries=[
+                {
+                    "episodeId": "EP_TEST_001",
+                    "text": "合成Episode Summary本文。",
+                    "evidenceRefs": [
+                        "TEST_S01_C01_E01_DLG0001",
+                        "NOT_IN_EVIDENCE_INDEX",
+                    ],
+                }
+            ]
+        )
+    )
+    evidence_lookup = _evidence_lookup(
+        _raw_evidence_document(
+            entries=[
+                _raw_evidence_entry(
+                    evidenceId="TEST_S01_C01_E01_DLG0001",
+                    publicEvidenceId="EVT_TEST_001_E01_DLG0001",
+                    storyId="TEST_S01_C01",
+                    publicStoryId="EVT_TEST_001",
+                )
+            ]
+        )
+    )
+    pages = build_pages(
+        synthetic_collection,
+        story_summary_lookup=summary_lookup,
+        evidence_index_lookup=evidence_lookup,
+    )
+    episode_page = pages["stories/EP_TEST_001.md"]
+    assert (
+        "Evidence refs: [`EVT_TEST_001_E01_DLG0001`]"
+        "(../evidence/EVT_TEST_001.md#evt_test_001_e01_dlg0001), "
+        "`NOT_IN_EVIDENCE_INDEX`" in episode_page
+    )
+    assert "TEST_S01_C01_E01_DLG0001" not in episode_page
+    assert "[Evidence index]" not in episode_page
+
+
+def test_episode_page_omits_evidence_line_when_refs_are_empty(synthetic_collection):
+    summary_lookup = _summary_lookup(
+        _raw_summary_document(
+            episodeSummaries=[
+                {
+                    "episodeId": "EP_TEST_001",
+                    "text": "evidenceRefsなしのEpisode Summary。",
+                    "evidenceRefs": [],
+                }
+            ]
+        )
+    )
+    pages = build_pages(synthetic_collection, story_summary_lookup=summary_lookup)
+    episode_page = pages["stories/EP_TEST_001.md"]
+    assert "## Episode Summary" in episode_page
+    assert "evidenceRefsなしのEpisode Summary。" in episode_page
+    assert "Evidence refs:" not in episode_page
 
 
 def test_unresolved_evidence_ref_is_not_linked(synthetic_collection):
@@ -2847,11 +3062,11 @@ def test_evidence_page_does_not_leak_raw_text(synthetic_collection):
 
 
 def test_evidence_index_does_not_affect_episode_page(synthetic_collection):
-    """Episode pageはEvidence Indexの影響を受けない
-    (evidence-index-renderer-integration Non-goals)。"""
+    """Summaryが無ければgeneral Evidence index導線を追加しない。"""
     evidence_lookup = _evidence_lookup(_raw_evidence_document())
     pages = build_pages(synthetic_collection, evidence_index_lookup=evidence_lookup)
     episode_page = pages["stories/EP_TEST_001.md"]
+    assert "## Episode Summary" not in episode_page
     assert "Evidence refs" not in episode_page
     assert "evidence/" not in episode_page
 

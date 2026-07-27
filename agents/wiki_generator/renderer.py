@@ -1148,7 +1148,10 @@ def _sanitize_source_path(path: str | None) -> str:
 
 
 def render_episode_page(
-    source_document: dict[str, Any], collection: dict[str, Any]
+    source_document: dict[str, Any],
+    collection: dict[str, Any],
+    story_summary_lookup: StorySummaryLookup | None = None,
+    evidence_index_lookup: EvidenceIndexLookup | None = None,
 ) -> str:
     """Episode pageを生成する (Wiki_Output_Design.md §9.3)。
 
@@ -1157,6 +1160,14 @@ def render_episode_page(
     簡易ページとする。本文セリフは生成しない。collectionを渡すのは、
     このepisodeに関係するcharacter entity summary・inputResultを
     探すため。
+
+    `story_summary_lookup`を渡した場合は、対象EpisodeとID照合できる
+    表示可能なEpisode Summaryのみを表示する。欠落・非表示・空本文の場合は
+    section自体を出さず、Story Summaryも再掲しない。
+    `evidence_index_lookup`を併せて渡すと、Episode Summary直下の
+    evidenceRefsのうち解決できるものを既存のStory別Evidence pageへ
+    リンクする。解決できない参照は入力IDのbacktick表示を維持する
+    (`episode-page-evidence-linking-review`の限定契約)。
     """
     episode_id = source_document.get("episodeId") or source_document.get("documentId")
     document_id = source_document.get("documentId")
@@ -1203,6 +1214,13 @@ def render_episode_page(
 
     lines = [front_matter, f"# {episode_id}", "", "## Summary", ""]
     lines.extend(_render_key_value_list(summary_items))
+    lines.extend(
+        _render_episode_summary_section(
+            source_document,
+            story_summary_lookup,
+            evidence_index_lookup,
+        )
+    )
 
     lines.extend(_render_candidate_counts_section(source_document))
     if episode_id:
@@ -1313,6 +1331,37 @@ def _render_evidence_refs_line(
         _format_evidence_ref_display(ref, evidence_index_lookup) for ref in cleaned
     )
     return [f"Evidence refs: {refs_display}", ""]
+
+
+def _render_episode_summary_section(
+    source_document: dict[str, Any],
+    story_summary_lookup: StorySummaryLookup | None,
+    evidence_index_lookup: EvidenceIndexLookup | None = None,
+) -> list[str]:
+    """対象Episodeの表示可能なEpisode Summary sectionを組み立てる。
+
+    表示条件とID照合はStory pageと同じ
+    `get_displayable_episode_summary`へ委譲する。Summaryが欠落・非表示・
+    空本文の場合はplaceholderを置かず、section自体を返さない。
+    Story Summaryの再掲、general Evidence index導線、Episode別Evidence
+    pageはこの限定実装の対象外。
+    """
+    if story_summary_lookup is None:
+        return []
+
+    entry = get_displayable_episode_summary(
+        story_summary_lookup,
+        source_document.get("storyId"),
+        source_document.get("publicStoryId"),
+        source_document.get("episodeId"),
+        source_document.get("publicEpisodeId"),
+    )
+    if entry is None:
+        return []
+
+    lines = ["## Episode Summary", "", entry.text.strip(), ""]
+    lines.extend(_render_evidence_refs_line(entry.evidence_refs, evidence_index_lookup))
+    return lines
 
 
 def _render_story_summary_section(
@@ -1695,16 +1744,14 @@ def build_pages(
     「プロフィール未登録」表示になる)。
 
     `story_summary_lookup`（`StorySummaryLookup`）を渡すと、Story page
-    のStory/Episode SummaryをSummaryデータで表示する（省略時は従来通り
-    「未生成」のまま）。Character page/Characters index/Unresolved
-    report/Episode pageには影響しない
-    (feature/story-summary-renderer-integration)。
+    のStory/Episode Summaryと、Episode pageの対象Episode Summaryを
+    Summaryデータで表示する。Character page/Characters index/Unresolved
+    reportには影響しない。
 
     `evidence_index_lookup`（`EvidenceIndexLookup`）を渡すと、Story別
     Evidence page（`evidence/{publicStoryId or storyId}.md`）を生成し、
-    Story SummaryのevidenceRefsをそこへリンクする（省略時は従来通り
-    Evidence pageを生成せず、evidenceRefsはID表示のまま）。Episode
-    pageには影響しない (feature/evidence-index-renderer-integration)。
+    Story/Episode SummaryのevidenceRefsをそこへリンクする（省略時は
+    Evidence pageを生成せず、evidenceRefsはID表示のまま）。
     """
     characters = collection.get("entities", {}).get("characters", []) or []
     pages: dict[str, str] = {
@@ -1733,7 +1780,12 @@ def build_pages(
     for source_document in source_documents:
         path = episode_page_path(source_document)
         if path is not None:
-            pages[path] = render_episode_page(source_document, collection)
+            pages[path] = render_episode_page(
+                source_document,
+                collection,
+                story_summary_lookup,
+                evidence_index_lookup,
+            )
 
     for entity in characters:
         path = character_page_path(entity)
