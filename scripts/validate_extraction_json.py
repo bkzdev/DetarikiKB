@@ -12,7 +12,8 @@ Usage:
     # ディレクトリ (再帰的に *.json を検証)
     python scripts/validate_extraction_json.py --input data/extracted/_raw/
 
-    # semantic validationも実行 (evidenceIds実在確認、duplicate candidate id等)
+    # semantic validationも実行 (Candidate/FieldValueのevidenceIds実在確認、
+    # duplicate candidate id、Relationshipのローカルcandidate参照等)
     python scripts/validate_extraction_json.py --input data/extracted/_raw/ --semantic
 
     # テスト用フィクスチャの検証
@@ -72,7 +73,7 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help=(
             "JSON Schema検証に加えてsemantic validationも実行する "
-            "(evidenceIds実在確認、duplicate candidate id、"
+            "(Candidate/FieldValueのevidenceIds実在確認、duplicate candidate id、"
             "extractionRun整合性、relationship基本チェック、"
             "timeline基本チェック等)"
         ),

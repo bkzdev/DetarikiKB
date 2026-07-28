@@ -13,6 +13,7 @@ docs/architecture/06_AI/Extraction_Result_Schema.md
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Any
@@ -31,6 +32,18 @@ CANDIDATE_ARRAY_KEYS = (
     "specialSpeakerLabelCandidates",
 )
 
+STAGE_A_CANDIDATE_ID_TYPES = (
+    "CHAR",
+    "LOC",
+    "ORG",
+    "ITEM",
+    "LORE",
+    "EVENT",
+    "REL",
+    "TL",
+    "SSL",
+)
+
 
 @dataclass
 class SemanticValidationIssue:
@@ -43,6 +56,7 @@ class SemanticValidationIssue:
     candidate_id: str | None = None
     array_key: str | None = None
     evidence_id: str | None = None
+    field_name: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -53,13 +67,19 @@ class SemanticValidationIssue:
             "candidateId": self.candidate_id,
             "arrayKey": self.array_key,
             "evidenceId": self.evidence_id,
+            "fieldName": self.field_name,
         }
 
     def format(self) -> str:
         """CLI表示用の1行メッセージ。どのcandidate/evidenceIdが原因か含める。"""
         location_parts = [
             part
-            for part in (self.array_key, self.candidate_type, self.candidate_id)
+            for part in (
+                self.array_key,
+                self.candidate_type,
+                self.candidate_id,
+                self.field_name,
+            )
             if part
         ]
         location = "/".join(location_parts) if location_parts else "(document)"
@@ -107,7 +127,55 @@ def check_evidence_ids_exist(document: dict[str, Any]) -> list[SemanticValidatio
 
 
 # ----------------------------------------------------------------
-# 2. duplicate candidate id check
+# 2. FieldValue evidenceIds existence check
+# ----------------------------------------------------------------
+
+
+def check_field_value_evidence_ids_exist(
+    document: dict[str, Any],
+) -> list[SemanticValidationIssue]:
+    """FieldValue固有のevidenceIdsがdocument.evidenceIndexに実在するか検証する。
+
+    evidenceIdsが省略されたFieldValueは候補全体のevidenceIdsを継承する契約のため、
+    ここでは明示されたlist内の参照だけを検証する。空listは追加参照なしとして扱う。
+    """
+    evidence_index = document.get("evidenceIndex", {}) or {}
+    issues: list[SemanticValidationIssue] = []
+
+    for array_key, candidate in iter_candidates(document):
+        fields = candidate.get("fields")
+        if not isinstance(fields, dict):
+            continue
+
+        for field_name, field_value in fields.items():
+            if not isinstance(field_value, dict):
+                continue
+            evidence_ids = field_value.get("evidenceIds")
+            if not isinstance(evidence_ids, list):
+                continue
+
+            for evidence_id in evidence_ids:
+                if evidence_id not in evidence_index:
+                    issues.append(
+                        SemanticValidationIssue(
+                            rule="field_value_evidence_id_exists",
+                            severity="error",
+                            message=(
+                                f"fields.{field_name} のevidenceId "
+                                f"'{evidence_id}' が evidenceIndex に存在しません"
+                            ),
+                            candidate_type=candidate.get("type"),
+                            candidate_id=candidate.get("id"),
+                            array_key=array_key,
+                            evidence_id=evidence_id,
+                            field_name=f"fields.{field_name}",
+                        )
+                    )
+    return issues
+
+
+# ----------------------------------------------------------------
+# 3. duplicate candidate id check
 # ----------------------------------------------------------------
 
 
@@ -140,7 +208,7 @@ def check_duplicate_candidate_ids(
 
 
 # ----------------------------------------------------------------
-# 3. empty evidenceIndex check
+# 4. empty evidenceIndex check
 # ----------------------------------------------------------------
 
 
@@ -163,7 +231,7 @@ def check_empty_evidence_index(
 
 
 # ----------------------------------------------------------------
-# 4. extractionRun consistency check
+# 5. extractionRun consistency check
 # ----------------------------------------------------------------
 
 
@@ -205,7 +273,7 @@ def check_extraction_run_consistency(
 
 
 # ----------------------------------------------------------------
-# 5. relationship basic check
+# 6. relationship basic check
 # ----------------------------------------------------------------
 
 
@@ -222,7 +290,7 @@ def check_relationship_basic(document: dict[str, Any]) -> list[SemanticValidatio
         source = candidate.get("sourceCandidate")
         target = candidate.get("targetCandidate")
 
-        if source is not None and source.strip() == "":
+        if isinstance(source, str) and source.strip() == "":
             issues.append(
                 SemanticValidationIssue(
                     rule="relationship_endpoint_not_empty",
@@ -233,7 +301,7 @@ def check_relationship_basic(document: dict[str, Any]) -> list[SemanticValidatio
                     array_key="relationships",
                 )
             )
-        if target is not None and target.strip() == "":
+        if isinstance(target, str) and target.strip() == "":
             issues.append(
                 SemanticValidationIssue(
                     rule="relationship_endpoint_not_empty",
@@ -260,7 +328,69 @@ def check_relationship_basic(document: dict[str, Any]) -> list[SemanticValidatio
 
 
 # ----------------------------------------------------------------
-# 6. timeline basic check
+# 7. relationship candidate endpoint existence check
+# ----------------------------------------------------------------
+
+
+def _is_stage_a_candidate_reference(value: Any, episode_id: Any) -> bool:
+    """Stage A暫定candidate IDとして識別できる参照か。
+
+    現行契約の ``{episodeId}_CAND_{TYPE}{number}`` 全体に一致する値だけを
+    ローカルcandidate参照と判定する。``_CAND_`` を名前の一部に含むcanonical
+    Entity IDやlegacy値を誤rejectしないため、segment単独では判定しない。
+    """
+    if not isinstance(value, str) or not isinstance(episode_id, str):
+        return False
+    type_pattern = "|".join(STAGE_A_CANDIDATE_ID_TYPES)
+    pattern = rf"{re.escape(episode_id)}_CAND_(?:{type_pattern})\d{{3,}}"
+    return re.fullmatch(pattern, value) is not None
+
+
+def check_relationship_candidate_endpoints_exist(
+    document: dict[str, Any],
+) -> list[SemanticValidationIssue]:
+    """RelationshipのStage A candidate参照が同一document内に実在するか検証する。
+
+    sourceCandidate/targetCandidateはcanonical Entity IDも許す。したがって、
+    Stage A candidate IDと識別できる参照だけをローカルcandidate集合と照合し、
+    canonical/opaqueな外部参照はStage Bの解決へ委ねる。
+    """
+    episode_id = document.get("episodeId")
+    candidate_ids = {
+        candidate_id
+        for _, candidate in iter_candidates(document)
+        if isinstance((candidate_id := candidate.get("id")), str) and candidate_id
+    }
+    issues: list[SemanticValidationIssue] = []
+
+    for candidate in document.get("relationships", []) or []:
+        for endpoint_name in ("sourceCandidate", "targetCandidate"):
+            endpoint = candidate.get(endpoint_name)
+            if (
+                not _is_stage_a_candidate_reference(endpoint, episode_id)
+                or endpoint in candidate_ids
+            ):
+                continue
+
+            issues.append(
+                SemanticValidationIssue(
+                    rule="relationship_candidate_endpoint_exists",
+                    severity="error",
+                    message=(
+                        f"{endpoint_name}が参照するStage A candidate "
+                        f"'{endpoint}' が同一document内に存在しません"
+                    ),
+                    candidate_type="relationship_candidate",
+                    candidate_id=candidate.get("id"),
+                    array_key="relationships",
+                    field_name=endpoint_name,
+                )
+            )
+    return issues
+
+
+# ----------------------------------------------------------------
+# 8. timeline basic check
 # ----------------------------------------------------------------
 
 
@@ -322,15 +452,17 @@ def check_timeline_basic(document: dict[str, Any]) -> list[SemanticValidationIss
 
 
 # ----------------------------------------------------------------
-# 7. entrypoint
+# 9. entrypoint
 # ----------------------------------------------------------------
 
 _ALL_CHECKS = (
     check_evidence_ids_exist,
+    check_field_value_evidence_ids_exist,
     check_duplicate_candidate_ids,
     check_empty_evidence_index,
     check_extraction_run_consistency,
     check_relationship_basic,
+    check_relationship_candidate_endpoints_exist,
     check_timeline_basic,
 )
 
