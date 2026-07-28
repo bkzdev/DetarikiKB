@@ -18,6 +18,15 @@
 - `pre-commit run --all-files`でtrailing-whitespace/yaml check/ruff/ruff-formatを実行できる。
 - パーサpipelineの主要script（`scripts/check_script_compatibility.py`・`scripts/normalize_story.py`等）は、`agents/`をimportできるようrepo rootから実行すること。
 
+## Codexのモデル・推論分担
+
+- 親エージェントは`gpt-5.6-sol`・推論強度`high`を既定とし、設計、進行管理、統合、最終判断を担当する。
+- 明確に切り出せる独立した実装・調査・レビューは、必要に応じてサブエージェントへ委譲する。通常のサブエージェントは`gpt-5.6-terra`・推論強度`medium`を既定とする。
+- 親エージェントはサブエージェントの結果をそのまま採用せず、差分と検証結果を確認してから統合する。
+- 複雑な設計検証、セキュリティレビュー、難しい原因調査では、対象エージェントの推論強度を一時的に`high`へ上げてよい。`xhigh`は常用せず、ユーザーの明示指定または特に難しい判断が必要な場合に限る。
+- 分割による調整コストが上回る短い作業や、同じファイルを密に編集する作業は無理に委譲しない。
+- 具体的な既定値は`.codex/config.toml`を正とし、タスクまたはユーザーがモデル・推論強度を明示した場合はその指定を優先する。
+
 ## 重要不変則（要点、詳細は`AI_CONTEXT.md`）
 
 - **不明情報を破棄しない**: 未知コマンド・未登録キャラID・分類不能行は捨てず、`compatibilityReport`または`type: "unknown"`として保持する（`AI_CONTEXT.md` §3.2/§13.3）。
