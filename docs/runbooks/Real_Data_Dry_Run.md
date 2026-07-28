@@ -116,10 +116,13 @@ uv run python scripts/normalize_story.py \
     --input data/raw/main/MAIN_S01_C02_E01.dec \
     --story-id MAIN_S01_C02 --episode-id MAIN_S01_C02_E01 --category MAIN \
     --output data/normalized/main/ \
+    --compat-report-output workspace/dry_runs/<timestamp>/reports/ \
     --validate --check-compat
 ```
 
 - `--check-compat`は`scripts/check_script_compatibility.py`相当のチェックを内包する。事前に単独で実行してもよい:
+- 埋め込みチェックのレポート出力先は`--compat-report-output DIR`で指定する。このオプションは`--check-compat`との併用が必須で、指定先ディレクトリは自動作成される。省略時は従来通り`data/reports/`へ出力される。
+- レポートのファイル名は`script_compatibility_report.json`/`.md`で固定される。複数回のdry-runで上書きしないよう、`workspace/dry_runs/<timestamp>/reports/`のようにrunごとのignoredディレクトリを使う。
 
 ```bash
 uv run python scripts/check_script_compatibility.py data/raw/main/MAIN_S01_C02_E01.dec --output data/reports/
@@ -133,6 +136,7 @@ uv run python scripts/normalize_story.py \
     --output data/normalized/event/ \
     --manifest workspace/story_manifest/story_manifest_candidates.yaml \
     --raw-root . \
+    --compat-report-output workspace/dry_runs/<timestamp>/reports/ \
     --validate --check-compat
 ```
 
@@ -304,7 +308,7 @@ exit code `0`なら問題なし、`1`なら該当ファイルが一覧表示さ�
 実データ2話での初回dry-run trialで、本手順書の想定通りに動作しない点・追加の注意点が見つかった。詳細は `docs/runbooks/Real_Data_Dry_Run_Result_Template.md` を参照。要点のみここに記す。
 
 - Windows日本語環境（cp932コンソール）では、`normalize_story.py`/`check_script_compatibility.py`のコンソールサマリーに絵文字が含まれていると`UnicodeEncodeError`でクラッシュ・誤ったエラー報告になっていた（このtrialで修正済み）。今後同様のCLIを追加する場合、コンソール向け出力に絵文字を使う際はcp932環境での動作確認を行うこと。
-- `normalize_story.py --check-compat`は互換性レポートの出力先を指定できず、常にプロジェクトルート直下`data/reports/`に出力される（`data/reports/dry_run/`等のサブディレクトリを指定していても効果が無い）。dry-run後のクリーンアップ（§14）では、指定したサブディレクトリだけでなく`data/reports/`直下も確認すること。
+- 2026-07-28に`normalize_story.py --check-compat`へ`--compat-report-output DIR`を追加し、互換性レポートをrunごとのディレクトリへ隔離できるようにした。未指定時は後方互換のため`data/reports/`へ出力される。固定ファイル名の上書きを避けるため、§7の通り`workspace/dry_runs/<timestamp>/reports/`を指定する。
 - `check_script_compatibility.py`単体実行時の判定と、`normalize_story.py --check-compat`経由でNormalized JSONに埋め込まれる`compatibilityReport`の判定が食い違うことがある（新規会話コマンド候補の検出件数など）。report確認（§12）の際はどちらの経路の結果を見ているか区別すること。
 - 実データに`itemId`/`relationshipType`等の明示的な構造化タグが含まれない場合、Item/Lore/Event/Relationship/Timeline Candidateは0件になる（rule-based抽出の設計上の制約であり、バグではない）。Character/Locationの抽出件数のみを見て「抽出が動いていない」と誤解しないこと。
 

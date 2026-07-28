@@ -89,6 +89,8 @@ def test_normalize_story_cli_survives_cp932_console(tmp_path):
             str(tmp_path),
             "--validate",
             "--check-compat",
+            "--compat-report-output",
+            str(tmp_path / "compat_reports"),
         ],
         capture_output=True,
         encoding="cp932",

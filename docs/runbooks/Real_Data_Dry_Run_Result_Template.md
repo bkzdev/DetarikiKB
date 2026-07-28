@@ -96,9 +96,9 @@ Path: `docs/runbooks/Real_Data_Dry_Run_Result_Template.md`
 
 CLAUDE.mdに既存の既知ギャップとして記載されている「`config/script_commands.yaml` と `parser.py` のハードコードされたマップが統一されていない」という制約が、実データで具体的な数値の食い違いとして顕在化した一例。
 
-## 3.5 [未修正・既知の課題] `--check-compat` のレポート出力先がカスタマイズ不可
+## 3.5 [後続PRで解消済み] `--check-compat` のレポート出力先がカスタマイズ不可
 
-`normalize_story.py --check-compat` は内部で `check_script_compatibility.py` を `--output` 指定なしのまま呼び出すため、互換性レポートは常にプロジェクトルート直下の `data/reports/` に出力される。dry-run手順が推奨する `data/reports/dry_run/` のようなサブディレクトリ配下に出力先を統一できない（`.gitignore` は深さに依らず `data/reports/**/*.json` 等をカバーするためcommit事故のリスクは無いが、整理上の不便がある）。
+初回trial時点では、`normalize_story.py --check-compat` が内部で `check_script_compatibility.py` を `--output` 指定なしのまま呼び出すため、互換性レポートは常にプロジェクトルート直下の `data/reports/` に出力されていた。2026-07-28に `--compat-report-output DIR` を追加し、runごとのignoredディレクトリへ出力可能にした。未指定時は後方互換のため `data/reports/` を維持する。固定ファイル名の上書きを避けるため、`workspace/dry_runs/<timestamp>/reports/` のようにrunごとのディレクトリを使う。
 
 ---
 
@@ -107,7 +107,7 @@ CLAUDE.mdに既存の既知ギャップとして記載されている「`config/
 1. `config/script_commands.yaml` / `agents/parser/parser.py` の演出コマンド辞書を、実データで見つかった `pos`/`euler`/`fov`/`camera`/`wait` 等のコマンド群に合わせて拡充する（§3.2）
 2. キャラクター辞書（`reference/parser/characters_reference.json` または `knowledge/dictionaries/*.yaml`）を実データが参照する番号帯まで拡充する（§3.3）
 3. `check_script_compatibility.py` 単体実行と `normalize_story.py --check-compat` 経由の判定差異の原因を特定し、解消方針を検討する（§3.4）
-4. `--check-compat` のレポート出力先をオプションで指定可能にするか、既定動作として明示的にドキュメント化する（§3.5）
+4. ~~`--check-compat` のレポート出力先をオプションで指定可能にするか、既定動作として明示的にドキュメント化する（§3.5）~~ → `--compat-report-output DIR`を追加し、未指定時の`data/reports/` fallbackと固定ファイル名の上書き注意を文書化して解消済み
 5. ~~選択肢（`branch`/`#if`）を含む実データでの追加dry-run実施~~ → §6（2026-07-04実施）で対応完了。branch/choiceのブロック配置バグ3件と、句読点のみの本文行が欠落する不具合1件を発見・修正
 6. `RelationshipCandidate`/`TimelineCandidate`/`ItemCandidate`/`LoreCandidate`/`EventCandidate` は、実データに明示的な構造化タグ（`itemId`/`relationshipType`等）が無いため0件だった。自然文からの推定（LLM抽出）が無い限り、rule-based抽出だけでは実データからこれらのCandidateを得られないことが確認された（設計通りの制約であり、バグではない）
 
