@@ -38,10 +38,13 @@ python scripts/normalize_story.py \
     --input data/raw/main/example.dec \
     --story-id MAIN_S01_C02 --episode-id MAIN_S01_C02_E01 --category MAIN \
     --output data/normalized/main/ \
+    --compat-report-output workspace/dry_runs/<run-id>/reports/ \
     --validate --check-compat
 ```
 
 `check_script_compatibility.py` exit codes are meaningful: `0` compatible, `1` needs_update, `2` blocked — treat non-zero as a signal to update `config/script_commands.yaml` or the character dictionary before trusting parser output on new script batches.
+
+`normalize_story.py --compat-report-output DIR`は`--check-compat`との併用時のみ有効で、埋め込み互換性チェックのJSON/Markdownレポートを`DIR`へ出力する。省略時は従来通り`data/reports/`へ出力する。レポート名は固定のため、複数runではrunごとに別ディレクトリを指定する。
 
 Docker/Dev Container (optional, for Neo4j + Ollama services): `cp .env.example .env && docker compose up -d`, then reopen in VS Code Dev Container. Neo4j Browser on :7474, Ollama API on :11434, MkDocs on :8000. These services are not required for parser work — pytest and the parser scripts run with plain Python.
 

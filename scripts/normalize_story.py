@@ -29,7 +29,8 @@ Usage:
         --episode-id MAIN_S01_C02_E01 \\
         --category MAIN \\
         --output data/normalized/main/ \\
-        --check-compat
+        --check-compat \\
+        --compat-report-output workspace/dry_runs/20260728_000000/reports/
 """
 
 import argparse
@@ -177,6 +178,16 @@ def parse_args() -> argparse.Namespace:
         help="互換性チェックも実行する",
     )
     parser.add_argument(
+        "--compat-report-output",
+        default=None,
+        metavar="DIR",
+        help=(
+            "互換性チェックレポートの出力先ディレクトリ "
+            "(--check-compatと併用。未指定時は"
+            "check_script_compatibility.pyの既定値 data/reports/)"
+        ),
+    )
+    parser.add_argument(
         "--commands",
         default=str(DEFAULT_COMMANDS_CONFIG),
         help=f"コマンド辞書 YAML (デフォルト: {DEFAULT_COMMANDS_CONFIG})",
@@ -240,7 +251,10 @@ def parse_args() -> argparse.Namespace:
         help="進捗メッセージを抑制する",
     )
 
-    return parser.parse_args()
+    args = parser.parse_args()
+    if args.compat_report_output is not None and not args.check_compat:
+        parser.error("--compat-report-output は --check-compat と併用してください")
+    return args
 
 
 # ----------------------------------------------------------------
@@ -416,17 +430,21 @@ def _run_compatibility_check(args: argparse.Namespace, input_path: Path) -> int 
         if Path(args.characters).suffix.lower() in (".yaml", ".yml"):
             compat_characters_path = str(LEGACY_CHARACTERS_PATH)
 
+        compat_command = [
+            sys.executable,
+            str(_PROJECT_ROOT / "scripts" / "check_script_compatibility.py"),
+            str(input_path),
+            "--commands",
+            args.commands,
+            "--characters",
+            compat_characters_path,
+            "--quiet",
+        ]
+        if args.compat_report_output is not None:
+            compat_command.extend(["--output", args.compat_report_output])
+
         result = subprocess.run(
-            [
-                sys.executable,
-                str(_PROJECT_ROOT / "scripts" / "check_script_compatibility.py"),
-                str(input_path),
-                "--commands",
-                args.commands,
-                "--characters",
-                compat_characters_path,
-                "--quiet",
-            ],
+            compat_command,
             capture_output=True,
             text=True,
         )
