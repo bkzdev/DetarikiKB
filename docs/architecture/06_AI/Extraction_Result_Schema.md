@@ -102,7 +102,7 @@ Stage B固有のフィールド（`mergedFrom`/`lastMergedAt` 等）は `Extract
 | Field | 必須 | 型 | 説明 |
 |---|---:|---|---|
 | `id` | Yes | string | 候補ID。Stage Aでは§4.2の暫定候補ID形式、Stage Bへ昇格後は確定Canonical ID（`CHAR_*`等、`Identifier_Specification.md` §6）に置き換わる |
-| `type` | Yes | string | 候補種別のdiscriminator。enum: `character_candidate` / `location_candidate` / `organization_candidate` / `item_candidate` / `lore_candidate` / `event_candidate` / `relationship_candidate` / `timeline_candidate` |
+| `type` | Yes | string | 候補種別のdiscriminator。enum: `character_candidate` / `location_candidate` / `organization_candidate` / `item_candidate` / `lore_candidate` / `event_candidate` / `relationship_candidate` / `timeline_candidate` / `special_speaker_label_candidate` |
 | `sourceType` | Yes | string | 候補全体を代表する情報源区分。enum: `official` / `script` / `ai_extracted` / `ai_inferred` / `manual` / `unknown`（`Extraction_Pipeline.md` §7.1と同一語彙） |
 | `confidence` | Yes | number | 0.0〜1.0。候補全体を代表するconfidence |
 | `evidenceIds` | Yes | string[] | この候補の根拠となる`EvidenceRef.sourceId`の配列。最低1件必須（§6.1で定義するEvidence必須ルールに従う） |
@@ -132,6 +132,7 @@ Stage Aの時点では、候補はまだcanonical IDへ解決されていない�
 | `event_candidate` | `EVENT` | `MAIN_S01_C02_E01_CAND_EVENT001` |
 | `relationship_candidate` | `REL` | `MAIN_S01_C02_E01_CAND_REL001` |
 | `timeline_candidate` | `TL` | `MAIN_S01_C02_E01_CAND_TL001` |
+| `special_speaker_label_candidate` | `SSL` | `MAIN_S01_C02_E01_CAND_SSL001` |
 
 この暫定ID形式は `Identifier_Specification.md` にはまだ存在しないため、本文書で新規定義する。
 将来同文書へ統合する場合は、Evidence ID（§8同文書）と同様に「最小単位を参照する」思想を踏襲する。
@@ -159,6 +160,8 @@ CandidateEnvelopeの`sourceType`/`confidence`は候補全体を代表する値�
 | `sourceType` | Yes | string | CandidateEnvelopeと同一語彙 |
 | `confidence` | Yes | number | 0.0〜1.0 |
 | `evidenceIds` | No | string[] | この属性値固有の根拠。省略時は候補全体の`evidenceIds`を根拠とみなす |
+
+`scripts/validate_extraction_json.py --semantic`は、FieldValueに明示された`evidenceIds`をCandidate種別横断で`evidenceIndex`と照合する。省略時、および空配列の場合は、追加の属性固有参照なしとして候補全体の`evidenceIds`を根拠に使う。これにより、属性固有の参照を書いた場合はdangling referenceを許さず、既存の候補単位fallbackも維持する。
 
 `sourceType`テーブルの意味・運用（`ai_inferred`をWikiの「AI考察」セクションへ振り分ける等）は`Extraction_Pipeline.md` §7.1〜§7.3を正とし、本文書では重複記載しない。
 
@@ -467,6 +470,8 @@ Character/Organization/Location/Itemのいずれにも分類できない固有�
 
 `relationshipType`のenum値は未確定のため、本文書ではフィールド型を`string`とし、`schemas/extraction.schema.json`実装時点でも暫定的に自由文字列を許容し、`Relationships.md`確定後にenum制約へ切り替える方針とする（§16.4）。
 
+`sourceCandidate`/`targetCandidate`のうち、§4.2のStage A暫定ID形式（同一`episodeId`＋`_CAND_`＋定義済みTYPE＋3桁以上の連番）全体に一致する値は、`scripts/validate_extraction_json.py --semantic`で同一`episode_extraction`内のcandidate配列に実在することを必須とする。一方、canonical Entity ID（`CHAR_*`/`ORG_*`等）やlegacy/外部参照は、外部辞書を入力しないStage A validatorでは存在確認できないためrejectせず、Stage Bの解決・昇格gateへ委ねる。`_CAND_` segmentを名前の一部に含むだけのcanonical IDもStage A参照とは判定しない。この境界により、danglingなローカルcandidate参照を検出しつつ、正当なcanonical参照を誤って拒否しない。
+
 ---
 
 # 13. TimelineCandidate
@@ -691,6 +696,8 @@ Candidate schemaはStage A（未確定候補）、既存列挙のschemaはStage 
 
 `Extraction_Pipeline.md` §8.1「LLM出力はStructured JSON必須」の運用として、`extraction.schema.json`（および子schema群）による検証は、LLM出力を受け取った直後、`data/extracted/_raw/`へ書き込む前に行う。
 検証失敗時は§14 ExtractionError（`errorType: "schema_validation_failed"`）として記録し、不正なJSONを`data/extracted/`へ書き込まない。
+
+JSON Schema検証後は、`scripts/validate_extraction_json.py --semantic`でCandidate/FieldValueの`evidenceIds`実在確認、candidate ID重複、`extractionRun`整合、識別可能なRelationship candidate参照等のdocument内整合性を検証できる。外部canonical辞書との照合と、複数episodeを横断するTimeline順序整合性はこの単一document validatorの対象外とする。
 
 ## 16.4 未確定のまま残す点
 
