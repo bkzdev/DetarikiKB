@@ -8,6 +8,7 @@
 
 ## Current Focus
 
+- `codex/merge-report-output`: `merge_extractions.py`へ`--report-output FILE`を追加し、manual override・canonical ID再検証まで反映したcollection内の最終`report`と同一内容を独立JSON artifactとして出力可能にした（**実装PR**）。親ディレクトリは自動作成し、collection本体と同一pathの指定は上書き事故を防ぐためexit code 2で拒否する。未指定時は独立artifactを生成せず既存CLI挙動を維持する。正式運用の推奨先`data/extracted/reports/merge_report.json`と、dry-runのrun別`workspace/dry_runs/<RUN_ID>/reports/merge_report.json`を設計書・runbookへ反映した。report内容・merge判定・schema・固定collectionファイル名は変更していない。
 - `codex/normalize-story-compat-report-output`: `normalize_story.py --check-compat`に`--compat-report-output DIR`を追加し、埋め込み`check_script_compatibility.py`のJSON/Markdownレポートをrunごとのignoredディレクトリへ出力可能にした（**実装PR**）。オプション単独指定はargparse errorとし、未指定時は従来の`data/reports/`を維持する。固定ファイル名による上書きを避ける運用を`CLAUDE.md`とreal-data dry-run runbookへ反映し、custom出力、既定値維持、誤用拒否、cp932テストのrepo内副作用防止を合成データで検証した。レポートファイル名変更、並列runの排他制御、互換性判定ロジックは変更していない。
 - `codex/semantic-validation-within-document-expansion`: Stage A `episode_extraction`の単一document内semantic validationを拡充した（**実装PR**）。8種Candidateの`fields.*.evidenceIds`に明示された参照を`evidenceIndex`と照合し、FieldValue単位のdangling referenceをerror化した。省略・空配列は既存の候補全体`evidenceIds` fallbackを維持する。Relationshipの`sourceCandidate`/`targetCandidate`は、同一`episodeId`＋`_CAND_`＋定義済みTYPE＋連番のStage A暫定candidate形式全体に一致する参照だけを同一documentの全candidate ID集合と照合し、canonical Entity IDやlegacy/外部参照は外部辞書なしで誤rejectしない。CLI `--semantic`にも同じ2検証を統合し、全8種FieldValue・両endpoint・canonical/opaque fail-openを合成データで検証した。schema変更、外部canonical辞書照合、Timelineの複数episode横断順序検証は行っていない。
 - `codex/parser-auto-bind-non-speaker-slot-review`: `$numX`/`$valueX`代入時のスロット自動バインドを変更するかレビューし、**現行契約を維持する**と決定した（**docs-only PR**）。`$numX`の`slot番号 == 変数index`が実データ3,218/3,278回（約98%）を占めること、`@SpineTalk`が2,893回中2,891回の`$numN`形式で同契約に依存すること、話者非消費値は`nonSpeakerNumericAssignments`、非ID形式値は`nonLiteralSpeakerExpressions`へ分離済みであること、`ch N`+`costume`の既知誤帰属はコマンド固有の再束縛で解消済みであることを根拠とした。今後も変数代入は既存計算式でスロットへ束縛し、意味を確認できた明示的構文だけを時系列の後勝ちで再束縛する。将来契約自体を変える場合は、合成fixture・全カテゴリ差分調査・昇格済みstoryのblock比較・`@SpineTalk`回帰確認を必須とする。`agents/parser/`・schema・生成物は変更していない。
@@ -161,7 +162,7 @@
 - canonical ID辞書（`knowledge/dictionaries/*.yaml`）本体の実装（現状はpolicy/helper/validationのみ）
 - EventCandidateのparticipant/location解決
 - `entities`配下の`schemas/merged_knowledge.schema.json`への`$ref`接続（cross-file $ref方針の決定待ち）
-- merge report自体の生成物出力（`data/extracted/reports/merge_report.json`への書き出し）
+- ~~merge report自体の生成物出力（`data/extracted/reports/merge_report.json`への書き出し）~~ → `codex/merge-report-output`で`--report-output FILE`を追加し、正式運用パスとrun別dry-runパスを文書化して解消（Current Focus参照）
 - choice内話者・choice内location/organization/item/lore/event情報も含めた抽出への拡張
 - ~~semantic validationの単一document内拡充~~ → `codex/semantic-validation-within-document-expansion`でFieldValue単位の`evidenceIds`実在確認と、識別可能なRelationship両端のStage A candidate参照確認を実装済み（Current Focus参照）。残件は外部canonical辞書を入力した厳格照合、および複数episodeを横断するTimeline順序整合性チェック
 - Scene定義への拡張フィールド許容（scene metadataからのItem/Event/Timeline抽出に必要）

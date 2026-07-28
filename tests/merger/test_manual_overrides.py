@@ -692,6 +692,7 @@ def test_cli_applies_overrides_when_specified(tmp_path):
         json.dump(overrides_data, f, ensure_ascii=False)
 
     output_dir = tmp_path / "merge_preview"
+    report_output = tmp_path / "reports" / "merge_report.json"
     result = subprocess.run(
         [
             sys.executable,
@@ -702,6 +703,8 @@ def test_cli_applies_overrides_when_specified(tmp_path):
             str(output_dir),
             "--overrides",
             str(overrides_path),
+            "--report-output",
+            str(report_output),
             "--quiet",
         ],
         capture_output=True,
@@ -716,6 +719,9 @@ def test_cli_applies_overrides_when_specified(tmp_path):
     assert data["entities"]["characters"][0]["displayName"] == "上書き済み"
     assert data["report"]["manualOverrides"]["enabled"] is True
     assert data["report"]["manualOverrides"]["appliedCount"] == 1
+    with open(report_output, encoding="utf-8") as f:
+        standalone_report = json.load(f)
+    assert standalone_report == data["report"]
 
 
 def test_cli_without_overrides_keeps_existing_behavior(tmp_path):
