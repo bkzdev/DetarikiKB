@@ -11,6 +11,8 @@ from typing import Any
 
 from .base import (
     add_block_evidence_if_needed,
+    add_scene_evidence_if_needed,
+    as_non_empty_string,
     iter_blocks_recursive,
     structured_identity_key,
 )
@@ -33,14 +35,15 @@ def build_item_candidates(
 
     本文の自然文から「アイテム名かもしれない」推定は行わず、以下の
     構造的な手がかりのみを対象とする。
+    - Scene直下に明示された itemId/itemName
     - dialogue/monologue/narration/choice Blockに明示された
       itemId/itemName
     - stage_direction Blockに明示された itemId/itemName
       (item/prop/object相当の演出情報。BlockCommonはadditionalProperties
       を許容するため、将来Parserが付与しうる拡張フィールドを想定する)
 
-    Scene直下の拡張フィールドはschemaで保持できるが、scene metadataからの
-    Item抽出は未実装のため今回の対象外とする。
+    Scene由来の候補はBlock単位の根拠を持たないため、Scene ID自体を
+    evidenceとして使う。
     """
     accumulators: dict[tuple[str, str], ItemCandidateAccumulator] = {}
     order: list[tuple[str, str]] = []
@@ -48,6 +51,15 @@ def build_item_candidates(
 
     for scene in episode.get("scenes", []):
         scene_id = scene.get("sceneId")
+        _record_scene_item(
+            accumulators,
+            order,
+            extra_evidence,
+            scene,
+            scene_id,
+            story_id,
+            episode_id,
+        )
         for block in iter_blocks_recursive(scene.get("blocks", [])):
             _record_block_item(
                 accumulators,
@@ -63,6 +75,39 @@ def build_item_candidates(
         accumulators, order, episode_id, extraction_run
     )
     return candidates, list(extra_evidence.values())
+
+
+def _record_scene_item(
+    accumulators: dict[tuple[str, str], ItemCandidateAccumulator],
+    order: list[tuple[str, str]],
+    extra_evidence: dict[str, dict[str, Any]],
+    scene: dict[str, Any],
+    scene_id: str | None,
+    story_id: str,
+    episode_id: str,
+) -> None:
+    """Scene直下に明示されたitemId/itemNameを記録する。"""
+    item_id = as_non_empty_string(scene.get("itemId"))
+    item_name = as_non_empty_string(scene.get("itemName"))
+    if item_name is None or scene_id is None:
+        return
+    key = structured_identity_key(item_id, item_name)
+    if key is None:
+        return
+
+    if key not in accumulators:
+        accumulators[key] = ItemCandidateAccumulator(item_id=item_id)
+        order.append(key)
+    accumulator = accumulators[key]
+    accumulator.add_name(item_name)
+    accumulator.add_evidence(scene_id)
+
+    add_scene_evidence_if_needed(
+        extra_evidence,
+        scene_id=scene_id,
+        story_id=story_id,
+        episode_id=episode_id,
+    )
 
 
 def _record_block_item(

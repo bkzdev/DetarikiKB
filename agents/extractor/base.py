@@ -18,6 +18,13 @@ from typing import Any
 from .models import DEFAULT_EVIDENCE_CONFIDENCE, EVIDENCE_BLOCK_TYPES, EvidenceRef
 
 
+def as_non_empty_string(value: Any) -> str | None:
+    """非空のstringだけを返し、それ以外は構造化fieldとして扱わない。"""
+    if isinstance(value, str) and value.strip():
+        return value
+    return None
+
+
 def iter_blocks_recursive(
     blocks: list[dict[str, Any]],
 ) -> Iterator[dict[str, Any]]:
@@ -111,6 +118,29 @@ def add_block_evidence_if_needed(
             episode_id=episode_id,
             scene_id=scene_id,
             confidence=confidence,
+        ).to_dict(),
+    )
+
+
+def add_scene_evidence_if_needed(
+    extra_evidence: dict[str, dict[str, Any]],
+    *,
+    scene_id: str | None,
+    story_id: str,
+    episode_id: str,
+) -> None:
+    """Scene単位の構造化情報を根拠としてfirst-winsで追加する。"""
+    if scene_id is None:
+        return
+
+    extra_evidence.setdefault(
+        scene_id,
+        EvidenceRef(
+            source_id=scene_id,
+            story_id=story_id,
+            episode_id=episode_id,
+            scene_id=scene_id,
+            confidence=DEFAULT_EVIDENCE_CONFIDENCE,
         ).to_dict(),
     )
 

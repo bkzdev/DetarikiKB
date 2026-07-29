@@ -12,16 +12,15 @@ from typing import Any
 
 from .base import (
     add_block_evidence_if_needed,
+    add_scene_evidence_if_needed,
     iter_blocks_recursive,
     structured_identity_key,
 )
 from .models import (
-    DEFAULT_EVIDENCE_CONFIDENCE,
     LOCATION_CANDIDATE_CONFIDENCE_NAME_ONLY,
     LOCATION_CANDIDATE_CONFIDENCE_RESOLVED,
     LOCATION_CANDIDATE_SOURCE_TYPE,
     LOCATION_CANDIDATE_TYPE,
-    EvidenceRef,
     LocationCandidateAccumulator,
 )
 
@@ -100,15 +99,11 @@ def _record_scene_location(
     accumulator.add_name(location.get("locationName"))
     accumulator.add_scene_ref(scene_id)
     accumulator.add_evidence(scene_id)
-    extra_evidence.setdefault(
-        scene_id,
-        EvidenceRef(
-            source_id=scene_id,
-            story_id=story_id,
-            episode_id=episode_id,
-            scene_id=scene_id,
-            confidence=DEFAULT_EVIDENCE_CONFIDENCE,
-        ).to_dict(),
+    add_scene_evidence_if_needed(
+        extra_evidence,
+        scene_id=scene_id,
+        story_id=story_id,
+        episode_id=episode_id,
     )
 
 
