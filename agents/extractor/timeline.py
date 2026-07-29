@@ -272,12 +272,13 @@ def _finalize_timeline_candidates(
     extraction_run: dict[str, Any],
 ) -> list[dict[str, Any]]:
     candidates: list[dict[str, Any]] = []
-    for index, key in enumerate(order, start=1):
+    for key in order:
         accumulator = accumulators[key]
         if not accumulator.evidence_ids:
             # Evidenceが1件も無い推測は出力しない (Extraction_Pipeline.md §6.1)
             continue
 
+        index = len(candidates) + 1
         if accumulator.kind == TIMELINE_KIND_TEMPORAL_MARKER:
             confidence = TIMELINE_CANDIDATE_CONFIDENCE_MARKER
         elif accumulator.is_resolved:

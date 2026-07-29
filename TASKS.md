@@ -8,6 +8,7 @@
 
 ## Current Focus
 
+- `codex/candidate-id-operational-validation`: Stage A Candidate ID暫定形式の全量実運用検証を行い、再実行可能な匿名aggregate監査CLIを追加した（**実装PR**）。完全一致形式・配列type整合・全体一意性、rule-basedの種別別`001`始まり欠番なし採番、比較可能なScene/Block根拠のdepth-first preorder、NormalizedのStory/Episode/Scene/Block参照対応、2回抽出の決定性を検証する。Story/Episode根拠は種別ごとの収集phase差があるため参照実在だけを検証する。finalizerが出力対象外accumulatorの序数を消費しうる潜在経路は、全種別で出力候補だけを採番するよう修正した。全カテゴリ741文書・1,633候補を修正後コードで2回抽出して全契約PASSを確認し、choice内抽出対応前との比較は共通733文書に限定して、追加候補2件・既存29候補へのchoice内根拠1,402参照追加だけで説明できることを匿名集計で確認した。比較対象外の新規2文書には6候補があり、旧結果との差分判定には含めていない。実観測型はCHAR/LOC/SSLのみで、未観測6型・同一Block同種複数候補・4桁番号は合成テストで固定し、初回実例時に再監査する。実データ、Extraction JSON、監査reportはcommitしていない。
 - `codex/choice-nested-candidate-extraction`: choice option内に保持されたBlockをCandidate抽出でも再帰走査するよう拡張した（**実装PR**）。共通iteratorはchoice自身→options配列順→各blocks配列順のdepth-first preorderで任意階層を全type filterなしに走査し、通常Character・Special Speaker Label・Location・Organization・Item・Lore・Eventへ適用する。同一候補は既存identity規則で統合し、`evidenceIds`と暫定Candidate IDの初出順を同じ走査順で決定する。nested `stage_direction`のextra EvidenceRefは元のsceneIdを保持する。Relationship/Timeline、Parser/schema、自然文推定、LLM連携は変更していない。
 - `codex/extractor-block-evidence-helper`: Item/Event/Timeline/Location extractorに重複していた、通常の`EVIDENCE_BLOCK_TYPES`対象外Block（主に`stage_direction`）をextra evidenceへ登録する処理を`agents/extractor/base.py::add_block_evidence_if_needed`へ集約した（**挙動維持リファクタPR**）。標準Evidence対象Blockは追加しない、明示confidenceは`0.0`を含め保持、未指定時だけ既定値、同一source IDはfirst-winsという既存契約を共通化した。candidate抽出条件、ID、confidence定数、schema、Scene/Episode単位evidence処理、finalizerは変更していない。
 - `codex/event-participant-location-resolution`: Stage B Event mergeで未実装だった`participantCandidates` / `locationCandidates`のtyped参照解決を実装した（**実装PR**）。Character用・Location用のcandidate ID→merged entity ID対応表を分離し、Stage A candidate IDまたは今回のcollectionで構築済みの同一type entity IDだけを解決する。同一Eventへ集まる参照は初出順・重複なしの和集合として`participantEntityIds` / `locationEntityIds`へ保持する。未解決・型違い参照はEvent全体や他の正しい参照を落とさず、episode ID・Event candidate ID・field・元値付きmerge report warningへ保持する。prefixだけによる外部IDの自動確定、Event抽出ルール、schema field追加は行っていない。
@@ -171,7 +172,7 @@
 - ~~choice内話者・choice内location/organization/item/lore/event情報も含めた抽出への拡張~~ → `codex/choice-nested-candidate-extraction`で全Block再帰iteratorを追加し、通常Character・Special Speaker Label・Location・Organization・Item・Lore・Eventへ適用（Current Focus参照）
 - ~~semantic validationの単一document内拡充~~ → `codex/semantic-validation-within-document-expansion`でFieldValue単位の`evidenceIds`実在確認と、識別可能なRelationship両端のStage A candidate参照確認を実装済み（Current Focus参照）。残件は外部canonical辞書を入力した厳格照合、および複数episodeを横断するTimeline順序整合性チェック
 - Scene定義への拡張フィールド許容（scene metadataからのItem/Event/Timeline抽出に必要）
-- Candidate ID暫定形式（`Extraction_Result_Schema.md` §4.2）の実運用検証
+- ~~Candidate ID暫定形式（`Extraction_Result_Schema.md` §4.2）の実運用検証~~ → `codex/candidate-id-operational-validation`で、匿名aggregate監査CLIと全カテゴリ741文書×2 runにより形式・type・一意性・欠番なし採番・preorder・決定性を検証済み（Current Focus参照）。実データ未観測の6型・同一Block同種複数候補・4桁番号は初回実例時に再監査する
 - ~~extractor各moduleの重複ヘルパー集約（item.py/event.py/timeline.py/location.py）~~ → `codex/extractor-block-evidence-helper`で非標準Blockのextra evidence登録処理だけを`base.py`へ集約。種別固有finalizer等は挙動差があるため変更していない（Current Focus参照）
 
 ### Wiki / MkDocs

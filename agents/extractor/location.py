@@ -165,7 +165,7 @@ def _finalize_location_candidates(
     extraction_run: dict[str, Any],
 ) -> list[dict[str, Any]]:
     candidates: list[dict[str, Any]] = []
-    for index, key in enumerate(order, start=1):
+    for key in order:
         accumulator = accumulators[key]
         if (
             not accumulator.name_candidates
@@ -174,6 +174,7 @@ def _finalize_location_candidates(
         ):
             continue
 
+        index = len(candidates) + 1
         is_resolved = accumulator.location_id is not None
         candidates.append(
             {

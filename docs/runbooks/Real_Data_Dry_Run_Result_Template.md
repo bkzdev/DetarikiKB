@@ -141,6 +141,8 @@ CLAUDE.mdに既存の既知ギャップとして記載されている「`config/
 - Merger成功。mergedEntityCounts=candidateCountsと一致、conflictCounts=0、warningCounts=0
 - CHAR_RAIN/CHAR_AKAGI_HINAが正しく`existingCharacterId`解決され、`canonicalIdSummary.totalAssigned=2`
 - choice内Blockの再帰Candidate抽出を確認する。通常話者・Special Speaker Labelと、明示フィールドを持つOrganization/Location/Item/Lore/Eventがscene直下と同じ規則で抽出され、暫定Candidate IDと`evidenceIds`がchoice自身→options配列順→各blocks配列順のdepth-first preorderになり、全参照先が`evidenceIndex`に存在することを確認する。Relationship/Timelineは`choice-nested-candidate-extraction`の対象外であり、choice option内だけの手がかりからCandidateが追加されないことも確認する
+- Candidate IDの全量検証では同じ入力・設定でExtractionを2回生成し、`scripts/audit_candidate_ids.py`で形式・配列type整合・一意性・rule-basedの欠番なし採番・Block/`evidenceIds`のpreorder・決定性を確認する
+- 匿名aggregateの`errorCount`、Candidate型別件数、choice内根拠を持つ候補件数、同一Blockを同種複数候補が共有するgroup数、4桁番号の観測数を記録する。実ID・名称・本文・ファイル名・パス・ハッシュ、Extraction JSON、aggregate report自体はcommitしない
 
 ## 6.4 見つけた問題点（Parser本体のバグ、すべて修正済み）
 
