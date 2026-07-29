@@ -247,6 +247,8 @@ stories/{publicStoryId or storyId}/{publicEpisodeId or episodeId}.md
 
 **実装状況（`feature/wiki-story-page-renderer`で実施）**: 候補Aをそのまま採用した。`agents/wiki_generator/paths.py`の`story_page_path`（`resolve_story_path_id`）が`stories/{publicStoryId or storyId}.md`を返す。nested構造（候補C）への移行はまだ行っていない。
 
+**URL構造の正式決定（`codex/story-url-structure-decision`）**: 公開IDによるURL path上の内部ID fallback回避はflat構造でも達成でき、公開基盤未決定の段階でnested化すると相対リンク・directory URL・redirect方針を再移行する可能性があるため、候補Aを現時点のcanonicalな生成契約として維持する。候補Bは採用せず、候補Cは`public-publishing-platform-evaluation`・公開workflow・public ID completeness検証・legacy URL方針・具体的な閲覧上の問題という再評価ゲートを満たした後にのみ再検討する。詳細は`Story_URL_Structure_Decision.md`を参照。本決定ではrenderer/path/schemaを変更していない。
+
 ---
 
 # 11. Recommended phase plan（推奨段階方針、まとめ）

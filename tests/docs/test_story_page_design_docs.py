@@ -16,10 +16,18 @@ PROJECT_ROOT = Path(__file__).parent.parent.parent
 STORY_PAGE_DESIGN_PATH = (
     PROJECT_ROOT / "docs" / "architecture" / "07_Wiki" / "Story_Page_Design.md"
 )
+STORY_URL_DECISION_PATH = (
+    PROJECT_ROOT
+    / "docs"
+    / "architecture"
+    / "07_Wiki"
+    / "Story_URL_Structure_Decision.md"
+)
 WIKI_OUTPUT_DESIGN_PATH = (
     PROJECT_ROOT / "docs" / "architecture" / "07_Wiki" / "Wiki_Output_Design.md"
 )
 TASKS_PATH = PROJECT_ROOT / "TASKS.md"
+AI_CONTEXT_PATH = PROJECT_ROOT / "AI_CONTEXT.md"
 
 REQUIRED_SECTIONS = (
     "# 1. 目的",
@@ -140,3 +148,49 @@ def test_design_doc_states_evidence_page_review_links_policy():
     assert integration_label in summary_section
     assert "Review Links" in summary_section
     assert "render_evidence_page" in summary_section
+
+
+def test_story_url_structure_decision_keeps_flat_paths():
+    content = STORY_URL_DECISION_PATH.read_text(encoding="utf-8")
+    assert "Status: Accepted" in content
+    assert "**現時点の正式構造として候補A（flat構造）を維持する。" in content
+    assert "stories/{publicStoryId or storyId}.md" in content
+    assert "stories/{publicEpisodeId or episodeId}.md" in content
+    assert "publicEpisodeId > episodeId > documentId" in content
+    assert "stories/{documentId}.md" in content
+    assert "候補Bは採用せず" in content
+    assert "内部ID fallback」はURL/file pathに限る" in content
+    assert "public-safe projection方針は変更せず" in content
+
+
+def test_story_url_structure_decision_defers_nested_migration_behind_gates():
+    content = STORY_URL_DECISION_PATH.read_text(encoding="utf-8")
+    for required in (
+        "public-publishing-platform-evaluation",
+        "public ID completeness",
+        "redirect",
+        "legacy URL",
+        "manual review",
+    ):
+        assert required in content
+    assert "自動的に候補Cへ移行しない" in content
+    assert "public-id-manifest-assignment-policy" in content
+
+
+def test_story_url_structure_decision_requires_public_ids_for_publishing():
+    content = STORY_URL_DECISION_PATH.read_text(encoding="utf-8")
+    decision = content.split("# 5. 決定", 1)[1].split("# 6. 候補Cの再評価ゲート", 1)[0]
+    assert "local preview / internal buildの後方互換" in decision
+    assert "公開workflow" in decision
+    assert "public ID completenessを検証" in decision
+    assert "内部ID fallbackへ依存しない" in decision
+
+
+def test_story_url_structure_decision_is_cross_referenced():
+    for path in (
+        STORY_PAGE_DESIGN_PATH,
+        WIKI_OUTPUT_DESIGN_PATH,
+        TASKS_PATH,
+        AI_CONTEXT_PATH,
+    ):
+        assert "Story_URL_Structure_Decision.md" in path.read_text(encoding="utf-8")
