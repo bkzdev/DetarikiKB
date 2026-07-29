@@ -23,6 +23,7 @@ from jsonschema import Draft7Validator
 
 from agents.merger import MergeEngine
 from agents.merger.relationship import build_relationship_entities
+from agents.merger.schema_validation import load_merged_collection_validator
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 SCHEMAS_DIR = PROJECT_ROOT / "schemas"
@@ -302,9 +303,7 @@ def engine() -> MergeEngine:
 
 @pytest.fixture
 def collection_validator() -> Draft7Validator:
-    with open(COLLECTION_SCHEMA_PATH, encoding="utf-8") as f:
-        schema = json.load(f)
-    return Draft7Validator(schema)
+    return load_merged_collection_validator(COLLECTION_SCHEMA_PATH)
 
 
 def _write_document(tmp_path: Path, name: str, document: dict[str, Any]) -> Path:

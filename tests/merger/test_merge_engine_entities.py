@@ -1,12 +1,11 @@
 """
 tests/merger/test_merge_engine_entities.py
-MergeEngine経由でCharacter/Location/Organizationのmerged entityが生成され、
+MergeEngine経由で8種のmerged entityが生成され、
 schemas/merged_knowledge.schema.json (個別entity) と
 schemas/merged_knowledge_collection.schema.json (collection全体) の
 両方に通ることを確認する統合テスト。
 
-Item/Lore/Event/Relationship/Timelineは今回もentities配下が空のままである
-ことも合わせて確認する。実データ・data/extracted/生成物は使わない。
+実データ・data/extracted/生成物は使わない。
 """
 
 import copy
@@ -19,6 +18,7 @@ import pytest
 from jsonschema import Draft7Validator
 
 from agents.merger import MergeEngine
+from agents.merger.schema_validation import load_merged_collection_validator
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 SCHEMAS_DIR = PROJECT_ROOT / "schemas"
@@ -237,9 +237,7 @@ def entity_validator() -> Draft7Validator:
 
 @pytest.fixture
 def collection_validator() -> Draft7Validator:
-    with open(COLLECTION_SCHEMA_PATH, encoding="utf-8") as f:
-        schema = json.load(f)
-    return Draft7Validator(schema)
+    return load_merged_collection_validator(COLLECTION_SCHEMA_PATH)
 
 
 @pytest.fixture

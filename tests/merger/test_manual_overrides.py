@@ -27,6 +27,7 @@ from agents.merger.overrides import (
     load_manual_overrides_schema,
     validate_manual_overrides,
 )
+from agents.merger.schema_validation import load_merged_collection_validator
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 SCHEMAS_DIR = PROJECT_ROOT / "schemas"
@@ -240,9 +241,7 @@ def overrides_schema() -> dict:
 
 @pytest.fixture
 def collection_validator() -> Draft7Validator:
-    with open(COLLECTION_SCHEMA_PATH, encoding="utf-8") as f:
-        schema = json.load(f)
-    return Draft7Validator(schema)
+    return load_merged_collection_validator(COLLECTION_SCHEMA_PATH)
 
 
 # ----------------------------------------------------------------

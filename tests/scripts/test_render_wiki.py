@@ -8,9 +8,13 @@ scripts/render_wiki.py のCLIスモークテスト。
 
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 from pathlib import Path
+from types import SimpleNamespace
+
+from scripts import render_wiki as render_wiki_script
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 SCRIPT_PATH = PROJECT_ROOT / "scripts" / "render_wiki.py"
@@ -58,6 +62,29 @@ def test_cli_generates_expected_markdown_files(tmp_path):
     assert (output_dir / "reports" / "unresolved.md").is_file()
     # canonicalIdが無いキャラクターの個別ページは生成されない
     assert not (output_dir / "characters" / "UNRESOLVED_CHAR_TEST_0001.md").exists()
+
+
+def test_cli_validate_resolves_entity_schema_outside_repo_root(tmp_path):
+    """cross-file $refは実行時CWDやnetwork取得に依存せず解決する。"""
+    output_dir = tmp_path / "wiki_out"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            "--input",
+            str(FIXTURE_PATH),
+            "--output",
+            str(output_dir),
+            "--validate",
+            "--quiet",
+        ],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert (output_dir / "index.md").is_file()
 
 
 def test_cli_generates_story_page_with_public_story_id_filename(tmp_path):
@@ -214,6 +241,62 @@ def test_cli_validate_rejects_schema_invalid_collection(tmp_path):
     )
 
     assert result.returncode == 2
+
+
+def test_cli_validate_rejects_invalid_merged_entity(tmp_path):
+    invalid_collection = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+    del invalid_collection["entities"]["characters"][0]["evidenceRefs"]
+    invalid_input = tmp_path / "invalid_entity_collection.json"
+    invalid_input.write_text(
+        json.dumps(invalid_collection, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            "--input",
+            str(invalid_input),
+            "--output",
+            str(tmp_path / "wiki_out"),
+            "--validate",
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 2
+
+
+def test_resolve_collection_schema_configuration_error_returns_exit_2(
+    tmp_path,
+    monkeypatch,
+    capsys,
+):
+    schema_path = tmp_path / "merged_knowledge_collection.schema.json"
+    schema_path.write_text(
+        (
+            PROJECT_ROOT / "schemas" / "merged_knowledge_collection.schema.json"
+        ).read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        render_wiki_script,
+        "DEFAULT_SCHEMA_PATH",
+        schema_path,
+    )
+    args = SimpleNamespace(
+        input=str(FIXTURE_PATH),
+        validate=True,
+        quiet=True,
+    )
+
+    collection, error_code = render_wiki_script.resolve_collection(args)
+
+    assert collection is None
+    assert error_code == 2
+    assert "schema configuration error" in capsys.readouterr().err
 
 
 def test_cli_without_character_profiles_keeps_existing_behavior(tmp_path):

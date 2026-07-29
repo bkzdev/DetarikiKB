@@ -94,11 +94,16 @@ from pathlib import Path
 
 import yaml
 from jsonschema import Draft7Validator
+from referencing.exceptions import Unresolvable
 
 _PROJECT_ROOT = Path(__file__).parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
+from agents.merger.schema_validation import (  # noqa: E402
+    MergedSchemaConfigurationError,
+    load_merged_collection_validator,
+)
 from agents.parser.character_profiles import (  # noqa: E402
     CharacterProfile,
     build_character_profile_index,
@@ -155,10 +160,14 @@ def validate_collection(collection: dict, schema_path: Path) -> list[str]:
 
     戻り値: エラーメッセージのリスト (空なら検証OK)。
     """
-    with open(schema_path, encoding="utf-8") as f:
-        schema = json.load(f)
-    validator = Draft7Validator(schema)
-    errors = sorted(validator.iter_errors(collection), key=lambda e: list(e.path))
+    try:
+        validator = load_merged_collection_validator(schema_path)
+        errors = sorted(
+            validator.iter_errors(collection),
+            key=lambda e: list(e.path),
+        )
+    except (MergedSchemaConfigurationError, Unresolvable) as exc:
+        return [f"schema configuration error: {exc}"]
     return [f"{list(e.path)}: {e.message}" for e in errors]
 
 

@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://detariki-kb/schemas/merged_knowledge_collection.schema.json",
   "title": "Merged Knowledge Collection (Stage B merge engine preview)",
-  "description": "Stage B merge engine (agents/merger/) が返すcollection wrapperのスキーマ。schemas/merged_knowledge.schema.json (単一のmerged entity) とは別物で、複数episode_extractionの検証結果とentities/reportをまとめたpreview形式。docs/architecture/06_AI/Merged_Knowledge_Design.md 準拠。現時点ではentities配下は常に空配列 (本格的なcandidate mergeは未実装)。",
+  "description": "Stage B merge engine (agents/merger/) が返すcollection wrapperのスキーマ。schemas/merged_knowledge.schema.json (単一のmerged entity) とは別物で、複数episode_extractionの検証結果とentities/reportをまとめたpreview形式。通常entity 8配列はmerged_knowledge.schema.jsonの型別definitionをcross-file $refで参照する。docs/architecture/06_AI/Merged_Knowledge_Design.md 準拠。",
 
   "type": "object",
   "required": [
@@ -541,9 +541,9 @@
       }
     },
 
-    "MergedEntityArray": {
+    "SpecialSpeakerLabelArray": {
       "type": "array",
-      "description": "TODO: 本格的なcandidate mergeを実装した際は、items を schemas/merged_knowledge.schema.json への $ref に差し替える。JSON Schema間のクロスファイル参照 (RefResolver設定) が必要になるため、現時点ではentitiesが常に空配列であることに合わせ、objectの配列として緩く許容するに留める (TASKS.md参照)。",
+      "description": "通常のmerged entity 8種とは別契約のspecial speaker label entity配列。merged_knowledge.schema.jsonのoneOf対象外であるため、本PRでは既存どおりobjectとして保持する。",
       "items": { "type": "object" }
     },
 
@@ -562,16 +562,56 @@
       ],
       "additionalProperties": false,
       "properties": {
-        "characters": { "$ref": "#/definitions/MergedEntityArray" },
-        "locations": { "$ref": "#/definitions/MergedEntityArray" },
-        "organizations": { "$ref": "#/definitions/MergedEntityArray" },
-        "items": { "$ref": "#/definitions/MergedEntityArray" },
-        "lore": { "$ref": "#/definitions/MergedEntityArray" },
-        "events": { "$ref": "#/definitions/MergedEntityArray" },
-        "relationships": { "$ref": "#/definitions/MergedEntityArray" },
-        "timeline": { "$ref": "#/definitions/MergedEntityArray" },
+        "characters": {
+          "type": "array",
+          "items": {
+            "$ref": "merged_knowledge.schema.json#/definitions/MergedCharacter"
+          }
+        },
+        "locations": {
+          "type": "array",
+          "items": {
+            "$ref": "merged_knowledge.schema.json#/definitions/MergedLocation"
+          }
+        },
+        "organizations": {
+          "type": "array",
+          "items": {
+            "$ref": "merged_knowledge.schema.json#/definitions/MergedOrganization"
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "merged_knowledge.schema.json#/definitions/MergedItem"
+          }
+        },
+        "lore": {
+          "type": "array",
+          "items": {
+            "$ref": "merged_knowledge.schema.json#/definitions/MergedLore"
+          }
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "merged_knowledge.schema.json#/definitions/MergedEvent"
+          }
+        },
+        "relationships": {
+          "type": "array",
+          "items": {
+            "$ref": "merged_knowledge.schema.json#/definitions/MergedRelationship"
+          }
+        },
+        "timeline": {
+          "type": "array",
+          "items": {
+            "$ref": "merged_knowledge.schema.json#/definitions/MergedTimelineEntry"
+          }
+        },
         "specialSpeakerLabels": {
-          "$ref": "#/definitions/MergedEntityArray",
+          "$ref": "#/definitions/SpecialSpeakerLabelArray",
           "description": "name command/@ChTalkName由来のspeaker label (speaker group/modifier付き/generic表記等) の一覧 (任意、Speaker Label Normalization設計)。通常のCharacter merged entityとは別枠であり、canonicalIdは常にnull・statusは常にunresolvedのまま (自動でconfirmed character解決はしない)。requiredには含めない (既存の手書きfixtureを壊さないため)"
         }
       }
