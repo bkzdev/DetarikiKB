@@ -153,9 +153,13 @@ schema自体が`additionalProperties: false`を全階層で指定しているた
 
 ## 5.4 story_manifest.yamlとの関係
 
-- `publicStoryId`/`publicEpisodeId`という値そのものは、引き続き人間が`story_manifest.yaml`側で個別に確定する運用を継続する（`Story_Manifest_Design.md` §13.2の既存運用は変更しない）
-- Public ID Registryは、`story_manifest.yaml`で確定した値のうち**公開してよい部分だけを転記した副次的な記録**という位置づけにする（source of truthは引き続き`story_manifest.yaml`側）
+- `publicStoryId`/`publicEpisodeId`の候補生成・照合は半自動化してよいが、値の確定と永続化は常に人間レビュー後に行う。`story_manifest.yaml`またはRegistryを自動更新するwriterは使わない
+- **初回公開前**は、人間確認済み`story_manifest.yaml`を内部運用上の正とし、そこで確定した値のうち公開してよい部分だけをRegistryへ手動転記する
+- **Registry変更PRのmerge後**は、下流のEvidence Index / Summaryが未公開でもRegistryの既存値を予約済みPublic IDの不変な正とする。manifestとの不一致はblockingとし、Registryをmanifestから自動再生成・上書きせず対応関係を人間が確認する
+- EVENT / RAID番号表はprivate allocation mappingの正、manifestはその割当と内部storyの対応を人間確認して伝播する公開前運用の正である。その他のworkspace suggestionsは候補入力であり、source of truthではない。Registryからmanifestへの自動backfillも行わない
 - internal storyId ⇔ publicStoryIdの対応そのもの（mapping）は、Registry側ではなくInternal Review Evidence Packet側で扱う。Packetは`project_evidence_index_public_ids.py --mapping-output`をcandidate/Normalized Storyとcross-reference検証して取り込み、公開IDを再採番しない（`Internal_Review_Evidence_Packet_Design.md` §6・§8）
+
+具体的な権威階層・採番・照合・反映手順は`docs/runbooks/Public_ID_Manifest_Assignment.md`を正とする。
 
 ---
 
@@ -238,7 +242,7 @@ suggestions:
 
 - scriptは候補を提案するだけであり、実際の永続化（`story_manifest.yaml`への書き込み、Public ID Registryへの追加）は**常に人間レビュー後**に行う
 - 推測結果を自動で本番反映しない（`reviewRequired: true`固定）
-- `episodeOrder`の根拠（「入力entriesの出現順から推定した1始まりの連番」であり、正式なepisode順の保証ではない）を`reason`に明記する
+- scriptの`episodeOrder`は「入力entriesの出現順から推定した1始まりの連番」であり、候補作成用のヒューリスティックにすぎない。正式なepisode順には人間確認済み`story_manifest.yaml`の`episodeNumber`を使い、不一致はblockingとして手動確認する
 - `publicEpisodeId`の衝突（同一値が複数episodeに割り当てられている）はduplicate errorとして必ず検出する（registry内の重複は`_load_registry`のロードステップでも検出する、§6.3）
 - 一度publishされた`publicEpisodeId`は変更しない（§2）。`--registry`併用時は、Registryに既存の割当がある場合はその値をそのまま再提案し、勝手に別の値へ採番し直さない
 
@@ -250,11 +254,11 @@ suggestions:
 
 # 8. Open Questions（未確定事項）
 
-- `episodeOrder`の正式な根拠をどう確定するか（本scriptは「入力entriesの出現順」というヒューリスティックのみを使う。`story_manifest.yaml`の`episodeNumber`と必ず一致する保証はまだ無い）
-- episode追加・既存episode順序変更が起きた場合のmigration policy（`publicEpisodeId`の安定性原則との両立）
-- Public ID Registryの実ファイル配置・commitタイミング（`knowledge/public_ids/`を新設するか、既存`knowledge/`配下の別位置にするか）
-- ~~`project_evidence_index_public_ids.py`とRegistryの本格統合方法~~ → **`feature/evidence-index-public-id-registry-integration`で実装済み**（§6.3・§7.7参照）。ただし実Registryファイルの配置・commitタイミング自体は引き続き未確定
-- Registry自体の更新運用（人間が直接編集するか、`story_manifest.yaml`から半自動生成するcopy scriptを用意するか）
+- ~~`episodeOrder`の正式な根拠~~ → **`public-id-manifest-assignment-policy`で解決**: 人間確認済み`story_manifest.yaml`の`episodeNumber`を正式な順序根拠とする。scriptの入力entry初出順は候補用ヒューリスティックに限定し、不一致はblockingとする（§7.6・`docs/runbooks/Public_ID_Manifest_Assignment.md` §5）
+- ~~episode追加・既存episode順序変更が起きた場合の通常運用~~ → **同policyで解決**: 未公開なら全候補を再レビューできる。公開済みの末尾追加は既存値を維持した手動レビュー、途中挿入・順序変更はblockingとし、専用migration設計なしに既存IDを変更しない
+- ~~Public ID Registryの実ファイル配置・commitタイミング~~ → **実運用で解決済み**: `knowledge/public_ids/story_public_ids.yaml`へ、公開対象として承認済みの値だけをRegistry更新PRでcommitする（§8.5以降）
+- ~~`project_evidence_index_public_ids.py`とRegistryの本格統合方法~~ → **`feature/evidence-index-public-id-registry-integration`で実装済み**（§6.3・§7.7参照）
+- ~~Registry自体の更新運用~~ → **`public-id-manifest-assignment-policy`で解決**: 候補生成・照合は半自動、manifestとRegistryへの反映は人間の直接編集とする。自動copy / backfillは行わない
 
 ---
 
@@ -356,6 +360,7 @@ suggestions:
 - `docs/architecture/06_AI/Evidence_Index_Public_ID_Policy.md`（`publicEvidenceId`形式・prefix mapping・Public-safe projection方針、§6.4-§6.9）
 - `docs/architecture/06_AI/Evidence_Index_Design.md`（Evidence Indexの役割・実装フェーズ）
 - `docs/architecture/06_AI/Internal_Review_Evidence_Packet_Design.md`（Registryへ置かない内部ID mappingの正式なローカル保存境界）
+- `docs/runbooks/Public_ID_Manifest_Assignment.md`（採番候補・人間レビュー・manifest反映・Registry登録の正式手順）
 - `docs/architecture/06_AI/Evidence_Index_Promotion_Policy.md`（promotion criteria/exclusion criteria）
 - `docs/architecture/05_Parser/Story_ID_Policy_Decision.md`（`publicStoryId`/`publicEpisodeId`のfield naming採用決定、§7）
 - `docs/architecture/05_Parser/Story_Manifest_Design.md`（`story_manifest.yaml`の`publicStoryId`/`publicEpisodeId`実装、§13.2）
