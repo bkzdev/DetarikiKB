@@ -1477,28 +1477,58 @@ def _render_story_episode_list_section(episodes: list[dict[str, Any]]) -> list[s
 def _render_story_related_characters_section(
     collection: dict[str, Any], episode_ids: list[str]
 ) -> list[str]:
-    """story内の全episodeに関連するcharacterを集約して表示する
-    (重複は排除する、`Story_Page_Design.md` §6・§10)。個別のformatは
-    `_format_related_character`をそのまま再利用する。
+    """story内の全episodeに関連するcharacterを初出episode順で表示する。
+
+    page eligibleなcharacterはcanonicalId、unresolvedは内部idをidentity key
+    として重複を排除する。displayName一致だけでは同一entityとみなさない。
+    unresolvedは個別IDをStory pageへ列挙せず、件数とUnresolved reportへの
+    導線を表示する (`Story_Page_Design.md` §6・§10)。
     """
-    seen_ids: set[str] = set()
-    related: list[dict[str, Any]] = []
+    seen_keys: set[tuple[str, str]] = set()
+    resolved: list[dict[str, Any]] = []
+    unresolved_count = 0
     for episode_id in episode_ids:
         for entity in _find_related_characters(collection, episode_id):
-            entity_id = entity.get("id")
-            if entity_id in seen_ids:
+            page_eligible = is_page_eligible(entity)
+            identity_value = (
+                entity.get("canonicalId") if page_eligible else entity.get("id")
+            )
+            identity_key = (
+                ("resolved" if page_eligible else "unresolved", identity_value)
+                if isinstance(identity_value, str) and identity_value
+                else None
+            )
+            if identity_key is not None and identity_key in seen_keys:
                 continue
-            seen_ids.add(entity_id)
-            related.append(entity)
+            if identity_key is not None:
+                seen_keys.add(identity_key)
+            if page_eligible:
+                resolved.append(entity)
+            else:
+                unresolved_count += 1
 
     lines = ["## Related Characters", ""]
-    if not related:
+    if not resolved and unresolved_count == 0:
         lines.append("関連するキャラクターは記録されていません。")
         lines.append("")
         return lines
-    for entity in related:
-        lines.append(f"- {_format_related_character(entity)}")
-    lines.append("")
+
+    if resolved:
+        lines.append(f"### Resolved ({len(resolved)} 件)")
+        lines.append("")
+        for entity in resolved:
+            lines.append(f"- {_format_related_character(entity)}")
+        lines.append("")
+
+    if unresolved_count:
+        lines.append(f"### Needs Review ({unresolved_count} 件)")
+        lines.append("")
+        lines.append(
+            "未解決の関連キャラクターは個別ページを生成していません。"
+            "詳細は[Unresolved report](../reports/unresolved.md)を確認してください。"
+        )
+        lines.append("")
+
     return lines
 
 
