@@ -38,8 +38,8 @@ def build_event_candidates(
     - stage_direction Blockに明示された eventId/eventName
       (イベント発火・演出イベントを示す拡張フィールドを想定する)
 
-    Sceneはschema上additionalPropertiesを許容しないため、scene metadata
-    からのEvent抽出は今回のスコープ外とする (ItemCandidateと同じ理由)。
+    Scene直下の拡張フィールドはschemaで保持できるが、scene metadataからの
+    Event抽出は未実装のため今回の対象外とする。
     """
     accumulators: dict[tuple[str, str], EventCandidateAccumulator] = {}
     order: list[tuple[str, str]] = []

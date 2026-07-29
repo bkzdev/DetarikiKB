@@ -81,6 +81,59 @@ def test_normalized_json_with_choice(schema):
         )
 
 
+def test_scene_accepts_structured_extension_fields(schema):
+    """Scene直下の構造化された拡張フィールドを保持できる。"""
+    parser = StoryParser()
+    parse_result = parser.parse_text(
+        "@ChTalkName 0 テスト話者 synthetic/voice\n合成テストです。\n",
+        source_file="test_scene_extensions",
+    )
+    normalizer = Normalizer(
+        story_id="TEST_SCENE_EXTENSIONS",
+        story_category="OTHER",
+        source_file="test_scene_extensions",
+    )
+    story_json = normalizer.normalize(parse_result)
+    scene = story_json["episodes"][0]["scenes"][0]
+    scene.update(
+        {
+            "itemId": "ITEM_SYNTHETIC",
+            "eventName": "合成イベント",
+            "timelineId": "TIMELINE_SYNTHETIC",
+            "orderValue": 10,
+            "extensionPayload": {"source": "synthetic"},
+        }
+    )
+
+    validate(instance=story_json, schema=schema)
+
+
+def test_scene_extensions_keep_core_field_constraints(schema):
+    """拡張許容後もSceneの既知フィールド制約は維持される。"""
+    parser = StoryParser()
+    parse_result = parser.parse_text(
+        "合成ナレーションです。\n",
+        source_file="test_scene_core_constraints",
+    )
+    normalizer = Normalizer(
+        story_id="TEST_SCENE_CONSTRAINTS",
+        story_category="OTHER",
+        source_file="test_scene_core_constraints",
+    )
+    story_json = normalizer.normalize(parse_result)
+    scene = story_json["episodes"][0]["scenes"][0]
+    scene["customMarker"] = True
+
+    scene["sceneNumber"] = "1"
+    with pytest.raises(ValidationError):
+        validate(instance=story_json, schema=schema)
+
+    scene["sceneNumber"] = 1
+    del scene["blocks"]
+    with pytest.raises(ValidationError):
+        validate(instance=story_json, schema=schema)
+
+
 def test_normalized_json_char_hs_category(schema):
     """storyCategory `CHAR_HS` (H_scene系例外変種、
     Character_Story_ID_Manifest_Design.md §5.2) がschemaで受理されることを

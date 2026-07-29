@@ -39,9 +39,8 @@ def build_item_candidates(
       (item/prop/object相当の演出情報。BlockCommonはadditionalProperties
       を許容するため、将来Parserが付与しうる拡張フィールドを想定する)
 
-    Sceneはschema上additionalPropertiesを許容しない
-    (schemas/story.schema.json Scene定義) ため、scene metadataからの
-    Item抽出は今回のスコープ外とする。
+    Scene直下の拡張フィールドはschemaで保持できるが、scene metadataからの
+    Item抽出は未実装のため今回の対象外とする。
     """
     accumulators: dict[tuple[str, str], ItemCandidateAccumulator] = {}
     order: list[tuple[str, str]] = []

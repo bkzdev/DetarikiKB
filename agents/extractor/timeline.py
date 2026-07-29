@@ -68,9 +68,8 @@ def build_timeline_candidates(
     - 同Blockに明示された flashback/flashforward/dayChange/timeShift/
       sceneTime構造フィールド (真偽値。値の中身までは解釈しない)
 
-    Sceneはschema上additionalPropertiesを許容せず、metadataフィールド自体を
-    持たないため、scene単位の時系列情報は今回のスコープ外とする
-    (Location/Item/EventCandidateと同じ理由)。
+    Scene直下の拡張フィールドはschemaで保持できるが、scene単位の時系列情報
+    からの抽出は未実装のため今回の対象外とする。
 
     同一timelineId、または同一scope+順序値/ラベル/マーカー種別の組み合わせは
     1候補に統合し、evidenceIdsを集約する。
