@@ -19,10 +19,16 @@ import pytest
 from jsonschema import Draft7Validator
 
 from agents.merger import MergeEngine
+from agents.merger.schema_validation import (
+    MergedSchemaConfigurationError,
+    build_merged_collection_validator,
+    load_merged_collection_validator,
+)
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 SCHEMAS_DIR = PROJECT_ROOT / "schemas"
 COLLECTION_SCHEMA_PATH = SCHEMAS_DIR / "merged_knowledge_collection.schema.json"
+MERGED_ENTITY_SCHEMA_PATH = SCHEMAS_DIR / "merged_knowledge.schema.json"
 MERGE_SCRIPT = PROJECT_ROOT / "scripts" / "merge_extractions.py"
 
 FIXTURES_DIR = Path(__file__).parent.parent / "fixtures" / "merged_knowledge"
@@ -52,8 +58,19 @@ def collection_schema() -> dict:
 
 
 @pytest.fixture
-def collection_validator(collection_schema) -> Draft7Validator:
-    return Draft7Validator(collection_schema)
+def merged_entity_schema() -> dict:
+    return _load_json(MERGED_ENTITY_SCHEMA_PATH)
+
+
+@pytest.fixture
+def collection_validator(
+    collection_schema,
+    merged_entity_schema,
+) -> Draft7Validator:
+    return build_merged_collection_validator(
+        collection_schema,
+        merged_entity_schema,
+    )
 
 
 @pytest.fixture
@@ -75,6 +92,55 @@ def test_collection_schema_is_valid_json_schema(collection_schema):
     Draft7Validator.check_schema(collection_schema)
 
 
+def test_collection_validator_rejects_unexpected_entity_schema_id(
+    collection_schema,
+    merged_entity_schema,
+):
+    unexpected_schema = copy.deepcopy(merged_entity_schema)
+    unexpected_schema["$id"] = "https://example.invalid/merged.json"
+
+    with pytest.raises(ValueError, match="merged entity schema \\$id"):
+        build_merged_collection_validator(collection_schema, unexpected_schema)
+
+
+def test_collection_validator_rejects_unexpected_collection_schema_id(
+    collection_schema,
+    merged_entity_schema,
+):
+    unexpected_schema = copy.deepcopy(collection_schema)
+    unexpected_schema["$id"] = "https://example.invalid/collection.json"
+
+    with pytest.raises(MergedSchemaConfigurationError, match="collection schema \\$id"):
+        build_merged_collection_validator(unexpected_schema, merged_entity_schema)
+
+
+def test_collection_validator_rejects_missing_entity_schema_dialect(
+    collection_schema,
+    merged_entity_schema,
+):
+    unexpected_schema = copy.deepcopy(merged_entity_schema)
+    del unexpected_schema["$schema"]
+
+    with pytest.raises(
+        MergedSchemaConfigurationError,
+        match="merged entity schema \\$schema",
+    ):
+        build_merged_collection_validator(collection_schema, unexpected_schema)
+
+
+def test_collection_validator_reports_missing_entity_schema(tmp_path):
+    missing_schema = tmp_path / "missing_merged_knowledge.schema.json"
+
+    with pytest.raises(
+        MergedSchemaConfigurationError,
+        match="could not load merged entity schema",
+    ):
+        load_merged_collection_validator(
+            COLLECTION_SCHEMA_PATH,
+            missing_schema,
+        )
+
+
 # ----------------------------------------------------------------
 # 2. 自作fixtureが検証を通過する
 # ----------------------------------------------------------------
@@ -90,13 +156,52 @@ def test_minimal_collection_fixture_is_valid(
 def test_empty_entities_arrays_are_allowed(
     collection_validator, minimal_collection_instance
 ):
-    # skeletonの現状: entities配下は常に空配列 (本格mergeは未実装)
+    # candidateが無い入力では、型付き配列も空のまま許容する。
     instance = copy.deepcopy(minimal_collection_instance)
     for key in instance["entities"]:
         instance["entities"][key] = []
 
     errors = list(collection_validator.iter_errors(instance))
     assert not errors, [e.message for e in errors]
+
+
+def test_typed_merged_entity_is_allowed(
+    collection_validator,
+    minimal_collection_instance,
+):
+    instance = copy.deepcopy(minimal_collection_instance)
+    instance["entities"]["characters"] = [
+        _load_json(FIXTURES_DIR / "minimal_merged_character.json")
+    ]
+
+    errors = list(collection_validator.iter_errors(instance))
+    assert not errors, [e.message for e in errors]
+
+
+def test_malformed_merged_entity_is_rejected(
+    collection_validator,
+    minimal_collection_instance,
+):
+    instance = copy.deepcopy(minimal_collection_instance)
+    entity = _load_json(FIXTURES_DIR / "minimal_merged_character.json")
+    del entity["evidenceRefs"]
+    instance["entities"]["characters"] = [entity]
+
+    errors = list(collection_validator.iter_errors(instance))
+    assert errors, "entities配下の不正なmerged entityを拒否すべき"
+
+
+def test_merged_entity_in_wrong_typed_array_is_rejected(
+    collection_validator,
+    minimal_collection_instance,
+):
+    instance = copy.deepcopy(minimal_collection_instance)
+    instance["entities"]["locations"] = [
+        _load_json(FIXTURES_DIR / "minimal_merged_character.json")
+    ]
+
+    errors = list(collection_validator.iter_errors(instance))
+    assert errors, "character entityをlocations配列で許容すべきではない"
 
 
 # ----------------------------------------------------------------

@@ -102,15 +102,21 @@ uv run python scripts/merge_extractions.py \
 ```bash
 uv run python -c "
 import json
-from jsonschema import Draft7Validator
-with open('schemas/merged_knowledge_collection.schema.json', encoding='utf-8') as f:
-    schema = json.load(f)
+from pathlib import Path
+from agents.merger.schema_validation import load_merged_collection_validator
+validator = load_merged_collection_validator(
+    Path('schemas/merged_knowledge_collection.schema.json')
+)
 with open('workspace/dry_runs/<RUN_ID>/merged/merged_knowledge_collection.json', encoding='utf-8') as f:
     data = json.load(f)
-errors = list(Draft7Validator(schema).iter_errors(data))
+errors = list(validator.iter_errors(data))
 print('VALID' if not errors else [e.message for e in errors])
 "
 ```
+
+validatorは`merged_knowledge.schema.json`をcanonical `$id`でin-memory
+registryへ登録してからcross-file `$ref`を解決する。CWD依存のfile URIや
+network取得は行わないため、repo rootからofflineで実行できる。
 
 ---
 

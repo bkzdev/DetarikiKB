@@ -598,7 +598,8 @@ schemas/
 
 補足:
 
-- `Extraction_Pipeline.md` §10.1が挙げていた`schemas/character.schema.json`等の空プレースホルダー群は、`merged_knowledge.schema.json`に統合する形とし、個別ファイルとしては実装しない方針を推奨する（8ファイルに分けると共通CandidateEnvelope相当の重複が増えるため）。採否はschema実装PRで最終判断する
+- `Extraction_Pipeline.md` §10.1が挙げていた`schemas/character.schema.json`等の空プレースホルダー群は、`merged_knowledge.schema.json`へ統合し、個別ファイルとしては実装しない（8ファイルに分けると共通CandidateEnvelope相当の重複が増えるため）
+- `merged_knowledge_collection.schema.json`の通常entity 8配列は、`merged_knowledge.schema.json`内の対応する型別definitionをcross-file `$ref`で参照する。validatorは既知schemaをcanonical `$id`でin-memory registryへ明示登録し、CWD依存のfilesystem解決やnetwork取得を行わない。`specialSpeakerLabels`は通常8種とは別契約のため、この参照接続の対象外とする
 - マージレポート（§11.2）のschema化は任意（内部レポートのため、初期はschemaなしでよい）
 
 ---
