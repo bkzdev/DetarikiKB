@@ -9,7 +9,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from .base import add_block_evidence_if_needed, structured_identity_key
+from .base import (
+    add_block_evidence_if_needed,
+    iter_blocks_recursive,
+    structured_identity_key,
+)
 from .models import (
     ITEM_CANDIDATE_CONFIDENCE_NAME_ONLY,
     ITEM_CANDIDATE_CONFIDENCE_RESOLVED,
@@ -45,7 +49,7 @@ def build_item_candidates(
 
     for scene in episode.get("scenes", []):
         scene_id = scene.get("sceneId")
-        for block in scene.get("blocks", []):
+        for block in iter_blocks_recursive(scene.get("blocks", [])):
             _record_block_item(
                 accumulators,
                 order,

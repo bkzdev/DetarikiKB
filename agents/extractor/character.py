@@ -12,6 +12,7 @@ from typing import Any
 
 from agents.parser.speaker_labels import is_special_label_type
 
+from .base import iter_blocks_recursive
 from .models import (
     CHARACTER_CANDIDATE_CONFIDENCE_RESOLVED,
     CHARACTER_CANDIDATE_CONFIDENCE_UNRESOLVED,
@@ -25,7 +26,6 @@ from .models import (
 )
 
 # CharacterCandidate抽出の対象とするBlock種別 (Extraction_Pipeline.md §5.4)。
-# choice内の話者は今回のスコープでは対象外とする。
 CHARACTER_SOURCE_BLOCK_TYPES = frozenset({"dialogue", "monologue"})
 
 
@@ -43,8 +43,8 @@ def build_character_candidates(
 
     同一speakerId (無ければsourceCharacterId、それも無ければ
     speakerName) を持つ話者は1件のcandidateへ統合し、発言した
-    Block IDをすべてevidenceIdsへ集める。choice内の話者は今回の
-    スコープでは対象外とする (Extraction_Pipeline.md §5.4)。
+    Block IDをすべてevidenceIdsへ集める。choice option内のBlockも
+    scene直下と同じ規則で再帰的に走査する (Extraction_Pipeline.md §5.4)。
     """
     slot_lookup = _build_slot_lookup(episode)
 
@@ -52,7 +52,7 @@ def build_character_candidates(
     order: list[tuple[str, str]] = []
 
     for scene in episode.get("scenes", []):
-        for block in scene.get("blocks", []):
+        for block in iter_blocks_recursive(scene.get("blocks", [])):
             if block.get("type") not in CHARACTER_SOURCE_BLOCK_TYPES:
                 continue
 
@@ -189,7 +189,7 @@ def build_special_speaker_label_candidates(
     order: list[str] = []
 
     for scene in episode.get("scenes", []):
-        for block in scene.get("blocks", []):
+        for block in iter_blocks_recursive(scene.get("blocks", [])):
             if block.get("type") not in CHARACTER_SOURCE_BLOCK_TYPES:
                 continue
 

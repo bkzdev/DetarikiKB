@@ -158,6 +158,36 @@ def test_multiple_utterances_of_same_special_label_merge_into_one_candidate():
     assert special[0]["evidenceIds"] == ["EP01_DLG0001", "EP01_DLG0002"]
 
 
+def test_choice_nested_special_label_is_extracted():
+    nested_dialogue = _dialogue_block(
+        "EP01_DLG0001", _name_command_speaker("セイナ＆イヴ")
+    )
+    choice = {
+        "id": "EP01_CHOICE001",
+        "type": "choice",
+        "source": {},
+        "choiceText": None,
+        "options": [
+            {
+                "optionId": "EP01_CHOICE001_OPT01",
+                "optionText": "選択肢",
+                "blocks": [nested_dialogue],
+            }
+        ],
+    }
+    story = _build_normalized_story(
+        "EP01", "TEST_STORY", [_scene("EP01_SC001", [choice])]
+    )
+
+    extraction = Extractor().extract_story(story)[0]
+
+    assert extraction["characters"] == []
+    assert len(extraction["specialSpeakerLabelCandidates"]) == 1
+    assert extraction["specialSpeakerLabelCandidates"][0]["evidenceIds"] == [
+        "EP01_DLG0001"
+    ]
+
+
 def test_regular_character_and_special_label_coexist_in_same_episode():
     normal_block = _dialogue_block(
         "EP01_DLG0001",

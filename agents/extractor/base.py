@@ -12,9 +12,25 @@ docs/architecture/06_AI/Extraction_Result_Schema.md
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from typing import Any
 
 from .models import DEFAULT_EVIDENCE_CONFIDENCE, EVIDENCE_BLOCK_TYPES, EvidenceRef
+
+
+def iter_blocks_recursive(
+    blocks: list[dict[str, Any]],
+) -> Iterator[dict[str, Any]]:
+    """Block列をchoice option内までdepth-first preorderで走査する。
+
+    choice Block自身を先に返し、その後options配列順・各blocks配列順で
+    任意階層の子Blockを返す。Candidate抽出ではEvidence対象外の
+    stage_directionも手がかりになりうるため、typeによるfilterは行わない。
+    """
+    for block in blocks:
+        yield block
+        for option in block.get("options", []) or []:
+            yield from iter_blocks_recursive(option.get("blocks", []) or [])
 
 
 def build_evidence_refs(

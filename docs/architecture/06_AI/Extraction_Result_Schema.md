@@ -121,6 +121,7 @@ Stage Aの時点では、候補はまだcanonical IDへ解決されていない�
 
 `TYPE` は種別ごとに固定の短縮語を使う。
 `number` は1始まり、3桁ゼロ埋め、種別ごとに独立採番する（`Identifier_Specification.md` §5のBlock ID採番方式に準拠）。
+rule-based extractorでは、scene順とBlockのdepth-first preorder（choice自身→options配列順→各blocks配列順）で初めて観測した同一性キーの順に採番する。同一候補がscene直下とchoice option内の双方に現れた場合は1候補へ統合し、`evidenceIds`を同じ走査順で重複なく保持する。choice option内のCandidate追加により後続候補の暫定番号が変わりうるため、このIDはcanonical IDとして外部保存しない。
 
 | type | TYPE短縮語 | 例 |
 |---|---|---|

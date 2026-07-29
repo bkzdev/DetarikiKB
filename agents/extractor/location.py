@@ -10,7 +10,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from .base import add_block_evidence_if_needed, structured_identity_key
+from .base import (
+    add_block_evidence_if_needed,
+    iter_blocks_recursive,
+    structured_identity_key,
+)
 from .models import (
     DEFAULT_EVIDENCE_CONFIDENCE,
     LOCATION_CANDIDATE_CONFIDENCE_NAME_ONLY,
@@ -53,7 +57,7 @@ def build_location_candidates(
             accumulators, order, extra_evidence, scene, scene_id, story_id, episode_id
         )
 
-        for block in scene.get("blocks", []):
+        for block in iter_blocks_recursive(scene.get("blocks", [])):
             _record_background_location(
                 accumulators,
                 order,

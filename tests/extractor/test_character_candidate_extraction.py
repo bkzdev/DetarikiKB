@@ -3,7 +3,7 @@ tests/extractor/test_character_candidate_extraction.py
 agents/extractor/extractor.py の CharacterCandidate 抽出 (rule-based) のテスト。
 
 speakerAssignments / dialogue / monologue Block から最小のCharacterCandidateを
-生成する。choice内の話者は今回のスコープでは対象外。LLM呼び出しは行わない。
+生成する。choice option内も再帰的に対象とし、LLM呼び出しは行わない。
 
 Normalized Story JSONは、実スクリプトではなく手書きの小さい自作フィクスチャ
 (schemas/story.schema.json準拠) だけを使う。
@@ -316,11 +316,11 @@ def test_speaker_missing_entirely_produces_no_candidate():
 
 
 # ----------------------------------------------------------------
-# 5. choice内の話者は対象外
+# 5. choice内の話者も対象
 # ----------------------------------------------------------------
 
 
-def test_choice_nested_dialogue_speaker_is_excluded():
+def test_choice_nested_dialogue_speaker_is_included():
     inner = _dialogue_block(
         "EP01_DLG0001",
         speaker={"speakerId": "CHAR_A", "speakerName": "A", "isResolved": True},
@@ -331,7 +331,9 @@ def test_choice_nested_dialogue_speaker_is_excluded():
     )
 
     extraction = Extractor().extract_story(story)[0]
-    assert extraction["characters"] == []
+    assert len(extraction["characters"]) == 1
+    assert extraction["characters"][0]["existingCharacterId"] == "CHAR_A"
+    assert extraction["characters"][0]["evidenceIds"] == ["EP01_DLG0001"]
 
 
 # ----------------------------------------------------------------

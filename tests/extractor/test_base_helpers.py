@@ -1,6 +1,42 @@
 """agents.extractor.baseの共通evidence helper単体テスト。"""
 
-from agents.extractor.base import add_block_evidence_if_needed
+from agents.extractor.base import add_block_evidence_if_needed, iter_blocks_recursive
+
+
+def test_iter_blocks_recursive_uses_depth_first_preorder():
+    blocks = [
+        {"id": "TOP_001", "type": "dialogue"},
+        {
+            "id": "CHOICE_001",
+            "type": "choice",
+            "options": [
+                {
+                    "blocks": [
+                        {"id": "NESTED_001", "type": "stage_direction"},
+                        {
+                            "id": "CHOICE_002",
+                            "type": "choice",
+                            "options": [
+                                {"blocks": [{"id": "NESTED_002", "type": "dialogue"}]}
+                            ],
+                        },
+                    ]
+                },
+                {"blocks": [{"id": "NESTED_003", "type": "narration"}]},
+            ],
+        },
+        {"id": "TOP_002", "type": "monologue"},
+    ]
+
+    assert [block["id"] for block in iter_blocks_recursive(blocks)] == [
+        "TOP_001",
+        "CHOICE_001",
+        "NESTED_001",
+        "CHOICE_002",
+        "NESTED_002",
+        "NESTED_003",
+        "TOP_002",
+    ]
 
 
 def test_add_block_evidence_skips_standard_evidence_block():
