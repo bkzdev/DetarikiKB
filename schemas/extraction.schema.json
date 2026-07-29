@@ -589,7 +589,7 @@
             },
             "direction": {
               "type": "string",
-              "enum": ["source_to_target", "target_to_source", "bidirectional"]
+              "description": "既知値はsource_to_target / target_to_source / bidirectional。未知stringは破棄せずsemantic warningとして保持する"
             },
             "temporalNote": {
               "type": ["string", "null"],

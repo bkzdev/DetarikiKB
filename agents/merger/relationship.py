@@ -27,6 +27,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from agents.extractor.models import RELATIONSHIP_CANDIDATE_VALID_DIRECTIONS
+
 from .entity_base import (
     build_block_type_index,
     build_merged_evidence_refs,
@@ -48,6 +50,7 @@ _UNRESOLVED_PREFIX = "UNRESOLVED_"
 UNRESOLVED_ENDPOINT_MARKER = (
     "をmerged entityへ解決できなかったためrelationship mergeをskipしました"
 )
+INVALID_DIRECTION_MARKER = "は未対応のdirectionのためrelationship mergeをskipしました"
 
 
 def _build_reference_index(
@@ -169,6 +172,16 @@ def _group_relationship_candidates(
             candidate_id = candidate.get("id")
             relationship_type = candidate.get("relationshipType")
             direction = candidate.get("direction")
+
+            if (
+                not isinstance(direction, str)
+                or direction not in RELATIONSHIP_CANDIDATE_VALID_DIRECTIONS
+            ):
+                warnings.append(
+                    f"{episode_id}/{candidate_id}: direction ({direction!r}) "
+                    f"{INVALID_DIRECTION_MARKER}"
+                )
+                continue
 
             if not relationship_type or not relationship_type.strip():
                 warnings.append(

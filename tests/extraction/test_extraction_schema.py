@@ -122,6 +122,56 @@ def test_relationship_candidate_allows_free_string_type(validator, minimal_insta
     assert not errors, f"Unexpected validation errors: {[e.message for e in errors]}"
 
 
+def test_relationship_candidate_allows_unknown_string_direction(
+    validator, minimal_instance
+):
+    instance = copy.deepcopy(minimal_instance)
+    candidate = {
+        "id": "TEST_S01_C01_E01_CAND_REL001",
+        "type": "relationship_candidate",
+        "sourceType": "ai_inferred",
+        "confidence": 0.6,
+        "evidenceIds": ["TEST_S01_C01_E01_DLG0001"],
+        "extractionRun": instance["extractionRun"],
+        "existingRelationshipId": None,
+        "sourceCandidate": "CHAR_A",
+        "targetCandidate": "CHAR_B",
+        "relationshipType": "TRUSTS",
+        "direction": "sideways",
+        "temporalNote": None,
+        "fields": {},
+    }
+    instance["relationships"].append(candidate)
+
+    errors = list(validator.iter_errors(instance))
+    assert not errors, [error.message for error in errors]
+
+
+def test_relationship_candidate_rejects_non_string_direction(
+    validator, minimal_instance
+):
+    instance = copy.deepcopy(minimal_instance)
+    candidate = {
+        "id": "TEST_S01_C01_E01_CAND_REL001",
+        "type": "relationship_candidate",
+        "sourceType": "ai_inferred",
+        "confidence": 0.6,
+        "evidenceIds": ["TEST_S01_C01_E01_DLG0001"],
+        "extractionRun": instance["extractionRun"],
+        "existingRelationshipId": None,
+        "sourceCandidate": "CHAR_A",
+        "targetCandidate": "CHAR_B",
+        "relationshipType": "TRUSTS",
+        "direction": ["source_to_target"],
+        "temporalNote": None,
+        "fields": {},
+    }
+    instance["relationships"].append(candidate)
+
+    errors = list(validator.iter_errors(instance))
+    assert any(error.validator == "type" for error in errors)
+
+
 def test_evidence_index_entries_validated(validator, minimal_instance):
     instance = copy.deepcopy(minimal_instance)
     instance["evidenceIndex"]["TEST_S01_C01_E01_DLG0001"]["confidence"] = 2.0

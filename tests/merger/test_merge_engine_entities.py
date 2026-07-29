@@ -9,6 +9,7 @@ Item/Lore/Event/Relationship/Timelineは今回もentities配下が空のまま�
 ことも合わせて確認する。実データ・data/extracted/生成物は使わない。
 """
 
+import copy
 import json
 import subprocess
 import sys
@@ -526,6 +527,58 @@ def test_generated_relationship_entity_passes_entity_schema(
     for entity in collection["entities"]["relationships"]:
         errors = list(entity_validator.iter_errors(entity))
         assert not errors, [e.message for e in errors]
+
+
+def test_merge_engine_keeps_unknown_direction_as_warning_and_skips_candidate(
+    collection_validator, engine, tmp_path
+):
+    doc = _episode_with_relationship_candidate("EP01")
+    doc["relationships"][0]["direction"] = "sideways"
+    path = tmp_path / "EP01.extraction.json"
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(doc, f, ensure_ascii=False)
+
+    collection = engine.merge_file(path)
+
+    assert collection["report"]["validInputs"] == 1
+    assert collection["report"]["invalidInputs"] == 0
+    assert collection["entities"]["relationships"] == []
+    warnings = collection["report"]["warnings"]
+    assert any("relationship_direction_known" in warning for warning in warnings)
+    assert any(
+        "EP01/EP01_CAND_REL001" in warning
+        and "sideways" in warning
+        and "relationship mergeをskip" in warning
+        for warning in warnings
+    )
+    errors = list(collection_validator.iter_errors(collection))
+    assert not errors, [error.message for error in errors]
+
+
+def test_merge_engine_promotes_known_direction_and_skips_unknown_direction(
+    engine, tmp_path
+):
+    doc = _episode_with_relationship_candidate("EP01")
+    unknown = copy.deepcopy(doc["relationships"][0])
+    unknown["id"] = "EP01_CAND_REL002"
+    unknown["direction"] = "sideways"
+    doc["relationships"].append(unknown)
+    path = tmp_path / "EP01.extraction.json"
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(doc, f, ensure_ascii=False)
+
+    collection = engine.merge_file(path)
+
+    relationships = collection["entities"]["relationships"]
+    assert len(relationships) == 1
+    assert relationships[0]["direction"] == "source_to_target"
+    assert relationships[0]["sourceCandidates"][0]["candidateId"] == (
+        "EP01_CAND_REL001"
+    )
+    assert any(
+        "EP01/EP01_CAND_REL002" in warning and "sideways" in warning
+        for warning in collection["report"]["warnings"]
+    )
 
 
 def test_collection_with_relationship_entity_passes_collection_schema(

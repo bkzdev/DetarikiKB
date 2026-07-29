@@ -28,6 +28,7 @@ from .models import (
 RELATIONSHIP_SOURCE_BLOCK_TYPES = frozenset(
     {"dialogue", "monologue", "narration", "choice"}
 )
+RelationshipGroupKey = tuple[str, str, str, tuple[str, str]]
 
 
 def build_relationship_candidates(
@@ -52,11 +53,12 @@ def build_relationship_candidates(
       があればMEMBER_OF、organizationName/affiliation (名前のみ) なら
       AFFILIATED_WITHとする)
 
-    同一 source + target + relationshipType の組み合わせは1件に統合し、
+    同一 source + target + relationshipType の既知directionは従来どおり1件に
+    統合する。未知directionは既知bucketおよび異なる未知値から分離し、
     evidenceIdsを集約する。自己参照 (source == target) は生成しない。
     """
-    accumulators: dict[tuple[str, str, str], RelationshipCandidateAccumulator] = {}
-    order: list[tuple[str, str, str]] = []
+    accumulators: dict[RelationshipGroupKey, RelationshipCandidateAccumulator] = {}
+    order: list[RelationshipGroupKey] = []
     extra_evidence: dict[str, dict[str, Any]] = {}
 
     for scene in episode.get("scenes", []):
@@ -74,15 +76,30 @@ def build_relationship_candidates(
     return candidates, list(extra_evidence.values())
 
 
-def _normalize_direction(value: Any) -> str:
-    if value in RELATIONSHIP_CANDIDATE_VALID_DIRECTIONS:
-        return value
-    return RELATIONSHIP_CANDIDATE_DEFAULT_DIRECTION
+def _direction_or_default(value: Any) -> Any:
+    if value is None:
+        return RELATIONSHIP_CANDIDATE_DEFAULT_DIRECTION
+    return value
+
+
+def _direction_group_key(value: Any, *, source_id: str) -> tuple[str, str]:
+    """directionを集約キーへ変換する。
+
+    Stage A schema上有効な既知stringは共通bucket、未知stringは値ごとに
+    集約する。非stringは後段のschema validationでrejectされるが、unhashable
+    な値でも抽出途中で情報を落としたり例外停止したりしないよう、Block ID単位
+    の一意なinvalid keyへ隔離する。
+    """
+    if isinstance(value, str):
+        if value in RELATIONSHIP_CANDIDATE_VALID_DIRECTIONS:
+            return ("known", "known")
+        return ("unknown", value)
+    return ("invalid", source_id)
 
 
 def _record_block_relationship(
-    accumulators: dict[tuple[str, str, str], RelationshipCandidateAccumulator],
-    order: list[tuple[str, str, str]],
+    accumulators: dict[RelationshipGroupKey, RelationshipCandidateAccumulator],
+    order: list[RelationshipGroupKey],
     block: dict[str, Any],
 ) -> None:
     """Blockに明示されたrelationshipType + source/targetペアを記録する
@@ -103,9 +120,14 @@ def _record_block_relationship(
         # 自己参照Relationshipは生成しない
         return
 
-    key = (source, target, relationship_type)
     existing_relationship_id = block.get("relationshipId")
-    direction = _normalize_direction(block.get("direction"))
+    direction = _direction_or_default(block.get("direction"))
+    key = (
+        source,
+        target,
+        relationship_type,
+        _direction_group_key(direction, source_id=block["id"]),
+    )
 
     if key not in accumulators:
         accumulators[key] = RelationshipCandidateAccumulator(
@@ -126,8 +148,8 @@ def _record_block_relationship(
 
 
 def _record_assignment_membership(
-    accumulators: dict[tuple[str, str, str], RelationshipCandidateAccumulator],
-    order: list[tuple[str, str, str]],
+    accumulators: dict[RelationshipGroupKey, RelationshipCandidateAccumulator],
+    order: list[RelationshipGroupKey],
     extra_evidence: dict[str, dict[str, Any]],
     assignment: dict[str, Any],
     story_id: str,
@@ -160,7 +182,14 @@ def _record_assignment_membership(
     )
     is_resolved = bool(assignment.get("speakerId")) and bool(organization_id)
 
-    key = (character, organization, relationship_type)
+    key = (
+        character,
+        organization,
+        relationship_type,
+        _direction_group_key(
+            RELATIONSHIP_CANDIDATE_DEFAULT_DIRECTION, source_id=episode_id
+        ),
+    )
     if key not in accumulators:
         accumulators[key] = RelationshipCandidateAccumulator(
             source_candidate=character,
@@ -186,8 +215,8 @@ def _record_assignment_membership(
 
 
 def _finalize_relationship_candidates(
-    accumulators: dict[tuple[str, str, str], RelationshipCandidateAccumulator],
-    order: list[tuple[str, str, str]],
+    accumulators: dict[RelationshipGroupKey, RelationshipCandidateAccumulator],
+    order: list[RelationshipGroupKey],
     episode_id: str,
     extraction_run: dict[str, Any],
 ) -> list[dict[str, Any]]:

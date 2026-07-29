@@ -389,6 +389,40 @@ def test_relationship_distinct_endpoints_pass():
     assert not [i for i in issues if i.rule == "relationship_self_reference"]
 
 
+def test_relationship_unknown_direction_is_warning_not_error():
+    instance = minimal_instance()
+    instance["relationships"].append(
+        _relationship_candidate(instance, direction="sideways")
+    )
+
+    issues = run_semantic_validation(instance)
+    direction_issues = [
+        issue for issue in issues if issue.rule == "relationship_direction_known"
+    ]
+
+    assert len(direction_issues) == 1
+    assert direction_issues[0].severity == "warning"
+    assert direction_issues[0].field_name == "direction"
+    assert "sideways" in direction_issues[0].message
+    assert not _errors(issues)
+
+
+@pytest.mark.parametrize(
+    "direction", ("source_to_target", "target_to_source", "bidirectional")
+)
+def test_relationship_known_direction_has_no_warning(direction: str):
+    instance = minimal_instance()
+    instance["relationships"].append(
+        _relationship_candidate(instance, direction=direction)
+    )
+
+    issues = run_semantic_validation(instance)
+
+    assert not [
+        issue for issue in issues if issue.rule == "relationship_direction_known"
+    ]
+
+
 def test_relationship_local_candidate_endpoints_pass():
     instance = minimal_instance()
     source_id = instance["characters"][0]["id"]
@@ -550,6 +584,26 @@ def test_cli_semantic_rejects_missing_relationship_candidate_endpoint(
     assert result.returncode == 1
     assert "relationship_candidate_endpoint_exists" in result.stderr
     assert "sourceCandidate" in result.stderr
+
+
+def test_cli_semantic_accepts_unknown_relationship_direction_with_warning(
+    tmp_path: Path,
+):
+    instance = minimal_instance()
+    instance["relationships"].append(
+        _relationship_candidate(instance, direction="sideways")
+    )
+    input_path = tmp_path / "unknown_relationship_direction.json"
+    input_path.write_text(
+        json.dumps(instance, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+    result = _run_cli("--input", str(input_path), "--semantic")
+
+    assert result.returncode == 0, result.stderr
+    assert "relationship_direction_known" in result.stderr
+    assert "sideways" in result.stderr
 
 
 def test_cli_without_semantic_flag_ignores_semantic_errors():

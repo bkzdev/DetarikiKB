@@ -177,6 +177,36 @@ def test_relationship_with_resolved_entity_ids_becomes_merged_relationship():
     assert entity["canonicalId"].startswith("REL_CHAR_AKAGI_HINA_TRUSTS_CHAR_RAIN")
 
 
+def test_unknown_direction_is_reported_and_skipped():
+    relationship = _relationship_candidate(
+        "EP01_CAND_REL001",
+        ["EP01_DLG0001"],
+        source_candidate="CHAR_AKAGI_HINA",
+        target_candidate="CHAR_RAIN",
+        relationship_type="TRUSTS",
+        direction="sideways",
+    )
+    document = _episode_extraction(
+        "EP01",
+        relationships=[relationship],
+        evidence_index={"EP01_DLG0001": _evidence_ref("EP01_DLG0001", "EP01")},
+    )
+    known_entities = [
+        {"id": "CHAR_AKAGI_HINA", "sourceCandidates": []},
+        {"id": "CHAR_RAIN", "sourceCandidates": []},
+    ]
+
+    entities, merge_warnings = build_relationship_entities(
+        [("ep01.json", document)], known_entities
+    )
+
+    assert entities == []
+    assert len(merge_warnings) == 1
+    assert "EP01/EP01_CAND_REL001" in merge_warnings[0]
+    assert "sideways" in merge_warnings[0]
+    assert "relationship mergeをskip" in merge_warnings[0]
+
+
 # ----------------------------------------------------------------
 # 2. 同じsource/target/type/directionの複数candidateが1つにmergeされる
 # ----------------------------------------------------------------

@@ -18,6 +18,8 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Any
 
+from .models import RELATIONSHIP_CANDIDATE_VALID_DIRECTIONS
+
 # CandidateEnvelope (Extraction_Result_Schema.md §4.1) を持つ配列キー。
 # documentのトップレベルにあるcandidate配列を横断して扱う。
 CANDIDATE_ARRAY_KEYS = (
@@ -289,6 +291,7 @@ def check_relationship_basic(document: dict[str, Any]) -> list[SemanticValidatio
         candidate_id = candidate.get("id")
         source = candidate.get("sourceCandidate")
         target = candidate.get("targetCandidate")
+        direction = candidate.get("direction")
 
         if isinstance(source, str) and source.strip() == "":
             issues.append(
@@ -322,6 +325,25 @@ def check_relationship_basic(document: dict[str, Any]) -> list[SemanticValidatio
                     candidate_type="relationship_candidate",
                     candidate_id=candidate_id,
                     array_key="relationships",
+                )
+            )
+        if (
+            isinstance(direction, str)
+            and direction not in RELATIONSHIP_CANDIDATE_VALID_DIRECTIONS
+        ):
+            issues.append(
+                SemanticValidationIssue(
+                    rule="relationship_direction_known",
+                    severity="warning",
+                    message=(
+                        f"未知のdirectionです ({direction!r})。"
+                        "Stage Aでは元値を保持し、"
+                        "Stage Bへの昇格時にskipします"
+                    ),
+                    candidate_type="relationship_candidate",
+                    candidate_id=candidate_id,
+                    array_key="relationships",
+                    field_name="direction",
                 )
             )
     return issues

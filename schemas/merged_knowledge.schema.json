@@ -53,7 +53,7 @@
 
     "Direction": {
       "type": "string",
-      "description": "Relationshipの方向 (extraction.schema.jsonと同一)",
+      "description": "Stage Bへ昇格可能なRelationshipの既知方向。Stage Aで保持した未知stringはmerge warning付きでskipする",
       "enum": ["source_to_target", "target_to_source", "bidirectional"]
     },
 
