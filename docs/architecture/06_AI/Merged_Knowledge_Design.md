@@ -298,6 +298,15 @@ canonical IDへ解決できていないcandidate（`existing*Id: null`）は、�
 | unresolved | eventName のみは`_unresolved/events.json`へ |
 | manual correction | canonical EVENT_ID割り当て、同一出来事判定、EPISODEをまたぐ出来事の統合 |
 
+`participantCandidates`はCharacter、`locationCandidates`はLocationとして
+それぞれ別のcandidate対応表で解決する。Stage A candidate IDまたは今回の
+collectionで既に構築済みの同一typeのmerged entity IDだけを解決済みとし、
+ID prefixだけを根拠に外部参照を自動確定しない。同一Eventへ複数candidate・
+episodeから集まる参照は初出順を維持して重複を除いた和集合として
+`participantEntityIds` / `locationEntityIds`へ保持する。未解決または型違いの
+参照があってもEvent entityと他の正しい参照は維持し、episode ID・Event
+candidate ID・field名・元の参照値をmerge report warningへ残す。
+
 ## 5.7 Relationship
 
 §6で個別に定義する。
@@ -484,6 +493,11 @@ data/extracted/reports/candidate_mapping.json
 - EventCandidateの`participantCandidates`やRelationshipCandidateの両端に含まれるcandidate IDを、merged entity IDへ解決する（§5.6 / §6.1）
 - 「このcandidateはどのmerged entityに取り込まれたか」の逆引き
 - 増分マージ時の差分計算
+
+EventCandidateの解決では、participant用Character対応表とlocation用Location
+対応表を分離する。別typeのcandidate IDやentity IDを誤接続せず、対応する
+typed entityが今回のcollectionに存在しない参照は未解決warningとして元値を
+保持する。
 
 ## 10.3 extractionRunの保持方式
 

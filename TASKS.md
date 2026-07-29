@@ -8,6 +8,7 @@
 
 ## Current Focus
 
+- `codex/event-participant-location-resolution`: Stage B Event mergeで未実装だった`participantCandidates` / `locationCandidates`のtyped参照解決を実装した（**実装PR**）。Character用・Location用のcandidate ID→merged entity ID対応表を分離し、Stage A candidate IDまたは今回のcollectionで構築済みの同一type entity IDだけを解決する。同一Eventへ集まる参照は初出順・重複なしの和集合として`participantEntityIds` / `locationEntityIds`へ保持する。未解決・型違い参照はEvent全体や他の正しい参照を落とさず、episode ID・Event candidate ID・field・元値付きmerge report warningへ保持する。prefixだけによる外部IDの自動確定、Event抽出ルール、schema field追加は行っていない。
 - `codex/relationship-direction-conflict-merge`: Stage B Relationship mergeで同一source・target・normalized relationshipTypeの既知direction違いを別entityにして同一ID/canonicalIdを重複生成していた問題を、`Merged_Knowledge_Design.md` §6.2どおり1 entityへ統合した（**実装PR**）。directionが複数なら全candidate/evidenceを保持して`bidirectional`を暫定採用し、`field: direction`・`resolutionStatus: auto_selected`の`relationship_conflict`を記録する。`source_to_target`と`target_to_source`だけの組み合わせも安全な上包として`bidirectional`にする。`MEMBER_OF`/`AFFILIATED_WITH`（alias含む）は`source_to_target`固定とし、逆向き・双方向候補だけを元値付きreport warningへ残してskipする。Relationship ID形式、未知directionのwarning+skip、異なるrelationshipTypeの別entity化は変更していない。
 - `codex/relationship-invalid-direction-warning`: RelationshipCandidateの未知`direction`を無言で`source_to_target`へ置換せず、Stage Aに元のstringを保持して`relationship_direction_known` semantic warningを出すようにした（**実装PR**）。Stage A schemaは未知stringを許容する一方、欠落・非stringは従来どおりrejectする。同じsource・target・relationshipTypeでは、未知directionを既知3値のbucketおよび異なる未知値から分離し、既知方向の根拠を未知方向へ吸収しない。Stage Bの3値enumは維持し、未知値の候補だけをepisode ID・candidate ID・元値付きのmerge report warningへ残して昇格対象から外す。`direction`未指定時の`source_to_target`既定値、既知3値同士の既存集約、他候補のmergeは変更していない。
 - `codex/merge-report-output`: `merge_extractions.py`へ`--report-output FILE`を追加し、manual override・canonical ID再検証まで反映したcollection内の最終`report`と同一内容を独立JSON artifactとして出力可能にした（**実装PR**）。親ディレクトリは自動作成し、collection本体と同一pathの指定は上書き事故を防ぐためexit code 2で拒否する。未指定時は独立artifactを生成せず既存CLI挙動を維持する。正式運用の推奨先`data/extracted/reports/merge_report.json`と、dry-runのrun別`workspace/dry_runs/<RUN_ID>/reports/merge_report.json`を設計書・runbookへ反映した。report内容・merge判定・schema・固定collectionファイル名は変更していない。
@@ -162,7 +163,7 @@
 - timeline contradiction detection（順序整合性の本格検証）
 - `relationshipType`のtaxonomy本確定（`docs/architecture/04_Knowledge_Graph/Relationships.md`、現在プレースホルダー）
 - canonical ID辞書（`knowledge/dictionaries/*.yaml`）本体の実装（現状はpolicy/helper/validationのみ）
-- EventCandidateのparticipant/location解決
+- ~~EventCandidateのparticipant/location解決~~ → `codex/event-participant-location-resolution`で、型別candidate対応表による解決、初出順の和集合、未解決・型違い参照の元値付きwarning保持を実装（Current Focus参照）
 - `entities`配下の`schemas/merged_knowledge.schema.json`への`$ref`接続（cross-file $ref方針の決定待ち）
 - ~~merge report自体の生成物出力（`data/extracted/reports/merge_report.json`への書き出し）~~ → `codex/merge-report-output`で`--report-output FILE`を追加し、正式運用パスとrun別dry-runパスを文書化して解消（Current Focus参照）
 - choice内話者・choice内location/organization/item/lore/event情報も含めた抽出への拡張

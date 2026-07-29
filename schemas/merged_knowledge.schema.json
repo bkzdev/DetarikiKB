@@ -422,12 +422,12 @@
             "type": { "const": "event" },
             "participantEntityIds": {
               "type": "array",
-              "description": "参加Character等のcanonical ID (participantCandidatesを§10.2の対応表で解決した結果)",
+              "description": "参加Characterのmerged entity ID (participantCandidatesを§10.2の型別対応表で解決した結果)",
               "items": { "type": "string" }
             },
             "locationEntityIds": {
               "type": "array",
-              "description": "発生場所のcanonical Location ID",
+              "description": "発生場所のLocation merged entity ID (locationCandidatesを§10.2の型別対応表で解決した結果)",
               "items": { "type": "string" }
             }
           }
