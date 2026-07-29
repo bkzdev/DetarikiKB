@@ -457,7 +457,8 @@ templates/wiki/unresolved_report.md.j2
 |---|---|---|
 | Character/Location/Organization/Item/Lore/Event（canonicalIdあり） | `{type}/{canonicalId}.md` | `characters/CHAR_RAIN.md` |
 | 同上（canonicalIdなし = unresolved） | ページを生成しない。`reports/unresolved.md`にのみ一覧掲載 | （URLなし） |
-| Story/Episode | `stories/{storyId}/{episodeId}.md` | `stories/MAIN_S01_C02/MAIN_S01_C02_E01.md`（`feature/wiki-renderer-skeleton`のrenderer skeletonでは、暫定的にフラット構成`stories/{episodeId}.md`を採用。ネスト構成への移行は今後のepisode page renderer拡張で検討する） |
+| Story | `stories/{publicStoryId or storyId}.md` | `stories/PUBLIC_TEST_STORY_001.md` |
+| Episode | `stories/{publicEpisodeId or episodeId}.md` | `stories/PUBLIC_TEST_STORY_001_E01.md` |
 | index系 | `{type}/index.md` | `characters/index.md` |
 | Timeline | `timelines/index.md`（単一集約ファイル、`Merged_Knowledge_Design.md` §7が「エンティティ統合しない」方針のため個別ページを持たない） | |
 
@@ -470,6 +471,8 @@ templates/wiki/unresolved_report.md.j2
 **field設計実装（`feature/story-manifest-public-id-fields-design`で追加）**: `publicStoryId`/`publicEpisodeId`を`story_manifest.yaml`の任意フィールドとして実装した（`docs/architecture/05_Parser/Story_Manifest_Design.md` §13.2）。**renderer/paths.pyのURL切替はまだ行っていない。** 現行URL（`stories/{episodeId}.md`）は変更なし。この2フィールドをrenderer/paths.pyで実際に使うかどうかの判断・実装は引き続き将来PRの対象とする。
 
 **renderer/paths.py切替実装（`feature/story-manifest-public-id-renderer-switch`で追加）**: `agents/wiki_generator/paths.py`の`episode_page_path`（内部で`resolve_episode_path_id`を使用）が、`sourceDocument.publicEpisodeId`（空文字列・whitespaceのみは無視）を優先し、無ければ既存の`episodeId`（無ければ`documentId`）へfallbackするようにした。`publicEpisodeId`が無い既存データは`stories/{episodeId}.md`のまま変更されない。Story indexのEpisodeリンク先も同じ解決結果を使うため自動的に追従するが、リンクtext（`displayTitle > episodeSubtitle > storyTitle > episodeId`優先順位）は変更していない。Character page path・Characters index・Unresolved reportは変更していない。
+
+**URL構造の正式決定（`codex/story-url-structure-decision`）**: `Story_URL_Structure_Decision.md`で、現行flat構造をcanonicalな生成契約として維持すると決定した。Story / Episode pageは上表のとおり同じ`stories/`直下へ生成し、公開IDが無い場合の内部ID fallbackはlocal preview / internal buildの後方互換として残す。Episodeだけをsubdirectoryへ移す案は不採用、Story単位のnested構造は公開基盤・redirect・public ID completeness・具体的な閲覧上の問題が確定した後の再評価候補とする。本決定では`paths.py` / `renderer.py`を変更していない。
 
 ---
 

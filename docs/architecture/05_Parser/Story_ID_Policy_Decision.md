@@ -227,6 +227,8 @@ sourceKeyは概ね17〜20文字（`{YYMMDD}_{slug}`形式）、URLは36〜39文�
 
 **migration is additive first: このPRではbreaking changeを一切行わない。** 既存の生成URLはrenderer/paths切替が行われるまで変更されない。`sourceKey`は引き続きraw traceability用として利用可能なまま保持される。
 
+**URL階層の後続決定（`codex/story-url-structure-decision`）**: public IDをfilenameへ反映するrenderer/paths切替は実装済みである。その上で、Story / Episode pageは現行のflat構造（`stories/{publicStoryId or storyId}.md` / `stories/{publicEpisodeId or episodeId}.md`）をcanonicalな生成契約として維持し、Story単位のnested構造は公開基盤・redirect・public ID completeness等の再評価ゲートを満たすまで実装しないと決定した。詳細は`../07_Wiki/Story_URL_Structure_Decision.md`を参照。
+
 まとめると以下の3点に集約される。
 
 1. migration is additive first
