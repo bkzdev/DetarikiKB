@@ -47,6 +47,8 @@ workspace/dry_runs/<RUN_ID>/
     <episodeId>.extraction.json
   merged/
     merged_knowledge_collection.json  # Merger出力 (merge_extractions.pyの固定出力ファイル名)
+  reports/
+    merge_report.json                 # Mergerの独立report artifact
 
 workspace/wiki_preview/<RUN_ID>/      # Wiki render handoff時の出力 (Real_Data_Wiki_Render_Dry_Run.md参照)
 ```
@@ -85,11 +87,14 @@ mkdir -p workspace/dry_runs/<RUN_ID>/merged
 
 uv run python scripts/merge_extractions.py \
     --input workspace/dry_runs/<RUN_ID>/extracted/ \
-    --output workspace/dry_runs/<RUN_ID>/merged/
+    --output workspace/dry_runs/<RUN_ID>/merged/ \
+    --report-output workspace/dry_runs/<RUN_ID>/reports/merge_report.json
 ```
 
 - `--input`はファイル・ディレクトリ・globパターンのいずれも複数指定可（`nargs="+"`）。ディレクトリを渡すと配下の`*.json`をまとめて処理する
 - 出力は`workspace/dry_runs/<RUN_ID>/merged/merged_knowledge_collection.json`固定名で書き出される
+- `--report-output FILE`はcollection内の最終`report`と同一内容を独立JSONへ書き出し、親ディレクトリも自動作成する。未指定時は後方互換のため独立artifactを生成しない
+- 独立reportには内部path・validation errorが含まれうるため、運用上は`workspace/`または正式運用の`data/extracted/reports/merge_report.json`に限定し、公開成果物へ転記しない。CLI自体はtest用一時directoryを許容するためrootを強制しない
 - manual overrideを使う場合は`--overrides`オプション（`docs/runbooks/Real_Data_Dry_Run.md` §11参照）
 
 出力後、`schemas/merged_knowledge_collection.schema.json`で改めてschema検証しておくとよい（`merge_extractions.py`自体はschema検証結果を標準出力に出さないため）。
@@ -165,6 +170,7 @@ git check-ignore -v data/normalized/main/<episodeId>.json
 - [ ] Extractorがexit code `0`で完了する（episodeごと）
 - [ ] `--validate`指定時、Extraction Result schema検証が通る
 - [ ] Mergerがexit code `0`で完了する
+- [ ] `reports/merge_report.json`が生成され、collection内の`report`と同一内容である
 - [ ] Merged Knowledge Collection schema検証が通る（§6の検証コマンド）
 - [ ] `entities.*`（characters/locations/organizations/items/lore/events/relationships/timeline）の件数が確認できる
 - [ ] `report.unresolvedEntityCounts`が確認できる
@@ -188,6 +194,7 @@ Wiki render handoffまで実施した場合、`docs/runbooks/Real_Data_Wiki_Rend
 | `unresolvedEntityCounts`が`mergedEntityCounts`と一致（全件unresolved） | キャラクター辞書（`knowledge/dictionaries/characters.yaml`）が実データの数値ID帯をカバーしていない既知の課題 | `scripts/check_character_dictionary_coverage.py`で確認。本dry-runのスコープでは辞書拡充は行わない |
 | `characters/*.md`が1件も生成されない（Wiki render handoff時） | 上記と同じ理由でcanonicalId確定entityが0件 | 想定通りの挙動（`is_page_eligible`の判定基準通り）。バグではない |
 | Merger実行時にschema検証エラー | Extractor出力側の実装バグの可能性 | エラーメッセージのJSON Pathを確認し、`agents/extractor/`の該当箇所を疑う |
+| `--report-output`指定時にexit code `2` | 出力先衝突、directoryをFILEとして指定、親directory作成・書込み失敗 | collection/reportの両artifactを確認する。異なるファイルシステム出力間のtransactional commitは保証しないため、partial outputがあればrun単位で除去して再実行する |
 
 ---
 

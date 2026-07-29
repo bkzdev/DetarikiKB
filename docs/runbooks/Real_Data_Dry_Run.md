@@ -187,12 +187,14 @@ mkdir -p workspace/dry_runs/20260703_000000
 
 uv run python scripts/merge_extractions.py \
     --input data/extracted/_raw \
-    --output workspace/dry_runs/20260703_000000/
+    --output workspace/dry_runs/20260703_000000/ \
+    --report-output workspace/dry_runs/20260703_000000/reports/merge_report.json
 ```
 
 - `--input`はファイル・ディレクトリ・globパターンのいずれも複数指定可（`--input`, `-i`, `nargs="+"`）
 - `--recursive`/`-r`でサブディレクトリまで再帰的に探索する
 - 出力は`workspace/dry_runs/20260703_000000/merged_knowledge_collection.json`固定名で書き出される
+- `--report-output FILE`を指定すると、collection内の最終`report`と同一内容を独立JSONへ書き出す。親ディレクトリは自動作成される。省略時は独立reportを生成せず、collection内の`report`だけを維持する
 
 ---
 
@@ -202,7 +204,8 @@ uv run python scripts/merge_extractions.py \
 uv run python scripts/merge_extractions.py \
     --input data/extracted/_raw \
     --overrides knowledge/overrides/base.json \
-    --output workspace/dry_runs/20260703_000000/
+    --output workspace/dry_runs/20260703_000000/ \
+    --report-output workspace/dry_runs/20260703_000000/reports/merge_report.json
 ```
 
 - `--overrides`は`schemas/manual_overrides.schema.json`準拠のファイルを1つ以上指定できる（`nargs="+"`）
@@ -214,25 +217,25 @@ uv run python scripts/merge_extractions.py \
 
 # 12. report確認ポイント
 
-`workspace/dry_runs/<timestamp>/merged_knowledge_collection.json` の `report` フィールドを、以下の順に確認する。
+`workspace/dry_runs/<timestamp>/reports/merge_report.json`を、以下の順に確認する。この独立artifactは同じrunの`merged_knowledge_collection.json`内の`report`と同一内容であるため、独立JSONでは下表のreport fieldをroot直下から参照する。内部path・validation errorを含みうるため公開成果物には使用しない。
 
 | フィールド | 確認内容 |
 |---|---|
-| `report.inputResults` | 各入力ファイルが`valid`/`invalid`/`skipped`のどれか。`invalid`があれば`errors`を確認する |
-| `report.candidateCounts` | Stage A candidate件数の全体合算（type別） |
-| `report.mergedEntityCounts` | merged entity件数（type別）。0件が続く場合はcandidate抽出自体を疑う |
-| `report.unresolvedEntityCounts` | `status: unresolved`のentity件数（type別）。構造化ID（`existing*Id`）が解決されていない候補が多い場合はキャラクター辞書の充実度を疑う |
-| `report.conflictCounts` | `total`/`bySeverity`/`byType`/`byEntityType`。`field_value_conflict`（displayName等の表記ゆれ）が多い場合は正規化ルール・辞書の見直しを検討 |
-| `report.warningCounts` | `unresolvedRelationships`（source/target未解決でskipされたrelationship件数）、`skippedOverrides`（overrides未適用件数） |
-| `report.relationshipTypeSummary` | `knownTypes`/`unknownTypes`。`unknownTypes`が多い場合、暫定taxonomy（`agents/merger/relationship_taxonomy.py`）に追加すべき語彙が無いか検討する（ただしtaxonomy本確定はこのPRのNon-goals） |
-| `report.canonicalIdSummary` | `totalAssigned`/`duplicateCount`/`invalidCount`。`invalidCount`/`duplicateCount`が0でない場合は`warnings`を確認する（`docs/architecture/06_AI/Canonical_ID_Policy.md`参照） |
-| `report.manualOverrides` | （`--overrides`指定時のみ）`appliedCount`/`skippedCount`/`errorCount`と`results[]` |
-| `entities.*` の件数 | `collection.entities.characters` 等8配列それぞれの`length`。`mergedEntityCounts`と一致するはず |
-| unresolved relationship warnings | `report.warnings`のうち、`agents/merger/relationship.py`の`UNRESOLVED_ENDPOINT_MARKER`文言を含むもの |
-| unknown relationshipType | `report.relationshipTypeSummary.unknownTypes`のキー一覧 |
-| invalid / duplicate canonicalId | `report.canonicalIdSummary.warnings`のうち「形式が不正」「重複しています」を含むもの |
-| timeline unresolved entries | `entities.timeline`は現状の設計上**常に`status: unresolved`**（`Merged_Knowledge_Design.md` §7.1）。件数のみ確認すればよく、`unresolved`であること自体はエラーではない |
-| `sourceDocuments` | どの入力ファイルがmergeに使われたか（`documentId`/`episodeId`/`candidateCounts`） |
+| `inputResults` | 各入力ファイルが`valid`/`invalid`/`skipped`のどれか。`invalid`があれば`errors`を確認する |
+| `candidateCounts` | Stage A candidate件数の全体合算（type別） |
+| `mergedEntityCounts` | merged entity件数（type別）。0件が続く場合はcandidate抽出自体を疑う |
+| `unresolvedEntityCounts` | `status: unresolved`のentity件数（type別）。構造化ID（`existing*Id`）が解決されていない候補が多い場合はキャラクター辞書の充実度を疑う |
+| `conflictCounts` | `total`/`bySeverity`/`byType`/`byEntityType`。`field_value_conflict`（displayName等の表記ゆれ）が多い場合は正規化ルール・辞書の見直しを検討 |
+| `warningCounts` | `unresolvedRelationships`（source/target未解決でskipされたrelationship件数）、`skippedOverrides`（overrides未適用件数） |
+| `relationshipTypeSummary` | `knownTypes`/`unknownTypes`。`unknownTypes`が多い場合、暫定taxonomy（`agents/merger/relationship_taxonomy.py`）に追加すべき語彙が無いか検討する（ただしtaxonomy本確定はこのPRのNon-goals） |
+| `canonicalIdSummary` | `totalAssigned`/`duplicateCount`/`invalidCount`。`invalidCount`/`duplicateCount`が0でない場合は`warnings`を確認する（`docs/architecture/06_AI/Canonical_ID_Policy.md`参照） |
+| `manualOverrides` | （`--overrides`指定時のみ）`appliedCount`/`skippedCount`/`errorCount`と`results[]` |
+| collection側`entities.*` の件数 | `merged_knowledge_collection.json`の`entities.characters` 等8配列それぞれの`length`。`mergedEntityCounts`と一致するはず |
+| unresolved relationship warnings | `warnings`のうち、`agents/merger/relationship.py`の`UNRESOLVED_ENDPOINT_MARKER`文言を含むもの |
+| unknown relationshipType | `relationshipTypeSummary.unknownTypes`のキー一覧 |
+| invalid / duplicate canonicalId | `canonicalIdSummary.warnings`のうち「形式が不正」「重複しています」を含むもの |
+| collection側timeline unresolved entries | `merged_knowledge_collection.json`の`entities.timeline`は現状の設計上**常に`status: unresolved`**（`Merged_Knowledge_Design.md` §7.1）。件数のみ確認すればよく、`unresolved`であること自体はエラーではない |
+| collection側`sourceDocuments` | `merged_knowledge_collection.json`で、どの入力ファイルがmergeに使われたか（`documentId`/`episodeId`/`candidateCounts`） |
 
 ---
 

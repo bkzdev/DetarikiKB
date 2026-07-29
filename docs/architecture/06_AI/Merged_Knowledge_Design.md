@@ -549,13 +549,17 @@ knowledge/               # 手動管理ソース。Git管理対象（リポジ�
 
 ## 11.2 マージレポート
 
-マージ実行のたびに以下を出力する（生成物。Git管理外）。
+マージ実行時に`merge_extractions.py --report-output FILE`を指定すると、collection内の最終`report`と同一内容を独立JSONとして出力する（生成物。Git管理外）。正式運用の推奨先は以下とする。
 
 ```text
 data/extracted/reports/merge_report.json
 ```
 
 内容: 処理したepisode_extraction数 / 生成・更新されたmerged entity数 / `_unresolved/`件数 / §9のconflict一覧 / 適用override・適用先なしoverride / semantic validation warningの転記。
+
+既存CLIとの後方互換と、test/dry-runが固定パスを暗黙に上書きしないことを優先し、`--report-output`未指定時は独立artifactを生成しない。この場合も`merged_knowledge_collection.json`内の`report`は従来通り保持する。複数runを比較するdry-runでは、`workspace/dry_runs/<RUN_ID>/reports/merge_report.json`のようにrun別のignoredパスを明示する。
+
+CLIはtest用の一時ディレクトリも許容するため出力root自体は強制しない。`data/extracted/reports/`または`workspace/dry_runs/`へ限定することは運用規約であり、reportには内部path・validation errorが含まれうるため、`docs/`・`knowledge/`・公開Wiki出力先を指定してはならない。親ディレクトリ作成等の事前準備に失敗した場合はcollection/reportとも書き出さずexit code 2とする。2つの異なるファイルシステム出力を跨ぐtransactional commitまでは保証しないため、実書込み中のI/O failureでexit code 2になった場合は両artifactの整合を確認し、run単位で再実行する。
 
 ---
 

@@ -3,7 +3,7 @@
 Merge Extractions Script
 CLIから Stage A episode_extraction JSON群 (複数ファイル・ディレクトリ・
 globパターンに対応) を検証し、Stage B merged knowledge collection
-(skeleton) を生成する入口。
+(skeleton) と、任意で独立merge report artifactを生成する入口。
 
 本格的なcandidate merge・canonical ID割り当て・conflict解決の本格実装は
 まだ実装していない。--overridesを指定すると、merge後のcollectionへ
@@ -30,6 +30,7 @@ Usage:
     # manual overrideを適用
     python scripts/merge_extractions.py \\
         --input data/extracted/_raw/ --output workspace/merge_preview \\
+        --report-output workspace/merge_preview/merge_report.json \\
         --overrides overrides/base.json --overrides overrides/characters.json
 
 Exit codes:
@@ -61,6 +62,7 @@ from agents.merger.overrides import (  # noqa: E402
 )
 
 DEFAULT_OUTPUT_FILENAME = "merged_knowledge_collection.json"
+RECOMMENDED_REPORT_OUTPUT = "data/extracted/reports/merge_report.json"
 
 
 def parse_args() -> argparse.Namespace:
@@ -85,6 +87,7 @@ def parse_args() -> argparse.Namespace:
 
   python scripts/merge_extractions.py \\
       --input data/extracted/_raw/ --output workspace/merge_preview \\
+      --report-output workspace/merge_preview/merge_report.json \\
       --overrides overrides/base.json --overrides overrides/characters.json
 """,
     )
@@ -109,6 +112,15 @@ def parse_args() -> argparse.Namespace:
         "-r",
         action="store_true",
         help="ディレクトリ入力・globパターンをサブディレクトリまで再帰的に探索する",
+    )
+    parser.add_argument(
+        "--report-output",
+        default=None,
+        metavar="FILE",
+        help=(
+            "collection内の最終reportを独立JSONとして書き出すファイルパス "
+            f"(任意、正式運用の推奨先: {RECOMMENDED_REPORT_OUTPUT})"
+        ),
     )
     parser.add_argument(
         "--overrides",
@@ -172,6 +184,23 @@ def _load_and_validate_overrides(
     return override_files, all_overrides
 
 
+def _report_path_conflicts_with_collection(
+    output_dir: Path,
+    output_path: Path,
+    report_output_path: Path,
+) -> bool:
+    """reportをfileとして作れないcollection出力pathとの衝突を判定する。"""
+    resolved_output_dir = output_dir.resolve()
+    resolved_output_path = output_path.resolve()
+    resolved_report_path = report_output_path.resolve()
+    return (
+        resolved_report_path == resolved_output_dir
+        or resolved_report_path in resolved_output_dir.parents
+        or resolved_report_path == resolved_output_path
+        or resolved_output_path in resolved_report_path.parents
+    )
+
+
 def main() -> int:  # noqa: C901
     args = parse_args()
 
@@ -223,17 +252,44 @@ def main() -> int:  # noqa: C901
         report = collection["report"]
 
     output_dir = Path(args.output)
+    output_path = output_dir / DEFAULT_OUTPUT_FILENAME
+    report_output_path = (
+        Path(args.report_output) if args.report_output is not None else None
+    )
+    if report_output_path is not None and _report_path_conflicts_with_collection(
+        output_dir, output_path, report_output_path
+    ):
+        print(
+            "[エラー] --report-outputはmerged collectionの出力先と"
+            "衝突しないファイルパスを指定してください",
+            file=sys.stderr,
+        )
+        return 2
+    if report_output_path is not None and report_output_path.is_dir():
+        print(
+            f"[エラー] --report-outputにはファイルパスを指定してください: "
+            f"{report_output_path}",
+            file=sys.stderr,
+        )
+        return 2
+
     try:
+        # 設定・親directory作成の失敗では、どちらのartifactも書き出さない。
         output_dir.mkdir(parents=True, exist_ok=True)
-        output_path = output_dir / DEFAULT_OUTPUT_FILENAME
+        if report_output_path is not None:
+            report_output_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(report_output_path, "w", encoding="utf-8") as f:
+                json.dump(report, f, ensure_ascii=False, indent=2)
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump(collection, f, ensure_ascii=False, indent=2)
     except OSError as e:
-        print(f"[エラー] 出力失敗: {output_dir}: {e}", file=sys.stderr)
+        print(f"[エラー] 出力失敗: {e}", file=sys.stderr)
         return 2
 
     if not args.quiet:
         print(f"[DKB] 出力完了: {output_path}")
+        if report_output_path is not None:
+            print(f"[DKB] merge report出力完了: {report_output_path}")
         print(
             f"[DKB] 検証結果: resolved={report['resolvedInputFiles']} "
             f"valid={report['validInputs']} invalid={report['invalidInputs']} "

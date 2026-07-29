@@ -79,19 +79,21 @@ def test_real_data_dry_run_doc_contains_required_sections():
 def test_real_data_dry_run_doc_lists_report_fields_to_check():
     content = RUNBOOK_PATH.read_text(encoding="utf-8")
     required_report_fields = (
-        "report.inputResults",
-        "report.candidateCounts",
-        "report.mergedEntityCounts",
-        "report.unresolvedEntityCounts",
-        "report.conflictCounts",
-        "report.warningCounts",
-        "report.relationshipTypeSummary",
-        "report.canonicalIdSummary",
-        "report.manualOverrides",
+        "`inputResults`",
+        "`candidateCounts`",
+        "`mergedEntityCounts`",
+        "`unresolvedEntityCounts`",
+        "`conflictCounts`",
+        "`warningCounts`",
+        "`relationshipTypeSummary`",
+        "`canonicalIdSummary`",
+        "`manualOverrides`",
         "sourceDocuments",
     )
     missing = [f for f in required_report_fields if f not in content]
     assert not missing, f"report確認ポイントに不足しているフィールド: {missing}"
+    assert "--report-output" in content
+    assert "`merged_knowledge_collection.json`内の`report`" in content
 
 
 def test_real_data_dry_run_doc_contains_actual_cli_script_names():
