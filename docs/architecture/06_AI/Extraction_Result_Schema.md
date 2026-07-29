@@ -470,6 +470,8 @@ Character/Organization/Location/Itemのいずれにも分類できない固有�
 
 `relationshipType`のenum値は未確定のため、本文書ではフィールド型を`string`とし、`schemas/extraction.schema.json`実装時点でも暫定的に自由文字列を許容し、`Relationships.md`確定後にenum制約へ切り替える方針とする（§16.4）。
 
+rule-based抽出では、入力Blockに`direction`が無い場合だけ`source_to_target`を既定値とする。`direction`が明示されているものの上記3値に一致しないstringの場合は、推測で既定値へ置換せずStage Aの元値を保持し、`relationship_direction_known`のsemantic warningとして通知する。Stage A schemaはこの不破棄方針のため未知stringを許容するが、欠落またはstring以外は従来どおりschema errorとする。同じsource・target・relationshipTypeでは、未知directionを既知3値のbucketおよび異なる未知値から分離して別candidateへ集約し、既知方向の根拠と未知方向の根拠を混在させない。既知3値同士は既存どおり同一candidateへ集約する。Stage Bは3値の厳格なenumを維持し、未知値を持つ候補はreport warningへepisode ID・candidate ID・元値を記録して昇格をskipする（`Merged_Knowledge_Design.md` §6.2）。
+
 `sourceCandidate`/`targetCandidate`のうち、§4.2のStage A暫定ID形式（同一`episodeId`＋`_CAND_`＋定義済みTYPE＋3桁以上の連番）全体に一致する値は、`scripts/validate_extraction_json.py --semantic`で同一`episode_extraction`内のcandidate配列に実在することを必須とする。一方、canonical Entity ID（`CHAR_*`/`ORG_*`等）やlegacy/外部参照は、外部辞書を入力しないStage A validatorでは存在確認できないためrejectせず、Stage Bの解決・昇格gateへ委ねる。`_CAND_` segmentを名前の一部に含むだけのcanonical IDもStage A参照とは判定しない。この境界により、danglingなローカルcandidate参照を検出しつつ、正当なcanonical参照を誤って拒否しない。
 
 ---
@@ -697,7 +699,7 @@ Candidate schemaはStage A（未確定候補）、既存列挙のschemaはStage 
 `Extraction_Pipeline.md` §8.1「LLM出力はStructured JSON必須」の運用として、`extraction.schema.json`（および子schema群）による検証は、LLM出力を受け取った直後、`data/extracted/_raw/`へ書き込む前に行う。
 検証失敗時は§14 ExtractionError（`errorType: "schema_validation_failed"`）として記録し、不正なJSONを`data/extracted/`へ書き込まない。
 
-JSON Schema検証後は、`scripts/validate_extraction_json.py --semantic`でCandidate/FieldValueの`evidenceIds`実在確認、candidate ID重複、`extractionRun`整合、識別可能なRelationship candidate参照等のdocument内整合性を検証できる。外部canonical辞書との照合と、複数episodeを横断するTimeline順序整合性はこの単一document validatorの対象外とする。
+JSON Schema検証後は、`scripts/validate_extraction_json.py --semantic`でCandidate/FieldValueの`evidenceIds`実在確認、candidate ID重複、`extractionRun`整合、識別可能なRelationship candidate参照、Relationshipの未知`direction` warning等のdocument内整合性を検証できる。未知`direction`は不明情報を保持するためwarningに留め、検証のexit codeを失敗にしない。外部canonical辞書との照合と、複数episodeを横断するTimeline順序整合性はこの単一document validatorの対象外とする。
 
 ## 16.4 未確定のまま残す点
 

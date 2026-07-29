@@ -182,7 +182,7 @@ def test_relationship_candidate_respects_explicit_direction():
     assert extraction["relationships"][0]["direction"] == "bidirectional"
 
 
-def test_relationship_candidate_invalid_direction_falls_back_to_default():
+def test_relationship_candidate_unknown_direction_is_preserved():
     block = _dialogue_block(
         "EP01_DLG0001",
         relationshipType="TRUSTS",
@@ -195,7 +195,85 @@ def test_relationship_candidate_invalid_direction_falls_back_to_default():
     )
 
     extraction = Extractor().extract_story(story)[0]
+    assert extraction["relationships"][0]["direction"] == "sideways"
+
+
+def test_relationship_candidate_missing_direction_uses_default():
+    block = _dialogue_block(
+        "EP01_DLG0001",
+        relationshipType="TRUSTS",
+        sourceCandidate="CHAR_A",
+        targetCandidate="CHAR_B",
+    )
+    story = _build_normalized_story(
+        "EP01", "TEST_STORY", [_scene("EP01_SC001", [block])]
+    )
+
+    extraction = Extractor().extract_story(story)[0]
     assert extraction["relationships"][0]["direction"] == "source_to_target"
+
+
+@pytest.mark.parametrize(
+    "directions",
+    [
+        ("source_to_target", "sideways"),
+        ("sideways", "source_to_target"),
+    ],
+)
+def test_known_and_unknown_directions_produce_separate_candidates(directions):
+    blocks = [
+        _dialogue_block(
+            f"EP01_DLG{index:04d}",
+            relationshipType="TRUSTS",
+            sourceCandidate="CHAR_A",
+            targetCandidate="CHAR_B",
+            direction=direction,
+        )
+        for index, direction in enumerate(directions, start=1)
+    ]
+    story = _build_normalized_story(
+        "EP01", "TEST_STORY", [_scene("EP01_SC001", blocks)]
+    )
+
+    extraction = Extractor().extract_story(story)[0]
+    candidates_by_direction = {
+        candidate["direction"]: candidate for candidate in extraction["relationships"]
+    }
+
+    assert set(candidates_by_direction) == {"source_to_target", "sideways"}
+    assert candidates_by_direction[directions[0]]["evidenceIds"] == ["EP01_DLG0001"]
+    assert candidates_by_direction[directions[1]]["evidenceIds"] == ["EP01_DLG0002"]
+
+
+def test_different_known_directions_keep_existing_single_candidate_behavior():
+    blocks = [
+        _dialogue_block(
+            "EP01_DLG0001",
+            relationshipType="TRUSTS",
+            sourceCandidate="CHAR_A",
+            targetCandidate="CHAR_B",
+            direction="source_to_target",
+        ),
+        _dialogue_block(
+            "EP01_DLG0002",
+            relationshipType="TRUSTS",
+            sourceCandidate="CHAR_A",
+            targetCandidate="CHAR_B",
+            direction="bidirectional",
+        ),
+    ]
+    story = _build_normalized_story(
+        "EP01", "TEST_STORY", [_scene("EP01_SC001", blocks)]
+    )
+
+    extraction = Extractor().extract_story(story)[0]
+
+    assert len(extraction["relationships"]) == 1
+    assert extraction["relationships"][0]["direction"] == "source_to_target"
+    assert extraction["relationships"][0]["evidenceIds"] == [
+        "EP01_DLG0001",
+        "EP01_DLG0002",
+    ]
 
 
 # ----------------------------------------------------------------

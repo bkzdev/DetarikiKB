@@ -8,6 +8,7 @@
 
 ## Current Focus
 
+- `codex/relationship-invalid-direction-warning`: RelationshipCandidateの未知`direction`を無言で`source_to_target`へ置換せず、Stage Aに元のstringを保持して`relationship_direction_known` semantic warningを出すようにした（**実装PR**）。Stage A schemaは未知stringを許容する一方、欠落・非stringは従来どおりrejectする。同じsource・target・relationshipTypeでは、未知directionを既知3値のbucketおよび異なる未知値から分離し、既知方向の根拠を未知方向へ吸収しない。Stage Bの3値enumは維持し、未知値の候補だけをepisode ID・candidate ID・元値付きのmerge report warningへ残して昇格対象から外す。`direction`未指定時の`source_to_target`既定値、既知3値同士の既存集約、他候補のmergeは変更していない。
 - `codex/merge-report-output`: `merge_extractions.py`へ`--report-output FILE`を追加し、manual override・canonical ID再検証まで反映したcollection内の最終`report`と同一内容を独立JSON artifactとして出力可能にした（**実装PR**）。親ディレクトリは自動作成し、collection本体と同一pathの指定は上書き事故を防ぐためexit code 2で拒否する。未指定時は独立artifactを生成せず既存CLI挙動を維持する。正式運用の推奨先`data/extracted/reports/merge_report.json`と、dry-runのrun別`workspace/dry_runs/<RUN_ID>/reports/merge_report.json`を設計書・runbookへ反映した。report内容・merge判定・schema・固定collectionファイル名は変更していない。
 - `codex/normalize-story-compat-report-output`: `normalize_story.py --check-compat`に`--compat-report-output DIR`を追加し、埋め込み`check_script_compatibility.py`のJSON/Markdownレポートをrunごとのignoredディレクトリへ出力可能にした（**実装PR**）。オプション単独指定はargparse errorとし、未指定時は従来の`data/reports/`を維持する。固定ファイル名による上書きを避ける運用を`CLAUDE.md`とreal-data dry-run runbookへ反映し、custom出力、既定値維持、誤用拒否、cp932テストのrepo内副作用防止を合成データで検証した。レポートファイル名変更、並列runの排他制御、互換性判定ロジックは変更していない。
 - `codex/semantic-validation-within-document-expansion`: Stage A `episode_extraction`の単一document内semantic validationを拡充した（**実装PR**）。8種Candidateの`fields.*.evidenceIds`に明示された参照を`evidenceIndex`と照合し、FieldValue単位のdangling referenceをerror化した。省略・空配列は既存の候補全体`evidenceIds` fallbackを維持する。Relationshipの`sourceCandidate`/`targetCandidate`は、同一`episodeId`＋`_CAND_`＋定義済みTYPE＋連番のStage A暫定candidate形式全体に一致する参照だけを同一documentの全candidate ID集合と照合し、canonical Entity IDやlegacy/外部参照は外部辞書なしで誤rejectしない。CLI `--semantic`にも同じ2検証を統合し、全8種FieldValue・両endpoint・canonical/opaque fail-openを合成データで検証した。schema変更、外部canonical辞書照合、Timelineの複数episode横断順序検証は行っていない。
@@ -200,7 +201,7 @@
 - Neo4j Graph Model
 - Stage Directionをどこまで詳細に意味解析するか
 - 外部LLM Provider連携（opt-in、ローカルLLMがデフォルト）
-- invalid direction（RelationshipCandidate）のwarning化
+- ~~invalid direction（RelationshipCandidate）のwarning化~~ → `codex/relationship-invalid-direction-warning`で、Stage Aに未知stringを保持してsemantic warning、Stage Bでは元値付きreport warningを残して候補単位skipとする形で解消（Current Focus参照）
 - **summary-generation-glossary-injection**: 用語辞書（例: 用語間の関係を1行で記すglossary）をStory/Episode Summary生成promptへ注入する機能。`summary-generation-poc-first-commit`（RAIDカテゴリの1 story PoC）で確認された係り受け誤読（敵対存在と狙われる対象の融合）の再発抑止が目的。将来のLORE_辞書の前身の位置づけ。**`feature/summary-domain-context-injection`（Current Focus参照）で「domain context注入」として初の具体化を実装済み**（`knowledge/dictionaries/summary_domain_context.yaml`＋`agents/summarizer/domain_context.py`、主人公＝プレイヤー＝「班長」・話者不明モノローグの帰属先の2事実）。用語間の関係（glossary、例: 敵対存在と狙われる対象の区別）を汎用的に記述・注入する仕組み自体の拡充は未着手のまま本項目に残る（運用でentryを追加していく方針、新しい事実の追加は必ずユーザー確認を経ること）
 
 ---

@@ -325,6 +325,7 @@ Relationshipは「両端のエンティティ解決」に依存するため、�
 
 ## 6.2 directionの扱い
 
+- Stage Aで既知の3値（`source_to_target` / `target_to_source` / `bidirectional`）以外のstringが保持されている場合、推測で方向を確定せず、そのRelationshipCandidateだけを昇格対象から外す。元値・episode ID・candidate IDはmerge reportのwarningへ保持する。Stage B schemaのdirection enumは緩和しない
 - 同一merge keyで全candidateのdirectionが一致 → その値を採用
 - 矛盾（`source_to_target`と`bidirectional`が混在等） → **broadな方（`bidirectional`）を暫定採用**し、conflictとしてレポートに記録する（§9.7）。狭い方向を勝手に選んで情報を落とすより、広い方を取って人間が絞る方が安全
 - `MEMBER_OF` / `AFFILIATED_WITH` は意味的に方向が固定（Character → Organization）のため、逆向きが観測されたらconflictではなく入力エラーとしてレポートする
