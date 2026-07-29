@@ -108,6 +108,8 @@ Story pageは、閲覧者が最初に見るストーリー単位ページとす�
 
 **実装状況（`feature/wiki-story-page-renderer`で実施）**: `render_story_page`（`agents/wiki_generator/renderer.py`）を実装した。Story title（`storyTitle`優先、無ければ`publicStoryId`、無ければ`storyId`）・`storyId`/`publicStoryId`（未登録時は「未登録」表示）・category・`metadataStatus`（story内のepisodeで値が異なる場合は`mixed`）・Story Summary/Episode Summaries（placeholder、§8参照）・Episode list（このstoryに属するepisode一覧とEpisode pageへのリンク）・Related Characters・Unresolved reportへの導線を表示する。Related Locations/Organizations・AI Analysisリンクは未実装のまま（中期・長期方針）。
 
+**Related Characters表示の詳細（`codex/story-page-related-characters-refinement`で確定）**: Story内のEpisodeを既存の決定的なEpisode順で走査し、そのCharacterが最初に現れるEpisodeの順を表示順とする。同じEpisode内ではMerged Knowledge Collectionの`entities.characters`順を維持する。Character pageを生成できるresolved entityは`canonicalId`、unresolved entityは内部`id`をidentity keyとして重複排除し、表示名が同じだけの別entityは統合しない。resolvedはCharacter pageへのリンク付きで先に表示する。unresolvedは情報を破棄せず件数へ集約し、内部IDや表示名をStory pageへ列挙せずUnresolved reportへ誘導する。unresolvedだけが存在するStoryを「関連なし」とは表示しない。Episode pageの既存Related Characters表示は変更しない。
+
 ---
 
 # 7. Episode page role（Episode pageの役割）

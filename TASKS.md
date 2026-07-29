@@ -8,6 +8,7 @@
 
 ## Current Focus
 
+- `codex/story-page-related-characters-refinement`: Story pageのRelated Characters表示を改善した（**実装PR**）。Story内の決定的なEpisode順を基準に初出順でresolved characterを並べ、`canonicalId`単位で重複排除してCharacter pageへリンクする。unresolvedは内部`id`単位で重複排除し、情報を破棄せず`Needs Review`の件数とUnresolved report導線へ集約する一方、内部ID・表示名はStory page本文へ列挙しない。同名の別unresolved entityは統合せず、unresolvedだけのStoryも「関連なし」と誤表示しない。Episode page、Character page生成条件、schema、実データは変更していない。
 - `codex/candidate-id-operational-validation`: Stage A Candidate ID暫定形式の全量実運用検証を行い、再実行可能な匿名aggregate監査CLIを追加した（**実装PR**）。完全一致形式・配列type整合・全体一意性、rule-basedの種別別`001`始まり欠番なし採番、比較可能なScene/Block根拠のdepth-first preorder、NormalizedのStory/Episode/Scene/Block参照対応、2回抽出の決定性を検証する。Story/Episode根拠は種別ごとの収集phase差があるため参照実在だけを検証する。finalizerが出力対象外accumulatorの序数を消費しうる潜在経路は、全種別で出力候補だけを採番するよう修正した。全カテゴリ741文書・1,633候補を修正後コードで2回抽出して全契約PASSを確認し、choice内抽出対応前との比較は共通733文書に限定して、追加候補2件・既存29候補へのchoice内根拠1,402参照追加だけで説明できることを匿名集計で確認した。比較対象外の新規2文書には6候補があり、旧結果との差分判定には含めていない。実観測型はCHAR/LOC/SSLのみで、未観測6型・同一Block同種複数候補・4桁番号は合成テストで固定し、初回実例時に再監査する。実データ、Extraction JSON、監査reportはcommitしていない。
 - `codex/choice-nested-candidate-extraction`: choice option内に保持されたBlockをCandidate抽出でも再帰走査するよう拡張した（**実装PR**）。共通iteratorはchoice自身→options配列順→各blocks配列順のdepth-first preorderで任意階層を全type filterなしに走査し、通常Character・Special Speaker Label・Location・Organization・Item・Lore・Eventへ適用する。同一候補は既存identity規則で統合し、`evidenceIds`と暫定Candidate IDの初出順を同じ走査順で決定する。nested `stage_direction`のextra EvidenceRefは元のsceneIdを保持する。Relationship/Timeline、Parser/schema、自然文推定、LLM連携は変更していない。
 - `codex/extractor-block-evidence-helper`: Item/Event/Timeline/Location extractorに重複していた、通常の`EVIDENCE_BLOCK_TYPES`対象外Block（主に`stage_direction`）をextra evidenceへ登録する処理を`agents/extractor/base.py::add_block_evidence_if_needed`へ集約した（**挙動維持リファクタPR**）。標準Evidence対象Blockは追加しない、明示confidenceは`0.0`を含め保持、未指定時だけ既定値、同一source IDはfirst-winsという既存契約を共通化した。candidate抽出条件、ID、confidence定数、schema、Scene/Episode単位evidence処理、finalizerは変更していない。
@@ -177,7 +178,7 @@
 
 ### Wiki / MkDocs
 
-- **story-page-related-characters-refinement**: Story page Related Charactersの表示（順序・重複・unresolvedの扱い等）をさらに改善する
+- ~~**story-page-related-characters-refinement**~~ → `codex/story-page-related-characters-refinement`で初出Episode順・canonical/internal ID単位の重複排除・resolved/unresolved分離表示を実装（Current Focus参照）
 - ~~**evidence-index-promotion-batch-tooling**~~ → `feature/evidence-index-promotion-batch-tooling`で実装完了（Current Focus参照）。§4.3のfirst-pass screeningを独立CLIと純粋判定moduleで機械化した。10%超〜30%以下のreview note取り込みと実promotionは含まない
 - **evidence-index-promotion-human-review-ingestion**: first-pass screeningでunknown比率10%超〜30%以下のstoryが初めて観測された時点で、実例に基づきreview noteの正式形式・承認主体/Decision値・CLI入力方法・承認後の最終3分類確定方法を設計・実装する。該当story未観測の現時点ではYAGNIとして未実装
 - ~~**internal-review-evidence-packet-schema-validator**~~ → `codex/internal-review-evidence-packet-schema-validator`で実装完了（Current Focus参照）。manifest/story/selection/safe validation reportの4 schemaと、bundleを変更しないvalidatorを追加。外部入力とのcross-checkはPhase 5.3 generatorで実装完了

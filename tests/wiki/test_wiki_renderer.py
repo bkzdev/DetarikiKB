@@ -1317,6 +1317,25 @@ def _story_episodes(collection: dict, story_id: str) -> list[dict]:
     ]
 
 
+def _story_related_character(
+    entity_id: str,
+    display_name: str,
+    episode_ids: list[str],
+    *,
+    canonical_id: str | None,
+) -> dict:
+    """Story pageのRelated Characters検証用の最小合成entityを返す。"""
+    return {
+        "id": entity_id,
+        "canonicalId": canonical_id,
+        "displayName": display_name,
+        "status": "merged" if canonical_id else "unresolved",
+        "evidenceRefs": [{"episodeId": episode_id} for episode_id in episode_ids],
+        "sourceCandidates": [],
+        "extractionRunRefs": {},
+    }
+
+
 def test_render_story_page_has_front_matter_and_title(synthetic_collection):
     episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
     page = render_story_page("TEST_S01_C01", episodes, synthetic_collection)
@@ -1439,8 +1458,123 @@ def test_render_story_page_has_related_characters_section(synthetic_collection):
     episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
     page = render_story_page("TEST_S01_C01", episodes, synthetic_collection)
     assert "## Related Characters" in page
+    assert "### Resolved (2 件)" in page
     assert "Test Character Rain" in page
     assert "`CHAR_TEST_RAIN`" in page
+
+
+def test_render_story_page_related_characters_use_first_episode_order_and_identity():
+    """入力episode順やcollection全体順ではなくstory内の初出episode順で並べ、
+    resolved characterはcanonicalId単位で1回だけ表示する。"""
+    episodes = [
+        {"storyId": "TEST_STORY", "episodeId": "EP_TEST_002"},
+        {"storyId": "TEST_STORY", "episodeId": "EP_TEST_001"},
+    ]
+    second = _story_related_character(
+        "CHAR_ENTITY_SECOND",
+        "Second Episode Character",
+        ["EP_TEST_002"],
+        canonical_id="CHAR_TEST_SECOND",
+    )
+    first = _story_related_character(
+        "CHAR_ENTITY_FIRST",
+        "First Episode Character",
+        ["EP_TEST_001", "EP_TEST_002"],
+        canonical_id="CHAR_TEST_FIRST",
+    )
+    duplicate_first = _story_related_character(
+        "CHAR_ENTITY_FIRST_DUPLICATE",
+        "Duplicate Canonical Character",
+        ["EP_TEST_001"],
+        canonical_id="CHAR_TEST_FIRST",
+    )
+    collection = {
+        "entities": {"characters": [second, first, duplicate_first]},
+    }
+
+    page = render_story_page("TEST_STORY", episodes, collection)
+    section = page.split("## Related Characters", 1)[1].split("## Review Links", 1)[0]
+
+    assert section.index("First Episode Character") < section.index(
+        "Second Episode Character"
+    )
+    assert section.count("`CHAR_TEST_FIRST`") == 1
+    assert "Duplicate Canonical Character" not in section
+    assert "### Resolved (2 件)" in section
+
+
+def test_render_story_page_groups_distinct_unresolved_characters_for_review():
+    """unresolvedは内部IDを列挙せず件数とreview導線を表示する。
+
+    同じdisplayNameでも内部idが異なるentityは統合しない一方、同じ内部idの
+    重複は複数episode・複数recordにまたがっても1件として数える。
+    """
+    episodes = [
+        {"storyId": "TEST_STORY", "episodeId": "EP_TEST_001"},
+        {"storyId": "TEST_STORY", "episodeId": "EP_TEST_002"},
+    ]
+    resolved = _story_related_character(
+        "CHAR_ENTITY_RESOLVED",
+        "Resolved Character",
+        ["EP_TEST_002"],
+        canonical_id="CHAR_TEST_RESOLVED",
+    )
+    unresolved_first = _story_related_character(
+        "UNRESOLVED_TEST_001",
+        "Same Unknown Label",
+        ["EP_TEST_001", "EP_TEST_002"],
+        canonical_id=None,
+    )
+    unresolved_first_duplicate = _story_related_character(
+        "UNRESOLVED_TEST_001",
+        "Same Unknown Label",
+        ["EP_TEST_002"],
+        canonical_id=None,
+    )
+    unresolved_second = _story_related_character(
+        "UNRESOLVED_TEST_002",
+        "Same Unknown Label",
+        ["EP_TEST_002"],
+        canonical_id=None,
+    )
+    collection = {
+        "entities": {
+            "characters": [
+                resolved,
+                unresolved_first,
+                unresolved_first_duplicate,
+                unresolved_second,
+            ]
+        },
+    }
+
+    page = render_story_page("TEST_STORY", episodes, collection)
+    section = page.split("## Related Characters", 1)[1].split("## Review Links", 1)[0]
+
+    assert section.index("### Resolved") < section.index("### Needs Review")
+    assert "### Needs Review (2 件)" in section
+    assert "[Unresolved report](../reports/unresolved.md)" in section
+    assert "UNRESOLVED_TEST_001" not in section
+    assert "UNRESOLVED_TEST_002" not in section
+    assert "Same Unknown Label" not in section
+
+
+def test_render_story_page_unresolved_only_is_not_reported_as_empty():
+    episodes = [{"storyId": "TEST_STORY", "episodeId": "EP_TEST_001"}]
+    unresolved = _story_related_character(
+        "UNRESOLVED_TEST_ONLY",
+        "Only Unknown Character",
+        ["EP_TEST_001"],
+        canonical_id=None,
+    )
+    collection = {"entities": {"characters": [unresolved]}}
+
+    page = render_story_page("TEST_STORY", episodes, collection)
+    section = page.split("## Related Characters", 1)[1].split("## Review Links", 1)[0]
+
+    assert "### Resolved" not in section
+    assert "### Needs Review (1 件)" in section
+    assert "関連するキャラクターは記録されていません。" not in section
 
 
 def test_render_story_page_related_characters_message_when_none(
