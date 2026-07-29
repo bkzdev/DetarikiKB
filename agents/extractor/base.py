@@ -2,9 +2,9 @@
 DKB Extractor - Base
 Candidate抽出の共通ヘルパー (evidenceIndex構築、識別キー判定) をまとめる。
 
-各Candidate種別のロジックは character.py/location.py/organization.py/
-item.py/lore.py/event.py に分割されている。ここに置くのは、それら全てが
-共通で使うevidenceIndex関連の処理と、構造化ID優先の同一性判定キーのみ。
+各Candidate種別のロジックは個別moduleに分割されている。ここに置くのは、
+複数種別が共通で使うevidenceIndex関連の処理と、構造化ID優先の
+同一性判定キーのみ。
 
 docs/architecture/06_AI/Extraction_Pipeline.md
 docs/architecture/06_AI/Extraction_Result_Schema.md
@@ -64,6 +64,39 @@ def evidence_from_block(
             )
 
     return refs
+
+
+def add_block_evidence_if_needed(
+    extra_evidence: dict[str, dict[str, Any]],
+    block: dict[str, Any],
+    *,
+    story_id: str,
+    episode_id: str,
+    scene_id: str | None,
+) -> None:
+    """標準Evidence対象外のBlockをextra evidenceへfirst-winsで追加する。
+
+    dialogue/monologue/narration/choiceはbuild_evidence_refsで既に収集される
+    ため追加しない。stage_direction等だけを対象とし、source confidenceが
+    明示されていれば0.0を含めて保持、未指定時だけ既定値を使う。
+    """
+    if block.get("type") in EVIDENCE_BLOCK_TYPES:
+        return
+
+    block_id = block["id"]
+    confidence = block.get("source", {}).get("confidence")
+    if confidence is None:
+        confidence = DEFAULT_EVIDENCE_CONFIDENCE
+    extra_evidence.setdefault(
+        block_id,
+        EvidenceRef(
+            source_id=block_id,
+            story_id=story_id,
+            episode_id=episode_id,
+            scene_id=scene_id,
+            confidence=confidence,
+        ).to_dict(),
+    )
 
 
 def merge_evidence_index(

@@ -9,16 +9,13 @@ from __future__ import annotations
 
 from typing import Any
 
-from .base import structured_identity_key
+from .base import add_block_evidence_if_needed, structured_identity_key
 from .models import (
-    DEFAULT_EVIDENCE_CONFIDENCE,
     EVENT_CANDIDATE_CONFIDENCE_NAME_ONLY,
     EVENT_CANDIDATE_CONFIDENCE_RESOLVED,
     EVENT_CANDIDATE_SOURCE_TYPE,
     EVENT_CANDIDATE_TYPE,
-    EVIDENCE_BLOCK_TYPES,
     EventCandidateAccumulator,
-    EvidenceRef,
 )
 
 
@@ -86,20 +83,13 @@ def _record_block_event(
     block_id = block["id"]
     accumulator.add_evidence(block_id)
 
-    if block.get("type") not in EVIDENCE_BLOCK_TYPES:
-        confidence = block.get("source", {}).get("confidence")
-        if confidence is None:
-            confidence = DEFAULT_EVIDENCE_CONFIDENCE
-        extra_evidence.setdefault(
-            block_id,
-            EvidenceRef(
-                source_id=block_id,
-                story_id=story_id,
-                episode_id=episode_id,
-                scene_id=scene_id,
-                confidence=confidence,
-            ).to_dict(),
-        )
+    add_block_evidence_if_needed(
+        extra_evidence,
+        block,
+        story_id=story_id,
+        episode_id=episode_id,
+        scene_id=scene_id,
+    )
 
 
 def _finalize_event_candidates(
