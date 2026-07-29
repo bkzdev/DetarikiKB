@@ -337,8 +337,11 @@ Extraction PipelineはNormalized Story JSONの階層（`Normalized_Story_JSON.md
 
 - Evidenceの最小単位（`Identifier_Specification.md` §8の優先順位: Dialogue > Monologue > Narration > Choice Option > Scene > Episode > Story）
 - 抽出対象として直接読むのは `dialogue` / `monologue` / `narration` / `choice` の4種
+- `choice`はBlock自身を読んだ後、`options`配列順・各`blocks`配列順のdepth-first preorderで任意階層まで再帰走査する。choice option内の`dialogue`/`monologue`話者（Special Speaker Labelを含む）と、明示フィールドを持つOrganization/Location/Item/Lore/Eventの手がかりもscene直下と同じ規則でCandidate化する
 - `stage_direction` は本文抽出の対象ではないが、Location（背景コマンド）やItem（演出上の小道具言及）の補助的手がかりとして参照してよい
 - `unknown` はExtraction Pipelineの入力としては無視する（Parser側で `unknown` のまま残っている時点で、本文境界が不確実であるため）。ただし `unknownCommands` / `unknownCharacterIds` が多いエピソードは §2.3 の互換性ゲートで弾かれる想定
+
+`choice-nested-candidate-extraction`の対象はCharacter/Special Speaker Label/Location/Organization/Item/Lore/Eventである。Relationship/Timelineのchoice option内抽出規則はこの変更では拡張せず、既存挙動を維持する。
 
 ---
 

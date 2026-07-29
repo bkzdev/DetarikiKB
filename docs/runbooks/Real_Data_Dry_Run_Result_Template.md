@@ -140,7 +140,7 @@ CLAUDE.mdに既存の既知ギャップとして記載されている「`config/
 - candidateCounts: characters=6、locations=1、他0
 - Merger成功。mergedEntityCounts=candidateCountsと一致、conflictCounts=0、warningCounts=0
 - CHAR_RAIN/CHAR_AKAGI_HINAが正しく`existingCharacterId`解決され、`canonicalIdSummary.totalAssigned=2`
-- choice内話者がCharacterCandidate抽出の対象外という既存設計（PR #7）が正しく機能していることを確認（choice内block IDはevidenceIndexに存在するが、CharacterCandidateのevidenceIdsからは参照されない）
+- choice内Blockの再帰Candidate抽出を確認する。通常話者・Special Speaker Labelと、明示フィールドを持つOrganization/Location/Item/Lore/Eventがscene直下と同じ規則で抽出され、暫定Candidate IDと`evidenceIds`がchoice自身→options配列順→各blocks配列順のdepth-first preorderになり、全参照先が`evidenceIndex`に存在することを確認する。Relationship/Timelineは`choice-nested-candidate-extraction`の対象外であり、choice option内だけの手がかりからCandidateが追加されないことも確認する
 
 ## 6.4 見つけた問題点（Parser本体のバグ、すべて修正済み）
 

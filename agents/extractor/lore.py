@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .base import structured_identity_key
+from .base import iter_blocks_recursive, structured_identity_key
 from .models import (
     EVIDENCE_BLOCK_TYPES,
     LORE_CANDIDATE_CONFIDENCE_NAME_ONLY,
@@ -37,7 +37,7 @@ def build_lore_candidates(
     order: list[tuple[str, str]] = []
 
     for scene in episode.get("scenes", []):
-        for block in scene.get("blocks", []):
+        for block in iter_blocks_recursive(scene.get("blocks", [])):
             _record_block_lore(accumulators, order, block)
 
     return _finalize_lore_candidates(accumulators, order, episode_id, extraction_run)

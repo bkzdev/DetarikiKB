@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .base import structured_identity_key
+from .base import iter_blocks_recursive, structured_identity_key
 from .models import (
     DEFAULT_EVIDENCE_CONFIDENCE,
     EVIDENCE_BLOCK_TYPES,
@@ -51,7 +51,7 @@ def build_organization_candidates(
     extra_evidence: dict[str, dict[str, Any]] = {}
 
     for scene in episode.get("scenes", []):
-        for block in scene.get("blocks", []):
+        for block in iter_blocks_recursive(scene.get("blocks", [])):
             _record_block_organization(accumulators, order, block)
 
     for assignment in episode.get("speakerAssignments", []) or []:

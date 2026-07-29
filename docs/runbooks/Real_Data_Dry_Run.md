@@ -408,9 +408,11 @@ branch/choiceの検証は、`compatibilityReport`や`unknownCommands`のよう�
 
 **branch/choice以外でも、dialogue/monologue/narration件数を確認する際は、生スクリプトの`@ChTalk`系コマンド出現数と突き合わせて完全一致することを必ず確認すること**（§4のチェック項目参照）。今回はこの突き合わせによって発見した。
 
-## 19.3 choice内話者の扱い（設計通り、問題なし）
+## 19.3 choice内話者の扱い
 
-choice内のdialogue/monologueのspeakerはCharacterCandidate抽出の対象外という既存設計（`agents/extractor/character.py`、Extraction_Pipeline.md §5.4）が実データでも正しく機能していることを確認した。choice内のblock IDはevidenceIndexには存在するが、どのCharacterCandidateのevidenceIdsからも参照されない。
+2026-07-04時点では、choice内のdialogue/monologueのspeakerをCharacterCandidate抽出の対象外とする当時の設計どおりに動作することを確認した。choice内のblock IDはevidenceIndexには存在する一方、どのCharacterCandidateのevidenceIdsからも参照されない状態だった。
+
+**後続変更（`choice-nested-candidate-extraction`）**: Evidenceだけが存在してCandidateが欠落する非対称性を解消するため、この除外方針を廃止した。現在はchoice自身→options配列順→各blocks配列順のdepth-first preorderで任意階層を走査し、choice option内の通常話者・Special Speaker Labelと、明示フィールドを持つOrganization/Location/Item/Lore/Eventをscene直下と同じ規則で抽出する。Relationship/Timelineはこの変更の対象外である。実データdry-runで再確認する際は、Candidate件数だけでなく暫定IDの初出順・`evidenceIds`順・全参照の`evidenceIndex`実在も確認する。
 
 ---
 
