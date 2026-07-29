@@ -327,8 +327,8 @@ Relationshipは「両端のエンティティ解決」に依存するため、�
 
 - Stage Aで既知の3値（`source_to_target` / `target_to_source` / `bidirectional`）以外のstringが保持されている場合、推測で方向を確定せず、そのRelationshipCandidateだけを昇格対象から外す。元値・episode ID・candidate IDはmerge reportのwarningへ保持する。Stage B schemaのdirection enumは緩和しない
 - 同一merge keyで全candidateのdirectionが一致 → その値を採用
-- 矛盾（`source_to_target`と`bidirectional`が混在等） → **broadな方（`bidirectional`）を暫定採用**し、conflictとしてレポートに記録する（§9.7）。狭い方向を勝手に選んで情報を落とすより、広い方を取って人間が絞る方が安全
-- `MEMBER_OF` / `AFFILIATED_WITH` は意味的に方向が固定（Character → Organization）のため、逆向きが観測されたらconflictではなく入力エラーとしてレポートする
+- 矛盾（`source_to_target`と`bidirectional`が混在等） → 同一(source, target, normalized relationshipType)の全candidate・evidenceを1 entityへ統合し、**broadな方（`bidirectional`）を暫定採用**する。`source_to_target`と`target_to_source`だけが観測され、入力に`bidirectional`が無い場合も、両方向を情報損失なく表す安全な上包として`bidirectional`を選ぶ。観測したdirectionは固定順（`source_to_target` / `target_to_source` / `bidirectional`）で`relationship_conflict`の`values`へ保持し、`field: direction`・`resolutionStatus: auto_selected`・`selectedValue: bidirectional`として記録する（§9.7）。merged relationship IDへdirectionは追加せず、`REL_{sourceId}_{relationshipType}_{targetId}`の安定性を維持する
+- `MEMBER_OF` / `AFFILIATED_WITH`（alias正規化後を含む）は意味的に方向が固定（Character → Organization）のため、`source_to_target`以外の候補はendpoint入れ替えや`bidirectional`へのbroad化を行わず、candidate ID・元のrelationshipType・directionをmerge report warningへ残して候補単位でskipする。同じ入力内の正しい候補や他entityのmergeは継続する
 
 ## 6.3 relationshipType の暫定扱い
 

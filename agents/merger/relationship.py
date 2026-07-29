@@ -4,8 +4,10 @@ Stage A RelationshipCandidateから Stage B merged relationship を組み立て�
 
 Character/Location/Organization/Item/Lore/Eventのentity_base.pyパターン
 (build_merged_entities) とは異なり、Relationshipは専用実装とする。理由:
-- merge keyが単一値ではなく (sourceEntityId, targetEntityId,
-  relationshipType, direction) の4値組であること
+- merge keyが単一値ではなく
+  (sourceEntityId, targetEntityId, relationshipType) の3値組であること
+- 同一merge keyでdirectionが競合した場合、根拠を統合してbidirectionalを
+  暫定採用し、relationship_conflictとして保持する必要があること
 - source/targetの解決に、既に構築済みの他entityのsourceCandidates/idを
   参照する必要があること (candidate ID -> merged entity ID解決)
 - 解決できない候補は「個別unresolved entity」にせず、そもそも生成しない
@@ -42,6 +44,13 @@ from .relationship_taxonomy import (
 
 MERGED_ENTITY_SCHEMA_VERSION = "0.1"
 _UNRESOLVED_PREFIX = "UNRESOLVED_"
+_BROAD_RELATIONSHIP_DIRECTION = "bidirectional"
+_DIRECTION_ORDER = (
+    "source_to_target",
+    "target_to_source",
+    _BROAD_RELATIONSHIP_DIRECTION,
+)
+_FIXED_SOURCE_TO_TARGET_TYPES = frozenset({"member_of", "affiliated_with"})
 
 # source/targetのどちらかを解決できずrelationship mergeをskipした際の警告文言
 # に必ず含まれるマーカー文字列。report.warningCounts.unresolvedRelationships
@@ -51,6 +60,10 @@ UNRESOLVED_ENDPOINT_MARKER = (
     "をmerged entityへ解決できなかったためrelationship mergeをskipしました"
 )
 INVALID_DIRECTION_MARKER = "は未対応のdirectionのためrelationship mergeをskipしました"
+FIXED_DIRECTION_MARKER = (
+    "はsource_to_target固定のrelationshipTypeに反するため"
+    "relationship mergeをskipしました"
+)
 
 
 def _build_reference_index(
@@ -97,7 +110,9 @@ def _record_endpoint_conflicts(entities: list[dict[str, Any]]) -> None:
     """同一 (sourceEntityId, targetEntityId) に対して異なる
     (relationshipType, direction) の組み合わせが複数観測された場合、
     各entityのconflictsへwarningとして記録する (Merged_Knowledge_Design.md
-    §9.7)。高度な自動解決 (どちらが正しいかの判定) は行わない。
+    §9.7)。同一normalized relationshipType内のdirection競合はentity構築時に
+    1件へ統合済みなので、ここでは主にtype違いのentity間競合を扱う。
+    高度な自動解決 (どのrelationshipTypeが正しいかの判定) は行わない。
     """
     pairs: dict[tuple[str, str], list[dict[str, Any]]] = {}
     for entity in entities:
@@ -139,15 +154,14 @@ def _group_relationship_candidates(
     candidate_id_to_entity_id: dict[str, str],
 ) -> tuple[
     dict[
-        tuple[str, str, str, str],
+        tuple[str, str, str],
         list[tuple[dict[str, Any], str, NormalizedRelationshipType]],
     ],
-    list[tuple[str, str, str, str]],
+    list[tuple[str, str, str]],
     list[str],
 ]:
     """全valid documentのRelationshipCandidateを、(sourceEntityId,
-    targetEntityId, 正規化後relationshipType, direction) のmerge keyで
-    グルーピングする。
+    targetEntityId, 正規化後relationshipType) のmerge keyでグルーピングする。
 
     relationshipTypeが空の候補、source/targetを解決できない候補は
     グルーピングせず、warningsへ理由を記録する (無理に確定しない)。
@@ -160,10 +174,10 @@ def _group_relationship_candidates(
     report.relationshipTypeSummary側で別途集計する)。
     """
     groups: dict[
-        tuple[str, str, str, str],
+        tuple[str, str, str],
         list[tuple[dict[str, Any], str, NormalizedRelationshipType]],
     ] = {}
-    order: list[tuple[str, str, str, str]] = []
+    order: list[tuple[str, str, str]] = []
     warnings: list[str] = []
 
     for _path, document in valid_entries:
@@ -191,6 +205,15 @@ def _group_relationship_candidates(
                 continue
 
             normalized = normalize_relationship_type(relationship_type)
+            if (
+                normalized.normalized_value in _FIXED_SOURCE_TO_TARGET_TYPES
+                and direction != "source_to_target"
+            ):
+                warnings.append(
+                    f"{episode_id}/{candidate_id}: {relationship_type} direction "
+                    f"({direction!r}) {FIXED_DIRECTION_MARKER}"
+                )
+                continue
 
             source_ref = candidate.get("sourceCandidate")
             target_ref = candidate.get("targetCandidate")
@@ -218,7 +241,6 @@ def _group_relationship_candidates(
                 source_entity_id,
                 target_entity_id,
                 normalized.normalized_value,
-                direction,
             )
             if key not in groups:
                 groups[key] = []
@@ -229,7 +251,7 @@ def _group_relationship_candidates(
 
 
 def _build_relationship_entity(
-    key: tuple[str, str, str, str],
+    key: tuple[str, str, str],
     members: list[tuple[dict[str, Any], str, NormalizedRelationshipType]],
     documents_by_episode: dict[str, dict[str, Any]],
     extraction_runs: dict[str, dict[str, Any] | None],
@@ -245,9 +267,21 @@ def _build_relationship_entity(
     正規化後の値 (normalizedValue) と、グループ内で観測された全ての
     元表記は fieldValues.relationshipTypeNormalization /
     fieldValues.originalRelationshipTypes へ保持する。
+
+    directionが複数観測された場合はbidirectionalを安全な上包として暫定採用し、
+    全candidate/evidenceを1 entityへ保持したうえでdirection conflictを記録する。
     """
-    source_entity_id, target_entity_id, normalized_relationship_type, direction = key
+    source_entity_id, target_entity_id, normalized_relationship_type = key
     candidates = [c for c, _episode_id, _normalized in members]
+    direction_set = {candidate["direction"] for candidate in candidates}
+    observed_directions = [
+        direction for direction in _DIRECTION_ORDER if direction in direction_set
+    ]
+    direction = (
+        observed_directions[0]
+        if len(observed_directions) == 1
+        else _BROAD_RELATIONSHIP_DIRECTION
+    )
 
     evidence_refs: list[dict[str, Any]] = []
     source_candidates: list[dict[str, Any]] = []
@@ -307,7 +341,7 @@ def _build_relationship_entity(
     status = "merged" if is_canonical else "unresolved"
     representative_source_type = source_types[0] if source_types else "script"
 
-    return {
+    entity = {
         "schemaVersion": MERGED_ENTITY_SCHEMA_VERSION,
         "id": entity_id,
         "type": "relationship",
@@ -352,6 +386,19 @@ def _build_relationship_entity(
         "createdAt": None,
         "updatedAt": None,
     }
+    if len(observed_directions) > 1:
+        entity["conflicts"].append(
+            {
+                "conflictType": "relationship_conflict",
+                "field": "direction",
+                "values": observed_directions,
+                "sourceCandidateIds": [candidate["id"] for candidate in candidates],
+                "severity": "warning",
+                "resolutionStatus": "auto_selected",
+                "selectedValue": direction,
+            }
+        )
+    return entity
 
 
 def build_relationship_entities(
