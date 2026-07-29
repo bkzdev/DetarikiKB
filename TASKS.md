@@ -8,6 +8,7 @@
 
 ## Current Focus
 
+- `codex/extractor-block-evidence-helper`: Item/Event/Timeline/Location extractorに重複していた、通常の`EVIDENCE_BLOCK_TYPES`対象外Block（主に`stage_direction`）をextra evidenceへ登録する処理を`agents/extractor/base.py::add_block_evidence_if_needed`へ集約した（**挙動維持リファクタPR**）。標準Evidence対象Blockは追加しない、明示confidenceは`0.0`を含め保持、未指定時だけ既定値、同一source IDはfirst-winsという既存契約を共通化した。candidate抽出条件、ID、confidence定数、schema、Scene/Episode単位evidence処理、finalizerは変更していない。
 - `codex/event-participant-location-resolution`: Stage B Event mergeで未実装だった`participantCandidates` / `locationCandidates`のtyped参照解決を実装した（**実装PR**）。Character用・Location用のcandidate ID→merged entity ID対応表を分離し、Stage A candidate IDまたは今回のcollectionで構築済みの同一type entity IDだけを解決する。同一Eventへ集まる参照は初出順・重複なしの和集合として`participantEntityIds` / `locationEntityIds`へ保持する。未解決・型違い参照はEvent全体や他の正しい参照を落とさず、episode ID・Event candidate ID・field・元値付きmerge report warningへ保持する。prefixだけによる外部IDの自動確定、Event抽出ルール、schema field追加は行っていない。
 - `codex/relationship-direction-conflict-merge`: Stage B Relationship mergeで同一source・target・normalized relationshipTypeの既知direction違いを別entityにして同一ID/canonicalIdを重複生成していた問題を、`Merged_Knowledge_Design.md` §6.2どおり1 entityへ統合した（**実装PR**）。directionが複数なら全candidate/evidenceを保持して`bidirectional`を暫定採用し、`field: direction`・`resolutionStatus: auto_selected`の`relationship_conflict`を記録する。`source_to_target`と`target_to_source`だけの組み合わせも安全な上包として`bidirectional`にする。`MEMBER_OF`/`AFFILIATED_WITH`（alias含む）は`source_to_target`固定とし、逆向き・双方向候補だけを元値付きreport warningへ残してskipする。Relationship ID形式、未知directionのwarning+skip、異なるrelationshipTypeの別entity化は変更していない。
 - `codex/relationship-invalid-direction-warning`: RelationshipCandidateの未知`direction`を無言で`source_to_target`へ置換せず、Stage Aに元のstringを保持して`relationship_direction_known` semantic warningを出すようにした（**実装PR**）。Stage A schemaは未知stringを許容する一方、欠落・非stringは従来どおりrejectする。同じsource・target・relationshipTypeでは、未知directionを既知3値のbucketおよび異なる未知値から分離し、既知方向の根拠を未知方向へ吸収しない。Stage Bの3値enumは維持し、未知値の候補だけをepisode ID・candidate ID・元値付きのmerge report warningへ残して昇格対象から外す。`direction`未指定時の`source_to_target`既定値、既知3値同士の既存集約、他候補のmergeは変更していない。
@@ -170,7 +171,7 @@
 - ~~semantic validationの単一document内拡充~~ → `codex/semantic-validation-within-document-expansion`でFieldValue単位の`evidenceIds`実在確認と、識別可能なRelationship両端のStage A candidate参照確認を実装済み（Current Focus参照）。残件は外部canonical辞書を入力した厳格照合、および複数episodeを横断するTimeline順序整合性チェック
 - Scene定義への拡張フィールド許容（scene metadataからのItem/Event/Timeline抽出に必要）
 - Candidate ID暫定形式（`Extraction_Result_Schema.md` §4.2）の実運用検証
-- extractor各moduleの重複ヘルパー集約（item.py/event.py/timeline.py/location.py、挙動維持を優先し据え置き中）
+- ~~extractor各moduleの重複ヘルパー集約（item.py/event.py/timeline.py/location.py）~~ → `codex/extractor-block-evidence-helper`で非標準Blockのextra evidence登録処理だけを`base.py`へ集約。種別固有finalizer等は挙動差があるため変更していない（Current Focus参照）
 
 ### Wiki / MkDocs
 

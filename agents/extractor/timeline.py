@@ -10,10 +10,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from .base import add_block_evidence_if_needed
 from .models import (
     DEFAULT_EVIDENCE_CONFIDENCE,
     EPISODE_ORDER_METADATA_FIELDS,
-    EVIDENCE_BLOCK_TYPES,
     TIMELINE_CANDIDATE_CONFIDENCE_MARKER,
     TIMELINE_CANDIDATE_CONFIDENCE_RESOLVED,
     TIMELINE_CANDIDATE_CONFIDENCE_UNRESOLVED,
@@ -166,34 +166,6 @@ def _timeline_block_order_key(
     return None
 
 
-def _add_block_evidence_if_needed(
-    extra_evidence: dict[str, dict[str, Any]],
-    block: dict[str, Any],
-    scene_id: str | None,
-    story_id: str,
-    episode_id: str,
-) -> None:
-    """block["id"]がEVIDENCE_BLOCK_TYPES対象外 (stage_direction) の場合のみ
-    evidence refを追加する。"""
-    if block.get("type") in EVIDENCE_BLOCK_TYPES:
-        return
-
-    block_id = block["id"]
-    confidence = block.get("source", {}).get("confidence")
-    if confidence is None:
-        confidence = DEFAULT_EVIDENCE_CONFIDENCE
-    extra_evidence.setdefault(
-        block_id,
-        EvidenceRef(
-            source_id=block_id,
-            story_id=story_id,
-            episode_id=episode_id,
-            scene_id=scene_id,
-            confidence=confidence,
-        ).to_dict(),
-    )
-
-
 def _record_block_order(
     accumulators: dict[tuple[str, ...], TimelineCandidateAccumulator],
     order: list[tuple[str, ...]],
@@ -247,7 +219,13 @@ def _record_block_order(
         accumulator.order_field = order_field
     accumulator.add_evidence(block["id"])
 
-    _add_block_evidence_if_needed(extra_evidence, block, scene_id, story_id, episode_id)
+    add_block_evidence_if_needed(
+        extra_evidence,
+        block,
+        story_id=story_id,
+        episode_id=episode_id,
+        scene_id=scene_id,
+    )
 
 
 def _record_block_marker(
@@ -278,8 +256,12 @@ def _record_block_marker(
             )
             order.append(key)
         accumulators[key].add_evidence(block["id"])
-        _add_block_evidence_if_needed(
-            extra_evidence, block, scene_id, story_id, episode_id
+        add_block_evidence_if_needed(
+            extra_evidence,
+            block,
+            story_id=story_id,
+            episode_id=episode_id,
+            scene_id=scene_id,
         )
 
 
