@@ -413,9 +413,12 @@ Sceneは、場所・場面・状況が一定のまとまりを表す。
     "locationId": null,
     "locationName": "異形生物対策班　本部"
   },
+  "itemId": "ITEM_EXAMPLE",
   "blocks": []
 }
 ```
+
+`itemId` は構造化された拡張フィールドの例であり、すべてのSceneで必須ではない。
 
 ---
 
@@ -427,6 +430,12 @@ Sceneは、場所・場面・状況が一定のまとまりを表す。
 | `sceneNumber` | Yes | number | Episode内のScene番号 |
 | `location` | No | object | 場所情報 |
 | `blocks` | Yes | array | Dialogueなどのブロック配列 |
+| 拡張フィールド | No | any | Parserや手動補完で判明した構造化情報。未知の情報を破棄せず保持する |
+
+Sceneは、Item・Event・Timeline等の抽出元となる構造化情報を将来追加できるよう、
+定義済みフィールド以外も許容する。拡張フィールドはScene直下に置き、本文の自然文から
+推定した値ではなく、入力や前処理で明示された値だけを格納する。Normalized Story JSONへ
+追加済みの拡張フィールドは、抽出側が認識しない場合もschema検証では拒否しない。
 
 ---
 
