@@ -331,6 +331,73 @@ def test_merge_engine_produces_item_lore_event_entities(engine, tmp_path):
     assert entities["timeline"] == []
 
 
+def test_merge_engine_resolves_event_references_and_reports_invalid_values(
+    collection_validator, engine, tmp_path
+):
+    doc = _episode_with_all_merge_candidates("EP01")
+    event = doc["events"][0]
+    event["participantCandidates"] = [
+        "EP01_CAND_CHAR001",
+        "CHAR_RAIN",
+        "EP01_CAND_LOC001",
+        "EP01_CAND_ORG001",
+        "CHAR_MISSING",
+    ]
+    event["locationCandidates"] = [
+        "EP01_CAND_LOC001",
+        "LOC_HQ",
+        "EP01_CAND_CHAR001",
+        "LOC_MISSING",
+    ]
+    path = tmp_path / "EP01.extraction.json"
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(doc, f, ensure_ascii=False)
+
+    collection = engine.merge_file(path)
+
+    events = collection["entities"]["events"]
+    assert len(events) == 1
+    assert events[0]["participantEntityIds"] == ["CHAR_RAIN"]
+    assert events[0]["locationEntityIds"] == ["LOC_HQ"]
+    assert len(events[0]["sourceCandidates"]) == 1
+    warnings = collection["report"]["warnings"]
+    assert len(warnings) == 5
+    assert any(
+        "participantCandidates" in warning
+        and "EP01_CAND_LOC001" in warning
+        and "参照先typeが一致しない" in warning
+        for warning in warnings
+    )
+    assert any(
+        "participantCandidates" in warning
+        and "EP01_CAND_ORG001" in warning
+        and "actualTypes=organization" in warning
+        for warning in warnings
+    )
+    assert any(
+        "locationCandidates" in warning
+        and "EP01_CAND_CHAR001" in warning
+        and "参照先typeが一致しない" in warning
+        for warning in warnings
+    )
+    assert any(
+        "CHAR_MISSING" in warning and "解決できなかった" in warning
+        for warning in warnings
+    )
+    assert any(
+        "LOC_MISSING" in warning and "解決できなかった" in warning
+        for warning in warnings
+    )
+    assert collection["report"]["warningCounts"] == {
+        "total": 5,
+        "unresolvedRelationships": 0,
+        "skippedOverrides": 0,
+        "other": 5,
+    }
+    errors = list(collection_validator.iter_errors(collection))
+    assert not errors, [error.message for error in errors]
+
+
 def test_merged_entity_counts_include_item_lore_event(engine, tmp_path):
     doc = _episode_with_all_merge_candidates("EP01")
     path = tmp_path / "EP01.extraction.json"

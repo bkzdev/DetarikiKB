@@ -90,6 +90,8 @@ def _event_candidate(
     name_candidates: list[str],
     existing_event_id: str | None = None,
     confidence: float = 0.75,
+    participant_candidates: list[str] | None = None,
+    location_candidates: list[str] | None = None,
 ) -> dict[str, Any]:
     return {
         "id": candidate_id,
@@ -100,8 +102,8 @@ def _event_candidate(
         "extractionRun": _extraction_run(),
         "existingEventId": existing_event_id,
         "nameCandidates": name_candidates,
-        "participantCandidates": [],
-        "locationCandidates": [],
+        "participantCandidates": participant_candidates or [],
+        "locationCandidates": location_candidates or [],
         "fields": {},
     }
 
@@ -328,6 +330,163 @@ def test_event_name_only_is_not_auto_merged():
         assert entity["status"] == "unresolved"
         assert entity["canonicalId"] is None
         assert entity["id"].startswith("UNRESOLVED_EVENT_")
+
+
+def test_event_references_resolve_by_type_and_merge_in_first_seen_order():
+    event1 = _event_candidate(
+        "EP01_CAND_EVENT001",
+        ["EP01_NAR0001"],
+        ["共同作戦"],
+        existing_event_id="EVENT_JOINT_OPERATION",
+        participant_candidates=["EP01_CAND_CHAR001", "CHAR_B"],
+        location_candidates=["EP01_CAND_LOC001"],
+    )
+    event2 = _event_candidate(
+        "EP02_CAND_EVENT001",
+        ["EP02_NAR0001"],
+        ["共同作戦"],
+        existing_event_id="EVENT_JOINT_OPERATION",
+        participant_candidates=["CHAR_A", "EP02_CAND_CHAR002"],
+        location_candidates=["LOC_HQ", "EP02_CAND_LOC002"],
+    )
+    doc1 = _episode_extraction(
+        "EP01",
+        events=[event1],
+        evidence_index={"EP01_NAR0001": _evidence_ref("EP01_NAR0001", "EP01")},
+    )
+    doc2 = _episode_extraction(
+        "EP02",
+        events=[event2],
+        evidence_index={"EP02_NAR0001": _evidence_ref("EP02_NAR0001", "EP02")},
+    )
+    character_entities = [
+        {
+            "id": "CHAR_A",
+            "type": "character",
+            "sourceCandidates": [{"candidateId": "EP01_CAND_CHAR001"}],
+        },
+        {
+            "id": "CHAR_B",
+            "type": "character",
+            "sourceCandidates": [{"candidateId": "EP02_CAND_CHAR002"}],
+        },
+    ]
+    location_entities = [
+        {
+            "id": "LOC_HQ",
+            "type": "location",
+            "sourceCandidates": [{"candidateId": "EP01_CAND_LOC001"}],
+        },
+        {
+            "id": "LOC_LAB",
+            "type": "location",
+            "sourceCandidates": [{"candidateId": "EP02_CAND_LOC002"}],
+        },
+    ]
+    warnings: list[str] = []
+
+    entities = build_event_entities(
+        [("ep01.json", doc1), ("ep02.json", doc2)],
+        character_entities=character_entities,
+        location_entities=location_entities,
+        warnings=warnings,
+    )
+
+    assert warnings == []
+    assert len(entities) == 1
+    assert entities[0]["participantEntityIds"] == ["CHAR_A", "CHAR_B"]
+    assert entities[0]["locationEntityIds"] == ["LOC_HQ", "LOC_LAB"]
+    assert len(entities[0]["sourceCandidates"]) == 2
+    assert len(entities[0]["evidenceRefs"]) == 2
+
+
+def test_event_unresolved_and_cross_type_references_warn_without_dropping_event():
+    event = _event_candidate(
+        "EP01_CAND_EVENT001",
+        ["EP01_NAR0001"],
+        ["共同作戦"],
+        existing_event_id="EVENT_JOINT_OPERATION",
+        participant_candidates=[
+            "EP01_CAND_CHAR001",
+            "EP01_CAND_LOC001",
+            "EP01_CAND_ORG001",
+            "CHAR_MISSING",
+        ],
+        location_candidates=[
+            "LOC_HQ",
+            "EP01_CAND_CHAR001",
+            "LOC_MISSING",
+        ],
+    )
+    document = _episode_extraction(
+        "EP01",
+        events=[event],
+        evidence_index={"EP01_NAR0001": _evidence_ref("EP01_NAR0001", "EP01")},
+    )
+    character_entities = [
+        {
+            "id": "CHAR_A",
+            "type": "character",
+            "sourceCandidates": [{"candidateId": "EP01_CAND_CHAR001"}],
+        }
+    ]
+    location_entities = [
+        {
+            "id": "LOC_HQ",
+            "type": "location",
+            "sourceCandidates": [{"candidateId": "EP01_CAND_LOC001"}],
+        }
+    ]
+    organization_entity = {
+        "id": "ORG_A",
+        "type": "organization",
+        "sourceCandidates": [{"candidateId": "EP01_CAND_ORG001"}],
+    }
+    warnings: list[str] = []
+
+    entities = build_event_entities(
+        [("ep01.json", document)],
+        character_entities=character_entities,
+        location_entities=location_entities,
+        known_entities=[
+            *character_entities,
+            *location_entities,
+            organization_entity,
+        ],
+        warnings=warnings,
+    )
+
+    assert len(entities) == 1
+    assert entities[0]["participantEntityIds"] == ["CHAR_A"]
+    assert entities[0]["locationEntityIds"] == ["LOC_HQ"]
+    assert len(warnings) == 5
+    assert all("EP01/EP01_CAND_EVENT001" in warning for warning in warnings)
+    assert any(
+        "participantCandidates" in warning
+        and "EP01_CAND_LOC001" in warning
+        and "参照先typeが一致しない" in warning
+        for warning in warnings
+    )
+    assert any(
+        "participantCandidates" in warning
+        and "EP01_CAND_ORG001" in warning
+        and "actualTypes=organization" in warning
+        for warning in warnings
+    )
+    assert any(
+        "locationCandidates" in warning
+        and "EP01_CAND_CHAR001" in warning
+        and "参照先typeが一致しない" in warning
+        for warning in warnings
+    )
+    assert any(
+        "CHAR_MISSING" in warning and "解決できなかった" in warning
+        for warning in warnings
+    )
+    assert any(
+        "LOC_MISSING" in warning and "解決できなかった" in warning
+        for warning in warnings
+    )
 
 
 # ----------------------------------------------------------------

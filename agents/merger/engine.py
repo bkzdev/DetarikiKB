@@ -399,7 +399,22 @@ class MergeEngine:
         entities["organizations"] = build_organization_entities(valid_entries)
         entities["items"] = build_item_entities(valid_entries)
         entities["lore"] = build_lore_entities(valid_entries)
-        entities["events"] = build_event_entities(valid_entries)
+        event_warnings: list[str] = []
+        event_reference_entities = [
+            *entities["characters"],
+            *entities["locations"],
+            *entities["organizations"],
+            *entities["items"],
+            *entities["lore"],
+        ]
+        entities["events"] = build_event_entities(
+            valid_entries,
+            character_entities=entities["characters"],
+            location_entities=entities["locations"],
+            known_entities=event_reference_entities,
+            warnings=event_warnings,
+        )
+        report.warnings.extend(event_warnings)
 
         known_entities = [
             *entities["characters"],
