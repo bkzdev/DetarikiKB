@@ -319,10 +319,10 @@ titleSource:
 
 ```yaml
 storyId: "EVT_250626_DANCER"
-publicStoryId: "EVT_250626_001"
+publicStoryId: "EVENT_042_990101"
 episodes:
   - episodeId: "EVT_250626_DANCER_E01"
-    publicEpisodeId: "EVT_250626_001_E01"
+    publicEpisodeId: "EVENT_042_990101_E01"
 ```
 
 - 両フィールドとも`oneOf: [string(パターン`^[A-Z][A-Z0-9_]*$`), null]`でnull許容・**必須ではない**。既存の`storyId`/`episodeId`と同じ文字種制約（大文字英数字とアンダースコアのみ、空白・スラッシュ・パス区切り文字禁止）を使い、`title`/`subtitle`由来の日本語URL・表記揺れを持ち込まない（`Story_ID_Policy_Decision.md` §8.1の非採用理由をそのまま踏襲）
@@ -333,14 +333,14 @@ episodes:
 
   | category | storyId | episodeId | publicStoryId | publicEpisodeId |
   |---|---|---|---|---|
-  | MAIN | `MAIN_S01_C02` | `MAIN_S01_C02_E01` | `MAIN_S01_C02`（既存と同一を仮採用） | `MAIN_S01_C02_E01`（既存と同一を仮採用） |
-  | EVENT | `EVT_250626_DANCER` | `EVT_250626_DANCER_E01` | `EVT_250626_001` | `EVT_250626_001_E01` |
-  | RAID | `RAID_250626_SAMPLE` | `RAID_250626_SAMPLE_E01` | `RAID_250626_001` | `RAID_250626_001_E01` |
-  | OTHER | `OTHER_SAMPLE_SOURCE` | `OTHER_SAMPLE_SOURCE_E01` | `OTHER_000001` | `OTHER_000001_E01` |
-  | CHARACTER | `CHARSTORY_SOURCE_001` | `CHARSTORY_SOURCE_001_E01` | `CHARSTORY_CHAR_001` | `CHARSTORY_CHAR_001_E01`（**候補、未確定**） |
+  | MAIN | `MAIN_S01_C02` | `MAIN_S01_C02_E01` | `null`（命名規約未確定） | `null` |
+  | EVENT | `EVT_250626_DANCER` | `EVT_250626_DANCER_E01` | `EVENT_042_990101`（合成v2.1例） | `EVENT_042_990101_E01` |
+  | RAID | `RAID_250626_SAMPLE` | `RAID_250626_SAMPLE_E01` | `RAID_005_990202`（合成v2.1例） | `RAID_005_990202_E01` |
+  | OTHER | `OTHER_SAMPLE_SOURCE` | `OTHER_SAMPLE_SOURCE_E01` | `null`（命名規約未確定） | `null` |
+  | CHARACTER | `CHARSTORY_SOURCE_001` | `CHARSTORY_SOURCE_001_E01` | `null`（命名規約未確定） | `null` |
 
-  MAINは`publicStoryId`/`publicEpisodeId`を既存IDと同一にする案を仮採用する（`Story_ID_Policy_Decision.md` §6.1、public ID分離の優先度が低いため）。CHARACTERの採番方式は`characterId`confirmed化のタイミングとの関係が未確定であり、上記は候補として記載する（§18参照）
-- **候補生成script（`scripts/build_story_manifest_candidates.py`）は`publicStoryId`/`publicEpisodeId`を生成しない**（生成ロジック変更はNon-goals）。両フィールドは人間が個別に確定・追記する運用を当面継続する
+  EVENT / RAIDは`Evidence_Index_Public_ID_Policy.md` §16.7〜§16.9のv2.1規約に従う合成例である。MAIN / OTHER / CHARACTERは命名規約が未確定のため、明示的に決定されるまで`null`を維持する（§18参照）
+- **候補生成script（`scripts/build_story_manifest_candidates.py`）は`publicStoryId`/`publicEpisodeId`を生成しない**（生成ロジック変更はNon-goals）。採番は「候補生成・照合のみ半自動、確定と永続化は人間レビュー必須」とし、正式なepisode順序には人間確認済み`episodeNumber`を使う。Registry登録前はmanifestが内部運用上の正、Registry変更PRのmerge後はPublic ID Registryの既存値が予約済み・不変な正となる。詳細手順は`docs/runbooks/Public_ID_Manifest_Assignment.md`を参照
 - **parser/normalizerへの伝播**: `agents/parser/story_manifest.py`の`StoryManifestStory.public_story_id`/`StoryManifestEpisode.public_episode_id`として読み込み、`scripts/normalize_story.py`が`source.manifest.publicStoryId`/`source.manifest.publicEpisodeId`としてNormalized Story JSONへtraceability目的でそのまま転記する（§14参照）
 
 **renderer/paths.py連携（`feature/story-manifest-public-id-renderer-switch`で実装完了）**: `publicStoryId`/`publicEpisodeId`は`metadata.publicStoryId`/`episodes[].metadata.publicEpisodeId`経由でExtractor（`episode_extraction.publicStoryId`/`publicEpisodeId`）→Merger（`sourceDocuments[].publicStoryId`/`publicEpisodeId`）→Wiki rendererまで伝播する（storyTitle等と全く同じ伝播経路）。`agents/wiki_generator/paths.py`の`episode_page_path`は、`publicEpisodeId`が設定されていれば（空文字列・whitespaceのみは無視）Episode page filename/URLとして優先し、無ければ既存の`episodeId`（無ければ`documentId`）へfallbackする。Episode page SummaryにはEpisode ID/Story ID（内部ID）と並んでPublic Episode ID/Public Story ID（未設定時は「未登録」）を表示し、内部IDと公開IDの対応を目視確認できるようにした。Character page path・Story indexのリンクtext優先順位（`displayTitle > episodeSubtitle > storyTitle > episodeId`）は変更していない。

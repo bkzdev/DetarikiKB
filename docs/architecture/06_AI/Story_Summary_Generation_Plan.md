@@ -92,7 +92,7 @@ Path: `docs/architecture/06_AI/Story_Summary_Generation_Plan.md`
 1. **ID分類**: 内部trace ID（`storyId`/`episodeId`/`sceneId`/`blockId`/`evidenceId`/sourceKey）と公開ID（`publicStoryId`/`publicEpisodeId`/`publicEvidenceId`）を分離する（§3.1・§3.2）
 2. **案C（Public-safe projection）**: 公開repoに保存するデータは、`publicStoryId`/`publicEpisodeId`/`publicEvidenceId`を中心にしたprojectionとして保存する。内部trace IDは必要最小限のreview-only metadataに分離するか、Internal Review Evidence Packet（未実装）側に置く
 3. **保存先・ファイル名**: `{publicStoryId}.yaml`（1 file = 1 publicStoryId）
-4. **Public ID Registry**: `knowledge/public_ids/story_public_ids.yaml`（`schemas/public_id_registry.schema.json`、`additionalProperties: false`で内部ID混入を構造的に防止）を、`publicStoryId`/`publicEpisodeId`の正式な永続化場所として使う。source of truthは引き続き`story_manifest.yaml`側（人間が個別に確定）で、Registryは公開してよい部分だけを転記した副次的な記録という位置づけ
+4. **Public ID Registry**: `knowledge/public_ids/story_public_ids.yaml`（`schemas/public_id_registry.schema.json`、`additionalProperties: false`で内部ID混入を構造的に防止）を、`publicStoryId`/`publicEpisodeId`の正式な永続化場所として使う。Registry登録前は人間確認済みmanifestを内部運用上の正、Registry変更PRのmerge後はRegistryの既存値を予約済みPublic IDの不変な正とする（`docs/runbooks/Public_ID_Manifest_Assignment.md`）
 5. **projection段階**: Compatible projection（案A、内部IDを維持したまま公開IDを追加、migration/debugging用）→Public-safe projection（案B、内部IDを公開ID値へ置換・除去、Public promotion対象）という2段階を経る
 6. **exposure scan**: 出力の直列化文字列に対し、内部ID値（公開IDと異なり4文字以上のもの）が残っていないかをヒューリスティックscanし、検出時はblocking errorにする
 7. **mapping CSV**: 内部ID⇔公開IDのmapping table（`--mapping-output`相当）はworkspace限定・commit禁止（Internal Review Evidence Packet候補データ）

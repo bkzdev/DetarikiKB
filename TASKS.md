@@ -8,6 +8,7 @@
 
 ## Current Focus
 
+- `codex/public-id-manifest-assignment-policy`: `publicStoryId` / `publicEpisodeId`の採番・割当運用を正式化した（**docs-only PR**）。候補生成・照合は半自動、確定とmanifest / Registryへの永続化は人間レビュー必須とする。EVENT / RAID番号表はprivate allocation mappingの正、Registry登録前は人間確認済みmanifestを内部運用上の正、Registry変更PRのmerge後は既存IDを予約済み・不変な正とし、正式なepisode順にはmanifestの`episodeNumber`を使う。scriptのentry初出順は候補用ヒューリスティックに限定する。Registry未登録の順序修正は全候補を再レビューし、Registry登録済みの途中挿入・順序変更は専用migration設計なしに実行しない。実manifest・Registry・schema・script本体は変更していない。
 - `codex/story-url-structure-decision`: Story / Episode pageのURL階層を再評価し、現行flat構造をcanonicalな生成契約として維持すると決定した（**docs-only PR**）。公開IDでURL path上の内部ID fallbackを回避できるためnested化を急ぐ安全上の理由はなく、公開基盤未決定の段階で相対リンク・directory URL・redirectを変更すると再移行リスクがある。Episodeだけをsubdirectoryへ移す案は不採用、Story単位のnested構造は公開基盤・public ID completeness検証・legacy URL方針・具体的な閲覧上の問題が揃った後の再評価候補とする。`Story_URL_Structure_Decision.md`を新設し、renderer/path/schema/ID/実データは変更していない。
 - `codex/story-page-related-characters-refinement`: Story pageのRelated Characters表示を改善した（**実装PR**）。Story内の決定的なEpisode順を基準に初出順でresolved characterを並べ、`canonicalId`単位で重複排除してCharacter pageへリンクする。unresolvedは内部`id`単位で重複排除し、情報を破棄せず`Needs Review`の件数とUnresolved report導線へ集約する一方、内部ID・表示名はStory page本文へ列挙しない。同名の別unresolved entityは統合せず、unresolvedだけのStoryも「関連なし」と誤表示しない。Episode page、Character page生成条件、schema、実データは変更していない。
 - `codex/candidate-id-operational-validation`: Stage A Candidate ID暫定形式の全量実運用検証を行い、再実行可能な匿名aggregate監査CLIを追加した（**実装PR**）。完全一致形式・配列type整合・全体一意性、rule-basedの種別別`001`始まり欠番なし採番、比較可能なScene/Block根拠のdepth-first preorder、NormalizedのStory/Episode/Scene/Block参照対応、2回抽出の決定性を検証する。Story/Episode根拠は種別ごとの収集phase差があるため参照実在だけを検証する。finalizerが出力対象外accumulatorの序数を消費しうる潜在経路は、全種別で出力候補だけを採番するよう修正した。全カテゴリ741文書・1,633候補を修正後コードで2回抽出して全契約PASSを確認し、choice内抽出対応前との比較は共通733文書に限定して、追加候補2件・既存29候補へのchoice内根拠1,402参照追加だけで説明できることを匿名集計で確認した。比較対象外の新規2文書には6候補があり、旧結果との差分判定には含めていない。実観測型はCHAR/LOC/SSLのみで、未観測6型・同一Block同種複数候補・4桁番号は合成テストで固定し、初回実例時に再監査する。実データ、Extraction JSON、監査reportはcommitしていない。
@@ -151,7 +152,7 @@
 - `displayOrder`の正式計算式、`canonicalOrder`の扱い
 - **story manifest candidate builder**: `scripts/build_story_manifest_candidates.py`を実際のローカルraw DEC配置に対して実行し、生成候補を人間が確認する
 - ~~**story-manifest-public-id-nested-path**~~ → `codex/story-url-structure-decision`で現行flat構造の維持を正式決定。nested構造は公開基盤・redirect・public ID completeness・具体的な閲覧上の問題が揃った場合だけ再評価する（Current Focus参照）
-- **public-id-manifest-assignment-policy**: `publicStoryId`/`publicEpisodeId`の採番・割当運用（人間手動 vs 半自動）を正式に決める
+- ~~**public-id-manifest-assignment-policy**~~ → `codex/public-id-manifest-assignment-policy`で、候補生成・照合は半自動、確定・manifest反映・Registry登録は人間レビュー必須と正式決定した。正式なepisode順はmanifestの`episodeNumber`、Registry変更PRのmerge後はIDを予約済み・不変な正とする（Current Focus参照）
 - story-summary-schema-design（Next参照）
 - **story-title-subtitle-candidate-builder-real-trial**: `scripts/build_story_title_subtitle_candidates.py`を実際のWiki/CSV入力に対して実行し、生成候補を人間が確認する
 - **story-manifest-confirmed-metadata-batch-001**: 人間確認済みの公式タイトル・サブタイトル情報を`story_manifest.yaml`へ投入する（`metadataStatus: pending` → `confirmed`。story-title-subtitle-candidate-builder-real-trialの後続作業）
