@@ -212,7 +212,7 @@ def test_unknown_relationship_type_is_not_discarded():
 
 
 # ----------------------------------------------------------------
-# 3. direction/source/targetが違うものはmergeされない
+# 3. direction競合はbroad側へ統合し、source/target違いはmergeしない
 # ----------------------------------------------------------------
 
 
@@ -241,13 +241,13 @@ def test_different_target_with_same_type_does_not_merge():
     assert targets == {"CHAR_B", "CHAR_C"}
 
 
-def test_different_direction_with_same_type_does_not_merge():
+def test_different_direction_with_same_type_merges_as_bidirectional_conflict():
     relationship1 = _relationship_candidate(
         "EP01_CAND_REL001",
         "EP01_DLG0001",
         "CHAR_A",
         "CHAR_B",
-        "MEMBER_OF",
+        "RELATED_TO",
         direction="source_to_target",
     )
     relationship2 = _relationship_candidate(
@@ -255,7 +255,7 @@ def test_different_direction_with_same_type_does_not_merge():
         "EP01_DLG0002",
         "CHAR_A",
         "CHAR_B",
-        "member-of",
+        "related-to",
         direction="bidirectional",
     )
     document = _episode_extraction(
@@ -271,9 +271,23 @@ def test_different_direction_with_same_type_does_not_merge():
         [("ep01.json", document)], _KNOWN_ENTITIES
     )
 
-    assert len(entities) == 2
-    directions = {e["direction"] for e in entities}
-    assert directions == {"source_to_target", "bidirectional"}
+    assert len(entities) == 1
+    entity = entities[0]
+    assert entity["direction"] == "bidirectional"
+    assert len(entity["evidenceRefs"]) == 2
+    assert len(entity["sourceCandidates"]) == 2
+    assert len(entity["conflicts"]) == 1
+    conflict = entity["conflicts"][0]
+    assert conflict["conflictType"] == "relationship_conflict"
+    assert conflict["field"] == "direction"
+    assert conflict["values"] == ["source_to_target", "bidirectional"]
+    assert conflict["sourceCandidateIds"] == [
+        "EP01_CAND_REL001",
+        "EP01_CAND_REL002",
+    ]
+    assert conflict["severity"] == "warning"
+    assert conflict["resolutionStatus"] == "auto_selected"
+    assert conflict["selectedValue"] == "bidirectional"
 
 
 # ----------------------------------------------------------------

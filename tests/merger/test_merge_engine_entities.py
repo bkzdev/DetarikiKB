@@ -581,6 +581,64 @@ def test_merge_engine_promotes_known_direction_and_skips_unknown_direction(
     )
 
 
+def test_merge_engine_resolves_direction_conflict_without_duplicate_id(
+    collection_validator, engine, tmp_path
+):
+    doc = _episode_with_relationship_candidate("EP01")
+    doc["relationships"][0]["relationshipType"] = "RELATED_TO"
+    conflicting = copy.deepcopy(doc["relationships"][0])
+    conflicting["id"] = "EP01_CAND_REL002"
+    conflicting["direction"] = "target_to_source"
+    doc["relationships"].append(conflicting)
+    path = tmp_path / "EP01.extraction.json"
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(doc, f, ensure_ascii=False)
+
+    collection = engine.merge_file(path)
+
+    relationships = collection["entities"]["relationships"]
+    assert len(relationships) == 1
+    entity = relationships[0]
+    assert entity["direction"] == "bidirectional"
+    assert len(entity["sourceCandidates"]) == 2
+    assert entity["conflicts"][0]["field"] == "direction"
+    assert collection["report"]["mergedEntityCounts"]["relationships"] == 1
+    assert collection["report"]["conflictsCount"] == 1
+    assert collection["report"]["conflictCounts"]["byType"] == {
+        "relationship_conflict": 1
+    }
+    assert collection["report"]["canonicalIdSummary"]["duplicateCount"] == 0
+    assert len({relationship["id"] for relationship in relationships}) == 1
+    errors = list(collection_validator.iter_errors(collection))
+    assert not errors, [error.message for error in errors]
+
+
+def test_merge_engine_skips_invalid_fixed_direction_candidate(engine, tmp_path):
+    doc = _episode_with_relationship_candidate("EP01")
+    invalid = copy.deepcopy(doc["relationships"][0])
+    invalid["id"] = "EP01_CAND_REL002"
+    invalid["relationshipType"] = "belongs-to"
+    invalid["direction"] = "bidirectional"
+    doc["relationships"].append(invalid)
+    path = tmp_path / "EP01.extraction.json"
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(doc, f, ensure_ascii=False)
+
+    collection = engine.merge_file(path)
+
+    relationships = collection["entities"]["relationships"]
+    assert len(relationships) == 1
+    assert relationships[0]["direction"] == "source_to_target"
+    assert [
+        source["candidateId"] for source in relationships[0]["sourceCandidates"]
+    ] == ["EP01_CAND_REL001"]
+    assert any(
+        "EP01/EP01_CAND_REL002" in warning and "source_to_target固定" in warning
+        for warning in collection["report"]["warnings"]
+    )
+    assert collection["report"]["canonicalIdSummary"]["duplicateCount"] == 0
+
+
 def test_collection_with_relationship_entity_passes_collection_schema(
     collection_validator, engine, tmp_path
 ):

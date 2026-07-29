@@ -14,6 +14,8 @@ known_entitiesを組み立てる。
 
 from typing import Any
 
+import pytest
+
 from agents.merger.character import build_character_entities
 from agents.merger.organization import build_organization_entities
 from agents.merger.relationship import build_relationship_entities
@@ -252,6 +254,143 @@ def test_same_source_target_type_direction_merges_into_one_entity():
     assert set(entity["mergedFrom"]) == {"EP01", "EP02"}
     assert len(entity["sourceCandidates"]) == 2
     assert len(entity["evidenceRefs"]) == 2
+
+
+@pytest.mark.parametrize(
+    "directions",
+    [
+        ("source_to_target", "bidirectional"),
+        ("bidirectional", "source_to_target"),
+        ("target_to_source", "bidirectional"),
+        ("source_to_target", "target_to_source"),
+    ],
+)
+def test_conflicting_directions_merge_as_bidirectional_with_conflict(directions):
+    relationships = [
+        _relationship_candidate(
+            f"EP01_CAND_REL{index:03d}",
+            [f"EP01_DLG{index:04d}"],
+            source_candidate="CHAR_A",
+            target_candidate="CHAR_B",
+            relationship_type="RELATED_TO",
+            direction=direction,
+        )
+        for index, direction in enumerate(directions, start=1)
+    ]
+    document = _episode_extraction(
+        "EP01",
+        relationships=relationships,
+        evidence_index={
+            f"EP01_DLG{index:04d}": _evidence_ref(f"EP01_DLG{index:04d}", "EP01")
+            for index in range(1, 3)
+        },
+    )
+    known_entities = [
+        {"id": "CHAR_A", "sourceCandidates": []},
+        {"id": "CHAR_B", "sourceCandidates": []},
+    ]
+
+    entities, warnings = build_relationship_entities(
+        [("ep01.json", document)], known_entities
+    )
+
+    assert warnings == []
+    assert len(entities) == 1
+    entity = entities[0]
+    assert entity["direction"] == "bidirectional"
+    assert len(entity["evidenceRefs"]) == 2
+    assert len(entity["sourceCandidates"]) == 2
+    conflict = entity["conflicts"][0]
+    assert conflict["field"] == "direction"
+    expected_directions = [
+        direction
+        for direction in (
+            "source_to_target",
+            "target_to_source",
+            "bidirectional",
+        )
+        if direction in directions
+    ]
+    assert conflict["values"] == expected_directions
+    assert conflict["resolutionStatus"] == "auto_selected"
+    assert conflict["selectedValue"] == "bidirectional"
+
+
+@pytest.mark.parametrize("direction", ["target_to_source", "bidirectional"])
+def test_fixed_direction_type_rejects_non_source_to_target(direction):
+    relationship = _relationship_candidate(
+        "EP01_CAND_REL001",
+        ["EP01_DLG0001"],
+        source_candidate="CHAR_A",
+        target_candidate="ORG_A",
+        relationship_type="MEMBER_OF",
+        direction=direction,
+    )
+    document = _episode_extraction(
+        "EP01",
+        relationships=[relationship],
+        evidence_index={"EP01_DLG0001": _evidence_ref("EP01_DLG0001", "EP01")},
+    )
+    known_entities = [
+        {"id": "CHAR_A", "sourceCandidates": []},
+        {"id": "ORG_A", "sourceCandidates": []},
+    ]
+
+    entities, warnings = build_relationship_entities(
+        [("ep01.json", document)], known_entities
+    )
+
+    assert entities == []
+    assert len(warnings) == 1
+    assert "EP01/EP01_CAND_REL001" in warnings[0]
+    assert "MEMBER_OF" in warnings[0]
+    assert direction in warnings[0]
+    assert "source_to_target固定" in warnings[0]
+
+
+def test_fixed_direction_type_promotes_valid_and_skips_invalid_candidate():
+    relationships = [
+        _relationship_candidate(
+            "EP01_CAND_REL001",
+            ["EP01_DLG0001"],
+            source_candidate="CHAR_A",
+            target_candidate="ORG_A",
+            relationship_type="MEMBER_OF",
+            direction="source_to_target",
+        ),
+        _relationship_candidate(
+            "EP01_CAND_REL002",
+            ["EP01_DLG0002"],
+            source_candidate="CHAR_A",
+            target_candidate="ORG_A",
+            relationship_type="belongs-to",
+            direction="bidirectional",
+        ),
+    ]
+    document = _episode_extraction(
+        "EP01",
+        relationships=relationships,
+        evidence_index={
+            "EP01_DLG0001": _evidence_ref("EP01_DLG0001", "EP01"),
+            "EP01_DLG0002": _evidence_ref("EP01_DLG0002", "EP01"),
+        },
+    )
+    known_entities = [
+        {"id": "CHAR_A", "sourceCandidates": []},
+        {"id": "ORG_A", "sourceCandidates": []},
+    ]
+
+    entities, warnings = build_relationship_entities(
+        [("ep01.json", document)], known_entities
+    )
+
+    assert len(entities) == 1
+    assert entities[0]["direction"] == "source_to_target"
+    assert [source["candidateId"] for source in entities[0]["sourceCandidates"]] == [
+        "EP01_CAND_REL001"
+    ]
+    assert len(warnings) == 1
+    assert "EP01/EP01_CAND_REL002" in warnings[0]
 
 
 def test_different_relationship_type_produces_separate_merged_relationship():
