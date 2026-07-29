@@ -141,6 +141,5 @@ PRワークフロー・commit禁止リスト・標準検証コマンド・恒常
 - `relationshipType`の語彙本確定（`docs/architecture/04_Knowledge_Graph/Relationships.md`、現在プレースホルダー）
 - Neo4j Graph Model、Wiki Page Template
 - Stage Directionをどこまで詳細に意味解析するか
-- `agents/parser/parser.py::_parse_tokens`のparse state dataclassリファクタ（既知のC901複雑度課題、`TASKS.md` Known Issues参照）
 
 詳細な未着手項目・優先順位は`TASKS.md`のBacklog/Known Issuesを参照。
