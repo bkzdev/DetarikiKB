@@ -221,12 +221,13 @@ def _finalize_relationship_candidates(
     extraction_run: dict[str, Any],
 ) -> list[dict[str, Any]]:
     candidates: list[dict[str, Any]] = []
-    for index, key in enumerate(order, start=1):
+    for key in order:
         accumulator = accumulators[key]
         if not accumulator.evidence_ids:
             # Evidenceが1件も無い推測は出力しない (Extraction_Pipeline.md §6.1)
             continue
 
+        index = len(candidates) + 1
         candidates.append(
             {
                 "id": f"{episode_id}_CAND_REL{index:03d}",

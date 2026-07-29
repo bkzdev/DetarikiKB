@@ -103,11 +103,12 @@ def _finalize_event_candidates(
     extraction_run: dict[str, Any],
 ) -> list[dict[str, Any]]:
     candidates: list[dict[str, Any]] = []
-    for index, key in enumerate(order, start=1):
+    for key in order:
         accumulator = accumulators[key]
         if not accumulator.name_candidates or not accumulator.evidence_ids:
             continue
 
+        index = len(candidates) + 1
         is_resolved = accumulator.event_id is not None
         candidates.append(
             {

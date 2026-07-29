@@ -120,8 +120,10 @@ Stage Aの時点では、候補はまだcanonical IDへ解決されていない�
 ```
 
 `TYPE` は種別ごとに固定の短縮語を使う。
-`number` は1始まり、3桁ゼロ埋め、種別ごとに独立採番する（`Identifier_Specification.md` §5のBlock ID採番方式に準拠）。
-rule-based extractorでは、scene順とBlockのdepth-first preorder（choice自身→options配列順→各blocks配列順）で初めて観測した同一性キーの順に採番する。同一候補がscene直下とchoice option内の双方に現れた場合は1候補へ統合し、`evidenceIds`を同じ走査順で重複なく保持する。choice option内のCandidate追加により後続候補の暫定番号が変わりうるため、このIDはcanonical IDとして外部保存しない。
+`number` は1始まり、最低3桁のゼロ埋め、種別ごとに独立採番する（`Identifier_Specification.md` §5のBlock ID採番方式に準拠）。999件を超えた場合は`1000`のように桁を増やし、`0001`のような余分なゼロは付けない。
+rule-based extractorでは、出力対象として確定した候補を種別ごとに`001`から欠番なく採番する。候補の順序は、scene順とBlockのdepth-first preorder（choice自身→options配列順→各blocks配列順）で初めて観測した同一性キーの順とする。同一候補がscene直下とchoice option内の双方に現れた場合は1候補へ統合し、`evidenceIds`を同じ走査順で重複なく保持する。
+
+この順序は同一入力・同一抽出規則に対して決定的である。一方、choice option内を新たに抽出対象へ加えるなど、抽出規則・対象範囲・同一性判定を変更すると、候補の追加や後続番号の変更が起こりうる。このIDはStage A文書内の一時参照に限定し、canonical IDや外部システムの永続キーとして保存しない。
 
 | type | TYPE短縮語 | 例 |
 |---|---|---|
@@ -702,10 +704,12 @@ Candidate schemaはStage A（未確定候補）、既存列挙のschemaはStage 
 
 JSON Schema検証後は、`scripts/validate_extraction_json.py --semantic`でCandidate/FieldValueの`evidenceIds`実在確認、candidate ID重複、`extractionRun`整合、識別可能なRelationship candidate参照、Relationshipの未知`direction` warning等のdocument内整合性を検証できる。未知`direction`は不明情報を保持するためwarningに留め、検証のexit codeを失敗にしない。外部canonical辞書との照合と、複数episodeを横断するTimeline順序整合性はこの単一document validatorの対象外とする。
 
+全量dry-runでは、これに加えて`scripts/audit_candidate_ids.py`を使う。同CLIは、Candidate IDの完全一致形式・配列とのtype整合・全体一意性、rule-based出力の欠番なし採番、比較可能なScene/Block根拠のpreorder、候補内`evidenceIds`の重複、Normalized StoryとのStory/Episode/Scene/Block参照対応、および2回の抽出結果から実行時metadataを除いた決定性を検証する。Story/Episode粒度の根拠はCandidate種別ごとに収集phaseが異なるため参照実在だけを検証し、Scene/Blockの一律preorderへは混ぜない。レポートは件数だけの匿名aggregateであり、実ID・名称・本文・ファイル名・パス・ハッシュを含めない。repo内へ出力する場合はignored領域`workspace/dry_runs/`配下に限定する。
+
 ## 16.4 未確定のまま残す点
 
 - `relationshipType`（§12）のenum化は`Relationships.md`確定後に行う。それまでは`extraction.schema.json`側も自由文字列を許容する
-- Candidate IDの暫定形式（§4.2）は、実運用でぶつかる問題（同一Blockから同種の候補が複数出るケースの採番順など）を見てから、必要なら本文書を改訂する
+- Candidate IDの暫定形式（§4.2）は、2026-07-29の全量実運用検証で現行rule-based出力に対する形式・連番・一意性・preorder・決定性を確認した。将来、実データで未観測のCandidate型、同一Blockから同種の複数候補、または1種別1,000件以上を初めて観測した場合は、合成テストだけでなく同CLIによる全量再監査を行う
 - `fields`（FieldValue辞書）のキー集合をCandidate型ごとに固定enumにするか、自由キーのまま運用するかは、実装・プロンプト設計と合わせて決定する
 
 ---

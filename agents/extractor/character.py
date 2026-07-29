@@ -85,13 +85,14 @@ def build_character_candidates(
             accumulator.add_evidence(block["id"])
 
     candidates: list[dict[str, Any]] = []
-    for index, key in enumerate(order, start=1):
+    for key in order:
         accumulator = accumulators[key]
         if not accumulator.name_candidates or not accumulator.evidence_ids:
             # Evidenceや名前候補が1件も無い推測は出力しない
             # (Extraction_Pipeline.md §6.1)
             continue
 
+        index = len(candidates) + 1
         is_resolved = accumulator.speaker_id is not None
         candidates.append(
             {
@@ -216,12 +217,13 @@ def build_special_speaker_label_candidates(
             accumulators[raw_label].add_evidence(block["id"])
 
     candidates: list[dict[str, Any]] = []
-    for index, raw_label in enumerate(order, start=1):
+    for raw_label in order:
         accumulator = accumulators[raw_label]
         if not accumulator.evidence_ids:
             # Evidenceを1件も持たない推測は出力しない (Extraction_Pipeline.md §6.1)
             continue
 
+        index = len(candidates) + 1
         analysis = accumulator.label_analysis
         candidates.append(
             {

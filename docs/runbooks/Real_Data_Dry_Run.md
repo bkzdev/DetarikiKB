@@ -178,6 +178,22 @@ uv run python scripts/check_dry_run_inputs.py --count-json data/extracted/_raw
 
 `data/extracted/_raw/`配下のJSON件数と、`documentType: "episode_extraction"`を持つファイル（= `merge_extractions.py --input`の対象候補）の一覧が表示される。
 
+## 9.1 Candidate IDの全量監査
+
+Candidate IDの形式・型・一意性・rule-based採番順を確認する場合は、同じNormalized入力を同じExtractor設定で2回抽出し、次を実行する。
+
+```bash
+uv run python scripts/audit_candidate_ids.py \
+  --input workspace/dry_runs/<RUN_ID>/extracted_run_1/ \
+  --comparison-input workspace/dry_runs/<RUN_ID>/extracted_run_2/ \
+  --normalized-input data/normalized/ \
+  --report-output workspace/dry_runs/<RUN_ID>/candidate_id_audit.json
+```
+
+終了コードは、契約違反なしが`0`、契約違反ありが`1`、入出力・入力構造エラーが`2`である。監査はCandidate IDの完全一致形式、配列typeとの整合、全体一意性、rule-based出力の種別別`001`始まり・欠番なし採番、比較可能なScene/Block根拠と`evidenceIds`のdepth-first preorder、Normalized StoryとのStory/Episode/Scene/Block参照対応、2回の抽出結果の決定性を確認する。Story/Episode粒度の根拠はCandidate種別ごとに収集phaseが異なるため参照実在だけを検証し、Scene/Blockの一律preorderへは混ぜない。比較時は`extractionRun`だけを除外し、候補内容や順序の差は検出する。
+
+出力レポートは件数のみの匿名aggregateであり、実ID・名称・本文・ファイル名・パス・ハッシュを含めない。それでもgenerated reportとして扱い、`workspace/dry_runs/`配下だけに保存してcommitしない。入力ディレクトリ内・入力ファイルと同じpath・既存ファイルへの出力は拒否されるため、runごとに新しい出力先を使う。実データで初めて観測したCandidate型、同一Blockから同種の複数候補、または4桁の候補番号があった場合は、`evidenceObservations`と`observationCounts`を確認し、合成テストの契約が実例にも適合するかレビューする。
+
 ---
 
 # 10. merge手順
@@ -413,6 +429,16 @@ branch/choiceの検証は、`compatibilityReport`や`unknownCommands`のよう�
 2026-07-04時点では、choice内のdialogue/monologueのspeakerをCharacterCandidate抽出の対象外とする当時の設計どおりに動作することを確認した。choice内のblock IDはevidenceIndexには存在する一方、どのCharacterCandidateのevidenceIdsからも参照されない状態だった。
 
 **後続変更（`choice-nested-candidate-extraction`）**: Evidenceだけが存在してCandidateが欠落する非対称性を解消するため、この除外方針を廃止した。現在はchoice自身→options配列順→各blocks配列順のdepth-first preorderで任意階層を走査し、choice option内の通常話者・Special Speaker Labelと、明示フィールドを持つOrganization/Location/Item/Lore/Eventをscene直下と同じ規則で抽出する。Relationship/Timelineはこの変更の対象外である。実データdry-runで再確認する際は、Candidate件数だけでなく暫定IDの初出順・`evidenceIds`順・全参照の`evidenceIndex`実在も確認する。
+
+## 19.4 Candidate ID暫定形式の全量実運用検証（2026-07-29実施）
+
+全カテゴリのNormalized Story 741文書を同一設定で2回抽出し、schema validation、semantic validation、§9.1のCandidate ID監査を実施した。両runとも741/741文書でvalidationに成功し、監査対象1,633候補について形式・配列type整合・全体一意性・種別別の欠番なし採番・Block/`evidenceIds`のpreorderに違反は無かった。実行時metadataを除いた2回の出力差も0文書だった。
+
+実データで観測した内訳は`CHAR` 880件、`LOC` 744件、`SSL` 9件で、choice option内の根拠を持つ候補は32件だった。同一Blockを同種の複数候補が共有する例と4桁番号は観測されなかった。`ORG`/`ITEM`/`LORE`/`EVENT`/`REL`/`TL`は0件であるため、これら6種と同一Block複数候補・4桁番号の契約は合成テストで固定し、初回の実例観測時に再監査する。
+
+choice内抽出対応前との匿名比較は、旧・新の双方に存在する733文書に限定して実施し、追加候補2件、既存29候補への根拠1,402参照追加を確認した。追加根拠はすべてchoice option内Blockで、候補削除、既存候補のID付け替え、非choice由来の根拠差分は0件だった。新runだけに存在する2文書（合計6候補）は旧結果との比較対象から除外した。抽出規則変更時に候補集合が変わりうることを踏まえ、暫定Candidate IDを外部永続キーにしない§4.2の方針を維持する。
+
+実データ、2回分のExtraction JSON、匿名aggregate reportはすべて`workspace/dry_runs/`配下へ置き、commitしていない。
 
 ---
 
