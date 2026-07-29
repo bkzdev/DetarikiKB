@@ -529,6 +529,119 @@ class ParseResult:
     new_speech_commands: list[str] = field(default_factory=list)
 
 
+@dataclass
+class _ParseState:
+    """1回のparse呼び出しに閉じた可変状態。"""
+
+    result: ParseResult
+    resolver: SpeakerResolver
+    episode: EpisodeData
+    scene: SceneData
+    source_file: str
+    pending_speech_command: ScriptToken | None = None
+    pending_speech_type: str | None = None
+    pending_has_voice: bool | None = None
+    pending_speaker: Speaker | None = None
+    forced_name_override: str | None = None
+    forced_name_label_analysis: SpeakerLabelAnalysis | None = None
+    # `ch N` と後続 `costume` の組を、間に stage direction があっても結び付ける。
+    # 新しい `ch` が現れた場合は last-wins でスロットを更新する。
+    pending_ch_slot: str | None = None
+    current_choice: BlockData | None = None
+    current_option_idx: int = 0
+    # nested branch の終了時に、外側 choice と option index の両方を復元する。
+    branch_stack: list[tuple[BlockData | None, int]] = field(default_factory=list)
+    text_lines: list[str] = field(default_factory=list)
+    text_line_start: int | None = None
+    text_line_end: int | None = None
+
+    def add_block(self, block: BlockData) -> None:
+        _add_block(
+            self.scene,
+            self.current_choice,
+            self.current_option_idx,
+            block,
+        )
+
+    def flush_text(self) -> None:
+        """蓄積した本文行をBlockへ変換し、parse状態を更新する。"""
+        if not self.text_lines:
+            return
+
+        raw_text = "\n".join(self.text_lines)
+        clean_text = _clean_text(raw_text)
+
+        if (
+            self.pending_speech_command is not None
+            or self.pending_speech_type is not None
+        ):
+            block_type = self.pending_speech_type or "dialogue"
+            speaker = self._resolve_pending_speaker()
+            block = BlockData(
+                block_type=block_type,
+                text=clean_text,
+                raw_text=raw_text,
+                speaker=speaker,
+                has_voice=self.pending_has_voice,
+                source_file=self.source_file,
+                line_start=self.text_line_start,
+                line_end=self.text_line_end,
+                raw_line=(
+                    self.pending_speech_command.raw
+                    if self.pending_speech_command
+                    else None
+                ),
+                parser_rule=_speech_parser_rule(
+                    block_type,
+                    self.pending_has_voice,
+                    (
+                        self.pending_speech_command.command
+                        if self.pending_speech_command
+                        else None
+                    ),
+                ),
+                confidence=1.0,
+            )
+            self.add_block(block)
+            self.pending_speech_command = None
+            self.pending_speech_type = None
+            self.pending_has_voice = None
+            self.pending_speaker = None
+
+        self.text_lines = []
+        self.text_line_start = None
+        self.text_line_end = None
+
+    def _resolve_pending_speaker(self) -> Speaker:
+        if self.forced_name_override is not None:
+            speaker = Speaker(
+                speaker_id=None,
+                speaker_name=self.forced_name_override,
+                source_character_id=None,
+                slot=None,
+                is_resolved=False,
+                label_source=SOURCE_NAME_COMMAND,
+                label_analysis=self.forced_name_label_analysis,
+            )
+            self.forced_name_override = None
+            self.forced_name_label_analysis = None
+            return speaker
+        if self.pending_speaker is not None:
+            return self.pending_speaker
+        return Speaker.unknown()
+
+    def finalize_episode(self) -> None:
+        """resolverが保持した診断情報をepisodeへ転記する。"""
+        self.episode.speaker_assignments = self.resolver.assignment_records
+        self.episode.unresolved_character_ids = self.resolver.unresolved_character_ids
+        self.episode.non_speaker_numeric_assignment_ids = (
+            self.resolver.non_speaker_numeric_assignment_ids
+        )
+        self.episode.non_literal_speaker_expressions = (
+            self.resolver.non_literal_speaker_expressions
+        )
+
+
 # ----------------------------------------------------------------
 # Parser
 # ----------------------------------------------------------------
@@ -580,14 +693,13 @@ class StoryParser:
     # Internal parsing
     # ----------------------------------------------------------------
 
-    def _parse_tokens(  # noqa: C901 -- parse state dataclass refactorまでの暫定抑制。TASKS.md Known Issues参照
+    def _parse_tokens(
         self,
         tokens: list[ScriptToken],
         control_chars_removed: int,
         source_file: str,
     ) -> ParseResult:
         result = ParseResult(control_chars_removed=control_chars_removed)
-
         resolver = SpeakerResolver(self._char_dict)
 
         # エピソード・シーンは Phase 1 では 1 エピソード / 1 シーン
@@ -596,551 +708,447 @@ class StoryParser:
         result.episodes.append(episode)
         episode.scenes.append(scene)
 
-        # 状態
-        pending_speech_command: ScriptToken | None = None
-        pending_speech_type: str | None = None  # dialogue / monologue
-        pending_has_voice: bool | None = None
-        pending_speaker: Speaker | None = None
-        forced_name_override: str | None = None  # name コマンド
-        forced_name_label_analysis: SpeakerLabelAnalysis | None = None
-        # ch N (表示スロットN指定の裸コマンド) で直近に指定されたスロット番号。
-        # 直後 (間に別の ch が現れるまでの範囲) に出現する costume コマンドの
-        # スロット再束縛先として参照する (feature/costume-slot-binding-fix)。
-        pending_ch_slot: str | None = None
-
-        # 選択肢状態
-        current_choice: BlockData | None = None
-        current_option_idx: int = 0
-        branch_options: list[str] = []
-        # branchごとに、その直前の (current_choice, current_option_idx)
-        # (ネストしたbranchなら外側のchoiceとそのoption位置、トップレベル
-        # ならNone/0) を退避するスタック。#endifで必ずpopして両方を戻す
-        # (current_option_idxだけ戻し忘れると、ネストしたbranch終了後に
-        # 外側choiceの誤ったoptionへブロックが混入する不具合になる。
-        # real data dry-run trialで発見、feature/branch-choice-dry-run)。
-        branch_stack: list[tuple[BlockData | None, int]] = []
-
-        text_lines: list[str] = []
-        text_line_start: int | None = None
-        text_line_end: int | None = None
-
-        def flush_text() -> None:
-            """蓄積した本文行を Block に変換してシーンへ追加する"""
-            nonlocal pending_speech_command, pending_speech_type, pending_has_voice
-            nonlocal pending_speaker, forced_name_override, forced_name_label_analysis
-            nonlocal text_lines, text_line_start, text_line_end
-
-            if not text_lines:
-                return
-
-            raw_t = "\n".join(text_lines)
-            clean_t = _clean_text(raw_t)
-
-            if pending_speech_command is not None or pending_speech_type is not None:
-                # 会話ブロック
-                block_type = pending_speech_type or "dialogue"
-
-                # 話者決定: forced_name_override → pending_speaker の順
-                if forced_name_override is not None:
-                    speaker = Speaker(
-                        speaker_id=None,
-                        speaker_name=forced_name_override,
-                        source_character_id=None,
-                        slot=None,
-                        is_resolved=False,
-                        label_source=SOURCE_NAME_COMMAND,
-                        label_analysis=forced_name_label_analysis,
-                    )
-                    forced_name_override = None
-                    forced_name_label_analysis = None
-                elif pending_speaker is not None:
-                    speaker = pending_speaker
-                else:
-                    speaker = Speaker.unknown()
-
-                block = BlockData(
-                    block_type=block_type,
-                    text=clean_t,
-                    raw_text=raw_t,
-                    speaker=speaker,
-                    has_voice=pending_has_voice,
-                    source_file=source_file,
-                    line_start=text_line_start,
-                    line_end=text_line_end,
-                    raw_line=pending_speech_command.raw
-                    if pending_speech_command
-                    else None,
-                    parser_rule=_speech_parser_rule(
-                        block_type,
-                        pending_has_voice,
-                        pending_speech_command.command
-                        if pending_speech_command
-                        else None,
-                    ),
-                    confidence=1.0,
-                )
-
-                _add_block(scene, current_choice, current_option_idx, block)
-
-                pending_speech_command = None
-                pending_speech_type = None
-                pending_has_voice = None
-                pending_speaker = None
-
-            elif pending_speech_type == "narration" or (
-                pending_speaker is None and pending_speech_command is None
-            ):
-                pass  # narration は _handle_narration で処理
-
-            # テキストリストをリセット
-            text_lines = []
-            text_line_start = None
-            text_line_end = None
+        state = _ParseState(
+            result=result,
+            resolver=resolver,
+            episode=episode,
+            scene=scene,
+            source_file=source_file,
+        )
 
         for token in tokens:
-            # ----------------------------------------------------------------
-            # VARIABLE ($numX / $valueX)
-            # ----------------------------------------------------------------
-            if token.token_type == TokenType.VARIABLE:
-                flush_text()
-                cmd = token.command or ""
-                num_match = NUM_VAR_PATTERN.match(cmd)
-                val_match = VALUE_VAR_PATTERN.match(cmd)
-
-                if num_match and token.args:
-                    idx = int(num_match.group(1))
-                    char_id = token.args[0]
-                    resolver.assign_variable(
-                        variable_name=cmd,
-                        source_character_id=char_id,
-                        num_index=idx,
-                        line_start=token.line_number,
-                        raw=token.raw,
-                    )
-                elif val_match and token.args:
-                    idx = int(val_match.group(1))
-                    char_id = token.args[0]
-                    resolver.assign_variable(
-                        variable_name=cmd,
-                        source_character_id=char_id,
-                        value_index=idx,
-                        line_start=token.line_number,
-                        raw=token.raw,
-                    )
-                continue
-
-            # ----------------------------------------------------------------
-            # COMMAND (@ChTalk, @ScenarioCos など)
-            # ----------------------------------------------------------------
-            if token.token_type == TokenType.COMMAND:
-                cmd = token.command or ""
-                normalized_cmd = CASE_VARIANTS_MAP.get(cmd, cmd)
-
-                # @ScenarioCos slot id (数値直接指定) / slot $var (変数経由)
-                if cmd == "@ScenarioCos":
-                    flush_text()
-                    sc_match = SCENARIO_COS_PATTERN.match(token.raw)
-                    if sc_match:
-                        second_arg = sc_match.group(2)
-                        if second_arg.startswith("$"):
-                            # @ScenarioCosLoad と同じ意味論: 変数マップからIDを引いて
-                            # スロットへ束縛する (第3引数以降は無視)
-                            resolver.assign_from_variable(
-                                slot=sc_match.group(1),
-                                variable_name=second_arg,
-                                line_start=token.line_number,
-                                raw=token.raw,
-                            )
-                        else:
-                            resolver.assign_character(
-                                slot=sc_match.group(1),
-                                source_character_id=second_arg,
-                                line_start=token.line_number,
-                                raw=token.raw,
-                            )
-                    continue
-
-                # @ScenarioCosLoad slot variable
-                if cmd == "@ScenarioCosLoad":
-                    flush_text()
-                    sc_load_match = SCENARIO_COS_LOAD_PATTERN.match(token.raw)
-                    if sc_load_match:
-                        resolver.assign_from_variable(
-                            slot=sc_load_match.group(1),
-                            variable_name=sc_load_match.group(2),
-                            line_start=token.line_number,
-                            raw=token.raw,
-                        )
-                    continue
-
-                # 会話コマンド
-                if cmd in {"@ChTalk", "@ChTalkSoundOff", "@ChTalkName"}:
-                    flush_text()
-                    slot = token.args[0] if token.args else "0"
-                    pending_speech_type = "dialogue"
-                    pending_has_voice = cmd == "@ChTalk"
-                    if cmd == "@ChTalkName":
-                        # @ChTalkName slot speakerName path
-                        speaker_name = token.args[1] if len(token.args) > 1 else None
-                        if speaker_name:
-                            label_analysis = analyze_speaker_label(
-                                speaker_name, source=SOURCE_CH_TALK_NAME
-                            )
-                            attach_inferred_speakers(label_analysis, self._char_dict)
-                            pending_speaker = resolver.resolve_from_command_name(
-                                speaker_name,
-                                slot,
-                                label_source=SOURCE_CH_TALK_NAME,
-                                label_analysis=label_analysis,
-                            )
-                        else:
-                            pending_speaker = resolver.resolve_slot(slot)
-                        pending_has_voice = None  # unknown
-                    else:
-                        pending_speaker = resolver.resolve_slot(slot)
-                    pending_speech_command = token
-                    continue
-
-                if cmd in {"@ChTalkMono", "@ChTalkSoundOffMono"}:
-                    flush_text()
-                    slot = token.args[0] if token.args else "0"
-                    pending_speech_type = "monologue"
-                    pending_has_voice = cmd == "@ChTalkMono"
-                    pending_speaker = resolver.resolve_slot(slot)
-                    pending_speech_command = token
-                    continue
-
-                # @SpineTalk slot_arg voice/textアセット参照path
-                # (script-command-dictionary-spinetalk-variant-only-batch)。
-                # @ChTalkと同型のセリフコマンドだが、第1引数が数値スロット
-                # 直接指定 (@ChTalkと同じ) の場合と $numN 変数参照の場合の
-                # 両方が実データに存在する (延べ2,893回中2,891回が$numN形式)。
-                # $numN代入時にresolver側でslot=Nへ自動束縛される既存の
-                # 意味論 (03_Scope.md §5.2、slot番号==変数indexが約98%一致)
-                # を再利用し、$numNからNを抽出してスロット解決する。
-                if cmd == "@SpineTalk":
-                    flush_text()
-                    slot_arg = token.args[0] if token.args else "0"
-                    num_var_match = NUM_VAR_PATTERN.match(slot_arg)
-                    slot = num_var_match.group(1) if num_var_match else slot_arg
-                    pending_speech_type = "dialogue"
-                    pending_has_voice = True
-                    pending_speaker = resolver.resolve_slot(slot)
-                    pending_speech_command = token
-                    continue
-
-                # stage_direction (既知)
-                if (
-                    normalized_cmd in STAGE_DIRECTION_COMMANDS
-                    or cmd in STAGE_DIRECTION_COMMANDS
-                ):
-                    flush_text()
-                    if self.preserve_stage_directions:
-                        direction_type = DIRECTION_TYPE_MAP.get(
-                            normalized_cmd, DIRECTION_TYPE_MAP.get(cmd, "unknown")
-                        )
-                        block = BlockData(
-                            block_type="stage_direction",
-                            direction_type=direction_type,
-                            raw_command=cmd,
-                            normalized_command=normalized_cmd
-                            if normalized_cmd != cmd
-                            else cmd,
-                            command_args=token.args,
-                            source_file=source_file,
-                            line_start=token.line_number,
-                            line_end=token.line_number,
-                            raw_line=token.raw,
-                            parser_rule="stage_direction",
-                        )
-                        _add_block(scene, current_choice, current_option_idx, block)
-                    continue
-
-                # 未知コマンド
-                if self.preserve_unknown:
-                    flush_text()
-                    result.unknown_commands[cmd] = (
-                        result.unknown_commands.get(cmd, 0) + 1
-                    )
-                    block = BlockData(
-                        block_type="unknown",
-                        raw_text=token.raw,
-                        source_file=source_file,
-                        line_start=token.line_number,
-                        line_end=token.line_number,
-                        raw_line=token.raw,
-                        parser_rule="unknown_command",
-                        notes=[f"Unknown command: {cmd}"],
-                    )
-                    _add_block(scene, current_choice, current_option_idx, block)
-                continue
-
-            # ----------------------------------------------------------------
-            # KEYWORD
-            # ----------------------------------------------------------------
-            if token.token_type == TokenType.KEYWORD:
-                kw = token.command or ""
-
-                # ch N (表示スロットN指定の裸コマンド) → 直後の costume による
-                # スロット再束縛のためNを記憶する (feature/costume-slot-binding-fix)。
-                # 数値スロット引数を伴わない ch (カメラ演出目的の別用法) は
-                # ウィンドウを無効化する (誤ったスロットへ costume を束縛しない
-                # ため)。stage_direction ブロック自体は従来どおり生成するため
-                # continue はしない (下の stage_direction 分岐へフォールスルー)。
-                if kw == "ch":
-                    if token.args and token.args[0].isdigit():
-                        pending_ch_slot = token.args[0]
-                    else:
-                        pending_ch_slot = None
-
-                # costume <衣装ID> <キャラID> [ON] → 直前の ch N で記憶した
-                # スロットNを、第2引数 (キャラID) で再束縛する
-                # (feature/costume-slot-binding-fix、@ScenarioCosと同等の
-                # 意味論のスロット再束縛)。ch が無い場合 (pending_ch_slot が
-                # None) は従来どおり束縛に使わない。こちらも stage_direction
-                # ブロック生成へフォールスルーするため continue はしない。
-                elif kw == "costume":
-                    if pending_ch_slot is not None and len(token.args) >= 2:
-                        resolver.assign_costume_character(
-                            slot=pending_ch_slot,
-                            second_arg=token.args[1],
-                            line_start=token.line_number,
-                            raw=token.raw,
-                        )
-
-                # msg → narration
-                if kw == "msg":
-                    flush_text()
-                    pending_speech_type = "narration"
-                    pending_speech_command = token
-                    # narration は次の TEXT ラインで確定させる
-                    # ここでは pending だけ立てて continue
-                    continue
-
-                # name → 強制話者名
-                if kw == "name":
-                    flush_text()
-                    forced_name = token.text or " ".join(token.args)
-                    # 空の name 行は強制話者名の解除を意味する (flush_text は
-                    # forced_name_override を None 判定で有効化するため、
-                    # 空文字列のまま代入すると解決済みスロット話者を空名で潰してしまう)
-                    forced_name_override = forced_name if forced_name else None
-                    if forced_name_override is not None:
-                        forced_name_label_analysis = analyze_speaker_label(
-                            forced_name_override, source=SOURCE_NAME_COMMAND
-                        )
-                        attach_inferred_speakers(
-                            forced_name_label_analysis, self._char_dict
-                        )
-                    else:
-                        forced_name_label_analysis = None
-                    resolver.set_forced_name(forced_name_override or "")
-                    continue
-
-                # branch → 選択肢定義
-                if kw == "branch":
-                    flush_text()
-                    branch_options = token.args or []
-                    # 現在の current_choice/current_option_idx (ネストした
-                    # branchの場合は外側のchoiceとそのoption位置、
-                    # トップレベルのbranchならNone/0) を退避してから
-                    # 新しいchoiceへ切り替える。#endifで必ずここへ戻ることで、
-                    # 対応する#endif以降のブロックが直前の選択肢の中に
-                    # 閉じ込められる不具合を防ぐ
-                    # (real data dry-run trialで発見、feature/branch-choice-dry-run)。
-                    outer_choice = current_choice
-                    outer_option_idx = current_option_idx
-                    branch_stack.append((outer_choice, outer_option_idx))
-                    # 新しい choice ブロックを作成
-                    new_choice = BlockData(
-                        block_type="choice",
-                        source_file=source_file,
-                        line_start=token.line_number,
-                        line_end=token.line_number,
-                        raw_line=token.raw,
-                        parser_rule="branch_choice",
-                    )
-                    for opt_text in branch_options:
-                        new_choice.options.append(
-                            {
-                                "optionText": opt_text,
-                                "blocks": [],
-                            }
-                        )
-                    # 新しいchoice自体を、外側の文脈 (シーン直下、または
-                    # ネストしている場合は外側choiceの現在のoption) へ配置
-                    # してからcurrent_choiceを切り替える
-                    _add_block(scene, outer_choice, outer_option_idx, new_choice)
-                    current_choice = new_choice
-                    current_option_idx = 0
-                    continue
-
-                # #if → 分岐開始 (選択肢インデックスのリセットのみ。
-                # push/popはbranch/#endif側が担う)
-                if kw == "#if":
-                    flush_text()
-                    current_option_idx = 0
-                    continue
-
-                # #elseif / #else → 次の選択肢へ
-                if kw in {"#elseif", "#else"}:
-                    flush_text()
-                    current_option_idx += 1
-                    continue
-
-                # #endif → 分岐終了。branchで退避した外側の
-                # (current_choice, current_option_idx) (トップレベルなら
-                # None/0) へ必ず両方戻す
-                if kw == "#endif":
-                    flush_text()
-                    if branch_stack:
-                        current_choice, current_option_idx = branch_stack.pop()
-                    else:
-                        current_choice = None
-                        current_option_idx = 0
-                    continue
-
-                # その他の # 系
-                if kw.startswith("#"):
-                    flush_text()
-                    continue
-
-                # bg / bgm / se などの stage_direction キーワード
-                normalized_kw = CASE_VARIANTS_MAP.get(kw, kw)
-                if (
-                    kw in STAGE_DIRECTION_COMMANDS
-                    or normalized_kw in STAGE_DIRECTION_COMMANDS
-                ):
-                    flush_text()
-                    if self.preserve_stage_directions:
-                        direction_type = DIRECTION_TYPE_MAP.get(
-                            normalized_kw, DIRECTION_TYPE_MAP.get(kw, "unknown")
-                        )
-                        block = BlockData(
-                            block_type="stage_direction",
-                            direction_type=direction_type,
-                            raw_command=kw,
-                            normalized_command=normalized_kw,
-                            command_args=token.args,
-                            source_file=source_file,
-                            line_start=token.line_number,
-                            line_end=token.line_number,
-                            raw_line=token.raw,
-                            parser_rule="stage_direction",
-                        )
-                        _add_block(scene, current_choice, current_option_idx, block)
-                    continue
-
-                # 未知キーワード
-                if self.preserve_unknown:
-                    flush_text()
-                    block = BlockData(
-                        block_type="unknown",
-                        raw_text=token.raw,
-                        source_file=source_file,
-                        line_start=token.line_number,
-                        line_end=token.line_number,
-                        raw_line=token.raw,
-                        parser_rule="unknown_keyword",
-                        notes=[f"Unknown keyword: {kw}"],
-                    )
-                    _add_block(scene, current_choice, current_option_idx, block)
-                continue
-
-            # ----------------------------------------------------------------
-            # TEXT (本文行)
-            # ----------------------------------------------------------------
-            if token.token_type == TokenType.TEXT:
-                if pending_speech_type == "narration":
-                    # narration: TEXT ラインを直接 narration ブロックにする
-                    flush_text()
-                    block = BlockData(
-                        block_type="narration",
-                        text=_clean_text(token.raw),
-                        raw_text=token.raw,
-                        narration_type=_guess_narration_type(token.raw),
-                        source_file=source_file,
-                        line_start=token.line_number,
-                        line_end=token.line_number,
-                        raw_line=token.raw,
-                        parser_rule="msg_narration",
-                        confidence=1.0,
-                    )
-                    _add_block(scene, current_choice, current_option_idx, block)
-                    pending_speech_type = None
-                    pending_speech_command = None
-                    continue
-
-                # 通常の本文行 (会話コマンド待機中)
-                if text_line_start is None:
-                    text_line_start = token.line_number
-                text_line_end = token.line_number
-                text_lines.append(token.raw)
-                continue
-
-            # ----------------------------------------------------------------
-            # HYPHEN_OPTION (演出補助行)
-            # ----------------------------------------------------------------
-            if token.token_type == TokenType.HYPHEN_OPTION:
-                flush_text()
-                if self.preserve_stage_directions:
-                    block = BlockData(
-                        block_type="stage_direction",
-                        direction_type="system",
-                        raw_command="-",
-                        normalized_command="-",
-                        command_args=token.args,
-                        source_file=source_file,
-                        line_start=token.line_number,
-                        line_end=token.line_number,
-                        raw_line=token.raw,
-                        parser_rule="hyphen_option",
-                    )
-                    _add_block(scene, current_choice, current_option_idx, block)
-                continue
-
-            # ----------------------------------------------------------------
-            # UNKNOWN
-            # ----------------------------------------------------------------
-            if token.token_type == TokenType.UNKNOWN:
-                flush_text()
-                if self.preserve_unknown:
-                    # キーは先頭コマンド語のみ (token.command) を使う。
-                    # unknown_commandsの他の登録箇所 (@コマンド/keyword)
-                    # およびscripts/check_script_compatibility.pyの
-                    # unknownCommands集計 (first_tokenのみ) とキー形式を
-                    # 揃えるため、生の行全体 (raw[:30]) は使わない。
-                    unknown_key = token.command or token.raw[:30]
-                    result.unknown_commands[unknown_key] = (
-                        result.unknown_commands.get(unknown_key, 0) + 1
-                    )
-                    block = BlockData(
-                        block_type="unknown",
-                        raw_text=token.raw,
-                        source_file=source_file,
-                        line_start=token.line_number,
-                        line_end=token.line_number,
-                        raw_line=token.raw,
-                        parser_rule="unknown_line",
-                        notes=["Parser could not classify this line."],
-                    )
-                    _add_block(scene, current_choice, current_option_idx, block)
-                continue
+            self._handle_token(state, token)
 
         # 最後の蓄積テキストをフラッシュ
-        flush_text()
-
-        # 話者割り当て記録を episode に格納
-        episode.speaker_assignments = resolver.assignment_records
-        episode.unresolved_character_ids = resolver.unresolved_character_ids
-        episode.non_speaker_numeric_assignment_ids = (
-            resolver.non_speaker_numeric_assignment_ids
-        )
-        episode.non_literal_speaker_expressions = (
-            resolver.non_literal_speaker_expressions
-        )
+        state.flush_text()
+        state.finalize_episode()
 
         return result
+
+    def _handle_token(self, state: _ParseState, token: ScriptToken) -> None:
+        """token種別ごとのhandlerへ処理を委譲する。"""
+        handlers = {
+            TokenType.VARIABLE: self._handle_variable,
+            TokenType.COMMAND: self._handle_command,
+            TokenType.KEYWORD: self._handle_keyword,
+            TokenType.TEXT: self._handle_text,
+            TokenType.HYPHEN_OPTION: self._handle_hyphen_option,
+            TokenType.UNKNOWN: self._handle_unknown,
+        }
+        handler = handlers.get(token.token_type)
+        if handler is not None:
+            handler(state, token)
+
+    def _handle_variable(self, state: _ParseState, token: ScriptToken) -> None:
+        state.flush_text()
+        command = token.command or ""
+        num_match = NUM_VAR_PATTERN.match(command)
+        value_match = VALUE_VAR_PATTERN.match(command)
+
+        if num_match and token.args:
+            state.resolver.assign_variable(
+                variable_name=command,
+                source_character_id=token.args[0],
+                num_index=int(num_match.group(1)),
+                line_start=token.line_number,
+                raw=token.raw,
+            )
+        elif value_match and token.args:
+            state.resolver.assign_variable(
+                variable_name=command,
+                source_character_id=token.args[0],
+                value_index=int(value_match.group(1)),
+                line_start=token.line_number,
+                raw=token.raw,
+            )
+
+    def _handle_command(self, state: _ParseState, token: ScriptToken) -> None:
+        command = token.command or ""
+        normalized_command = CASE_VARIANTS_MAP.get(command, command)
+
+        if command == "@ScenarioCos":
+            self._handle_scenario_cos(state, token)
+            return
+        if command == "@ScenarioCosLoad":
+            self._handle_scenario_cos_load(state, token)
+            return
+        if command in {"@ChTalk", "@ChTalkSoundOff", "@ChTalkName"}:
+            self._start_dialogue(state, token)
+            return
+        if command in {"@ChTalkMono", "@ChTalkSoundOffMono"}:
+            self._start_monologue(state, token)
+            return
+        if command == "@SpineTalk":
+            self._start_spine_dialogue(state, token)
+            return
+        if (
+            normalized_command in STAGE_DIRECTION_COMMANDS
+            or command in STAGE_DIRECTION_COMMANDS
+        ):
+            self._add_stage_direction(
+                state,
+                token,
+                raw_command=command,
+                normalized_command=normalized_command,
+            )
+            return
+        if self.preserve_unknown:
+            state.flush_text()
+            state.result.unknown_commands[command] = (
+                state.result.unknown_commands.get(command, 0) + 1
+            )
+            state.add_block(
+                self._unknown_block(
+                    state,
+                    token,
+                    parser_rule="unknown_command",
+                    note=f"Unknown command: {command}",
+                )
+            )
+
+    def _handle_scenario_cos(self, state: _ParseState, token: ScriptToken) -> None:
+        state.flush_text()
+        match = SCENARIO_COS_PATTERN.match(token.raw)
+        if match is None:
+            return
+        slot = match.group(1)
+        second_arg = match.group(2)
+        if second_arg.startswith("$"):
+            state.resolver.assign_from_variable(
+                slot=slot,
+                variable_name=second_arg,
+                line_start=token.line_number,
+                raw=token.raw,
+            )
+            return
+        state.resolver.assign_character(
+            slot=slot,
+            source_character_id=second_arg,
+            line_start=token.line_number,
+            raw=token.raw,
+        )
+
+    def _handle_scenario_cos_load(self, state: _ParseState, token: ScriptToken) -> None:
+        state.flush_text()
+        match = SCENARIO_COS_LOAD_PATTERN.match(token.raw)
+        if match is None:
+            return
+        state.resolver.assign_from_variable(
+            slot=match.group(1),
+            variable_name=match.group(2),
+            line_start=token.line_number,
+            raw=token.raw,
+        )
+
+    def _start_dialogue(self, state: _ParseState, token: ScriptToken) -> None:
+        state.flush_text()
+        command = token.command or ""
+        slot = token.args[0] if token.args else "0"
+        state.pending_speech_type = "dialogue"
+        state.pending_has_voice = command == "@ChTalk"
+        if command == "@ChTalkName":
+            speaker_name = token.args[1] if len(token.args) > 1 else None
+            if speaker_name:
+                label_analysis = analyze_speaker_label(
+                    speaker_name,
+                    source=SOURCE_CH_TALK_NAME,
+                )
+                attach_inferred_speakers(label_analysis, self._char_dict)
+                state.pending_speaker = state.resolver.resolve_from_command_name(
+                    speaker_name,
+                    slot,
+                    label_source=SOURCE_CH_TALK_NAME,
+                    label_analysis=label_analysis,
+                )
+            else:
+                state.pending_speaker = state.resolver.resolve_slot(slot)
+            state.pending_has_voice = None
+        else:
+            state.pending_speaker = state.resolver.resolve_slot(slot)
+        state.pending_speech_command = token
+
+    def _start_monologue(self, state: _ParseState, token: ScriptToken) -> None:
+        state.flush_text()
+        command = token.command or ""
+        slot = token.args[0] if token.args else "0"
+        state.pending_speech_type = "monologue"
+        state.pending_has_voice = command == "@ChTalkMono"
+        state.pending_speaker = state.resolver.resolve_slot(slot)
+        state.pending_speech_command = token
+
+    def _start_spine_dialogue(self, state: _ParseState, token: ScriptToken) -> None:
+        state.flush_text()
+        slot_arg = token.args[0] if token.args else "0"
+        # @SpineTalk の `$numN` は変数の値ではなく、既存実装どおり slot N を指す。
+        num_var_match = NUM_VAR_PATTERN.match(slot_arg)
+        slot = num_var_match.group(1) if num_var_match else slot_arg
+        state.pending_speech_type = "dialogue"
+        state.pending_has_voice = True
+        state.pending_speaker = state.resolver.resolve_slot(slot)
+        state.pending_speech_command = token
+
+    def _handle_keyword(self, state: _ParseState, token: ScriptToken) -> None:
+        keyword = token.command or ""
+        self._apply_keyword_slot_binding(state, token, keyword)
+
+        handlers = {
+            "msg": self._start_narration,
+            "name": self._set_forced_name,
+            "branch": self._start_branch,
+            "#if": self._start_branch_condition,
+            "#elseif": self._advance_branch_option,
+            "#else": self._advance_branch_option,
+            "#endif": self._end_branch,
+        }
+        handler = handlers.get(keyword)
+        if handler is not None:
+            handler(state, token)
+            return
+        if keyword.startswith("#"):
+            state.flush_text()
+            return
+
+        normalized_keyword = CASE_VARIANTS_MAP.get(keyword, keyword)
+        if (
+            keyword in STAGE_DIRECTION_COMMANDS
+            or normalized_keyword in STAGE_DIRECTION_COMMANDS
+        ):
+            self._add_stage_direction(
+                state,
+                token,
+                raw_command=keyword,
+                normalized_command=normalized_keyword,
+            )
+            return
+        if self.preserve_unknown:
+            state.flush_text()
+            state.add_block(
+                self._unknown_block(
+                    state,
+                    token,
+                    parser_rule="unknown_keyword",
+                    note=f"Unknown keyword: {keyword}",
+                )
+            )
+
+    @staticmethod
+    def _apply_keyword_slot_binding(
+        state: _ParseState,
+        token: ScriptToken,
+        keyword: str,
+    ) -> None:
+        if keyword == "ch":
+            state.pending_ch_slot = (
+                token.args[0] if token.args and token.args[0].isdigit() else None
+            )
+        elif (
+            keyword == "costume"
+            and state.pending_ch_slot is not None
+            and len(token.args) >= 2
+        ):
+            state.resolver.assign_costume_character(
+                slot=state.pending_ch_slot,
+                second_arg=token.args[1],
+                line_start=token.line_number,
+                raw=token.raw,
+            )
+
+    @staticmethod
+    def _start_narration(
+        state: _ParseState,
+        token: ScriptToken,
+    ) -> None:
+        state.flush_text()
+        state.pending_speech_type = "narration"
+        state.pending_speech_command = token
+
+    def _set_forced_name(
+        self,
+        state: _ParseState,
+        token: ScriptToken,
+    ) -> None:
+        state.flush_text()
+        forced_name = token.text or " ".join(token.args)
+        state.forced_name_override = forced_name if forced_name else None
+        if state.forced_name_override is not None:
+            state.forced_name_label_analysis = analyze_speaker_label(
+                state.forced_name_override,
+                source=SOURCE_NAME_COMMAND,
+            )
+            attach_inferred_speakers(
+                state.forced_name_label_analysis,
+                self._char_dict,
+            )
+        else:
+            state.forced_name_label_analysis = None
+        state.resolver.set_forced_name(state.forced_name_override or "")
+
+    @staticmethod
+    def _start_branch(
+        state: _ParseState,
+        token: ScriptToken,
+    ) -> None:
+        state.flush_text()
+        outer_choice = state.current_choice
+        outer_option_idx = state.current_option_idx
+        state.branch_stack.append((outer_choice, outer_option_idx))
+        new_choice = BlockData(
+            block_type="choice",
+            source_file=state.source_file,
+            line_start=token.line_number,
+            line_end=token.line_number,
+            raw_line=token.raw,
+            parser_rule="branch_choice",
+        )
+        for option_text in token.args or []:
+            new_choice.options.append(
+                {
+                    "optionText": option_text,
+                    "blocks": [],
+                }
+            )
+        _add_block(state.scene, outer_choice, outer_option_idx, new_choice)
+        state.current_choice = new_choice
+        state.current_option_idx = 0
+
+    @staticmethod
+    def _start_branch_condition(
+        state: _ParseState,
+        _token: ScriptToken,
+    ) -> None:
+        state.flush_text()
+        state.current_option_idx = 0
+
+    @staticmethod
+    def _advance_branch_option(
+        state: _ParseState,
+        _token: ScriptToken,
+    ) -> None:
+        state.flush_text()
+        state.current_option_idx += 1
+
+    @staticmethod
+    def _end_branch(
+        state: _ParseState,
+        _token: ScriptToken,
+    ) -> None:
+        state.flush_text()
+        if state.branch_stack:
+            state.current_choice, state.current_option_idx = state.branch_stack.pop()
+        else:
+            state.current_choice = None
+            state.current_option_idx = 0
+
+    def _add_stage_direction(
+        self,
+        state: _ParseState,
+        token: ScriptToken,
+        *,
+        raw_command: str,
+        normalized_command: str,
+    ) -> None:
+        state.flush_text()
+        if not self.preserve_stage_directions:
+            return
+        direction_type = DIRECTION_TYPE_MAP.get(
+            normalized_command,
+            DIRECTION_TYPE_MAP.get(raw_command, "unknown"),
+        )
+        state.add_block(
+            BlockData(
+                block_type="stage_direction",
+                direction_type=direction_type,
+                raw_command=raw_command,
+                normalized_command=normalized_command,
+                command_args=token.args,
+                source_file=state.source_file,
+                line_start=token.line_number,
+                line_end=token.line_number,
+                raw_line=token.raw,
+                parser_rule="stage_direction",
+            )
+        )
+
+    def _handle_text(self, state: _ParseState, token: ScriptToken) -> None:
+        if state.pending_speech_type == "narration":
+            state.flush_text()
+            state.add_block(
+                BlockData(
+                    block_type="narration",
+                    text=_clean_text(token.raw),
+                    raw_text=token.raw,
+                    narration_type=_guess_narration_type(token.raw),
+                    source_file=state.source_file,
+                    line_start=token.line_number,
+                    line_end=token.line_number,
+                    raw_line=token.raw,
+                    parser_rule="msg_narration",
+                    confidence=1.0,
+                )
+            )
+            state.pending_speech_type = None
+            state.pending_speech_command = None
+            return
+
+        if state.text_line_start is None:
+            state.text_line_start = token.line_number
+        state.text_line_end = token.line_number
+        state.text_lines.append(token.raw)
+
+    def _handle_hyphen_option(self, state: _ParseState, token: ScriptToken) -> None:
+        state.flush_text()
+        if not self.preserve_stage_directions:
+            return
+        state.add_block(
+            BlockData(
+                block_type="stage_direction",
+                direction_type="system",
+                raw_command="-",
+                normalized_command="-",
+                command_args=token.args,
+                source_file=state.source_file,
+                line_start=token.line_number,
+                line_end=token.line_number,
+                raw_line=token.raw,
+                parser_rule="hyphen_option",
+            )
+        )
+
+    def _handle_unknown(self, state: _ParseState, token: ScriptToken) -> None:
+        state.flush_text()
+        if not self.preserve_unknown:
+            return
+        unknown_key = token.command or token.raw[:30]
+        state.result.unknown_commands[unknown_key] = (
+            state.result.unknown_commands.get(unknown_key, 0) + 1
+        )
+        state.add_block(
+            self._unknown_block(
+                state,
+                token,
+                parser_rule="unknown_line",
+                note="Parser could not classify this line.",
+            )
+        )
+
+    @staticmethod
+    def _unknown_block(
+        state: _ParseState,
+        token: ScriptToken,
+        *,
+        parser_rule: str,
+        note: str,
+    ) -> BlockData:
+        return BlockData(
+            block_type="unknown",
+            raw_text=token.raw,
+            source_file=state.source_file,
+            line_start=token.line_number,
+            line_end=token.line_number,
+            raw_line=token.raw,
+            parser_rule=parser_rule,
+            notes=[note],
+        )
 
 
 # ----------------------------------------------------------------

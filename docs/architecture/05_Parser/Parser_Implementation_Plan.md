@@ -471,7 +471,16 @@ Phase 1では完全な分岐木でなくてもよいが、情報は破棄しな�
 
 未知コマンドも、必要に応じて `stage_direction` または `unknown` として保持する。
 
-## 9.8 Acceptance Criteria
+## 9.8 Parse状態の境界
+
+1回のparse呼び出しで変化する状態は、内部のparse state objectへ閉じ込める。
+
+- `StoryParser` instanceへpending会話・話者名・branch・本文蓄積状態を保持しない
+- token種別とcommand種別のhandlerは、同じparse state objectを明示的に受け渡す
+- 本文のflush、nested branch終了時の外側choice復元、resolver診断のepisode転記をparse stateの責務とする
+- 同じ`StoryParser` instanceを連続利用しても、前回の未完了状態を次回へ持ち越さない
+
+## 9.9 Acceptance Criteria
 
 - 本文行を直前の会話コマンドへ紐づけられる
 - 会話コマンド直後の複数行本文を1Blockにできる

@@ -113,6 +113,31 @@ def test_forced_name():
     assert b.speaker.is_resolved is False
 
 
+def test_parse_state_does_not_leak_between_calls(char_dict):
+    """未完了のpending/branch状態も次のparse呼び出しへ持ち越さない。"""
+    parser = StoryParser(char_dict=char_dict)
+    parser.parse_text(
+        """name 残留してはいけない名前
+branch 選択肢A 選択肢B
+#if $branch
+@ChTalk 0
+"""
+    )
+
+    second_result = parser.parse_text(
+        """$num0 = 26
+@ChTalk 0
+二回目の独立したセリフ
+"""
+    )
+
+    second_scene = second_result.episodes[0].scenes[0]
+    assert len(second_scene.blocks) == 1
+    assert second_scene.blocks[0].block_type == "dialogue"
+    assert second_scene.blocks[0].speaker.speaker_name == "レイン"
+    assert second_scene.blocks[0].text == "二回目の独立したセリフ"
+
+
 def test_empty_name_line_does_not_blank_resolved_speaker(char_dict):
     """
     実スクリプトでは、話者名を解除するための空の `name` 行が単独で
