@@ -238,6 +238,9 @@ Extraction Pipelineは以下8種類を抽出する。
 }
 ```
 
+rule-based実装は、Scene直下またはBlockに明示された`itemId` / `itemName`だけを
+読み、本文からアイテム名を推定しない。Scene由来の場合はScene IDを根拠にする。
+
 ## 4.5 Lore
 
 対象: 世界観・用語・固有概念（`Identifier_Specification.md` 6.7 の `LORE_` に対応）。Character / Organization / Location / Item のいずれにも分類できない固有名詞・設定用語をここに収める。
@@ -266,6 +269,9 @@ Extraction Pipelineは以下8種類を抽出する。
   "evidence": []
 }
 ```
+
+rule-based実装は、Scene直下またはBlockに明示された`eventId` / `eventName`だけを
+読み、本文から出来事を推定しない。Scene由来の場合はScene IDを根拠にする。
 
 ## 4.7 Relationship
 

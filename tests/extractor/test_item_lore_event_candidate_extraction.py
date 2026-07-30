@@ -72,10 +72,12 @@ def _scene(
     scene_id: str,
     blocks: list[dict[str, Any]],
     location: dict[str, Any] | None = None,
+    **extra: Any,
 ) -> dict[str, Any]:
     scene: dict[str, Any] = {"sceneId": scene_id, "sceneNumber": 1, "blocks": blocks}
     if location is not None:
         scene["location"] = location
+    scene.update(extra)
     return scene
 
 
@@ -181,6 +183,84 @@ def test_item_candidate_created_from_name_only():
     assert candidate["existingItemId"] is None
     assert candidate["nameCandidates"] == ["謎のデバイス"]
     assert candidate["confidence"] == pytest.approx(0.5)
+
+
+def test_item_candidate_created_from_scene_fields():
+    scene = _scene(
+        "EP01_SC001",
+        [],
+        itemId="ITEM_KEY",
+        itemName="鍵",
+    )
+    story = _build_normalized_story("EP01", "TEST_STORY", [scene])
+
+    extraction = Extractor().extract_story(story)[0]
+    candidate = extraction["items"][0]
+
+    assert candidate["existingItemId"] == "ITEM_KEY"
+    assert candidate["nameCandidates"] == ["鍵"]
+    assert candidate["evidenceIds"] == ["EP01_SC001"]
+    assert candidate["confidence"] == pytest.approx(0.9)
+    assert extraction["evidenceIndex"]["EP01_SC001"] == {
+        "sourceId": "EP01_SC001",
+        "storyId": "TEST_STORY",
+        "episodeId": "EP01",
+        "sceneId": "EP01_SC001",
+        "confidence": pytest.approx(1.0),
+    }
+
+
+def test_same_item_in_scene_and_block_merges_scene_first():
+    block = _dialogue_block(
+        "EP01_DLG0001",
+        item_id="ITEM_KEY",
+        item_name="キー",
+    )
+    scene = _scene(
+        "EP01_SC001",
+        [block],
+        itemId="ITEM_KEY",
+        itemName="鍵",
+    )
+    story = _build_normalized_story("EP01", "TEST_STORY", [scene])
+
+    extraction = Extractor().extract_story(story)[0]
+
+    assert len(extraction["items"]) == 1
+    assert extraction["items"][0]["nameCandidates"] == ["鍵", "キー"]
+    assert extraction["items"][0]["evidenceIds"] == [
+        "EP01_SC001",
+        "EP01_DLG0001",
+    ]
+
+
+@pytest.mark.parametrize(
+    ("scene_extra", "block_item_id"),
+    [
+        ({"itemId": "ITEM_KEY", "itemName": "鍵"}, None),
+        ({"itemName": "鍵"}, "ITEM_KEY"),
+        ({"itemId": "ITEM_KEY_A", "itemName": "鍵"}, "ITEM_KEY_B"),
+    ],
+)
+def test_item_name_match_does_not_override_id_identity(scene_extra, block_item_id):
+    block = _dialogue_block(
+        "EP01_DLG0001",
+        item_id=block_item_id,
+        item_name="鍵",
+    )
+    story = _build_normalized_story(
+        "EP01",
+        "TEST_STORY",
+        [_scene("EP01_SC001", [block], **scene_extra)],
+    )
+
+    extraction = Extractor().extract_story(story)[0]
+
+    assert len(extraction["items"]) == 2
+    assert [candidate["evidenceIds"] for candidate in extraction["items"]] == [
+        ["EP01_SC001"],
+        ["EP01_DLG0001"],
+    ]
 
 
 def test_item_candidate_created_from_stage_direction():
@@ -337,6 +417,105 @@ def test_event_candidate_created_from_stage_direction():
     assert "EP01_STAGE0001" in extraction["evidenceIndex"]
 
 
+def test_event_candidate_created_from_scene_fields():
+    scene = _scene(
+        "EP01_SC001",
+        [],
+        eventName="警報発令",
+    )
+    story = _build_normalized_story("EP01", "TEST_STORY", [scene])
+
+    extraction = Extractor().extract_story(story)[0]
+    candidate = extraction["events"][0]
+
+    assert candidate["existingEventId"] is None
+    assert candidate["nameCandidates"] == ["警報発令"]
+    assert candidate["evidenceIds"] == ["EP01_SC001"]
+    assert candidate["confidence"] == pytest.approx(0.5)
+    assert extraction["evidenceIndex"]["EP01_SC001"]["sceneId"] == "EP01_SC001"
+
+
+def test_same_event_in_scene_and_block_merges_scene_first():
+    block = _dialogue_block(
+        "EP01_DLG0001",
+        event_id="EVENT_ALARM",
+        event_name="警報作動",
+    )
+    scene = _scene(
+        "EP01_SC001",
+        [block],
+        eventId="EVENT_ALARM",
+        eventName="警報発令",
+    )
+    story = _build_normalized_story("EP01", "TEST_STORY", [scene])
+
+    extraction = Extractor().extract_story(story)[0]
+
+    assert len(extraction["events"]) == 1
+    assert extraction["events"][0]["nameCandidates"] == ["警報発令", "警報作動"]
+    assert extraction["events"][0]["evidenceIds"] == [
+        "EP01_SC001",
+        "EP01_DLG0001",
+    ]
+
+
+@pytest.mark.parametrize(
+    ("scene_extra", "block_event_id"),
+    [
+        ({"eventId": "EVENT_ALARM", "eventName": "警報発令"}, None),
+        ({"eventName": "警報発令"}, "EVENT_ALARM"),
+        ({"eventId": "EVENT_ALARM_A", "eventName": "警報発令"}, "EVENT_ALARM_B"),
+    ],
+)
+def test_event_name_match_does_not_override_id_identity(scene_extra, block_event_id):
+    block = _dialogue_block(
+        "EP01_DLG0001",
+        event_id=block_event_id,
+        event_name="警報発令",
+    )
+    story = _build_normalized_story(
+        "EP01",
+        "TEST_STORY",
+        [_scene("EP01_SC001", [block], **scene_extra)],
+    )
+
+    extraction = Extractor().extract_story(story)[0]
+
+    assert len(extraction["events"]) == 2
+    assert [candidate["evidenceIds"] for candidate in extraction["events"]] == [
+        ["EP01_SC001"],
+        ["EP01_DLG0001"],
+    ]
+
+
+def test_name_only_scene_and_block_candidates_merge_by_name():
+    block = _dialogue_block(
+        "EP01_DLG0001",
+        item_name="鍵",
+        event_name="警報発令",
+    )
+    scene = _scene(
+        "EP01_SC001",
+        [block],
+        itemName="鍵",
+        eventName="警報発令",
+    )
+    story = _build_normalized_story("EP01", "TEST_STORY", [scene])
+
+    extraction = Extractor().extract_story(story)[0]
+
+    assert len(extraction["items"]) == 1
+    assert len(extraction["events"]) == 1
+    assert extraction["items"][0]["evidenceIds"] == [
+        "EP01_SC001",
+        "EP01_DLG0001",
+    ]
+    assert extraction["events"][0]["evidenceIds"] == [
+        "EP01_SC001",
+        "EP01_DLG0001",
+    ]
+
+
 def test_event_candidate_is_not_generated_from_conversation_content():
     # 「戦闘」「移動」等を示唆する自然文があってもeventId/eventNameが
     # 明示されていなければEventCandidateは生成しない
@@ -363,6 +542,40 @@ def test_same_event_across_blocks_merges_into_one_candidate():
 
     assert len(events) == 1
     assert events[0]["evidenceIds"] == ["EP01_DLG0001", "EP01_DLG0002"]
+
+
+def test_invalid_or_id_only_scene_fields_do_not_create_candidates():
+    story = _build_normalized_story(
+        "EP01",
+        "TEST_STORY",
+        [
+            _scene("EP01_SC001", [], itemId="ITEM_ID_ONLY"),
+            _scene("EP01_SC002", [], itemName=42),
+            _scene("EP01_SC003", [], eventId="EVENT_ID_ONLY"),
+            _scene("EP01_SC004", [], eventName={"invalid": "value"}),
+            _scene("EP01_SC005", [], itemName=" "),
+            _scene("EP01_SC006", [], eventName=""),
+            _scene(
+                "EP01_SC007",
+                [_dialogue_block("EP01_DLG0001", text="鍵を使って警報を止めた。")],
+            ),
+        ],
+    )
+
+    extraction = Extractor().extract_story(story)[0]
+
+    assert extraction["items"] == []
+    assert extraction["events"] == []
+    for scene_id in (
+        "EP01_SC001",
+        "EP01_SC002",
+        "EP01_SC003",
+        "EP01_SC004",
+        "EP01_SC005",
+        "EP01_SC006",
+        "EP01_SC007",
+    ):
+        assert scene_id not in extraction["evidenceIndex"]
 
 
 # ----------------------------------------------------------------
@@ -418,12 +631,19 @@ def test_all_candidate_types_coexist():
 def test_item_lore_event_output_matches_extraction_schema(extraction_validator):
     block = _dialogue_block(
         "EP01_DLG0001",
-        item_name="デタリキ",
         term_name="デタリキZ",
-        event_name="ジャマー初出現",
     )
     story = _build_normalized_story(
-        "EP01", "TEST_STORY", [_scene("EP01_SC001", [block])]
+        "EP01",
+        "TEST_STORY",
+        [
+            _scene(
+                "EP01_SC001",
+                [block],
+                itemName="デタリキ",
+                eventName="ジャマー初出現",
+            )
+        ],
     )
 
     extraction = Extractor().extract_story(story)[0]
@@ -440,7 +660,17 @@ def test_item_lore_event_evidence_pass_semantic_validation():
         "EP01_DLG0001", lore_id="LORE_X", term_name="用語X"
     )
     story = _build_normalized_story(
-        "EP01", "TEST_STORY", [_scene("EP01_SC001", [stage_block, dialogue_block])]
+        "EP01",
+        "TEST_STORY",
+        [
+            _scene(
+                "EP01_SC001",
+                [stage_block, dialogue_block],
+                itemId="ITEM_KEY",
+                itemName="鍵",
+                eventName="扉が開く",
+            )
+        ],
     )
 
     extraction = Extractor().extract_story(story)[0]

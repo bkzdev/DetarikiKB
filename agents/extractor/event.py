@@ -11,6 +11,8 @@ from typing import Any
 
 from .base import (
     add_block_evidence_if_needed,
+    add_scene_evidence_if_needed,
+    as_non_empty_string,
     iter_blocks_recursive,
     structured_identity_key,
 )
@@ -33,13 +35,14 @@ def build_event_candidates(
 
     会話内容から「事件」「戦闘」「移動」等を推定する処理は行わず、以下の
     構造的な手がかりのみを対象とする。
+    - Scene直下に明示された eventId/eventName
     - dialogue/monologue/narration/choice Blockに明示された
       eventId/eventName
     - stage_direction Blockに明示された eventId/eventName
       (イベント発火・演出イベントを示す拡張フィールドを想定する)
 
-    Scene直下の拡張フィールドはschemaで保持できるが、scene metadataからの
-    Event抽出は未実装のため今回の対象外とする。
+    Scene由来の候補はBlock単位の根拠を持たないため、Scene ID自体を
+    evidenceとして使う。
     """
     accumulators: dict[tuple[str, str], EventCandidateAccumulator] = {}
     order: list[tuple[str, str]] = []
@@ -47,6 +50,15 @@ def build_event_candidates(
 
     for scene in episode.get("scenes", []):
         scene_id = scene.get("sceneId")
+        _record_scene_event(
+            accumulators,
+            order,
+            extra_evidence,
+            scene,
+            scene_id,
+            story_id,
+            episode_id,
+        )
         for block in iter_blocks_recursive(scene.get("blocks", [])):
             _record_block_event(
                 accumulators,
@@ -62,6 +74,39 @@ def build_event_candidates(
         accumulators, order, episode_id, extraction_run
     )
     return candidates, list(extra_evidence.values())
+
+
+def _record_scene_event(
+    accumulators: dict[tuple[str, str], EventCandidateAccumulator],
+    order: list[tuple[str, str]],
+    extra_evidence: dict[str, dict[str, Any]],
+    scene: dict[str, Any],
+    scene_id: str | None,
+    story_id: str,
+    episode_id: str,
+) -> None:
+    """Scene直下に明示されたeventId/eventNameを記録する。"""
+    event_id = as_non_empty_string(scene.get("eventId"))
+    event_name = as_non_empty_string(scene.get("eventName"))
+    if event_name is None or scene_id is None:
+        return
+    key = structured_identity_key(event_id, event_name)
+    if key is None:
+        return
+
+    if key not in accumulators:
+        accumulators[key] = EventCandidateAccumulator(event_id=event_id)
+        order.append(key)
+    accumulator = accumulators[key]
+    accumulator.add_name(event_name)
+    accumulator.add_evidence(scene_id)
+
+    add_scene_evidence_if_needed(
+        extra_evidence,
+        scene_id=scene_id,
+        story_id=story_id,
+        episode_id=episode_id,
+    )
 
 
 def _record_block_event(

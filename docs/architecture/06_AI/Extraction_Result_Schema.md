@@ -367,6 +367,11 @@ Character IDのローマ字化ルールは`Identifier_Specification.md` OD-001�
 | `nameCandidates` | Yes | string[] | アイテム名の候補 |
 | `fields` | No | object\<string, FieldValue\> | アイテムの説明等 |
 
+rule-based抽出では、Scene直下またはBlockに明示された`itemId` / `itemName`だけを
+手がかりとする。Scene由来は非空stringの`itemName`を必須とし、Scene IDを
+EvidenceRefとして使用する。構造化IDがある候補はIDを優先して識別し、
+名前一致だけでIDなし候補と自動統合しない。
+
 ---
 
 # 10. LoreCandidate
@@ -430,6 +435,12 @@ Character/Organization/Location/Itemのいずれにも分類できない固有�
 | `participantCandidates` | No | string[] | 関与したCharacter ID/candidate `id`の配列 |
 | `locationCandidates` | No | string[] | 発生場所のLocation ID/candidate `id`の配列 |
 | `fields` | No | object\<string, FieldValue\> | 出来事の詳細説明等 |
+
+rule-based抽出では、Scene直下またはBlockに明示された`eventId` / `eventName`だけを
+手がかりとする。Scene由来は非空stringの`eventName`を必須とし、Scene IDを
+EvidenceRefとして使用する。`participantCandidates` / `locationCandidates`の
+Scene拡張フィールドからの収集は行わない。構造化IDがある候補はIDを優先して
+識別し、名前一致だけでIDなし候補と自動統合しない。
 
 ---
 

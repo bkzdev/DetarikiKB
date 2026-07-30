@@ -8,6 +8,7 @@
 
 ## Current Focus
 
+- `codex/scene-item-event-extraction`: Scene直下に明示された`itemId` / `itemName`と`eventId` / `eventName`から、rule-basedのItemCandidate / EventCandidateを生成する（**実装PR**）。Scene IDをEvidenceRefとして登録し、同一構造化ID（双方IDなしの場合は同一名）のScene由来・Block由来候補をScene→Blockの初出順で1候補へ統合する。名前一致だけでID付き候補へ自動統合せず、既存のID優先identity契約を維持する。Scene evidence登録はLocationCandidateの既存処理と共通helperへ集約した。TimelineのScene-level抽出、Parser出力、自然文推定、LLM連携は変更していない。
 - `codex/scene-extension-fields`: Normalized StoryのSceneだけが定義済みfield以外を拒否していた非対称を解消し、将来Parserが出力する、または手動補完で追加した構造化拡張fieldをScene直下へschema上保持できるようにした（**schema/validation実装PR**）。Item/Event/Timeline抽出が将来参照する`itemId`・`eventName`・`timelineId`・`orderValue`等を含む合成fixtureでschema受理を固定した。既存の必須field、現行Parser出力、抽出ロジック、自然文推定、schema versionは変更していない。
 - `codex/merged-collection-entity-schema-refs`: `schemas/merged_knowledge_collection.schema.json`の通常entity 8配列を、正典`schemas/merged_knowledge.schema.json`内の対応する型別definitionへcross-file `$ref`で接続した（**schema/validation実装PR**）。character等の必須field欠落だけでなく、別typeのentityを誤ったbucketへ入れる誤りも拒否する。`referencing.Registry`へcanonical `$id`で既知schemaを明示登録する共通validator helperを追加し、CWD依存のfile URI・Windows path・network取得に頼らないoffline解決を`render_wiki.py --validate`とschema/merger testsで共有した。`specialSpeakerLabels`は通常8種とは別契約のため既存のobject配列を維持する。merge生成ロジック、entity schema本体、schema draft/version、0-byte個別placeholder schema、実データは変更していない。
 - `codex/parser-state-dataclass-refactor`: `agents/parser/parser.py::_parse_tokens`に局所変数とクロージャで密結合していた1回のparse呼び出しの可変状態を`_ParseState` dataclassへ集約し、token種別・command種別のhandlerへ分割した（**挙動維持リファクタPR**）。`flush_text()`、話者解決、branch stack、resolver診断転記も状態objectの責務として明示し、C901抑制を除去した。同じ`StoryParser` instanceを連続利用しても未完了の話者名・会話・branch状態を持ち越さない回帰テストを追加した。全parser testに加え、local実データ4,332 `.dec`の旧`origin/main`版・変更版の`ParseResult`を正規化して比較し、集約SHA-256の完全一致を確認した。tokenizer、resolver、Normalized Story/schema、command分類、実データは変更していない。
@@ -177,7 +178,8 @@
 - ~~merge report自体の生成物出力（`data/extracted/reports/merge_report.json`への書き出し）~~ → `codex/merge-report-output`で`--report-output FILE`を追加し、正式運用パスとrun別dry-runパスを文書化して解消（Current Focus参照）
 - ~~choice内話者・choice内location/organization/item/lore/event情報も含めた抽出への拡張~~ → `codex/choice-nested-candidate-extraction`で全Block再帰iteratorを追加し、通常Character・Special Speaker Label・Location・Organization・Item・Lore・Eventへ適用（Current Focus参照）
 - ~~semantic validationの単一document内拡充~~ → `codex/semantic-validation-within-document-expansion`でFieldValue単位の`evidenceIds`実在確認と、識別可能なRelationship両端のStage A candidate参照確認を実装済み（Current Focus参照）。残件は外部canonical辞書を入力した厳格照合、および複数episodeを横断するTimeline順序整合性チェック
-- ~~Scene定義への拡張フィールド許容（scene metadataからのItem/Event/Timeline抽出に必要）~~ → `codex/scene-extension-fields`で、Scene直下の構造化拡張fieldをschemaで許容し、Item/Event/Timeline向けの合成fixtureと設計文書を更新（Current Focus参照）。各CandidateのScene-level抽出は後続
+- ~~Scene定義への拡張フィールド許容（scene metadataからのItem/Event/Timeline抽出に必要）~~ → `codex/scene-extension-fields`でschema許容を実装し、`codex/scene-item-event-extraction`でItem/EventのScene-level抽出まで実装（Current Focus参照）
+- Scene直下のTimeline情報抽出（`scope: "scene"`のschema・集約契約を先に設計する）
 - ~~Candidate ID暫定形式（`Extraction_Result_Schema.md` §4.2）の実運用検証~~ → `codex/candidate-id-operational-validation`で、匿名aggregate監査CLIと全カテゴリ741文書×2 runにより形式・type・一意性・欠番なし採番・preorder・決定性を検証済み（Current Focus参照）。実データ未観測の6型・同一Block同種複数候補・4桁番号は初回実例時に再監査する
 - ~~extractor各moduleの重複ヘルパー集約（item.py/event.py/timeline.py/location.py）~~ → `codex/extractor-block-evidence-helper`で非標準Blockのextra evidence登録処理だけを`base.py`へ集約。種別固有finalizer等は挙動差があるため変更していない（Current Focus参照）
 
