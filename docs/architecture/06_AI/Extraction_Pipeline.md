@@ -101,7 +101,7 @@ Stage B: Merged Knowledge（エンティティ単位に統合された結果）
   data/extracted/lore/{loreId}.json
   data/extracted/events/{eventId}.json
   data/extracted/relationships/{relationshipId}.json
-  data/extracted/timeline_candidates/{episodeId}.json
+  data/extracted/timeline/timeline_entries.json
 ```
 
 理由:
@@ -164,7 +164,7 @@ Stage B: Merged Knowledge（エンティティ単位に統合された結果）
 
 `fields` の中身は §4 / §7 で定義するfact / inference分離構造に従う。`documentType` はエンティティ種別ごとに変える（`extracted_character` / `extracted_organization` / `extracted_location` / `extracted_item` / `extracted_lore` / `extracted_event` / `extracted_relationship`）。
 
-`timelineCandidates` はエンティティではないため、Stage Bではマージせずエピソード単位のまま `data/extracted/timeline_candidates/` に保持する（§4.8）。
+`timelineCandidates` はエンティティとしてcanonical化しない。Stage Bでは候補・Evidenceを失わず、将来のTimeline Builder向けに全エピソード横断の`timeline/timeline_entries.json`へ保守的に集約する（§4.8、`Merged_Knowledge_Design.md` §7）。
 
 ---
 
@@ -300,23 +300,15 @@ rule-based実装は、Scene直下またはBlockに明示された`eventId` / `ev
 
 対象: 作中時系列（`canonicalOrder`）を推定するための手がかり。確定Timelineそのものではなく、あくまで **候補** として保持する（`Story_Metadata.md` OD-002）。
 
-```json
-{
-  "episodeId": "MAIN_S01_C02_E01",
-  "candidates": [
-    {
-      "kind": "relative_order",
-      "relativeTo": "MAIN_S01_C01_E01",
-      "relation": "after",
-      "basis": "本文中で前章の出来事に言及",
-      "evidence": [],
-      "confidence": 0.7
-    }
-  ]
-}
-```
+rule-based抽出は、以下の構造化フィールドだけを対象とする。自然文から「昔」「その後」「翌日」「回想」等を推定しない。
 
-Timeline candidateはエンティティを持たないため、Stage Bでのマージ対象外とし、エピソード単位のまま `data/extracted/timeline_candidates/` に保存する（§3.3）。将来のTimeline Builder（`AI_CONTEXT.md` §19 次フェーズ候補）が、複数エピソードのcandidateを統合して確定Timelineを構築する。
+- `episode.metadata`の`canonicalOrder` / `releaseOrder` / `displayOrder`（`scope: "episode"`）
+- Scene直下またはBlock上の`timelineId` / `timelineLabel` / `timePosition` / `orderValue`
+- Scene直下またはBlock上の`flashback` / `flashforward` / `dayChange` / `timeShift` / `sceneTime`
+
+Scene由来候補は`scope: "scene"`と`sceneRefs`を持ち、Scene ID自体をEvidenceRefとして使う。`sourceTimelineId`の有無にかかわらずScene IDをStage A identityへ含め、別Sceneの値を混ぜない。同じ`sourceTimelineId`の候補はStage Bでだけ横断統合し、順序値の食い違いをconflictとして保持する。これにより後続Sceneの異なる値を破棄しない。
+
+Stage BはTimelineをcanonical化せず、`timeline/timeline_entries.json`へ観測を集約する。`sourceTimelineId`が無いScene候補はcandidate単位のまま保持し、順序の確定・循環等の本格的な矛盾検出は将来のTimeline Builderへ委ねる。
 
 ---
 
@@ -338,6 +330,7 @@ Extraction PipelineはNormalized Story JSONの階層（`Normalized_Story_JSON.md
 
 - Location推定の単位
 - Scene内の全Blockを、そのSceneの `location` 候補の根拠として扱える
+- Scene直下の明示的なItem/Event/Timeline拡張フィールドを抽出できる。TimelineではScene IDをEvidenceと`sceneRefs`の双方へ保持する
 
 ## 5.4 Block
 
@@ -541,8 +534,8 @@ data/extracted/
     {eventId}.json
   relationships/
     {relationshipId}.json
-  timeline_candidates/
-    {episodeId}.json                   # マージ対象外（§4.8）
+  timeline/
+    timeline_entries.json              # Stage B: 保守的な観測集約（§4.8）
 ```
 
 ## 9.2 未解決候補の置き場所

@@ -14,8 +14,9 @@ merge key優先順位 (Merged_Knowledge_Design.md §7.2の踏襲、「迷う場�
    (同じtimelineId同士は安全にmergeできるが、label/orderValueが
    食い違う場合はconflictとして記録する)
 2. sourceTimelineId が無く、scope + kind + orderValue が明示されている
-   場合、その組み合わせをmerge keyにする (orderField間の優先順位付けは
-   しない、Extraction_Pipeline.md §4.8の方針を踏襲)
+   場合、その組み合わせをmerge keyにする。ただしscope: sceneはScene間を
+   同じ値だけで統合せず、candidate単位で保持する (orderField間の優先順位
+   付けはしない、Extraction_Pipeline.md §4.8の方針を踏襲)
 3. どちらも無ければ (temporal_marker等、labelのみの場合)、候補ごとに
    個別のunresolved entryとする。同じlabelだけでの広範な自動mergeはしない
 
@@ -60,6 +61,10 @@ def _timeline_merge_key(candidate: dict[str, Any]) -> tuple[str, str]:
     kind = candidate.get("kind")
     order_value = candidate.get("orderValue")
     if scope and kind and order_value is not None:
+        if scope == "scene":
+            # Sceneごとの候補化はStage Aで完了している。同じorderValueだけで
+            # Scene間を横断統合しないようcandidate単位のまま保持する。
+            return (_KIND_UNRESOLVED, candidate["id"])
         return ("explicit", f"{scope}:{kind}:{_format_order_value(order_value)}")
 
     return (_KIND_UNRESOLVED, candidate["id"])
@@ -127,6 +132,32 @@ def _detect_order_value_conflict(
             }
         )
     return representative, conflicts
+
+
+def _common_scope(candidates: list[dict[str, Any]]) -> str | None:
+    """同一構造化IDの観測scopeが混在する場合は単一scopeを主張しない。"""
+    scopes: list[str | None] = []
+    for candidate in candidates:
+        scope = candidate.get("scope")
+        if scope not in scopes:
+            scopes.append(scope)
+    return scopes[0] if len(scopes) == 1 else None
+
+
+def _collect_scene_refs(
+    candidates: list[dict[str, Any]], evidence_refs: list[dict[str, Any]]
+) -> list[str]:
+    """明示sceneRefsを優先し、legacy候補はresolved Evidenceから補完する。"""
+    scene_refs: list[str] = []
+    for candidate in candidates:
+        for scene_id in candidate.get("sceneRefs", []) or []:
+            if scene_id not in scene_refs:
+                scene_refs.append(scene_id)
+    for evidence_ref in evidence_refs:
+        scene_id = evidence_ref.get("sceneId")
+        if scene_id and scene_id not in scene_refs:
+            scene_refs.append(scene_id)
+    return scene_refs
 
 
 def _resolve_timeline_identity(
@@ -227,7 +258,8 @@ def _build_timeline_entity(
         "aliases": aliases,
         "status": "unresolved",
         "kind": representative.get("kind"),
-        "scope": representative.get("scope"),
+        "scope": _common_scope(candidates),
+        "sceneRefs": _collect_scene_refs(candidates, evidence_refs),
         "orderValue": order_value,
         "orderField": representative.get("orderField"),
         "label": label,

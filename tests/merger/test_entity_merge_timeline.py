@@ -12,9 +12,23 @@ mergeすることを重点的に確認する。Stage Bでは順序の確定 (can
 を行わないため、生成されるentryは常にstatus: unresolvedであることも確認する。
 """
 
+import json
+from pathlib import Path
 from typing import Any
 
+import pytest
+from jsonschema import Draft7Validator
+
 from agents.merger.timeline import build_timeline_entities
+
+PROJECT_ROOT = Path(__file__).parent.parent.parent
+MERGED_SCHEMA_PATH = PROJECT_ROOT / "schemas" / "merged_knowledge.schema.json"
+
+
+@pytest.fixture
+def merged_validator() -> Draft7Validator:
+    with open(MERGED_SCHEMA_PATH, encoding="utf-8") as file:
+        return Draft7Validator(json.load(file))
 
 
 def _extraction_run() -> dict[str, Any]:
@@ -29,12 +43,14 @@ def _extraction_run() -> dict[str, Any]:
     }
 
 
-def _evidence_ref(source_id: str, episode_id: str) -> dict[str, Any]:
+def _evidence_ref(
+    source_id: str, episode_id: str, scene_id: str | None = None
+) -> dict[str, Any]:
     return {
         "sourceId": source_id,
         "storyId": "TEST_STORY",
         "episodeId": episode_id,
-        "sceneId": None,
+        "sceneId": scene_id,
         "confidence": 1.0,
     }
 
@@ -49,6 +65,7 @@ def _timeline_candidate(
     name_candidates: list[str] | None = None,
     source_timeline_id: str | None = None,
     marker_type: str | None = None,
+    scene_refs: list[str] | None = None,
     confidence: float = 0.7,
 ) -> dict[str, Any]:
     return {
@@ -64,6 +81,7 @@ def _timeline_candidate(
         "relation": None,
         "sourceTimelineId": source_timeline_id,
         "nameCandidates": name_candidates or [],
+        "sceneRefs": scene_refs or [],
         "orderValue": order_value,
         "orderField": order_field,
         "markerType": marker_type,
@@ -153,6 +171,99 @@ def test_same_source_timeline_id_across_episodes_merges_into_one_entry():
     assert len(entity["evidenceRefs"]) == 2
 
 
+def test_same_source_timeline_id_across_scenes_merges_and_keeps_scene_refs():
+    candidate1 = _timeline_candidate(
+        "EP01_CAND_TL001",
+        ["EP01_SC001"],
+        scope="scene",
+        source_timeline_id="TL_ARC1",
+        order_value=1,
+        scene_refs=["EP01_SC001"],
+    )
+    candidate2 = _timeline_candidate(
+        "EP01_CAND_TL002",
+        ["EP01_SC002"],
+        scope="scene",
+        source_timeline_id="TL_ARC1",
+        order_value=2,
+        scene_refs=["EP01_SC002"],
+    )
+    document = _episode_extraction(
+        "EP01",
+        timeline_candidates=[candidate1, candidate2],
+        evidence_index={
+            "EP01_SC001": _evidence_ref("EP01_SC001", "EP01", "EP01_SC001"),
+            "EP01_SC002": _evidence_ref("EP01_SC002", "EP01", "EP01_SC002"),
+        },
+    )
+
+    entities = build_timeline_entities([("ep01.json", document)])
+
+    assert len(entities) == 1
+    assert entities[0]["scope"] == "scene"
+    assert entities[0]["sceneRefs"] == ["EP01_SC001", "EP01_SC002"]
+    order_conflicts = [
+        conflict
+        for conflict in entities[0]["conflicts"]
+        if conflict["field"] == "orderValue"
+    ]
+    assert len(order_conflicts) == 1
+    assert order_conflicts[0]["values"] == [1, 2]
+
+
+def test_same_source_timeline_id_across_scene_and_block_has_mixed_scope():
+    scene_candidate = _timeline_candidate(
+        "EP01_CAND_TL001",
+        ["EP01_SC001"],
+        scope="scene",
+        source_timeline_id="TL_ARC1",
+        scene_refs=["EP01_SC001"],
+    )
+    block_candidate = _timeline_candidate(
+        "EP01_CAND_TL002",
+        ["EP01_DLG0001"],
+        scope="block",
+        source_timeline_id="TL_ARC1",
+        scene_refs=["EP01_SC001"],
+    )
+    document = _episode_extraction(
+        "EP01",
+        timeline_candidates=[scene_candidate, block_candidate],
+        evidence_index={
+            "EP01_SC001": _evidence_ref("EP01_SC001", "EP01", "EP01_SC001"),
+            "EP01_DLG0001": _evidence_ref("EP01_DLG0001", "EP01", "EP01_SC001"),
+        },
+    )
+
+    entities = build_timeline_entities([("ep01.json", document)])
+
+    assert len(entities) == 1
+    assert entities[0]["scope"] is None
+    assert entities[0]["sceneRefs"] == ["EP01_SC001"]
+    assert len(entities[0]["sourceCandidates"]) == 2
+
+
+def test_legacy_block_candidate_recovers_scene_refs_from_evidence():
+    candidate = _timeline_candidate(
+        "EP01_CAND_TL001",
+        ["EP01_DLG0001"],
+        scope="block",
+        source_timeline_id="TL_ARC1",
+    )
+    candidate.pop("sceneRefs")
+    document = _episode_extraction(
+        "EP01",
+        timeline_candidates=[candidate],
+        evidence_index={
+            "EP01_DLG0001": _evidence_ref("EP01_DLG0001", "EP01", "EP01_SC001")
+        },
+    )
+
+    entities = build_timeline_entities([("ep01.json", document)])
+
+    assert entities[0]["sceneRefs"] == ["EP01_SC001"]
+
+
 # ----------------------------------------------------------------
 # 2. scope + kind + orderValueが同じcandidateが1 entryにmergeされる
 # ----------------------------------------------------------------
@@ -224,6 +335,39 @@ def test_different_order_value_produces_separate_entries():
     entities = build_timeline_entities([("ep01.json", document)])
 
     assert len(entities) == 2
+
+
+def test_same_scene_order_value_in_different_scenes_is_not_merged():
+    candidate1 = _timeline_candidate(
+        "EP01_CAND_TL001",
+        ["EP01_SC001"],
+        scope="scene",
+        order_value=1,
+        scene_refs=["EP01_SC001"],
+    )
+    candidate2 = _timeline_candidate(
+        "EP01_CAND_TL002",
+        ["EP01_SC002"],
+        scope="scene",
+        order_value=1,
+        scene_refs=["EP01_SC002"],
+    )
+    document = _episode_extraction(
+        "EP01",
+        timeline_candidates=[candidate1, candidate2],
+        evidence_index={
+            "EP01_SC001": _evidence_ref("EP01_SC001", "EP01", "EP01_SC001"),
+            "EP01_SC002": _evidence_ref("EP01_SC002", "EP01", "EP01_SC002"),
+        },
+    )
+
+    entities = build_timeline_entities([("ep01.json", document)])
+
+    assert len(entities) == 2
+    assert [entity["sceneRefs"] for entity in entities] == [
+        ["EP01_SC001"],
+        ["EP01_SC002"],
+    ]
 
 
 # ----------------------------------------------------------------
@@ -327,6 +471,41 @@ def test_temporal_markers_from_different_episodes_are_not_merged():
 
     # temporal_markerはorderValueを持たないため、個別unresolved entryのまま
     assert len(entities) == 2
+
+
+def test_scene_temporal_markers_from_different_scenes_are_not_merged():
+    candidate1 = _timeline_candidate(
+        "EP01_CAND_TL001",
+        ["EP01_SC001"],
+        kind="temporal_marker",
+        scope="scene",
+        marker_type="flashback",
+        scene_refs=["EP01_SC001"],
+    )
+    candidate2 = _timeline_candidate(
+        "EP01_CAND_TL002",
+        ["EP01_SC002"],
+        kind="temporal_marker",
+        scope="scene",
+        marker_type="flashback",
+        scene_refs=["EP01_SC002"],
+    )
+    document = _episode_extraction(
+        "EP01",
+        timeline_candidates=[candidate1, candidate2],
+        evidence_index={
+            "EP01_SC001": _evidence_ref("EP01_SC001", "EP01", "EP01_SC001"),
+            "EP01_SC002": _evidence_ref("EP01_SC002", "EP01", "EP01_SC002"),
+        },
+    )
+
+    entities = build_timeline_entities([("ep01.json", document)])
+
+    assert len(entities) == 2
+    assert [entity["sceneRefs"] for entity in entities] == [
+        ["EP01_SC001"],
+        ["EP01_SC002"],
+    ]
 
 
 # ----------------------------------------------------------------
@@ -502,3 +681,25 @@ def test_no_conflict_when_source_timeline_id_values_match():
     entities = build_timeline_entities([("ep01.json", doc1), ("ep02.json", doc2)])
 
     assert entities[0]["conflicts"] == []
+
+
+def test_scene_timeline_entity_passes_merged_schema(merged_validator):
+    candidate = _timeline_candidate(
+        "EP01_CAND_TL001",
+        ["EP01_SC001"],
+        scope="scene",
+        order_value=1,
+        scene_refs=["EP01_SC001"],
+    )
+    document = _episode_extraction(
+        "EP01",
+        timeline_candidates=[candidate],
+        evidence_index={
+            "EP01_SC001": _evidence_ref("EP01_SC001", "EP01", "EP01_SC001")
+        },
+    )
+    entity = build_timeline_entities([("ep01.json", document)])[0]
+
+    errors = list(merged_validator.iter_errors(entity))
+
+    assert not errors, [error.message for error in errors]

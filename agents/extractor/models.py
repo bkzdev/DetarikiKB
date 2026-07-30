@@ -92,10 +92,8 @@ RELATIONSHIP_TYPE_MEMBER_OF = "MEMBER_OF"
 RELATIONSHIP_TYPE_AFFILIATED_WITH = "AFFILIATED_WITH"
 
 # TimelineCandidate抽出 (Extraction_Result_Schema.md §13) 用の定数。
-# episode.metadataの明示的なcanonicalOrder/releaseOrder/displayOrder、Block上の
-# 明示的なtimelineId/timelineLabel/timePosition/orderValue、stage_direction等の
-# 明示的なflashback/flashforward/dayChange/timeShift/sceneTime構造フィールド
-# のみを対象とし、本文の自然文からの時系列推定 (「昔」「その後」「翌日」「回想」等)
+# episode.metadata、Scene直下、Block上の明示的な順序・時間軸マーカーのみを
+# 対象とし、本文の自然文からの時系列推定 (「昔」「その後」「翌日」「回想」等)
 # は行わない。
 TIMELINE_CANDIDATE_TYPE = "timeline_candidate"
 TIMELINE_CANDIDATE_SOURCE_TYPE = "script"
@@ -109,6 +107,7 @@ TIMELINE_KIND_EXPLICIT_ORDER = "explicit_order"
 TIMELINE_KIND_TEMPORAL_MARKER = "temporal_marker"
 
 TIMELINE_SCOPE_EPISODE = "episode"
+TIMELINE_SCOPE_SCENE = "scene"
 TIMELINE_SCOPE_BLOCK = "block"
 
 # episode.metadata上の明示的な順序フィールド。EpisodeMetadataはadditionalProperties
@@ -379,6 +378,7 @@ class TimelineCandidateAccumulator:
     order_field: str | None = None
     marker_type: str | None = None
     is_resolved: bool = False
+    scene_refs: list[str] = field(default_factory=list)
     evidence_ids: list[str] = field(default_factory=list)
 
     def add_name(self, name: str | None) -> None:
@@ -388,3 +388,7 @@ class TimelineCandidateAccumulator:
     def add_evidence(self, source_id: str) -> None:
         if source_id not in self.evidence_ids:
             self.evidence_ids.append(source_id)
+
+    def add_scene_ref(self, scene_id: str) -> None:
+        if scene_id not in self.scene_refs:
+            self.scene_refs.append(scene_id)

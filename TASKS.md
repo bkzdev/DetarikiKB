@@ -8,6 +8,7 @@
 
 ## Current Focus
 
+- `codex/scene-timeline-extraction`: Scene直下の`timelineId` / `timelineLabel` / `timePosition` / `orderValue`と5種の時間軸markerから`scope: "scene"`のTimelineCandidateを生成する（**schema・Stage A/B実装PR**）。Scene IDをEvidenceと`sceneRefs`へ保持し、IDの有無にかかわらず別SceneはStage Aで別candidateにして値を失わない。同じ`sourceTimelineId`はStage Bでだけ横断統合し、順序値の食い違いをconflictへ保持する。複数scopeを統合したentryは`scope: null`とし、`sceneRefs`・全Evidence・SourceCandidateを保持する。旧candidateの`sceneRefs`はEvidenceから補完する。自然文推定、Parser出力、Timeline順序確定・横断矛盾検出は変更していない。
 - `codex/cp932-console-test-file-capture`: CP932 console回帰テストの子プロセス出力回収を、Python 3.14 / Windowsで稀に不安定になるtext modeの`PIPE` reader threadからfile-backedなbinary handleへ変更した（**テスト基盤修正PR**）。子プロセスの`PYTHONIOENCODING=cp932`、CP932としての終了後decode、`UnicodeEncodeError` / traceback非発生とCLI終了コードの検証は維持する。production CLI、console出力内容、schema、実データは変更していない。
 - `codex/scene-item-event-extraction`: Scene直下に明示された`itemId` / `itemName`と`eventId` / `eventName`から、rule-basedのItemCandidate / EventCandidateを生成する（**実装PR**）。Scene IDをEvidenceRefとして登録し、同一構造化ID（双方IDなしの場合は同一名）のScene由来・Block由来候補をScene→Blockの初出順で1候補へ統合する。名前一致だけでID付き候補へ自動統合せず、既存のID優先identity契約を維持する。Scene evidence登録はLocationCandidateの既存処理と共通helperへ集約した。TimelineのScene-level抽出、Parser出力、自然文推定、LLM連携は変更していない。
 - `codex/scene-extension-fields`: Normalized StoryのSceneだけが定義済みfield以外を拒否していた非対称を解消し、将来Parserが出力する、または手動補完で追加した構造化拡張fieldをScene直下へschema上保持できるようにした（**schema/validation実装PR**）。Item/Event/Timeline抽出が将来参照する`itemId`・`eventName`・`timelineId`・`orderValue`等を含む合成fixtureでschema受理を固定した。既存の必須field、現行Parser出力、抽出ロジック、自然文推定、schema versionは変更していない。
@@ -146,6 +147,7 @@
 13. ~~**summary-raid-batch-promotion**~~ → RAID_001/005/013/015のあらすじSummary初回commit分は`feature/summary-raid-batch-promotion-synopsis`で2026-07-20完了（Current Focus参照、公開Summaryは4→8 storyに拡大）。RAID_012の詳細版→あらすじ版差し替えは、他の既存詳細粒度Summary（EVENT_164/168・RAID_027）のあらすじ版作り直しとまとめて後日・区切り時に対応する（下記14.参照）
 14. ~~**summary-detailed-to-synopsis-rewrite-batch**~~ → `feature/summary-detailed-to-synopsis-rewrite`で2026-07-20完了（Current Focus参照）。既存の詳細粒度Story Summary 4件（EVENT_164/168・RAID_012/027）をあらすじ粒度版で上書き差し替えした。これで公開Summary 8件全てがあらすじ標準粒度に統一された
 15. ~~**episode-page-summary-evidence-linking**~~ → `codex/episode-page-summary-evidence-linking`で実装完了し、`codex/episode-page-summary-evidence-linking-manual-review`でlocal manual reviewも完了（Current Focus参照）。対象Episodeの表示可能なEpisode Summary本文と直下の`evidenceRefs`だけを追加し、合成fixtureの通常幅・狭幅表示とEvidence anchor遷移まで確認した
+16. ~~**scene-timeline-extraction**~~ → `codex/scene-timeline-extraction`で`scope: "scene"`のschema・Stage A抽出・Stage B集約契約を一括実装（Current Focus参照）。後続は実データでScene拡張fieldが初観測された時点の運用再監査、またはTimeline Builderによる順序矛盾検出
 
 ---
 
@@ -180,7 +182,7 @@
 - ~~choice内話者・choice内location/organization/item/lore/event情報も含めた抽出への拡張~~ → `codex/choice-nested-candidate-extraction`で全Block再帰iteratorを追加し、通常Character・Special Speaker Label・Location・Organization・Item・Lore・Eventへ適用（Current Focus参照）
 - ~~semantic validationの単一document内拡充~~ → `codex/semantic-validation-within-document-expansion`でFieldValue単位の`evidenceIds`実在確認と、識別可能なRelationship両端のStage A candidate参照確認を実装済み（Current Focus参照）。残件は外部canonical辞書を入力した厳格照合、および複数episodeを横断するTimeline順序整合性チェック
 - ~~Scene定義への拡張フィールド許容（scene metadataからのItem/Event/Timeline抽出に必要）~~ → `codex/scene-extension-fields`でschema許容を実装し、`codex/scene-item-event-extraction`でItem/EventのScene-level抽出まで実装（Current Focus参照）
-- Scene直下のTimeline情報抽出（`scope: "scene"`のschema・集約契約を先に設計する）
+- ~~Scene直下のTimeline情報抽出（`scope: "scene"`のschema・集約契約を先に設計する）~~ → `codex/scene-timeline-extraction`でschema・抽出・集約・semantic validationまで実装（Current Focus参照）
 - ~~Candidate ID暫定形式（`Extraction_Result_Schema.md` §4.2）の実運用検証~~ → `codex/candidate-id-operational-validation`で、匿名aggregate監査CLIと全カテゴリ741文書×2 runにより形式・type・一意性・欠番なし採番・preorder・決定性を検証済み（Current Focus参照）。実データ未観測の6型・同一Block同種複数候補・4桁番号は初回実例時に再監査する
 - ~~extractor各moduleの重複ヘルパー集約（item.py/event.py/timeline.py/location.py）~~ → `codex/extractor-block-evidence-helper`で非標準Blockのextra evidence登録処理だけを`base.py`へ集約。種別固有finalizer等は挙動差があるため変更していない（Current Focus参照）
 

@@ -10,7 +10,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from .base import add_block_evidence_if_needed
+from .base import (
+    add_block_evidence_if_needed,
+    add_scene_evidence_if_needed,
+    as_non_empty_string,
+)
 from .models import (
     DEFAULT_EVIDENCE_CONFIDENCE,
     EPISODE_ORDER_METADATA_FIELDS,
@@ -24,6 +28,7 @@ from .models import (
     TIMELINE_MARKER_FIELDS,
     TIMELINE_SCOPE_BLOCK,
     TIMELINE_SCOPE_EPISODE,
+    TIMELINE_SCOPE_SCENE,
     EvidenceRef,
     TimelineCandidateAccumulator,
 )
@@ -62,17 +67,14 @@ def build_timeline_candidates(
     - episode.metadataに明示された canonicalOrder/releaseOrder/displayOrder
       (EpisodeMetadataはadditionalPropertiesを許容するため、将来Parserが
       付与しうる拡張フィールドを想定する)
-    - dialogue/monologue/narration/choice/stage_direction Blockに明示された
+    - Scene直下またはdialogue/monologue/narration/choice/stage_direction
+      Blockに明示された
       timelineId/timelineLabel/timePosition/orderValue
-      (BlockCommonはadditionalPropertiesを許容するため、他Candidateと同じ前提)
-    - 同Blockに明示された flashback/flashforward/dayChange/timeShift/
-      sceneTime構造フィールド (真偽値。値の中身までは解釈しない)
+    - 同じ入力単位に明示された flashback/flashforward/dayChange/timeShift/
+      sceneTime構造フィールド (値の中身までは解釈しない)
 
-    Scene直下の拡張フィールドはschemaで保持できるが、scene単位の時系列情報
-    からの抽出は未実装のため今回の対象外とする。
-
-    同一timelineId、または同一scope+順序値/ラベル/マーカー種別の組み合わせは
-    1候補に統合し、evidenceIdsを集約する。
+    Scene由来候補はsceneIdをidentityへ含め、別Sceneの値をStage Aで混ぜない。
+    同じsourceTimelineIdの横断統合と値の食い違い検出はStage Bへ委ねる。
     """
     accumulators: dict[tuple[str, ...], TimelineCandidateAccumulator] = {}
     order: list[tuple[str, ...]] = []
@@ -84,6 +86,24 @@ def build_timeline_candidates(
 
     for scene in episode.get("scenes", []):
         scene_id = scene.get("sceneId")
+        _record_scene_order(
+            accumulators,
+            order,
+            extra_evidence,
+            scene,
+            scene_id,
+            story_id,
+            episode_id,
+        )
+        _record_scene_marker(
+            accumulators,
+            order,
+            extra_evidence,
+            scene,
+            scene_id,
+            story_id,
+            episode_id,
+        )
         for block in scene.get("blocks", []):
             _record_block_order(
                 accumulators,
@@ -154,15 +174,125 @@ def _record_episode_metadata_order(
 
 def _timeline_block_order_key(
     timeline_id: str | None, order_value: float | None, name: str | None
-) -> tuple[str, str, str] | None:
+) -> tuple[str, ...] | None:
     """timelineId優先、無ければorder_value、それも無ければnameで同一性判定する"""
     if timeline_id:
-        return ("id", timeline_id, "")
+        return (TIMELINE_SCOPE_BLOCK, "id", timeline_id)
     if order_value is not None:
-        return ("order", str(order_value), "")
+        return (TIMELINE_SCOPE_BLOCK, "order", str(order_value))
     if name:
-        return ("name", name, "")
+        return (TIMELINE_SCOPE_BLOCK, "name", name)
     return None
+
+
+def _timeline_scene_order_key(
+    scene_id: str,
+    timeline_id: str | None,
+    order_value: float | None,
+    name: str | None,
+) -> tuple[str, ...] | None:
+    """Scene由来候補は値を失わないよう常にScene単位に分離する。"""
+    if timeline_id:
+        return (TIMELINE_SCOPE_SCENE, scene_id, "id", timeline_id)
+    if order_value is not None:
+        return (TIMELINE_SCOPE_SCENE, scene_id, "order", str(order_value))
+    if name:
+        return (TIMELINE_SCOPE_SCENE, scene_id, "name", name)
+    return None
+
+
+def _record_scene_order(
+    accumulators: dict[tuple[str, ...], TimelineCandidateAccumulator],
+    order: list[tuple[str, ...]],
+    extra_evidence: dict[str, dict[str, Any]],
+    scene: dict[str, Any],
+    scene_id: str | None,
+    story_id: str,
+    episode_id: str,
+) -> None:
+    """Scene直下のtimelineId/timelineLabel/timePosition/orderValueを記録する。"""
+    if scene_id is None:
+        return
+
+    timeline_id = as_non_empty_string(scene.get("timelineId"))
+    order_value = _as_order_value(scene.get("orderValue"))
+    order_field = "orderValue" if order_value is not None else None
+    if order_value is None:
+        order_value = _as_order_value(scene.get("timePosition"))
+        if order_value is not None:
+            order_field = "timePosition"
+
+    name = as_non_empty_string(scene.get("timelineLabel"))
+    if name is None:
+        name = as_non_empty_string(scene.get("timePosition"))
+
+    key = _timeline_scene_order_key(scene_id, timeline_id, order_value, name)
+    if key is None:
+        return
+
+    is_resolved = timeline_id is not None or order_value is not None
+    if key not in accumulators:
+        accumulators[key] = TimelineCandidateAccumulator(
+            kind=TIMELINE_KIND_EXPLICIT_ORDER,
+            scope=TIMELINE_SCOPE_SCENE,
+            source_timeline_id=timeline_id,
+            order_value=order_value,
+            order_field=order_field,
+            is_resolved=is_resolved,
+        )
+        order.append(key)
+
+    accumulator = accumulators[key]
+    accumulator.add_name(name)
+    accumulator.is_resolved = accumulator.is_resolved or is_resolved
+    if accumulator.source_timeline_id is None:
+        accumulator.source_timeline_id = timeline_id
+    if accumulator.order_value is None:
+        accumulator.order_value = order_value
+        accumulator.order_field = order_field
+    accumulator.add_scene_ref(scene_id)
+    accumulator.add_evidence(scene_id)
+    add_scene_evidence_if_needed(
+        extra_evidence,
+        scene_id=scene_id,
+        story_id=story_id,
+        episode_id=episode_id,
+    )
+
+
+def _record_scene_marker(
+    accumulators: dict[tuple[str, ...], TimelineCandidateAccumulator],
+    order: list[tuple[str, ...]],
+    extra_evidence: dict[str, dict[str, Any]],
+    scene: dict[str, Any],
+    scene_id: str | None,
+    story_id: str,
+    episode_id: str,
+) -> None:
+    """Scene直下の明示的な時間軸マーカーをScene単位で記録する。"""
+    if scene_id is None:
+        return
+
+    for field_name, marker_type in TIMELINE_MARKER_FIELDS:
+        if not scene.get(field_name):
+            continue
+
+        key = (TIMELINE_SCOPE_SCENE, scene_id, "marker", marker_type)
+        accumulators[key] = TimelineCandidateAccumulator(
+            kind=TIMELINE_KIND_TEMPORAL_MARKER,
+            scope=TIMELINE_SCOPE_SCENE,
+            marker_type=marker_type,
+        )
+        order.append(key)
+        accumulator = accumulators[key]
+        accumulator.add_scene_ref(scene_id)
+        accumulator.add_evidence(scene_id)
+        add_scene_evidence_if_needed(
+            extra_evidence,
+            scene_id=scene_id,
+            story_id=story_id,
+            episode_id=episode_id,
+        )
 
 
 def _record_block_order(
@@ -216,6 +346,8 @@ def _record_block_order(
     if accumulator.order_value is None:
         accumulator.order_value = order_value
         accumulator.order_field = order_field
+    if scene_id is not None:
+        accumulator.add_scene_ref(scene_id)
     accumulator.add_evidence(block["id"])
 
     add_block_evidence_if_needed(
@@ -254,6 +386,8 @@ def _record_block_marker(
                 marker_type=marker_type,
             )
             order.append(key)
+        if scene_id is not None:
+            accumulators[key].add_scene_ref(scene_id)
         accumulators[key].add_evidence(block["id"])
         add_block_evidence_if_needed(
             extra_evidence,
@@ -299,6 +433,7 @@ def _finalize_timeline_candidates(
                 "relation": None,
                 "sourceTimelineId": accumulator.source_timeline_id,
                 "nameCandidates": list(accumulator.name_candidates),
+                "sceneRefs": list(accumulator.scene_refs),
                 "orderValue": accumulator.order_value,
                 "orderField": accumulator.order_field,
                 "markerType": accumulator.marker_type,

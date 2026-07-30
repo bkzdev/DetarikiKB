@@ -370,9 +370,12 @@ Timelineは**エンティティを持たない**ため、他の7種と同じ「�
 ## 7.2 集約ルール
 
 - **kindごとに分離して集約する。** `explicit_order`（明示順序値）と`temporal_marker`（flashback等の構造マーカー）は意味が異なるため、混ぜて1つの順序列にしない
-- `explicit_order` / scope: `episode`（`canonicalOrder` / `releaseOrder` / `displayOrder`由来）: orderFieldごとに「episodeId → orderValue」の対応表として集約する。**orderField間の優先順位付けはしない**（`displayOrder`の正式計算式・`canonicalOrder`の扱いはOD未確定のため。`AI_CONTEXT.md` §16）
-- `explicit_order` / scope: `block`（`timelineId` / `timelineLabel` / `timePosition`由来）: `sourceTimelineId`またはラベルごとにグルーピングし、evidence付きで一覧化する
-- `temporal_marker`: markerTypeごとに「episodeId + evidence」の観測一覧として保持する。「flashbackがあった」という事実だけを集約し、**どの時点への回想かは解釈しない**
+- `sourceTimelineId`は唯一のscope横断自動集約キーとする。同じIDをSceneとBlockの双方で観測した場合は1 entryへ統合するが、単一粒度を主張せずmerged `scope: null`とし、全candidate / Evidence / `sceneRefs`を保持する。これはconflictではなく複数粒度のprovenanceである
+- Scene由来は同じ`sourceTimelineId`でもStage AではSceneごとにcandidateを分ける。Stage BでID統合した際に異なる`orderValue`を観測した場合は、値を失わず`timeline_conflict`として保持する
+- `sourceTimelineId`が無い`scope: "scene"`候補はcandidate単位で保持する。Scene IDなしで同じ`orderValue` / label / `markerType`を持つだけの別Sceneを自動統合しない
+- `scope: "episode"`と`scope: "block"`のIDなし明示順序は、現行の`scope + kind + orderValue`集約を維持する。orderField間の優先順位付けはしない
+- labelのみ、または`temporal_marker`で`sourceTimelineId`を持たない候補はcandidate単位で保持する。同じlabel / markerTypeだけで広範に自動統合しない
+- `sceneRefs`はStage A candidateの初出順和集合としてmerged entryへ保持する。Scene由来だけでなくBlock由来候補も親Sceneを保持し、Scene+BlockのID統合でprovenanceを欠落させない。旧candidateに`sceneRefs`が無い場合はresolved EvidenceRefの`sceneId`から補完する
 - 自然文推定由来の時系列情報（将来LLMが生成する`relative_order`, `sourceType: ai_inferred`）は、rule-based由来（`script`）と**別セクションで保持**し、混ぜない
 
 ## 7.3 conflict / 今後の課題
