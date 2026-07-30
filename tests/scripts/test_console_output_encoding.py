@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
@@ -48,20 +49,44 @@ def _cp932_env() -> dict[str, str]:
     return env
 
 
+def _run_with_cp932_output(
+    args: list[str],
+) -> subprocess.CompletedProcess[str]:
+    """CP932出力をreader threadを使わずに回収する。"""
+    # Windows版Python 3.14では、text modeのPIPEを読むsubprocess reader
+    # threadが稀に不安定になる。子プロセスのPYTHONIOENCODING=cp932という
+    # 回帰条件は維持し、file-backedなbinary handleへ書かせて終了後にdecodeする。
+    with (
+        tempfile.TemporaryFile() as stdout_file,
+        tempfile.TemporaryFile() as stderr_file,
+    ):
+        completed = subprocess.run(
+            args,
+            stdout=stdout_file,
+            stderr=stderr_file,
+            env=_cp932_env(),
+        )
+        stdout_file.seek(0)
+        stderr_file.seek(0)
+        return subprocess.CompletedProcess(
+            args=completed.args,
+            returncode=completed.returncode,
+            stdout=stdout_file.read().decode("cp932"),
+            stderr=stderr_file.read().decode("cp932"),
+        )
+
+
 def test_check_script_compatibility_cli_survives_cp932_console(tmp_path):
     """warning/needs_update ステータス (絵文字分岐を通る) でもcp932コンソールで
     クラッシュしないこと。"""
-    result = subprocess.run(
+    result = _run_with_cp932_output(
         [
             sys.executable,
             str(CHECK_COMPAT_SCRIPT),
             str(UNKNOWN_CHAR_FIXTURE),
             "--output",
             str(tmp_path),
-        ],
-        capture_output=True,
-        encoding="cp932",
-        env=_cp932_env(),
+        ]
     )
 
     assert "UnicodeEncodeError" not in result.stderr, result.stderr
@@ -73,7 +98,7 @@ def test_check_script_compatibility_cli_survives_cp932_console(tmp_path):
 def test_normalize_story_cli_survives_cp932_console(tmp_path):
     """compatible ステータス (✅ 成功 / ✅ compatible 分岐を通る) でも
     cp932コンソールでクラッシュしないこと。"""
-    result = subprocess.run(
+    result = _run_with_cp932_output(
         [
             sys.executable,
             str(NORMALIZE_SCRIPT),
@@ -91,10 +116,7 @@ def test_normalize_story_cli_survives_cp932_console(tmp_path):
             "--check-compat",
             "--compat-report-output",
             str(tmp_path / "compat_reports"),
-        ],
-        capture_output=True,
-        encoding="cp932",
-        env=_cp932_env(),
+        ]
     )
 
     assert "UnicodeEncodeError" not in result.stderr, result.stderr
