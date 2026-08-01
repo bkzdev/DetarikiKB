@@ -225,7 +225,7 @@ def test_cli_report_preserves_ignored_external_target_and_passes(tmp_path, repor
     assert report["ignoredCandidates"][0]["reason"] == "target_not_loaded"
 
 
-def test_cli_reports_order_inside_same_time_class_with_v03_schema(tmp_path, report_dir):
+def test_cli_reports_order_inside_same_time_class_with_v04_schema(tmp_path, report_dir):
     first = _document("EP01", "EP02", "same_time")
     order_candidate = _candidate("EP01", "EP02", "before")
     order_candidate["id"] = "EP01_CAND_TL002"
@@ -246,7 +246,7 @@ def test_cli_reports_order_inside_same_time_class_with_v03_schema(tmp_path, repo
     report = json.loads(report_path.read_text(encoding="utf-8"))
     schema = json.loads(REPORT_SCHEMA_PATH.read_text(encoding="utf-8"))
     assert not list(Draft7Validator(schema).iter_errors(report))
-    assert report["schemaVersion"] == "0.3"
+    assert report["schemaVersion"] == "0.4"
     assert report["checkedSameTimeCandidateCount"] == 1
     assert report["sameTimeClassCount"] == 1
     assert report["findings"][0]["rule"] == (
@@ -279,10 +279,48 @@ def test_cli_reports_same_episode_order_field_value_conflict(tmp_path, report_di
     report = json.loads(report_path.read_text(encoding="utf-8"))
     schema = json.loads(REPORT_SCHEMA_PATH.read_text(encoding="utf-8"))
     assert not list(Draft7Validator(schema).iter_errors(report))
-    assert report["schemaVersion"] == "0.3"
+    assert report["schemaVersion"] == "0.4"
     assert report["status"] == "needs_review"
     assert report["numericFindingCount"] == 1
     assert report["numericFindings"][0]["values"] == [1, 2]
+
+
+def test_cli_reports_canonical_order_relative_constraint_conflict(tmp_path, report_dir):
+    first = _document("EP01", "EP02", "before")
+    first_order = _explicit_order_candidate("EP01", "canonicalOrder", 2)
+    first_order["id"] = "EP01_CAND_TL002"
+    first["timelineCandidates"].append(first_order)
+    second = _document("EP02")
+    second["timelineCandidates"] = [
+        _explicit_order_candidate("EP02", "canonicalOrder", 1)
+    ]
+    _write_document(tmp_path / "ep01.json", first)
+    _write_document(tmp_path / "ep02.json", second)
+    report_path = report_dir / "report.json"
+
+    result = _run(
+        "--input",
+        str(tmp_path),
+        "--report-output",
+        str(report_path),
+        "--quiet",
+    )
+
+    assert result.returncode == 1
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    schema = json.loads(REPORT_SCHEMA_PATH.read_text(encoding="utf-8"))
+    assert not list(Draft7Validator(schema).iter_errors(report))
+    assert report["status"] == "needs_review"
+    assert report["canonicalConstraintCheckedCount"] == 1
+    assert report["canonicalConstraintFindingCount"] == 1
+    assert report["canonicalConstraintFindings"][0]["constraint"]["relation"] == (
+        "before"
+    )
+    del report["canonicalConstraintFindings"]
+    assert any(
+        "canonicalConstraintFindings" in error.message
+        for error in Draft7Validator(schema).iter_errors(report)
+    )
 
 
 def test_report_schema_remains_compatible_with_v01_reports():
@@ -333,6 +371,42 @@ def test_report_schema_remains_compatible_with_v02_reports():
         "ignoredCandidates": [],
         "findingCount": 0,
         "findings": [],
+    }
+
+    schema = json.loads(REPORT_SCHEMA_PATH.read_text(encoding="utf-8"))
+    assert not list(Draft7Validator(schema).iter_errors(report))
+
+
+def test_report_schema_remains_compatible_with_v03_reports():
+    report = {
+        "schemaVersion": "0.3",
+        "documentType": "timeline_consistency_report",
+        "status": "passed",
+        "inputFiles": 0,
+        "resolvedInputFiles": 0,
+        "validInputs": 0,
+        "invalidInputs": 0,
+        "skippedInputs": [],
+        "inputResults": [],
+        "timelineCandidateCount": 0,
+        "relativeOrderCandidateCount": 0,
+        "checkedCandidateCount": 0,
+        "distinctEdgeCount": 0,
+        "checkedSameTimeCandidateCount": 0,
+        "distinctSameTimeEdgeCount": 0,
+        "sameTimeClassCount": 0,
+        "distinctClassEdgeCount": 0,
+        "ignoredCandidateCount": 0,
+        "ignoredCandidates": [],
+        "findingCount": 0,
+        "findings": [],
+        "explicitOrderCandidateCount": 0,
+        "numericEpisodeObservationCount": 0,
+        "numericEpisodeOrderGroupCount": 0,
+        "numericIgnoredObservationCount": 0,
+        "numericIgnoredObservations": [],
+        "numericFindingCount": 0,
+        "numericFindings": [],
     }
 
     schema = json.loads(REPORT_SCHEMA_PATH.read_text(encoding="utf-8"))

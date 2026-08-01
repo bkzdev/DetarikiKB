@@ -38,7 +38,8 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "複数のStage A episode_extraction JSONからrelative_orderの"
-            "same_time class内矛盾・有向循環とepisode metadata順序値の競合を検出します"
+            "same_time class内矛盾・有向循環、episode metadata順序値の競合、"
+            "canonicalOrderと同一story内相対制約の不整合を検出します"
         )
     )
     parser.add_argument(
@@ -206,13 +207,17 @@ def _build_report(
     analysis = analyze_timeline_consistency(valid_documents)
     if invalid_count or skipped_inputs:
         status = "invalid_input"
-    elif analysis["findingCount"] or analysis["numericFindingCount"]:
+    elif (
+        analysis["findingCount"]
+        or analysis["numericFindingCount"]
+        or analysis["canonicalConstraintFindingCount"]
+    ):
         status = "needs_review"
     else:
         status = "passed"
 
     report = {
-        "schemaVersion": "0.3",
+        "schemaVersion": "0.4",
         "documentType": "timeline_consistency_report",
         "status": status,
         "inputFiles": len(raw_inputs),
@@ -252,7 +257,10 @@ def main() -> int:
             f"findings={report['findingCount']} "
             f"numeric_checked={report['numericEpisodeObservationCount']} "
             f"numeric_ignored={report['numericIgnoredObservationCount']} "
-            f"numeric_findings={report['numericFindingCount']}"
+            f"numeric_findings={report['numericFindingCount']} "
+            f"canonical_checked={report['canonicalConstraintCheckedCount']} "
+            f"canonical_ignored={report['canonicalConstraintIgnoredCount']} "
+            f"canonical_findings={report['canonicalConstraintFindingCount']}"
         )
         if args.report_output:
             print(f"[Timeline consistency] report={args.report_output}")

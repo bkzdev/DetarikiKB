@@ -1,6 +1,6 @@
 # Timeline整合性チェック運用手順
 
-Version: 0.3
+Version: 0.4
 
 対象: Stage A `episode_extraction` JSON群
 
@@ -10,7 +10,7 @@ CLI: `scripts/check_timeline_consistency.py`
 
 ## 1. 目的
 
-複数episodeの`TimelineCandidate`を候補単位で横断検査する。`kind: "relative_order"`では`same_time`を同値classへ縮約し、同一class内の前後制約とclass間の有向循環を検出する。`kind: "explicit_order"`では、同一episodeの同一metadata fieldに複数の値が観測された競合を検出する。いずれも人間レビューが必要なwarningとして独立reportへ残し、採用値やcanonical timelineは決定しない。
+複数episodeの`TimelineCandidate`を候補単位で横断検査する。`kind: "relative_order"`では`same_time`を同値classへ縮約し、同一class内の前後制約とclass間の有向循環を検出する。`kind: "explicit_order"`では、同一episodeの同一metadata fieldに複数の値が観測された競合を検出する。さらに、同一story内で一意に定まる`canonicalOrder`だけを`relative_order`と照合する。いずれも人間レビューが必要なwarningとして独立reportへ残し、採用値やcanonical timelineは決定しない。
 
 このcheckはStage B mergeの前に行う。merge後のtimeline entryは`sourceTimelineId`で複数candidateを集約し、代表`relativeTo` / `relation`だけを持ちうるため、循環検査の入力にするとcandidateごとの出自を失う。`agents/extractor/timeline_consistency.py`は検証済みStage A documentを直接受け取り、candidate ID・Evidence ID・入力pathをfindingへ保持する。
 
@@ -39,7 +39,20 @@ CLI: `scripts/check_timeline_consistency.py`
 
 `orderValue` / `timePosition`のScene・Block内での意味や、3つのepisode metadata field間の優先順位は定義されていないため、fieldをまたぐ比較は行わない。
 
-縮約は入力初出順を代表元決定に使うUnion-Find、循環探索は反復Kosaraju法で行い、Pythonの再帰上限に依存しない。計算量はepisode数を`V`、before/after数を`E`、same-time数を`S`として`O(V + E + S)`である。
+### 2.2 Canonical chronology制約
+
+2026-08-01の人間判断で、`canonicalOrder`だけを作中時系列の数値表現として`relative_order`と照合する方針を採用した。
+
+- 対象は同一`storyId`内のrelative candidateだけとする。cross-storyの制約は`cross_story_constraint`として未検査のまま保持する
+- source / target episodeの`canonicalOrder`がそれぞれ1 distinct値に定まる場合だけ比較する。同じ値の重複observationは許容し、全件を保持する
+- `relation: "same_time"`はsource値 `==` target値、`before`はsource値 `<` target値、`after`はsource値 `>` target値を要求する
+- 違反は`timeline_canonical_order_relative_constraint_conflict`としてwarning findingにする
+- `canonicalOrder`が無い場合は`missing_source_canonical_order` / `missing_target_canonical_order`、複数distinct値がある場合は`ambiguous_source_canonical_order` / `ambiguous_target_canonical_order`として未検査にする
+- 曖昧な値からwinnerを選ばない。既存の同一field値競合findingとcanonical constraintの未検査記録を併存させる
+- `releaseOrder` / `displayOrder`は補完・fallback・比較に使わない
+- finding / 未検査記録はrelative candidateと両端の全canonical observationについて、入力path、story / episode ID、candidate ID、Evidence ID、`extractionRun`を保持する
+
+縮約は入力初出順を代表元決定に使うUnion-Find、循環探索は反復Kosaraju法で行い、Pythonの再帰上限に依存しない。計算量はepisode数を`V`、before/after数を`E`、same-time数を`S`、canonical observation数を`C`として`O(V + E + S + C)`である。
 
 ## 3. 実行方法
 
@@ -63,10 +76,10 @@ uv run python scripts/check_timeline_consistency.py `
 
 ## 4. Report契約
 
-`--report-output`指定時は`schemas/timeline_consistency_report.schema.json`準拠の`schemaVersion: "0.3"` JSONを出力する。更新後schemaは過去のv0.1 / v0.2 reportも受理する。
+`--report-output`指定時は`schemas/timeline_consistency_report.schema.json`準拠の`schemaVersion: "0.4"` JSONを出力する。更新後schemaは過去のv0.1 / v0.2 / v0.3 reportも受理する。
 
 - `status: "passed"`: 入力がすべてvalidで矛盾findingなし
-- `status: "needs_review"`: relative orderまたは数値順序のfindingが1件以上あり
+- `status: "needs_review"`: relative order、同一field値競合、canonical constraintのfindingが1件以上あり
 - `status: "invalid_input"`: invalidまたは解決不能な入力あり。valid入力の検査結果も破棄せず同じreportへ残す
 - `checkedCandidateCount`: graph edgeとして検査したcandidate observation数
 - `distinctEdgeCount`: 重複排除後の有向辺数
@@ -81,6 +94,10 @@ uv run python scripts/check_timeline_consistency.py `
 - `numericEpisodeObservationCount` / `numericEpisodeOrderGroupCount`: 検査対象になったobservation数 / `(episodeId, orderField)` group数
 - `numericIgnoredObservations`: 検査対象にできなかった`explicit_order`と理由・provenance
 - `numericFindings`: 同一episode・同一fieldの値競合。異なる値の一覧と全observationを保持する
+- `canonicalOrderObservationCount`: canonical constraint検査用に収集した`canonicalOrder` observation数
+- `canonicalConstraintCandidateCount` / `canonicalConstraintCheckedCount`: canonical chronologyの候補constraint数 / 両端が一意で実際に比較した数
+- `canonicalConstraintIgnoredCandidates`: cross-story、値欠落、値曖昧により比較しなかったconstraintと理由・全provenance
+- `canonicalConstraintFindings`: `canonicalOrder`と同一story内relative constraintの不整合
 
 Reportは内部IDとlocal pathを含みうる生成物であり、`workspace/dry_runs/`配下に置いてcommitしない。repo内外を問わず同directory外、入力directory内、入力fileと同じpathへの出力は拒否する。既存reportは上書きしない。入力を1件も解決できない場合はexit code 2とし、空reportを生成しない。
 
@@ -89,7 +106,7 @@ Reportは内部IDとlocal pathを含みうる生成物であり、`workspace/dry
 | Code | 意味 |
 |---:|---|
 | `0` | 入力がすべてvalidで矛盾なし。ignored candidate / observationだけでは失敗にしない |
-| `1` | relative orderまたは数値順序のfindingあり、またはinvalid / skipped inputあり |
+| `1` | relative order、同一field値競合、canonical constraintのfindingあり、またはinvalid / skipped inputあり |
 | `2` | 入力を1件も解決できない、設定不正、report schema/output失敗 |
 
 部分batchで`target_not_loaded`がある場合は、対象episodeを追加した全体batchで再実行してから順序整合性を判断する。
@@ -99,7 +116,7 @@ Reportは内部IDとlocal pathを含みうる生成物であり、`workspace/dry
 - 自然文やLLMによる`relative_order`生成
 - `canonicalOrder` / `releaseOrder` / `displayOrder`間の換算・優先順位付け・1列への統合
 - Scene・Blockの`orderValue` / `timePosition`をepisode横断の値として解釈すること
-- 数値順序を`same_time` / `before` / `after`制約と比較すること
+- cross-storyの`canonicalOrder`比較
 - 値の連番性・一意性・総順序の判定
 - `temporal_marker`の意味解釈
 - Stage Bの既存`timeline_conflict`（同一`sourceTimelineId`内の`orderValue`相違）の変更
@@ -111,8 +128,9 @@ Reportは内部IDとlocal pathを含みうる生成物であり、`workspace/dry
 ```powershell
 uv run pytest tests/extractor/test_timeline_consistency.py `
   tests/extractor/test_timeline_numeric_consistency.py `
+  tests/extractor/test_timeline_canonical_constraints.py `
   tests/scripts/test_check_timeline_consistency.py `
   tests/docs/test_timeline_consistency_docs.py
 ```
 
-2・3 node cycle、自己loop、before/after正規化、same-timeの推移縮約・class内矛盾・class間cycle、同一episode・同一fieldの数値競合、重複観測、対象外数値候補の不破棄、部分batch、invalid input、1500 episodeの非再帰走査、v0.1/v0.2/v0.3 report schema・no-clobber安全策を合成データだけで検証する。
+2・3 node cycle、自己loop、before/after正規化、same-timeの推移縮約・class内矛盾・class間cycle、同一episode・同一fieldの数値競合、同一storyのcanonical constraint、値欠落・曖昧・cross-storyの不破棄、release/display非代用、重複観測、部分batch、invalid input、1500 episodeの非再帰走査、v0.1〜v0.4 report schema・no-clobber安全策を合成データだけで検証する。

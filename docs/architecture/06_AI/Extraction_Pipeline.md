@@ -308,7 +308,7 @@ rule-based抽出は、以下の構造化フィールドだけを対象とする�
 
 Scene由来候補は`scope: "scene"`と`sceneRefs`を持ち、Scene ID自体をEvidenceRefとして使う。`sourceTimelineId`の有無にかかわらずScene IDをStage A identityへ含め、別Sceneの値を混ぜない。同じ`sourceTimelineId`の候補はStage Bでだけ横断統合し、順序値の食い違いをconflictとして保持する。これにより後続Sceneの異なる値を破棄しない。
 
-Stage BはTimelineをcanonical化せず、`timeline/timeline_entries.json`へ観測を集約する。`sourceTimelineId`が無いScene候補はcandidate単位のまま保持する。複数Stage A documentは、merge前のcandidate provenanceを失わない独立check `scripts/check_timeline_consistency.py`で検査する。`relative_order`は`same_time`を同値classへ縮約してclass内before/after矛盾とclass間循環を検出し、episode metadata由来の`explicit_order`は同一episode・同一`orderField`の値競合を検出する。field間換算、relative orderとの数値比較、順序の確定と総順序判定は引き続き将来のTimeline Builderへ委ねる（`docs/runbooks/Timeline_Consistency_Check.md`）。
+Stage BはTimelineをcanonical化せず、`timeline/timeline_entries.json`へ観測を集約する。`sourceTimelineId`が無いScene候補はcandidate単位のまま保持する。複数Stage A documentは、merge前のcandidate provenanceを失わない独立check `scripts/check_timeline_consistency.py`で検査する。`relative_order`は`same_time`を同値classへ縮約してclass内before/after矛盾とclass間循環を検出し、episode metadata由来の`explicit_order`は同一episode・同一`orderField`の値競合を検出する。加えて、同一story内で両端の`canonicalOrder`が一意な場合だけ`same_time =` / `before <` / `after >`を検査する。`releaseOrder` / `displayOrder`による補完、cross-story比較、順序の確定と総順序判定は引き続き対象外とする（`docs/runbooks/Timeline_Consistency_Check.md`）。
 
 ---
 

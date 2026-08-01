@@ -2,7 +2,8 @@
 
 relative_orderのsame_timeを同値関係として縮約した後、before/afterの
 同値class内矛盾とclass間循環を、candidate provenanceを保持して検出する。
-数値順序の統合やcanonical timelineの確定は対象外とする。
+同一episode/fieldの値競合と、同一story内の一意なcanonicalOrderに対する
+relative constraint違反も検出するが、値の選択やcanonical timeline確定は行わない。
 """
 
 from __future__ import annotations
@@ -12,6 +13,9 @@ from typing import Any
 FINDING_RULE = "timeline_relative_order_cycle"
 SAME_TIME_FINDING_RULE = "timeline_relative_order_within_same_time_class"
 NUMERIC_FINDING_RULE = "timeline_episode_order_field_value_conflict"
+CANONICAL_CONSTRAINT_FINDING_RULE = (
+    "timeline_canonical_order_relative_constraint_conflict"
+)
 
 IGNORE_MISSING_RELATIVE_TO = "missing_relative_to"
 IGNORE_MISSING_RELATION = "missing_relation"
@@ -20,7 +24,7 @@ IGNORE_UNSUPPORTED_RELATION = "unsupported_relation"
 
 _SUPPORTED_RELATIONS = {"before", "after", "same_time"}
 _EPISODE_ORDER_FIELDS = {"canonicalOrder", "releaseOrder", "displayOrder"}
-_PRIVATE_OBSERVATION_FIELDS = {"_observationIndex"}
+_PRIVATE_OBSERVATION_FIELDS = {"_observationIndex", "_storyId", "_extractionRun"}
 
 
 class _UnionFind:
@@ -184,6 +188,7 @@ def _strongly_connected_components(
 
 def _normalize_relative_candidate(
     source_path: str,
+    story_id: str,
     episode_id: str,
     candidate: dict[str, Any],
     known_episode_ids: set[str],
@@ -214,6 +219,8 @@ def _normalize_relative_candidate(
         "sourcePath": source_path,
         "candidateId": candidate.get("id"),
         "evidenceIds": list(candidate.get("evidenceIds", []) or []),
+        "_storyId": story_id,
+        "_extractionRun": dict(candidate.get("extractionRun") or {}),
         "_observationIndex": observation_index,
     }
     if relation == "same_time":
@@ -245,8 +252,9 @@ def _collect_observations(
     relative_order_candidate_count = 0
 
     for source_path, document in documents:
+        story_id = document.get("storyId")
         episode_id = document.get("episodeId")
-        if not isinstance(episode_id, str):
+        if not isinstance(story_id, str) or not isinstance(episode_id, str):
             continue
         for candidate in document.get("timelineCandidates", []) or []:
             timeline_candidate_count += 1
@@ -256,6 +264,7 @@ def _collect_observations(
             relative_order_candidate_count += 1
             observation, ignored = _normalize_relative_candidate(
                 source_path,
+                story_id,
                 episode_id,
                 candidate,
                 known_episode_ids,
@@ -548,6 +557,194 @@ def _analyze_numeric_episode_orders(
     }
 
 
+def _canonical_order_observation(
+    source_path: str,
+    story_id: str,
+    episode_id: str,
+    candidate: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "sourcePath": source_path,
+        "storyId": story_id,
+        "episodeId": episode_id,
+        "candidateId": candidate.get("id"),
+        "evidenceIds": list(candidate.get("evidenceIds", []) or []),
+        "orderValue": candidate.get("orderValue"),
+        "extractionRun": dict(candidate.get("extractionRun") or {}),
+    }
+
+
+def _relative_constraint_observation(
+    observation: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "sourcePath": observation["sourcePath"],
+        "storyId": observation["_storyId"],
+        "sourceEpisodeId": observation["sourceEpisodeId"],
+        "relativeTo": observation["relativeTo"],
+        "relation": observation["relation"],
+        "candidateId": observation["candidateId"],
+        "evidenceIds": list(observation["evidenceIds"]),
+        "extractionRun": dict(observation["_extractionRun"]),
+    }
+
+
+def _distinct_order_values(
+    observations: list[dict[str, Any]],
+) -> list[int | float]:
+    values: list[int | float] = []
+    for observation in observations:
+        value = observation["orderValue"]
+        assert isinstance(value, int | float) and not isinstance(value, bool)
+        _append_distinct_value(values, value)
+    return values
+
+
+def _constraint_ignore_reasons(
+    source_values: list[int | float],
+    target_values: list[int | float],
+) -> list[str]:
+    reasons: list[str] = []
+    if not source_values:
+        reasons.append("missing_source_canonical_order")
+    elif len(source_values) > 1:
+        reasons.append("ambiguous_source_canonical_order")
+    if not target_values:
+        reasons.append("missing_target_canonical_order")
+    elif len(target_values) > 1:
+        reasons.append("ambiguous_target_canonical_order")
+    return reasons
+
+
+def _constraint_is_satisfied(
+    relation: str,
+    source_value: int | float,
+    target_value: int | float,
+) -> bool:
+    if relation == "same_time":
+        return source_value == target_value
+    if relation == "before":
+        return source_value < target_value
+    assert relation == "after"
+    return source_value > target_value
+
+
+def _analyze_canonical_constraints(
+    documents: list[tuple[str, dict[str, Any]]],
+    relative_observations: list[dict[str, Any]],
+) -> dict[str, Any]:
+    episode_story_ids: dict[str, set[str]] = {}
+    canonical_groups: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    canonical_orders_by_episode: dict[str, list[dict[str, Any]]] = {}
+    canonical_observation_count = 0
+
+    for source_path, document in documents:
+        story_id = document.get("storyId")
+        episode_id = document.get("episodeId")
+        if not isinstance(story_id, str) or not isinstance(episode_id, str):
+            continue
+        episode_story_ids.setdefault(episode_id, set()).add(story_id)
+        for candidate in document.get("timelineCandidates", []) or []:
+            if (
+                candidate.get("kind") != "explicit_order"
+                or candidate.get("scope") != "episode"
+                or candidate.get("orderField") != "canonicalOrder"
+                or candidate.get("orderValue") is None
+            ):
+                continue
+            canonical_observation_count += 1
+            order_observation = _canonical_order_observation(
+                source_path, story_id, episode_id, candidate
+            )
+            canonical_groups.setdefault((story_id, episode_id), []).append(
+                order_observation
+            )
+            canonical_orders_by_episode.setdefault(episode_id, []).append(
+                order_observation
+            )
+
+    ignored_candidates: list[dict[str, Any]] = []
+    findings: list[dict[str, Any]] = []
+    cross_story_order_cache: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    checked_count = 0
+    sorted_relative_observations = sorted(
+        relative_observations, key=lambda item: item["_observationIndex"]
+    )
+
+    for observation in sorted_relative_observations:
+        story_id = observation["_storyId"]
+        source_episode_id = observation["sourceEpisodeId"]
+        target_episode_id = observation["relativeTo"]
+        constraint = _relative_constraint_observation(observation)
+        source_orders = list(canonical_groups.get((story_id, source_episode_id), []))
+        same_story_target_loaded = story_id in episode_story_ids.get(
+            target_episode_id, set()
+        )
+        if not same_story_target_loaded:
+            cache_key = (story_id, target_episode_id)
+            if cache_key not in cross_story_order_cache:
+                cross_story_order_cache[cache_key] = [
+                    order
+                    for order in canonical_orders_by_episode.get(target_episode_id, [])
+                    if order["storyId"] != story_id
+                ]
+            target_orders = list(cross_story_order_cache[cache_key])
+            ignored_candidates.append(
+                {
+                    "reasons": ["cross_story_constraint"],
+                    "constraint": constraint,
+                    "sourceOrderObservations": source_orders,
+                    "targetOrderObservations": target_orders,
+                }
+            )
+            continue
+
+        target_orders = list(canonical_groups.get((story_id, target_episode_id), []))
+        source_values = _distinct_order_values(source_orders)
+        target_values = _distinct_order_values(target_orders)
+        reasons = _constraint_ignore_reasons(source_values, target_values)
+        if reasons:
+            ignored_candidates.append(
+                {
+                    "reasons": reasons,
+                    "constraint": constraint,
+                    "sourceOrderObservations": source_orders,
+                    "targetOrderObservations": target_orders,
+                }
+            )
+            continue
+
+        checked_count += 1
+        source_value = source_values[0]
+        target_value = target_values[0]
+        if _constraint_is_satisfied(
+            observation["relation"], source_value, target_value
+        ):
+            continue
+        findings.append(
+            {
+                "rule": CANONICAL_CONSTRAINT_FINDING_RULE,
+                "severity": "warning",
+                "storyId": story_id,
+                "constraint": constraint,
+                "sourceCanonicalOrder": source_value,
+                "targetCanonicalOrder": target_value,
+                "sourceOrderObservations": source_orders,
+                "targetOrderObservations": target_orders,
+            }
+        )
+
+    return {
+        "canonicalOrderObservationCount": canonical_observation_count,
+        "canonicalConstraintCandidateCount": len(sorted_relative_observations),
+        "canonicalConstraintCheckedCount": checked_count,
+        "canonicalConstraintIgnoredCount": len(ignored_candidates),
+        "canonicalConstraintIgnoredCandidates": ignored_candidates,
+        "canonicalConstraintFindingCount": len(findings),
+        "canonicalConstraintFindings": findings,
+    }
+
+
 def analyze_timeline_consistency(
     documents: list[tuple[str, dict[str, Any]]],
 ) -> dict[str, Any]:
@@ -607,6 +804,9 @@ def analyze_timeline_consistency(
         same_time_observations=same_time_observations,
     )
     numeric_analysis = _analyze_numeric_episode_orders(documents)
+    canonical_constraint_analysis = _analyze_canonical_constraints(
+        documents, [*edge_observations, *same_time_observations]
+    )
     return {
         "timelineCandidateCount": timeline_candidate_count,
         "relativeOrderCandidateCount": relative_order_candidate_count,
@@ -623,4 +823,5 @@ def analyze_timeline_consistency(
         "findingCount": len(findings),
         "findings": findings,
         **numeric_analysis,
+        **canonical_constraint_analysis,
     }
