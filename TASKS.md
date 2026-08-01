@@ -8,6 +8,7 @@
 
 ## Current Focus
 
+- `codex/timeline-relative-order-cycle-check`: 複数のStage A `episode_extraction`に含まれる`relative_order` before/after制約をcandidate単位で有向graph化し、自己loopとSCC循環を検出する独立check CLIを追加する（**実装PR**）。merge後の代表値ではなくStage A provenanceを使い、全candidate/Evidence observation、部分batchの未読込target、`same_time`・欠落fieldを独立reportへ不破棄で保持する。reportはworkspace限定・schema検証・no-clobberとし、既存Stage B `timeline_conflict`、自然文推定、数値順序確定、Timeline Builderは変更しない。
 - `codex/scene-timeline-extraction`: Scene直下の`timelineId` / `timelineLabel` / `timePosition` / `orderValue`と5種の時間軸markerから`scope: "scene"`のTimelineCandidateを生成する（**schema・Stage A/B実装PR**）。Scene IDをEvidenceと`sceneRefs`へ保持し、IDの有無にかかわらず別SceneはStage Aで別candidateにして値を失わない。同じ`sourceTimelineId`はStage Bでだけ横断統合し、順序値の食い違いをconflictへ保持する。複数scopeを統合したentryは`scope: null`とし、`sceneRefs`・全Evidence・SourceCandidateを保持する。旧candidateの`sceneRefs`はEvidenceから補完する。自然文推定、Parser出力、Timeline順序確定・横断矛盾検出は変更していない。
 - `codex/cp932-console-test-file-capture`: CP932 console回帰テストの子プロセス出力回収を、Python 3.14 / Windowsで稀に不安定になるtext modeの`PIPE` reader threadからfile-backedなbinary handleへ変更した（**テスト基盤修正PR**）。子プロセスの`PYTHONIOENCODING=cp932`、CP932としての終了後decode、`UnicodeEncodeError` / traceback非発生とCLI終了コードの検証は維持する。production CLI、console出力内容、schema、実データは変更していない。
 - `codex/scene-item-event-extraction`: Scene直下に明示された`itemId` / `itemName`と`eventId` / `eventName`から、rule-basedのItemCandidate / EventCandidateを生成する（**実装PR**）。Scene IDをEvidenceRefとして登録し、同一構造化ID（双方IDなしの場合は同一名）のScene由来・Block由来候補をScene→Blockの初出順で1候補へ統合する。名前一致だけでID付き候補へ自動統合せず、既存のID優先identity契約を維持する。Scene evidence登録はLocationCandidateの既存処理と共通helperへ集約した。TimelineのScene-level抽出、Parser出力、自然文推定、LLM連携は変更していない。
@@ -148,6 +149,7 @@
 14. ~~**summary-detailed-to-synopsis-rewrite-batch**~~ → `feature/summary-detailed-to-synopsis-rewrite`で2026-07-20完了（Current Focus参照）。既存の詳細粒度Story Summary 4件（EVENT_164/168・RAID_012/027）をあらすじ粒度版で上書き差し替えした。これで公開Summary 8件全てがあらすじ標準粒度に統一された
 15. ~~**episode-page-summary-evidence-linking**~~ → `codex/episode-page-summary-evidence-linking`で実装完了し、`codex/episode-page-summary-evidence-linking-manual-review`でlocal manual reviewも完了（Current Focus参照）。対象Episodeの表示可能なEpisode Summary本文と直下の`evidenceRefs`だけを追加し、合成fixtureの通常幅・狭幅表示とEvidence anchor遷移まで確認した
 16. ~~**scene-timeline-extraction**~~ → `codex/scene-timeline-extraction`で`scope: "scene"`のschema・Stage A抽出・Stage B集約契約を一括実装（Current Focus参照）。後続は実データでScene拡張fieldが初観測された時点の運用再監査、またはTimeline Builderによる順序矛盾検出
+17. ~~**timeline-relative-order-cycle-check**~~ → `codex/timeline-relative-order-cycle-check`で、Stage A複数documentの`relative_order` before/after循環をcandidate/Evidence provenance付きで検出する独立check CLIとreport schemaを実装（Current Focus参照）。後続は`same_time`縮約と数値順序の総合判定
 
 ---
 
@@ -173,7 +175,7 @@
 
 ### Extraction / Merge
 
-- timeline contradiction detection（順序整合性の本格検証）
+- ~~timeline contradiction detectionの第1段階（`relative_order` before/after循環）~~ → `codex/timeline-relative-order-cycle-check`で自己loop・SCC検出を実装。残件は`same_time` equivalence class縮約、数値順序のfield別整合性・総順序判定、canonical Timeline確定（Current Focus参照）
 - `relationshipType`のtaxonomy本確定（`docs/architecture/04_Knowledge_Graph/Relationships.md`、現在プレースホルダー）
 - canonical ID辞書（`knowledge/dictionaries/*.yaml`）本体の実装（現状はpolicy/helper/validationのみ）
 - ~~EventCandidateのparticipant/location解決~~ → `codex/event-participant-location-resolution`で、型別candidate対応表による解決、初出順の和集合、未解決・型違い参照の元値付きwarning保持を実装（Current Focus参照）

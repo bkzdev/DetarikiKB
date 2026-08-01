@@ -308,7 +308,7 @@ rule-based抽出は、以下の構造化フィールドだけを対象とする�
 
 Scene由来候補は`scope: "scene"`と`sceneRefs`を持ち、Scene ID自体をEvidenceRefとして使う。`sourceTimelineId`の有無にかかわらずScene IDをStage A identityへ含め、別Sceneの値を混ぜない。同じ`sourceTimelineId`の候補はStage Bでだけ横断統合し、順序値の食い違いをconflictとして保持する。これにより後続Sceneの異なる値を破棄しない。
 
-Stage BはTimelineをcanonical化せず、`timeline/timeline_entries.json`へ観測を集約する。`sourceTimelineId`が無いScene候補はcandidate単位のまま保持し、順序の確定・循環等の本格的な矛盾検出は将来のTimeline Builderへ委ねる。
+Stage BはTimelineをcanonical化せず、`timeline/timeline_entries.json`へ観測を集約する。`sourceTimelineId`が無いScene候補はcandidate単位のまま保持する。複数Stage A documentの`relative_order`が作るbefore/after循環は、merge前のcandidate provenanceを失わない独立check `scripts/check_timeline_consistency.py`で検出する。順序の確定、`same_time`縮約、数値順序の総合判定は引き続き将来のTimeline Builderへ委ねる（`docs/runbooks/Timeline_Consistency_Check.md`）。
 
 ---
 
