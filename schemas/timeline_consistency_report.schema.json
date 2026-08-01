@@ -1,0 +1,178 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://detariki-kb/schemas/timeline_consistency_report.schema.json",
+  "title": "Timeline Consistency Report",
+  "description": "複数のStage A episode_extractionに含まれるrelative_order候補の横断循環検出結果",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "documentType",
+    "status",
+    "inputFiles",
+    "resolvedInputFiles",
+    "validInputs",
+    "invalidInputs",
+    "skippedInputs",
+    "inputResults",
+    "timelineCandidateCount",
+    "relativeOrderCandidateCount",
+    "checkedCandidateCount",
+    "distinctEdgeCount",
+    "ignoredCandidateCount",
+    "ignoredCandidates",
+    "findingCount",
+    "findings"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "0.1" },
+    "documentType": { "const": "timeline_consistency_report" },
+    "status": {
+      "enum": ["passed", "needs_review", "invalid_input"]
+    },
+    "inputFiles": { "type": "integer", "minimum": 0 },
+    "resolvedInputFiles": { "type": "integer", "minimum": 0 },
+    "validInputs": { "type": "integer", "minimum": 0 },
+    "invalidInputs": { "type": "integer", "minimum": 0 },
+    "skippedInputs": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "inputResults": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/InputResult" }
+    },
+    "timelineCandidateCount": { "type": "integer", "minimum": 0 },
+    "relativeOrderCandidateCount": { "type": "integer", "minimum": 0 },
+    "checkedCandidateCount": { "type": "integer", "minimum": 0 },
+    "distinctEdgeCount": { "type": "integer", "minimum": 0 },
+    "ignoredCandidateCount": { "type": "integer", "minimum": 0 },
+    "ignoredCandidates": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/IgnoredCandidate" }
+    },
+    "findingCount": { "type": "integer", "minimum": 0 },
+    "findings": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/Finding" }
+    }
+  },
+  "definitions": {
+    "InputResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "status", "errors", "warnings"],
+      "properties": {
+        "path": { "type": "string" },
+        "status": { "enum": ["valid", "invalid", "skipped"] },
+        "errors": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "warnings": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "CandidateRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourcePath", "episodeId", "candidateId", "evidenceIds"],
+      "properties": {
+        "sourcePath": { "type": "string" },
+        "episodeId": { "type": "string" },
+        "candidateId": { "type": "string" },
+        "evidenceIds": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "IgnoredCandidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reason",
+        "sourcePath",
+        "episodeId",
+        "candidateId",
+        "evidenceIds",
+        "relativeTo",
+        "relation"
+      ],
+      "properties": {
+        "reason": {
+          "enum": [
+            "missing_relative_to",
+            "missing_relation",
+            "same_time_not_checked",
+            "target_not_loaded",
+            "unsupported_relation"
+          ]
+        },
+        "sourcePath": { "type": "string" },
+        "episodeId": { "type": "string" },
+        "candidateId": { "type": "string" },
+        "evidenceIds": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "relativeTo": { "type": ["string", "null"] },
+        "relation": { "type": ["string", "null"] }
+      }
+    },
+    "Edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fromEpisodeId",
+        "toEpisodeId",
+        "sourceEpisodeId",
+        "relativeTo",
+        "relation",
+        "sourcePath",
+        "candidateId",
+        "evidenceIds"
+      ],
+      "properties": {
+        "fromEpisodeId": { "type": "string" },
+        "toEpisodeId": { "type": "string" },
+        "sourceEpisodeId": { "type": "string" },
+        "relativeTo": { "type": "string" },
+        "relation": { "enum": ["before", "after"] },
+        "sourcePath": { "type": "string" },
+        "candidateId": { "type": "string" },
+        "evidenceIds": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "Finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rule", "severity", "episodeIds", "candidateRefs", "edges"],
+      "properties": {
+        "rule": { "const": "timeline_relative_order_cycle" },
+        "severity": { "const": "warning" },
+        "episodeIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string" }
+        },
+        "candidateRefs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/CandidateRef" }
+        },
+        "edges": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/Edge" }
+        }
+      }
+    }
+  }
+}

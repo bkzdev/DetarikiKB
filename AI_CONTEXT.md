@@ -110,6 +110,7 @@ Wiki:
 
 Runbooks:
 - `docs/runbooks/Real_Data_Dry_Run.md`
+- `docs/runbooks/Timeline_Consistency_Check.md`（複数Stage A documentの`relative_order` before/after循環を、merge前のcandidate/Evidence provenance付きで検出する独立check。`same_time`・数値順序確定・自然文推定は対象外）
 - `docs/runbooks/MkDocs_Local_Preview_Dry_Run.md`
 - `docs/runbooks/Story_Title_Subtitle_Import.md`
 - `docs/runbooks/Character_Dictionary_Review.md`
