@@ -1,9 +1,8 @@
-"""Stage A TimelineCandidate 群の横断順序整合性を検査する。
+"""Stage A TimelineCandidate群の横断順序整合性を検査する。
 
-現行のrule-based extractorはrelative_orderを生成しないが、schema上許容される
-手動・将来のAI由来candidateを、merge前のprovenanceを保持したまま検査する。
-数値順序やsame_timeの意味は確定していないため、このmoduleはbefore/afterの
-有向循環だけを対象とする。
+relative_orderのsame_timeを同値関係として縮約した後、before/afterの
+同値class内矛盾とclass間循環を、candidate provenanceを保持して検出する。
+数値順序の統合やcanonical timelineの確定は対象外とする。
 """
 
 from __future__ import annotations
@@ -11,12 +10,43 @@ from __future__ import annotations
 from typing import Any
 
 FINDING_RULE = "timeline_relative_order_cycle"
+SAME_TIME_FINDING_RULE = "timeline_relative_order_within_same_time_class"
 
 IGNORE_MISSING_RELATIVE_TO = "missing_relative_to"
 IGNORE_MISSING_RELATION = "missing_relation"
-IGNORE_SAME_TIME = "same_time_not_checked"
 IGNORE_TARGET_NOT_LOADED = "target_not_loaded"
 IGNORE_UNSUPPORTED_RELATION = "unsupported_relation"
+
+_SUPPORTED_RELATIONS = {"before", "after", "same_time"}
+_PRIVATE_OBSERVATION_FIELDS = {"_observationIndex"}
+
+
+class _UnionFind:
+    """入力episode初出順を代表元の決定規則に使うUnion-Find。"""
+
+    def __init__(self, nodes: list[str]) -> None:
+        self._parent = {node: node for node in nodes}
+        self._node_order = {node: index for index, node in enumerate(nodes)}
+
+    def find(self, node: str) -> str:
+        root = node
+        while self._parent[root] != root:
+            root = self._parent[root]
+        while self._parent[node] != node:
+            parent = self._parent[node]
+            self._parent[node] = root
+            node = parent
+        return root
+
+    def union(self, left: str, right: str) -> None:
+        left_root = self.find(left)
+        right_root = self.find(right)
+        if left_root == right_root:
+            return
+        if self._node_order[left_root] <= self._node_order[right_root]:
+            self._parent[right_root] = left_root
+        else:
+            self._parent[left_root] = right_root
 
 
 def _candidate_ref(
@@ -28,6 +58,37 @@ def _candidate_ref(
         "candidateId": candidate.get("id"),
         "evidenceIds": list(candidate.get("evidenceIds", []) or []),
     }
+
+
+def _observation_candidate_ref(observation: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "sourcePath": observation["sourcePath"],
+        "episodeId": observation["sourceEpisodeId"],
+        "candidateId": observation["candidateId"],
+        "evidenceIds": list(observation["evidenceIds"]),
+    }
+
+
+def _public_observation(observation: dict[str, Any]) -> dict[str, Any]:
+    return {
+        key: value
+        for key, value in observation.items()
+        if key not in _PRIVATE_OBSERVATION_FIELDS
+    }
+
+
+def _candidate_refs(
+    observations: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    refs: list[dict[str, Any]] = []
+    seen: set[tuple[str, str | None]] = set()
+    for observation in sorted(observations, key=lambda item: item["_observationIndex"]):
+        key = (observation["sourcePath"], observation["candidateId"])
+        if key in seen:
+            continue
+        seen.add(key)
+        refs.append(_observation_candidate_ref(observation))
+    return refs
 
 
 def _ignored_candidate(
@@ -116,7 +177,6 @@ def _strongly_connected_components(
         components.append(
             _collect_reverse_component(start, reverse_adjacency, assigned)
         )
-
     return components
 
 
@@ -125,6 +185,7 @@ def _normalize_relative_candidate(
     episode_id: str,
     candidate: dict[str, Any],
     known_episode_ids: set[str],
+    observation_index: int,
 ) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
     candidate_ref = _candidate_ref(source_path, episode_id, candidate)
     relative_to = candidate.get("relativeTo")
@@ -134,9 +195,7 @@ def _normalize_relative_candidate(
         reason = IGNORE_MISSING_RELATIVE_TO
     elif relation is None:
         reason = IGNORE_MISSING_RELATION
-    elif relation == "same_time":
-        reason = IGNORE_SAME_TIME
-    elif relation not in {"before", "after"}:
+    elif relation not in _SUPPORTED_RELATIONS:
         reason = IGNORE_UNSUPPORTED_RELATION
     elif relative_to not in known_episode_ids:
         reason = IGNORE_TARGET_NOT_LOADED
@@ -146,41 +205,39 @@ def _normalize_relative_candidate(
     if reason is not None:
         return None, _ignored_candidate(candidate_ref, candidate, reason)
 
+    observation = {
+        "sourceEpisodeId": episode_id,
+        "relativeTo": relative_to,
+        "relation": relation,
+        "sourcePath": source_path,
+        "candidateId": candidate.get("id"),
+        "evidenceIds": list(candidate.get("evidenceIds", []) or []),
+        "_observationIndex": observation_index,
+    }
+    if relation == "same_time":
+        return observation, None
+
     if relation == "before":
         from_episode_id, to_episode_id = episode_id, relative_to
     else:
         from_episode_id, to_episode_id = relative_to, episode_id
-
-    return (
-        {
-            "fromEpisodeId": from_episode_id,
-            "toEpisodeId": to_episode_id,
-            "sourceEpisodeId": episode_id,
-            "relativeTo": relative_to,
-            "relation": relation,
-            "sourcePath": source_path,
-            "candidateId": candidate.get("id"),
-            "evidenceIds": list(candidate.get("evidenceIds", []) or []),
-        },
-        None,
-    )
+    observation["fromEpisodeId"] = from_episode_id
+    observation["toEpisodeId"] = to_episode_id
+    return observation, None
 
 
-def _collect_graph(
+def _collect_observations(
     documents: list[tuple[str, dict[str, Any]]],
-    nodes: list[str],
     known_episode_ids: set[str],
 ) -> tuple[
-    dict[str, list[str]],
-    set[tuple[str, str]],
+    list[dict[str, Any]],
     list[dict[str, Any]],
     list[dict[str, Any]],
     int,
     int,
 ]:
-    adjacency: dict[str, list[str]] = {node: [] for node in nodes}
-    distinct_edges: set[tuple[str, str]] = set()
     edge_observations: list[dict[str, Any]] = []
+    same_time_observations: list[dict[str, Any]] = []
     ignored_candidates: list[dict[str, Any]] = []
     timeline_candidate_count = 0
     relative_order_candidate_count = 0
@@ -193,100 +250,214 @@ def _collect_graph(
             timeline_candidate_count += 1
             if candidate.get("kind") != "relative_order":
                 continue
-
+            observation_index = relative_order_candidate_count
             relative_order_candidate_count += 1
             observation, ignored = _normalize_relative_candidate(
-                source_path, episode_id, candidate, known_episode_ids
+                source_path,
+                episode_id,
+                candidate,
+                known_episode_ids,
+                observation_index,
             )
             if ignored is not None:
                 ignored_candidates.append(ignored)
-                continue
-            assert observation is not None
-            edge_observations.append(observation)
-
-            edge = (observation["fromEpisodeId"], observation["toEpisodeId"])
-            if edge not in distinct_edges:
-                distinct_edges.add(edge)
-                adjacency[edge[0]].append(edge[1])
+            elif observation is not None and observation["relation"] == "same_time":
+                same_time_observations.append(observation)
+            elif observation is not None:
+                edge_observations.append(observation)
 
     return (
-        adjacency,
-        distinct_edges,
         edge_observations,
+        same_time_observations,
         ignored_candidates,
         timeline_candidate_count,
         relative_order_candidate_count,
     )
 
 
-def _build_findings(
-    nodes: list[str],
-    adjacency: dict[str, list[str]],
-    distinct_edges: set[tuple[str, str]],
-    edge_observations: list[dict[str, Any]],
+def _build_same_time_classes(
+    nodes: list[str], same_time_observations: list[dict[str, Any]]
+) -> tuple[dict[str, str], list[str], dict[str, list[str]]]:
+    union_find = _UnionFind(nodes)
+    for observation in same_time_observations:
+        union_find.union(observation["sourceEpisodeId"], observation["relativeTo"])
+
+    class_by_episode = {node: union_find.find(node) for node in nodes}
+    class_members: dict[str, list[str]] = {}
+    for node in nodes:
+        class_members.setdefault(class_by_episode[node], []).append(node)
+    class_nodes = list(class_members)
+    return class_by_episode, class_nodes, class_members
+
+
+def _relevant_same_time_observations(
+    class_roots: set[str],
+    class_by_episode: dict[str, str],
+    class_members: dict[str, list[str]],
+    same_time_observations: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    node_order = {node: index for index, node in enumerate(nodes)}
+    nontrivial_roots = {root for root in class_roots if len(class_members[root]) > 1}
+    return [
+        observation
+        for observation in same_time_observations
+        if class_by_episode[observation["sourceEpisodeId"]] in nontrivial_roots
+    ]
+
+
+def _same_time_class_episode_ids(
+    class_roots: set[str],
+    class_nodes: list[str],
+    class_members: dict[str, list[str]],
+) -> list[list[str]]:
+    return [
+        list(class_members[root])
+        for root in class_nodes
+        if root in class_roots and len(class_members[root]) > 1
+    ]
+
+
+def _finding(
+    *,
+    rule: str,
+    class_roots: set[str],
+    nodes: list[str],
+    class_nodes: list[str],
+    class_by_episode: dict[str, str],
+    class_members: dict[str, list[str]],
+    edges: list[dict[str, Any]],
+    same_time_observations: list[dict[str, Any]],
+) -> dict[str, Any]:
+    same_time_edges = _relevant_same_time_observations(
+        class_roots,
+        class_by_episode,
+        class_members,
+        same_time_observations,
+    )
+    return {
+        "rule": rule,
+        "severity": "warning",
+        "episodeIds": [node for node in nodes if class_by_episode[node] in class_roots],
+        "candidateRefs": _candidate_refs([*edges, *same_time_edges]),
+        "edges": [_public_observation(edge) for edge in edges],
+        "sameTimeEdges": [
+            _public_observation(observation) for observation in same_time_edges
+        ],
+        "sameTimeClassEpisodeIds": _same_time_class_episode_ids(
+            class_roots, class_nodes, class_members
+        ),
+    }
+
+
+def _build_contracted_graph(
+    class_nodes: list[str],
+    class_by_episode: dict[str, str],
+    class_members: dict[str, list[str]],
+    edge_observations: list[dict[str, Any]],
+) -> tuple[
+    dict[str, list[str]],
+    set[tuple[str, str]],
+    dict[str, list[dict[str, Any]]],
+    list[dict[str, Any]],
+]:
+    adjacency: dict[str, list[str]] = {node: [] for node in class_nodes}
+    distinct_class_edges: set[tuple[str, str]] = set()
+    within_same_time_edges: dict[str, list[dict[str, Any]]] = {}
+    graph_edge_observations: list[dict[str, Any]] = []
+
+    for observation in edge_observations:
+        source_root = class_by_episode[observation["fromEpisodeId"]]
+        target_root = class_by_episode[observation["toEpisodeId"]]
+        if source_root == target_root and len(class_members[source_root]) > 1:
+            within_same_time_edges.setdefault(source_root, []).append(observation)
+            continue
+
+        graph_edge_observations.append(observation)
+        class_edge = (source_root, target_root)
+        if class_edge not in distinct_class_edges:
+            distinct_class_edges.add(class_edge)
+            adjacency[source_root].append(target_root)
+
+    return (
+        adjacency,
+        distinct_class_edges,
+        within_same_time_edges,
+        graph_edge_observations,
+    )
+
+
+def _build_findings(
+    *,
+    nodes: list[str],
+    class_nodes: list[str],
+    class_by_episode: dict[str, str],
+    class_members: dict[str, list[str]],
+    adjacency: dict[str, list[str]],
+    distinct_class_edges: set[tuple[str, str]],
+    within_same_time_edges: dict[str, list[dict[str, Any]]],
+    graph_edge_observations: list[dict[str, Any]],
+    same_time_observations: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
     finding_parts: list[tuple[int, dict[str, Any]]] = []
 
-    for component in _strongly_connected_components(nodes, adjacency):
+    for root in class_nodes:
+        edges = within_same_time_edges.get(root, [])
+        if edges:
+            finding_parts.append(
+                (
+                    edges[0]["_observationIndex"],
+                    _finding(
+                        rule=SAME_TIME_FINDING_RULE,
+                        class_roots={root},
+                        nodes=nodes,
+                        class_nodes=class_nodes,
+                        class_by_episode=class_by_episode,
+                        class_members=class_members,
+                        edges=edges,
+                        same_time_observations=same_time_observations,
+                    ),
+                )
+            )
+
+    for component in _strongly_connected_components(class_nodes, adjacency):
         component_set = set(component)
         is_self_loop = (
-            len(component) == 1 and (component[0], component[0]) in distinct_edges
+            len(component) == 1 and (component[0], component[0]) in distinct_class_edges
         )
         if len(component) == 1 and not is_self_loop:
             continue
-
-        indexed_internal_edges = [
-            (index, edge)
-            for index, edge in enumerate(edge_observations)
-            if edge["fromEpisodeId"] in component_set
-            and edge["toEpisodeId"] in component_set
+        edges = [
+            observation
+            for observation in graph_edge_observations
+            if class_by_episode[observation["fromEpisodeId"]] in component_set
+            and class_by_episode[observation["toEpisodeId"]] in component_set
         ]
-        if not indexed_internal_edges:
+        if not edges:
             continue
-        internal_edges = [edge for _index, edge in indexed_internal_edges]
-
-        candidate_refs: list[dict[str, Any]] = []
-        seen_candidates: set[tuple[str, str | None]] = set()
-        for edge in internal_edges:
-            candidate_key = (edge["sourcePath"], edge["candidateId"])
-            if candidate_key in seen_candidates:
-                continue
-            seen_candidates.add(candidate_key)
-            candidate_refs.append(
-                {
-                    "sourcePath": edge["sourcePath"],
-                    "episodeId": edge["sourceEpisodeId"],
-                    "candidateId": edge["candidateId"],
-                    "evidenceIds": list(edge["evidenceIds"]),
-                }
-            )
-
         finding_parts.append(
             (
-                indexed_internal_edges[0][0],
-                {
-                    "rule": FINDING_RULE,
-                    "severity": "warning",
-                    "episodeIds": sorted(component_set, key=node_order.__getitem__),
-                    "candidateRefs": candidate_refs,
-                    "edges": internal_edges,
-                },
+                edges[0]["_observationIndex"],
+                _finding(
+                    rule=FINDING_RULE,
+                    class_roots=component_set,
+                    nodes=nodes,
+                    class_nodes=class_nodes,
+                    class_by_episode=class_by_episode,
+                    class_members=class_members,
+                    edges=edges,
+                    same_time_observations=same_time_observations,
+                ),
             )
         )
 
-    return [finding for _index, finding in sorted(finding_parts)]
+    return [
+        finding for _index, finding in sorted(finding_parts, key=lambda item: item[0])
+    ]
 
 
 def analyze_timeline_consistency(
     documents: list[tuple[str, dict[str, Any]]],
 ) -> dict[str, Any]:
-    """検証済みepisode_extraction群からrelative_order循環を検出する。
-
-    beforeはsource episodeからrelativeToへの辺、afterはその逆辺へ正規化する。
-    参照先episodeが入力集合に無いcandidateは部分batchで正当になりうるため、
-    矛盾にはせずignoredCandidatesへprovenance付きで保持する。
-    """
+    """検証済みepisode_extraction群のrelative_order矛盾を検出する。"""
     nodes: list[str] = []
     known_episode_ids: set[str] = set()
     for _source_path, document in documents:
@@ -296,19 +467,62 @@ def analyze_timeline_consistency(
             nodes.append(episode_id)
 
     (
-        adjacency,
-        distinct_edges,
         edge_observations,
+        same_time_observations,
         ignored_candidates,
         timeline_candidate_count,
         relative_order_candidate_count,
-    ) = _collect_graph(documents, nodes, known_episode_ids)
-    findings = _build_findings(nodes, adjacency, distinct_edges, edge_observations)
+    ) = _collect_observations(documents, known_episode_ids)
+    class_by_episode, class_nodes, class_members = _build_same_time_classes(
+        nodes, same_time_observations
+    )
+    (
+        adjacency,
+        distinct_class_edges,
+        within_same_time_edges,
+        graph_edge_observations,
+    ) = _build_contracted_graph(
+        class_nodes,
+        class_by_episode,
+        class_members,
+        edge_observations,
+    )
+    distinct_edges = {
+        (observation["fromEpisodeId"], observation["toEpisodeId"])
+        for observation in edge_observations
+    }
+    node_order = {node: index for index, node in enumerate(nodes)}
+    distinct_same_time_edges = {
+        tuple(
+            sorted(
+                (observation["sourceEpisodeId"], observation["relativeTo"]),
+                key=node_order.__getitem__,
+            )
+        )
+        for observation in same_time_observations
+    }
+    findings = _build_findings(
+        nodes=nodes,
+        class_nodes=class_nodes,
+        class_by_episode=class_by_episode,
+        class_members=class_members,
+        adjacency=adjacency,
+        distinct_class_edges=distinct_class_edges,
+        within_same_time_edges=within_same_time_edges,
+        graph_edge_observations=graph_edge_observations,
+        same_time_observations=same_time_observations,
+    )
     return {
         "timelineCandidateCount": timeline_candidate_count,
         "relativeOrderCandidateCount": relative_order_candidate_count,
         "checkedCandidateCount": len(edge_observations),
         "distinctEdgeCount": len(distinct_edges),
+        "checkedSameTimeCandidateCount": len(same_time_observations),
+        "distinctSameTimeEdgeCount": len(distinct_same_time_edges),
+        "sameTimeClassCount": sum(
+            len(members) > 1 for members in class_members.values()
+        ),
+        "distinctClassEdgeCount": len(distinct_class_edges),
         "ignoredCandidateCount": len(ignored_candidates),
         "ignoredCandidates": ignored_candidates,
         "findingCount": len(findings),

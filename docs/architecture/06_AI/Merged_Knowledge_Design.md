@@ -381,7 +381,7 @@ Timelineは**エンティティを持たない**ため、他の7種と同じ「�
 ## 7.3 conflict / 今後の課題
 
 - 同一episodeIdに矛盾する順序値が観測された場合（例: 再抽出前後で`canonicalOrder`が変わった等）はconflictとしてレポートに記録し、新しいextractionRun由来を暫定採用する
-- Stage B自体は順序graphの整合性判定を行わない。`codex/timeline-relative-order-cycle-check`で、merge前の複数Stage A documentを入力する独立CLI `scripts/check_timeline_consistency.py`を追加し、`relative_order`のbefore/after有向循環（自己loop・SCC）をcandidate/Evidence provenance付きwarningとして検出する。`same_time`縮約、数値順序の総合判定、順序確定は引き続きTimeline Builder（将来フェーズ）へ委ねる（`docs/runbooks/Timeline_Consistency_Check.md`）
+- Stage B自体は順序graphの整合性判定を行わない。merge前の複数Stage A documentを入力する独立CLI `scripts/check_timeline_consistency.py`が、`relative_order`の`same_time`同値class縮約、class内before/after矛盾、class間有向循環をcandidate/Evidence provenance付きwarningとして検出する。数値順序の総合判定と順序確定は引き続きTimeline Builder（将来フェーズ）へ委ねる（`docs/runbooks/Timeline_Consistency_Check.md`）
 
 ---
 

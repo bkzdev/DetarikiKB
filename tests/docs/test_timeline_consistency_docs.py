@@ -26,6 +26,8 @@ def test_runbook_defines_stage_a_cycle_check_contract():
         "scripts/check_timeline_consistency.py",
         'TimelineCandidate(kind: "relative_order")',
         "timeline_relative_order_cycle",
+        "timeline_relative_order_within_same_time_class",
+        "Union-Find",
         "反復Kosaraju法",
         "candidate ID・Evidence ID・入力path",
         "target_not_loaded",
@@ -56,6 +58,6 @@ def test_architecture_keeps_check_separate_from_stage_b_merge():
 
 def test_tasks_records_completed_first_stage_and_remaining_scope():
     content = _read(TASKS_PATH)
-    assert "`codex/timeline-relative-order-cycle-check`" in content
-    assert "timeline contradiction detectionの第1段階" in content
-    assert "same_time` equivalence class縮約" in content
+    assert "`codex/timeline-same-time-consistency`" in content
+    assert "timeline contradiction detectionの第1・第2段階" in content
+    assert "数値順序のfield別整合性・総順序判定" in content
