@@ -64,7 +64,11 @@ def _candidate(
     }
 
 
-def _document(episode_id: str, relative_to: str | None = None) -> dict[str, Any]:
+def _document(
+    episode_id: str,
+    relative_to: str | None = None,
+    relation: str = "before",
+) -> dict[str, Any]:
     document = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
     document["episodeId"] = episode_id
     document["storyId"] = "TEST_STORY"
@@ -89,7 +93,9 @@ def _document(episode_id: str, relative_to: str | None = None) -> dict[str, Any]
         }
     }
     document["timelineCandidates"] = (
-        [_candidate(episode_id, relative_to)] if relative_to is not None else []
+        [_candidate(episode_id, relative_to, relation)]
+        if relative_to is not None
+        else []
     )
     return document
 
@@ -201,6 +207,122 @@ def test_cli_report_preserves_ignored_external_target_and_passes(tmp_path, repor
     assert not list(Draft7Validator(schema).iter_errors(report))
     assert report["status"] == "passed"
     assert report["ignoredCandidates"][0]["reason"] == "target_not_loaded"
+
+
+def test_cli_reports_order_inside_same_time_class_with_v02_schema(tmp_path, report_dir):
+    first = _document("EP01", "EP02", "same_time")
+    order_candidate = _candidate("EP01", "EP02", "before")
+    order_candidate["id"] = "EP01_CAND_TL002"
+    first["timelineCandidates"].append(order_candidate)
+    _write_document(tmp_path / "ep01.json", first)
+    _write_document(tmp_path / "ep02.json", _document("EP02"))
+    report_path = report_dir / "report.json"
+
+    result = _run(
+        "--input",
+        str(tmp_path),
+        "--report-output",
+        str(report_path),
+        "--quiet",
+    )
+
+    assert result.returncode == 1
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    schema = json.loads(REPORT_SCHEMA_PATH.read_text(encoding="utf-8"))
+    assert not list(Draft7Validator(schema).iter_errors(report))
+    assert report["schemaVersion"] == "0.2"
+    assert report["checkedSameTimeCandidateCount"] == 1
+    assert report["sameTimeClassCount"] == 1
+    assert report["findings"][0]["rule"] == (
+        "timeline_relative_order_within_same_time_class"
+    )
+
+
+def test_report_schema_remains_compatible_with_v01_reports():
+    report = {
+        "schemaVersion": "0.1",
+        "documentType": "timeline_consistency_report",
+        "status": "passed",
+        "inputFiles": 0,
+        "resolvedInputFiles": 0,
+        "validInputs": 0,
+        "invalidInputs": 0,
+        "skippedInputs": [],
+        "inputResults": [],
+        "timelineCandidateCount": 0,
+        "relativeOrderCandidateCount": 0,
+        "checkedCandidateCount": 0,
+        "distinctEdgeCount": 0,
+        "ignoredCandidateCount": 0,
+        "ignoredCandidates": [],
+        "findingCount": 0,
+        "findings": [],
+    }
+
+    schema = json.loads(REPORT_SCHEMA_PATH.read_text(encoding="utf-8"))
+    assert not list(Draft7Validator(schema).iter_errors(report))
+
+
+def test_v02_schema_requires_nonempty_same_time_conflict_provenance():
+    finding = {
+        "rule": "timeline_relative_order_within_same_time_class",
+        "severity": "warning",
+        "episodeIds": ["EP01", "EP02"],
+        "candidateRefs": [
+            {
+                "sourcePath": "input.json",
+                "episodeId": "EP01",
+                "candidateId": "EP01_CAND_TL001",
+                "evidenceIds": ["EP01_EVD001"],
+            }
+        ],
+        "edges": [
+            {
+                "fromEpisodeId": "EP01",
+                "toEpisodeId": "EP02",
+                "sourceEpisodeId": "EP01",
+                "relativeTo": "EP02",
+                "relation": "before",
+                "sourcePath": "input.json",
+                "candidateId": "EP01_CAND_TL001",
+                "evidenceIds": ["EP01_EVD001"],
+            }
+        ],
+    }
+    report = {
+        "schemaVersion": "0.2",
+        "documentType": "timeline_consistency_report",
+        "status": "needs_review",
+        "inputFiles": 1,
+        "resolvedInputFiles": 1,
+        "validInputs": 1,
+        "invalidInputs": 0,
+        "skippedInputs": [],
+        "inputResults": [],
+        "timelineCandidateCount": 1,
+        "relativeOrderCandidateCount": 1,
+        "checkedCandidateCount": 1,
+        "distinctEdgeCount": 1,
+        "checkedSameTimeCandidateCount": 1,
+        "distinctSameTimeEdgeCount": 1,
+        "sameTimeClassCount": 1,
+        "distinctClassEdgeCount": 0,
+        "ignoredCandidateCount": 0,
+        "ignoredCandidates": [],
+        "findingCount": 1,
+        "findings": [finding],
+    }
+    schema = json.loads(REPORT_SCHEMA_PATH.read_text(encoding="utf-8"))
+    validator = Draft7Validator(schema)
+
+    missing_errors = list(validator.iter_errors(report))
+    assert any("sameTimeEdges" in error.message for error in missing_errors)
+    assert any("sameTimeClassEpisodeIds" in error.message for error in missing_errors)
+
+    finding["sameTimeEdges"] = []
+    finding["sameTimeClassEpisodeIds"] = []
+    empty_errors = list(validator.iter_errors(report))
+    assert any("should be non-empty" in error.message for error in empty_errors)
 
 
 def test_cli_returns_two_without_writing_report_when_no_input_resolves(

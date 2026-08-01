@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Stage A episode_extraction群のrelative_order循環を横断検出する。
+"""Stage A episode_extraction群のrelative_order矛盾を横断検出する。
 
 Exit codes:
     0: 入力がすべてvalidで循環なし
@@ -38,7 +38,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "複数のStage A episode_extraction JSONからrelative_orderの"
-            "有向循環を検出します"
+            "same_time class内矛盾と有向循環を検出します"
         )
     )
     parser.add_argument(
@@ -212,7 +212,7 @@ def _build_report(
         status = "passed"
 
     report = {
-        "schemaVersion": "0.1",
+        "schemaVersion": "0.2",
         "documentType": "timeline_consistency_report",
         "status": status,
         "inputFiles": len(raw_inputs),
@@ -247,6 +247,7 @@ def main() -> int:
             f"valid={report['validInputs']} "
             f"invalid={report['invalidInputs']} "
             f"checked={report['checkedCandidateCount']} "
+            f"same_time={report['checkedSameTimeCandidateCount']} "
             f"ignored={report['ignoredCandidateCount']} "
             f"findings={report['findingCount']}"
         )
