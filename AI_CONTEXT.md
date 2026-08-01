@@ -110,7 +110,7 @@ Wiki:
 
 Runbooks:
 - `docs/runbooks/Real_Data_Dry_Run.md`
-- `docs/runbooks/Timeline_Consistency_Check.md`（複数Stage A documentの`relative_order`をmerge前に横断検査する独立check。`same_time`同値class縮約、class内before/after矛盾、class間循環をcandidate/Evidence provenance付きで検出する。数値順序確定・自然文推定は対象外）
+- `docs/runbooks/Timeline_Consistency_Check.md`（複数Stage A documentをmerge前に横断検査する独立check。`relative_order`の`same_time`同値class縮約・class内before/after矛盾・class間循環と、episode metadata由来`explicit_order`の同一episode・同一field値競合をprovenance付きで検出する。field間換算・数値と相対制約の比較・順序確定・自然文推定は対象外）
 - `docs/runbooks/MkDocs_Local_Preview_Dry_Run.md`
 - `docs/runbooks/Story_Title_Subtitle_Import.md`
 - `docs/runbooks/Character_Dictionary_Review.md`
