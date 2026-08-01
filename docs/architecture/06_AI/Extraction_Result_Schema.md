@@ -492,40 +492,51 @@ rule-based抽出では、入力Blockに`direction`が無い場合だけ`source_t
 
 # 13. TimelineCandidate
 
-`Extraction_Pipeline.md` §4.8の構造は、他のCandidate型と異なりEpisode単位のコンテナに複数の候補をまとめる形だった。
-本文書では、コンテナ内の各エントリもCandidateEnvelope（§4）に揃え、他のCandidate型との扱いを統一する。
+各TimelineCandidateはCandidateEnvelope（§4）に従う。rule-based実装はEpisode metadata、Scene直下、Block上の明示的な順序・時間軸マーカーだけを読み、自然文推定は行わない。
 
 ```json
 {
   "id": "MAIN_S01_C02_E01_CAND_TL001",
   "type": "timeline_candidate",
-  "sourceType": "ai_inferred",
-  "confidence": 0.7,
-  "evidenceIds": ["MAIN_S01_C02_E01_DLG0002"],
+  "sourceType": "script",
+  "confidence": 0.9,
+  "evidenceIds": ["MAIN_S01_C02_E01_SC001"],
   "extractionRun": {
     "...": "§3.2と同一構造"
   },
-  "kind": "relative_order",
-  "relativeTo": "MAIN_S01_C01_E01",
-  "relation": "after",
-  "fields": {
-    "basis": {
-      "value": "本文中で前章の出来事に言及",
-      "sourceType": "ai_extracted",
-      "confidence": 0.7
-    }
-  }
+  "kind": "explicit_order",
+  "scope": "scene",
+  "sourceTimelineId": "TL_SCENE_ARC",
+  "nameCandidates": ["場面の順序"],
+  "sceneRefs": ["MAIN_S01_C02_E01_SC001"],
+  "orderValue": 2,
+  "orderField": "orderValue",
+  "markerType": null,
+  "relativeTo": null,
+  "relation": null,
+  "fields": {}
 }
 ```
 
 | Field | 必須 | 型 | 説明 |
 |---|---:|---|---|
-| `kind` | Yes | string | 候補の種類。現時点では`relative_order`のみ定義（将来`absolute_date`等を追加しうる） |
+| `kind` | Yes | string | `relative_order` / `explicit_order` / `temporal_marker` |
+| `scope` | No | string \| null | `episode` / `scene` / `block`。同じ構造化IDが複数scopeで観測されたmerged entryでは`null`になりうる |
+| `sourceTimelineId` | No | string \| null | SceneまたはBlockに明示された構造化ID。canonical IDには昇格しない |
+| `nameCandidates` | No | string[] | `timelineLabel`または文字列`timePosition` |
+| `sceneRefs` | 条件付き | string[] | `scope: "scene"`では1件以上必須。rule-based出力ではBlock由来も親Sceneを保持し、Episode由来は空配列 |
+| `orderValue` | No | number \| null | 数値`orderValue` / `timePosition`、またはEpisode metadataの順序値 |
+| `orderField` | No | string \| null | 値を取得したフィールド名 |
+| `markerType` | No | string \| null | `flashback` / `flashforward` / `day_change` / `time_shift` / `scene_time` |
 | `relativeTo` | No | string \| null | `kind: "relative_order"`のとき、比較対象のEpisode ID |
 | `relation` | No | string | `before` / `after` / `same_time`等 |
 | `fields` | No | object\<string, FieldValue\> | `basis`（推定根拠の説明） |
 
-TimelineCandidateはエンティティを持たないため、Stage Bのマージ対象外とし、`data/extracted/timeline_candidates/{episodeId}.json`にエピソード単位の配列としてそのまま保存する（`Extraction_Pipeline.md` §3.3, §4.8）。
+Scene由来では、`sceneRefs`のScene ID集合が、`evidenceIds`から参照するScene EvidenceRef（`sourceId` / `sceneId`が同じScene ID）の集合と一致しなければならない。semantic validationは欠落・余剰の両方向をerrorとして検証する。
+
+Stage Aのidentityはscopeをまたいで混ぜない。Scene由来は`sourceTimelineId`の有無にかかわらずScene IDをidentityへ含め、別Sceneを別candidateとして保持する。同じIDの横断統合と値のconflict検出はStage Bで行う。Block由来は既存どおりBlock scope内で集約する。
+
+TimelineCandidateはエンティティではないが、Stage BでEvidence・SourceCandidateを保持した`timeline/timeline_entries.json`へ一覧化する。`sourceTimelineId`だけをscope横断の強い集約キーとし、IDなしScene候補はcandidate単位で保持する（`Merged_Knowledge_Design.md` §7）。
 
 ---
 
@@ -655,8 +666,8 @@ data/extracted/
     {eventId}.json
   relationships/
     {relationshipId}.json
-  timeline_candidates/
-    {episodeId}.json                   # §13 TimelineCandidate配列（マージ対象外）
+  timeline/
+    timeline_entries.json              # §13 / Merged_Knowledge_Design.md §7（Stage Bの保守的な横断集約）
 
 data/reports/
   extraction_errors/

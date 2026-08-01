@@ -424,9 +424,49 @@ def check_timeline_basic(document: dict[str, Any]) -> list[SemanticValidationIss
     付随フィールドの組み合わせが明らかに空であるケースの緩い警告にとどめる。
     """
     issues: list[SemanticValidationIssue] = []
+    evidence_index = document.get("evidenceIndex", {}) or {}
     for candidate in document.get("timelineCandidates", []) or []:
         candidate_id = candidate.get("id")
         kind = candidate.get("kind")
+        scope = candidate.get("scope")
+
+        if scope == "scene":
+            scene_refs = candidate.get("sceneRefs", []) or []
+            evidence_ids = candidate.get("evidenceIds", []) or []
+            scene_evidence_ids = {
+                evidence_id
+                for evidence_id in evidence_ids
+                if (
+                    (evidence_ref := evidence_index.get(evidence_id)) is not None
+                    and evidence_ref.get("sourceId") == evidence_id
+                    and evidence_ref.get("sceneId") == evidence_id
+                )
+            }
+            if not scene_refs:
+                issues.append(
+                    SemanticValidationIssue(
+                        rule="timeline_scene_scope_missing_reference",
+                        severity="error",
+                        message="scope: sceneですがsceneRefsが空です",
+                        candidate_type="timeline_candidate",
+                        candidate_id=candidate_id,
+                        array_key="timelineCandidates",
+                    )
+                )
+            if set(scene_refs) != scene_evidence_ids:
+                issues.append(
+                    SemanticValidationIssue(
+                        rule="timeline_scene_scope_reference_mismatch",
+                        severity="error",
+                        message=(
+                            "scope: sceneのsceneRefsは、evidenceIdsが参照する"
+                            "Scene EvidenceRefのScene ID集合と一致する必要があります"
+                        ),
+                        candidate_type="timeline_candidate",
+                        candidate_id=candidate_id,
+                        array_key="timelineCandidates",
+                    )
+                )
 
         if kind == "relative_order" and not candidate.get("relativeTo"):
             issues.append(

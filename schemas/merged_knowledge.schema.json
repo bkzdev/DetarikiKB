@@ -488,8 +488,14 @@
             },
             "scope": {
               "type": ["string", "null"],
-              "description": "根拠の粒度 (episode metadata由来かBlock由来か)",
-              "enum": ["episode", "block", null]
+              "description": "根拠の粒度 (episode metadata、Scene直下、Block由来のいずれか)。同一sourceTimelineIdが複数scopeで観測された場合はnull",
+              "enum": ["episode", "scene", "block", null]
+            },
+            "sceneRefs": {
+              "type": "array",
+              "description": "Scene由来候補またはBlock由来Evidenceの親Scene IDを保持する初出順和集合",
+              "items": { "type": "string" },
+              "uniqueItems": true
             },
             "orderValue": {
               "type": ["number", "null"],
@@ -510,7 +516,7 @@
             },
             "sourceTimelineId": {
               "type": ["string", "null"],
-              "description": "Block上の明示的なtimelineId (canonical化はしない)"
+              "description": "Scene直下またはBlock上の明示的なtimelineId (canonical化はしない)"
             },
             "relativeTo": {
               "type": ["string", "null"],

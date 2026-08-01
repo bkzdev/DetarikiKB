@@ -102,7 +102,7 @@
     },
     "timelineCandidates": {
       "type": "array",
-      "description": "TimelineCandidate の配列 (Stage Bマージ対象外)",
+      "description": "TimelineCandidate の配列 (Stage Bでcanonical化せずtimeline entryへ保守的に集約)",
       "items": { "$ref": "#/definitions/TimelineCandidate" }
     },
     "extractionErrors": {
@@ -617,8 +617,8 @@
             },
             "scope": {
               "type": ["string", "null"],
-              "description": "explicit_order/temporal_markerのとき、根拠の粒度 (episode metadata由来かBlock由来か)",
-              "enum": ["episode", "block", null]
+              "description": "explicit_order/temporal_markerのとき、根拠の粒度 (episode metadata、Scene直下、Block由来のいずれか)",
+              "enum": ["episode", "scene", "block", null]
             },
             "relativeTo": {
               "type": ["string", "null"],
@@ -630,16 +630,22 @@
             },
             "sourceTimelineId": {
               "type": ["string", "null"],
-              "description": "Block上の明示的なtimelineId。Timelineはエンティティを持たないためcanonical IDへの解決は行わない (元スクリプト上の値をそのまま保持する)"
+              "description": "Scene直下またはBlock上の明示的なtimelineId。Timelineはエンティティを持たないためcanonical IDへの解決は行わない (元スクリプト上の値をそのまま保持する)"
             },
             "nameCandidates": {
               "type": "array",
               "description": "timelineLabel/timePosition (文字列) 由来のラベル表記候補",
               "items": { "type": "string" }
             },
+            "sceneRefs": {
+              "type": "array",
+              "description": "scope: sceneの候補が由来するScene ID。別SceneのIDなし候補を自動統合しないためのprovenanceでもある",
+              "items": { "type": "string" },
+              "uniqueItems": true
+            },
             "orderValue": {
               "type": ["number", "null"],
-              "description": "kind: explicit_orderのとき、明示的な数値順序 (episode.metadata.canonicalOrder/releaseOrder/displayOrder、またはBlockのorderValue/timePosition)"
+              "description": "kind: explicit_orderのとき、明示的な数値順序 (episode.metadata.canonicalOrder/releaseOrder/displayOrder、またはScene/BlockのorderValue/timePosition)"
             },
             "orderField": {
               "type": ["string", "null"],
@@ -651,7 +657,19 @@
               "enum": ["flashback", "flashforward", "day_change", "time_shift", "scene_time", null]
             },
             "fields": { "$ref": "#/definitions/FieldsMap" }
-          }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": { "scope": { "const": "scene" } },
+                "required": ["scope"]
+              },
+              "then": {
+                "required": ["sceneRefs"],
+                "properties": { "sceneRefs": { "minItems": 1 } }
+              }
+            }
+          ]
         }
       ]
     },

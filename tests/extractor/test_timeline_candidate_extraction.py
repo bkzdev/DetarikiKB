@@ -70,8 +70,10 @@ def _build_normalized_story(
     }
 
 
-def _scene(scene_id: str, blocks: list[dict[str, Any]]) -> dict[str, Any]:
-    return {"sceneId": scene_id, "sceneNumber": 1, "blocks": blocks}
+def _scene(scene_id: str, blocks: list[dict[str, Any]], **extra: Any) -> dict[str, Any]:
+    scene = {"sceneId": scene_id, "sceneNumber": 1, "blocks": blocks}
+    scene.update(extra)
+    return scene
 
 
 def _dialogue_block(
@@ -130,6 +132,7 @@ def test_timeline_candidate_created_from_timeline_id():
     assert candidate["scope"] == "block"
     assert candidate["sourceTimelineId"] == "TL_ARC1"
     assert candidate["evidenceIds"] == ["EP01_DLG0001"]
+    assert candidate["sceneRefs"] == ["EP01_SC001"]
     assert candidate["confidence"] == pytest.approx(0.9)
 
 
@@ -213,6 +216,7 @@ def test_timeline_candidate_created_from_episode_metadata_canonical_order():
     assert candidate["orderValue"] == 5
     assert candidate["orderField"] == "canonicalOrder"
     assert candidate["evidenceIds"] == ["EP01"]
+    assert candidate["sceneRefs"] == []
     assert candidate["confidence"] == pytest.approx(0.9)
     assert "EP01" in extraction["evidenceIndex"]
 
@@ -234,6 +238,160 @@ def test_timeline_candidates_from_multiple_episode_order_fields():
     assert order_fields == {"releaseOrder", "displayOrder"}
 
 
+# ----------------------------------------------------------------
+# 3. Scene直下の明示的なTimeline情報
+# ----------------------------------------------------------------
+
+
+def test_timeline_candidate_created_from_scene_order():
+    scene = _scene(
+        "EP01_SC001",
+        [],
+        timelineId="TL_SCENE_ARC",
+        timelineLabel="場面の順序",
+        orderValue=2,
+    )
+    story = _build_normalized_story("EP01", "TEST_STORY", [scene])
+
+    extraction = Extractor().extract_story(story)[0]
+    candidate = extraction["timelineCandidates"][0]
+
+    assert candidate["scope"] == "scene"
+    assert candidate["sourceTimelineId"] == "TL_SCENE_ARC"
+    assert candidate["nameCandidates"] == ["場面の順序"]
+    assert candidate["orderValue"] == 2
+    assert candidate["sceneRefs"] == ["EP01_SC001"]
+    assert candidate["evidenceIds"] == ["EP01_SC001"]
+    assert extraction["evidenceIndex"]["EP01_SC001"]["sceneId"] == "EP01_SC001"
+
+
+def test_timeline_candidate_created_from_scene_marker():
+    story = _build_normalized_story(
+        "EP01",
+        "TEST_STORY",
+        [_scene("EP01_SC001", [], flashback=True)],
+    )
+
+    extraction = Extractor().extract_story(story)[0]
+    candidate = extraction["timelineCandidates"][0]
+
+    assert candidate["kind"] == "temporal_marker"
+    assert candidate["scope"] == "scene"
+    assert candidate["markerType"] == "flashback"
+    assert candidate["sceneRefs"] == ["EP01_SC001"]
+    assert candidate["evidenceIds"] == ["EP01_SC001"]
+
+
+def test_scene_string_time_position_becomes_label():
+    story = _build_normalized_story(
+        "EP01",
+        "TEST_STORY",
+        [_scene("EP01_SC001", [], timePosition="翌朝")],
+    )
+
+    candidate = Extractor().extract_story(story)[0]["timelineCandidates"][0]
+
+    assert candidate["scope"] == "scene"
+    assert candidate["orderValue"] is None
+    assert candidate["nameCandidates"] == ["翌朝"]
+    assert candidate["confidence"] == pytest.approx(0.5)
+
+
+def test_same_scene_timeline_id_stays_separate_until_stage_b():
+    scene1 = _scene("EP01_SC001", [], timelineId="TL_SHARED", orderValue=1)
+    scene2 = _scene("EP01_SC002", [], timelineId="TL_SHARED", orderValue=2)
+    story = _build_normalized_story("EP01", "TEST_STORY", [scene1, scene2])
+
+    extraction = Extractor().extract_story(story)[0]
+    timelines = extraction["timelineCandidates"]
+
+    assert len(timelines) == 2
+    assert [candidate["scope"] for candidate in timelines] == ["scene", "scene"]
+    assert [candidate["orderValue"] for candidate in timelines] == [1, 2]
+    assert [candidate["sceneRefs"] for candidate in timelines] == [
+        ["EP01_SC001"],
+        ["EP01_SC002"],
+    ]
+    assert [candidate["evidenceIds"] for candidate in timelines] == [
+        ["EP01_SC001"],
+        ["EP01_SC002"],
+    ]
+
+
+def test_same_scene_order_value_in_different_scenes_stays_separate():
+    scene1 = _scene("EP01_SC001", [], orderValue=1)
+    scene2 = _scene("EP01_SC002", [], orderValue=1)
+    story = _build_normalized_story("EP01", "TEST_STORY", [scene1, scene2])
+
+    extraction = Extractor().extract_story(story)[0]
+    timelines = extraction["timelineCandidates"]
+
+    assert len(timelines) == 2
+    assert [candidate["sceneRefs"] for candidate in timelines] == [
+        ["EP01_SC001"],
+        ["EP01_SC002"],
+    ]
+
+
+def test_same_scene_marker_in_different_scenes_stays_separate():
+    scene1 = _scene("EP01_SC001", [], flashback=True)
+    scene2 = _scene("EP01_SC002", [], flashback=True)
+    story = _build_normalized_story("EP01", "TEST_STORY", [scene1, scene2])
+
+    timelines = Extractor().extract_story(story)[0]["timelineCandidates"]
+
+    assert len(timelines) == 2
+    assert [candidate["sceneRefs"] for candidate in timelines] == [
+        ["EP01_SC001"],
+        ["EP01_SC002"],
+    ]
+    assert {candidate["markerType"] for candidate in timelines} == {"flashback"}
+
+
+def test_false_marker_and_boolean_order_do_not_create_scene_timeline():
+    scene = _scene(
+        "EP01_SC001",
+        [],
+        orderValue=True,
+        flashback=False,
+    )
+    story = _build_normalized_story("EP01", "TEST_STORY", [scene])
+
+    extraction = Extractor().extract_story(story)[0]
+
+    assert extraction["timelineCandidates"] == []
+
+
+def test_same_timeline_id_in_scene_and_block_stays_scope_separated():
+    block = _dialogue_block("EP01_DLG0001", timelineId="TL_SHARED")
+    scene = _scene("EP01_SC001", [block], timelineId="TL_SHARED")
+    story = _build_normalized_story("EP01", "TEST_STORY", [scene])
+
+    extraction = Extractor().extract_story(story)[0]
+    timelines = extraction["timelineCandidates"]
+
+    assert len(timelines) == 2
+    assert [candidate["scope"] for candidate in timelines] == ["scene", "block"]
+    assert timelines[0]["evidenceIds"] == ["EP01_SC001"]
+    assert timelines[1]["evidenceIds"] == ["EP01_DLG0001"]
+    assert timelines[1]["sceneRefs"] == ["EP01_SC001"]
+
+
+def test_scene_timeline_precedes_its_blocks_in_candidate_id_order():
+    block = _dialogue_block("EP01_DLG0001", orderValue=2)
+    scene = _scene("EP01_SC001", [block], orderValue=1)
+    story = _build_normalized_story("EP01", "TEST_STORY", [scene])
+
+    extraction = Extractor().extract_story(story)[0]
+    timelines = extraction["timelineCandidates"]
+
+    assert [candidate["id"] for candidate in timelines] == [
+        "EP01_CAND_TL001",
+        "EP01_CAND_TL002",
+    ]
+    assert [candidate["scope"] for candidate in timelines] == ["scene", "block"]
+
+
 def test_timeline_candidate_from_stage_direction_marker():
     block = _stage_direction_block("EP01_STAGE0001", flashback=True)
     story = _build_normalized_story(
@@ -253,7 +411,7 @@ def test_timeline_candidate_from_stage_direction_marker():
 
 
 # ----------------------------------------------------------------
-# 3. 同一Timeline情報の統合 / evidenceIdsの集約
+# 4. 同一Timeline情報の統合 / evidenceIdsの集約
 # ----------------------------------------------------------------
 
 
@@ -297,7 +455,7 @@ def test_different_marker_types_produce_separate_candidates():
 
 
 # ----------------------------------------------------------------
-# 4. timeline情報が無いBlockからは生成されない / 自然文推定はしない
+# 5. timeline情報が無いBlockからは生成されない / 自然文推定はしない
 # ----------------------------------------------------------------
 
 
@@ -340,7 +498,7 @@ def test_non_numeric_non_string_metadata_order_is_ignored():
 
 
 # ----------------------------------------------------------------
-# 5. EventCandidateとの共存
+# 6. EventCandidateとの共存
 # ----------------------------------------------------------------
 
 
@@ -364,7 +522,7 @@ def test_timeline_coexists_with_event_candidate():
 
 
 # ----------------------------------------------------------------
-# 6. schema validation / semantic validation
+# 7. schema validation / semantic validation
 # ----------------------------------------------------------------
 
 
@@ -404,6 +562,55 @@ def test_timeline_passes_semantic_validation():
     assert not timeline_warnings
 
 
+def test_scene_scope_requires_matching_scene_evidence():
+    story = _build_normalized_story(
+        "EP01",
+        "TEST_STORY",
+        [_scene("EP01_SC001", [], orderValue=1)],
+    )
+    extraction = Extractor().extract_story(story)[0]
+    extraction["timelineCandidates"][0]["sceneRefs"] = ["EP01_SC999"]
+
+    issues = run_semantic_validation(extraction)
+
+    assert any(
+        issue.rule == "timeline_scene_scope_reference_mismatch"
+        and issue.severity == "error"
+        for issue in issues
+    )
+
+
+def test_scene_scope_rejects_scene_evidence_missing_from_scene_refs():
+    scene1 = _scene("EP01_SC001", [], timelineId="TL_SHARED")
+    scene2 = _scene("EP01_SC002", [], timelineId="TL_SHARED")
+    story = _build_normalized_story("EP01", "TEST_STORY", [scene1, scene2])
+    extraction = Extractor().extract_story(story)[0]
+    candidate = extraction["timelineCandidates"][0]
+    candidate["evidenceIds"].append("EP01_SC002")
+
+    issues = run_semantic_validation(extraction)
+
+    assert any(
+        issue.rule == "timeline_scene_scope_reference_mismatch"
+        and issue.severity == "error"
+        for issue in issues
+    )
+
+
+def test_scene_scope_without_scene_refs_fails_schema(extraction_validator):
+    story = _build_normalized_story(
+        "EP01",
+        "TEST_STORY",
+        [_scene("EP01_SC001", [], orderValue=1)],
+    )
+    extraction = Extractor().extract_story(story)[0]
+    del extraction["timelineCandidates"][0]["sceneRefs"]
+
+    errors = list(extraction_validator.iter_errors(extraction))
+
+    assert errors
+
+
 # ----------------------------------------------------------------
 # CLI: scripts/extract_story.py の出力がschema/semantic両方に通ること
 # ----------------------------------------------------------------
@@ -412,10 +619,15 @@ def test_timeline_passes_semantic_validation():
 def test_cli_extract_story_output_passes_schema_and_semantic_validation(tmp_path):
     order_block = _dialogue_block("EP01_DLG0001", timelineId="TL_ARC1")
     marker_block = _stage_direction_block("EP01_STAGE0001", flashback=True)
+    scene = _scene(
+        "EP01_SC001",
+        [order_block, marker_block],
+        orderValue=3,
+    )
     story = _build_normalized_story(
         "EP01",
         "TEST_STORY",
-        [_scene("EP01_SC001", [order_block, marker_block])],
+        [scene],
         episode_metadata={"canonicalOrder": 1},
     )
 
@@ -460,4 +672,5 @@ def test_cli_extract_story_output_passes_schema_and_semantic_validation(tmp_path
 
     with open(output_file, encoding="utf-8") as f:
         data = json.load(f)
-    assert len(data["timelineCandidates"]) == 3
+    assert len(data["timelineCandidates"]) == 4
+    assert data["timelineCandidates"][1]["scope"] == "scene"
