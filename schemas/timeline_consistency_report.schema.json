@@ -2,13 +2,13 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://detariki-kb/schemas/timeline_consistency_report.schema.json",
   "title": "Timeline Consistency Report",
-  "description": "複数のStage A episode_extractionに含まれるrelative_order候補のsame_time縮約・横断循環検出結果",
+  "description": "複数のStage A episode_extractionに含まれるrelative_order候補のsame_time縮約・横断循環とepisode metadata順序値の競合検出結果",
   "type": "object",
   "additionalProperties": false,
   "allOf": [
     {
       "if": {
-        "properties": { "schemaVersion": { "const": "0.2" } },
+        "properties": { "schemaVersion": { "enum": ["0.2", "0.3"] } },
         "required": ["schemaVersion"]
       },
       "then": {
@@ -23,6 +23,23 @@
             "items": { "$ref": "#/definitions/FindingV02" }
           }
         }
+      }
+    },
+    {
+      "if": {
+        "properties": { "schemaVersion": { "const": "0.3" } },
+        "required": ["schemaVersion"]
+      },
+      "then": {
+        "required": [
+          "explicitOrderCandidateCount",
+          "numericEpisodeObservationCount",
+          "numericEpisodeOrderGroupCount",
+          "numericIgnoredObservationCount",
+          "numericIgnoredObservations",
+          "numericFindingCount",
+          "numericFindings"
+        ]
       }
     }
   ],
@@ -46,7 +63,7 @@
     "findings"
   ],
   "properties": {
-    "schemaVersion": { "enum": ["0.1", "0.2"] },
+    "schemaVersion": { "enum": ["0.1", "0.2", "0.3"] },
     "documentType": { "const": "timeline_consistency_report" },
     "status": {
       "enum": ["passed", "needs_review", "invalid_input"]
@@ -80,6 +97,19 @@
     "findings": {
       "type": "array",
       "items": { "$ref": "#/definitions/Finding" }
+    },
+    "explicitOrderCandidateCount": { "type": "integer", "minimum": 0 },
+    "numericEpisodeObservationCount": { "type": "integer", "minimum": 0 },
+    "numericEpisodeOrderGroupCount": { "type": "integer", "minimum": 0 },
+    "numericIgnoredObservationCount": { "type": "integer", "minimum": 0 },
+    "numericIgnoredObservations": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/NumericIgnoredObservation" }
+    },
+    "numericFindingCount": { "type": "integer", "minimum": 0 },
+    "numericFindings": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/NumericFinding" }
     }
   },
   "definitions": {
@@ -261,6 +291,128 @@
           }
         }
       ]
+    },
+    "ExtractionRun": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "extractionVersion",
+        "extractionMethod",
+        "modelProvider",
+        "modelName",
+        "promptVersion",
+        "extractedAt",
+        "parserCompatibilityAtExtraction"
+      ],
+      "properties": {
+        "extractionVersion": { "type": "string" },
+        "extractionMethod": {
+          "enum": ["rule_based", "llm", "manual", "hybrid"]
+        },
+        "modelProvider": { "type": ["string", "null"] },
+        "modelName": { "type": ["string", "null"] },
+        "promptVersion": { "type": ["string", "null"] },
+        "extractedAt": { "type": ["string", "null"] },
+        "parserCompatibilityAtExtraction": {
+          "enum": ["compatible", "warning", "needs_update", "blocked"]
+        }
+      }
+    },
+    "NumericObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sourcePath",
+        "episodeId",
+        "candidateId",
+        "evidenceIds",
+        "scope",
+        "orderField",
+        "orderValue",
+        "extractionRun"
+      ],
+      "properties": {
+        "sourcePath": { "type": "string" },
+        "episodeId": { "type": "string" },
+        "candidateId": { "type": "string" },
+        "evidenceIds": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "scope": { "const": "episode" },
+        "orderField": {
+          "enum": ["canonicalOrder", "releaseOrder", "displayOrder"]
+        },
+        "orderValue": { "type": "number" },
+        "extractionRun": { "$ref": "#/definitions/ExtractionRun" }
+      }
+    },
+    "NumericIgnoredObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reason",
+        "sourcePath",
+        "episodeId",
+        "candidateId",
+        "evidenceIds",
+        "scope",
+        "orderField",
+        "orderValue",
+        "extractionRun"
+      ],
+      "properties": {
+        "reason": {
+          "enum": [
+            "unsupported_scope",
+            "missing_order_field",
+            "unsupported_order_field",
+            "missing_order_value"
+          ]
+        },
+        "sourcePath": { "type": "string" },
+        "episodeId": { "type": "string" },
+        "candidateId": { "type": "string" },
+        "evidenceIds": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "scope": { "type": ["string", "null"] },
+        "orderField": { "type": ["string", "null"] },
+        "orderValue": { "type": ["number", "null"] },
+        "extractionRun": { "$ref": "#/definitions/ExtractionRun" }
+      }
+    },
+    "NumericFinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rule",
+        "severity",
+        "episodeId",
+        "orderField",
+        "values",
+        "observations"
+      ],
+      "properties": {
+        "rule": { "const": "timeline_episode_order_field_value_conflict" },
+        "severity": { "const": "warning" },
+        "episodeId": { "type": "string" },
+        "orderField": {
+          "enum": ["canonicalOrder", "releaseOrder", "displayOrder"]
+        },
+        "values": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": { "type": "number" }
+        },
+        "observations": {
+          "type": "array",
+          "minItems": 2,
+          "items": { "$ref": "#/definitions/NumericObservation" }
+        }
+      }
     }
   }
 }

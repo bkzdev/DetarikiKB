@@ -24,13 +24,16 @@ def test_runbook_defines_stage_a_cycle_check_contract():
     content = _read(RUNBOOK_PATH)
     for required in (
         "scripts/check_timeline_consistency.py",
-        'TimelineCandidate(kind: "relative_order")',
+        'kind: "relative_order"',
         "timeline_relative_order_cycle",
         "timeline_relative_order_within_same_time_class",
         "Union-Find",
         "反復Kosaraju法",
         "candidate ID・Evidence ID・入力path",
         "target_not_loaded",
+        "timeline_episode_order_field_value_conflict",
+        "numericIgnoredObservations",
+        "extractionRun",
     ):
         assert required in content
 
@@ -56,8 +59,8 @@ def test_architecture_keeps_check_separate_from_stage_b_merge():
     assert "Stage B自体は順序graphの整合性判定を行わない" in _read(MERGED_DESIGN_PATH)
 
 
-def test_tasks_records_completed_first_stage_and_remaining_scope():
+def test_tasks_records_completed_stages_and_remaining_scope():
     content = _read(TASKS_PATH)
-    assert "`codex/timeline-same-time-consistency`" in content
-    assert "timeline contradiction detectionの第1・第2段階" in content
-    assert "数値順序のfield別整合性・総順序判定" in content
+    assert "`codex/timeline-episode-order-value-conflict`" in content
+    assert "timeline contradiction detectionの第1〜第3段階" in content
+    assert "field間の意味対応とrelative orderとの数値比較方針" in content

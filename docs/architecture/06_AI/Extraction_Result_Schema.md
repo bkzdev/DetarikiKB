@@ -538,7 +538,7 @@ Stage Aのidentityはscopeをまたいで混ぜない。Scene由来は`sourceTim
 
 TimelineCandidateはエンティティではないが、Stage BでEvidence・SourceCandidateを保持した`timeline/timeline_entries.json`へ一覧化する。`sourceTimelineId`だけをscope横断の強い集約キーとし、IDなしScene候補はcandidate単位で保持する（`Merged_Knowledge_Design.md` §7）。
 
-複数documentの`relative_order`はStage B merge後ではなく、Stage A candidate単位のまま`scripts/check_timeline_consistency.py`で横断検査する。`same_time`を無向の同値関係として推移縮約し、同一class内の`before` / `after`とclass間の有向循環をwarning findingとして検出する。関与する全same-time / before / after candidateとEvidenceを独立reportへ保持する。参照先episodeが入力に無い部分batchや欠落fieldは矛盾と推測せず`ignoredCandidates`へ理由付きで残す（`docs/runbooks/Timeline_Consistency_Check.md`）。
+複数documentのTimeline candidateはStage B merge後ではなく、Stage A candidate単位のまま`scripts/check_timeline_consistency.py`で横断検査する。`relative_order`は`same_time`を無向の同値関係として推移縮約し、同一class内の`before` / `after`とclass間の有向循環をwarning findingとして検出する。episode metadata由来の`explicit_order`は同一episode・同一`orderField`に複数値がある場合だけwarning findingとし、異なるfieldを比較せずwinnerも選ばない。関与する全candidate、Evidence、`extractionRun`を独立reportへ保持する。参照先episodeが入力に無い部分batchや検査不能候補は矛盾と推測せず理由付きで残す（`docs/runbooks/Timeline_Consistency_Check.md`）。
 
 ---
 

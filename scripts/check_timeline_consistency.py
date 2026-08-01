@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Stage A episode_extraction群のrelative_order矛盾を横断検出する。
+"""Stage A episode_extraction群のtimeline矛盾を横断検出する。
 
 Exit codes:
-    0: 入力がすべてvalidで循環なし
-    1: 循環あり、またはinvalid/skipped inputあり
+    0: 入力がすべてvalidで矛盾なし
+    1: 矛盾あり、またはinvalid/skipped inputあり
     2: 入力を1件も解決できない、設定・report出力失敗
 """
 
@@ -38,7 +38,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "複数のStage A episode_extraction JSONからrelative_orderの"
-            "same_time class内矛盾と有向循環を検出します"
+            "same_time class内矛盾・有向循環とepisode metadata順序値の競合を検出します"
         )
     )
     parser.add_argument(
@@ -206,13 +206,13 @@ def _build_report(
     analysis = analyze_timeline_consistency(valid_documents)
     if invalid_count or skipped_inputs:
         status = "invalid_input"
-    elif analysis["findingCount"]:
+    elif analysis["findingCount"] or analysis["numericFindingCount"]:
         status = "needs_review"
     else:
         status = "passed"
 
     report = {
-        "schemaVersion": "0.2",
+        "schemaVersion": "0.3",
         "documentType": "timeline_consistency_report",
         "status": status,
         "inputFiles": len(raw_inputs),
@@ -249,7 +249,10 @@ def main() -> int:
             f"checked={report['checkedCandidateCount']} "
             f"same_time={report['checkedSameTimeCandidateCount']} "
             f"ignored={report['ignoredCandidateCount']} "
-            f"findings={report['findingCount']}"
+            f"findings={report['findingCount']} "
+            f"numeric_checked={report['numericEpisodeObservationCount']} "
+            f"numeric_ignored={report['numericIgnoredObservationCount']} "
+            f"numeric_findings={report['numericFindingCount']}"
         )
         if args.report_output:
             print(f"[Timeline consistency] report={args.report_output}")

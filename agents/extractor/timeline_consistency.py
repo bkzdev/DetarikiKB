@@ -11,6 +11,7 @@ from typing import Any
 
 FINDING_RULE = "timeline_relative_order_cycle"
 SAME_TIME_FINDING_RULE = "timeline_relative_order_within_same_time_class"
+NUMERIC_FINDING_RULE = "timeline_episode_order_field_value_conflict"
 
 IGNORE_MISSING_RELATIVE_TO = "missing_relative_to"
 IGNORE_MISSING_RELATION = "missing_relation"
@@ -18,6 +19,7 @@ IGNORE_TARGET_NOT_LOADED = "target_not_loaded"
 IGNORE_UNSUPPORTED_RELATION = "unsupported_relation"
 
 _SUPPORTED_RELATIONS = {"before", "after", "same_time"}
+_EPISODE_ORDER_FIELDS = {"canonicalOrder", "releaseOrder", "displayOrder"}
 _PRIVATE_OBSERVATION_FIELDS = {"_observationIndex"}
 
 
@@ -454,6 +456,98 @@ def _build_findings(
     ]
 
 
+def _numeric_observation(
+    source_path: str,
+    episode_id: str,
+    candidate: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "sourcePath": source_path,
+        "episodeId": episode_id,
+        "candidateId": candidate.get("id"),
+        "evidenceIds": list(candidate.get("evidenceIds", []) or []),
+        "scope": candidate.get("scope"),
+        "orderField": candidate.get("orderField"),
+        "orderValue": candidate.get("orderValue"),
+        "extractionRun": dict(candidate.get("extractionRun") or {}),
+    }
+
+
+def _numeric_ignore_reason(candidate: dict[str, Any]) -> str | None:
+    if candidate.get("scope") != "episode":
+        return "unsupported_scope"
+    order_field = candidate.get("orderField")
+    if not isinstance(order_field, str) or not order_field:
+        return "missing_order_field"
+    if order_field not in _EPISODE_ORDER_FIELDS:
+        return "unsupported_order_field"
+    if candidate.get("orderValue") is None:
+        return "missing_order_value"
+    return None
+
+
+def _append_distinct_value(values: list[int | float], value: int | float) -> None:
+    if not any(value == existing for existing in values):
+        values.append(value)
+
+
+def _analyze_numeric_episode_orders(
+    documents: list[tuple[str, dict[str, Any]]],
+) -> dict[str, Any]:
+    groups: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    ignored_observations: list[dict[str, Any]] = []
+    explicit_order_candidate_count = 0
+    observation_count = 0
+
+    for source_path, document in documents:
+        episode_id = document.get("episodeId")
+        if not isinstance(episode_id, str):
+            continue
+        for candidate in document.get("timelineCandidates", []) or []:
+            if candidate.get("kind") != "explicit_order":
+                continue
+            explicit_order_candidate_count += 1
+            observation = _numeric_observation(source_path, episode_id, candidate)
+            reason = _numeric_ignore_reason(candidate)
+            if reason is not None:
+                ignored_observations.append({"reason": reason, **observation})
+                continue
+            observation_count += 1
+            order_field = observation["orderField"]
+            assert isinstance(order_field, str)
+            groups.setdefault((episode_id, order_field), []).append(observation)
+
+    findings: list[dict[str, Any]] = []
+    for (episode_id, order_field), observations in groups.items():
+        values: list[int | float] = []
+        for observation in observations:
+            value = observation["orderValue"]
+            assert isinstance(value, int | float) and not isinstance(value, bool)
+            _append_distinct_value(values, value)
+        if len(values) < 2:
+            continue
+        findings.append(
+            {
+                "rule": NUMERIC_FINDING_RULE,
+                "severity": "warning",
+                "episodeId": episode_id,
+                "orderField": order_field,
+                "values": values,
+                "observations": observations,
+            }
+        )
+
+    return {
+        "explicitOrderCandidateCount": explicit_order_candidate_count,
+        "numericEpisodeObservationCount": observation_count,
+        "numericEpisodeOrderGroupCount": len(groups),
+        "numericIgnoredObservationCount": len(ignored_observations),
+        "numericIgnoredObservations": ignored_observations,
+        "numericFindingCount": len(findings),
+        "numericFindings": findings,
+    }
+
+
 def analyze_timeline_consistency(
     documents: list[tuple[str, dict[str, Any]]],
 ) -> dict[str, Any]:
@@ -512,6 +606,7 @@ def analyze_timeline_consistency(
         graph_edge_observations=graph_edge_observations,
         same_time_observations=same_time_observations,
     )
+    numeric_analysis = _analyze_numeric_episode_orders(documents)
     return {
         "timelineCandidateCount": timeline_candidate_count,
         "relativeOrderCandidateCount": relative_order_candidate_count,
@@ -527,4 +622,5 @@ def analyze_timeline_consistency(
         "ignoredCandidates": ignored_candidates,
         "findingCount": len(findings),
         "findings": findings,
+        **numeric_analysis,
     }
