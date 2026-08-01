@@ -38,8 +38,17 @@ def _candidate(
     }
 
 
-def _document(episode_id: str, candidates: list[dict[str, Any]]) -> dict[str, Any]:
-    return {"episodeId": episode_id, "timelineCandidates": candidates}
+def _document(
+    episode_id: str,
+    candidates: list[dict[str, Any]],
+    *,
+    story_id: str = "STORY01",
+) -> dict[str, Any]:
+    return {
+        "storyId": story_id,
+        "episodeId": episode_id,
+        "timelineCandidates": candidates,
+    }
 
 
 def _analyze(*documents: dict[str, Any]) -> dict[str, Any]:

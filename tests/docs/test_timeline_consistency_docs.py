@@ -34,6 +34,9 @@ def test_runbook_defines_stage_a_cycle_check_contract():
         "timeline_episode_order_field_value_conflict",
         "numericIgnoredObservations",
         "extractionRun",
+        "timeline_canonical_order_relative_constraint_conflict",
+        "cross_story_constraint",
+        "releaseOrder` / `displayOrder`は補完・fallback・比較に使わない",
     ):
         assert required in content
 
@@ -57,10 +60,14 @@ def test_architecture_keeps_check_separate_from_stage_b_merge():
         assert "scripts/check_timeline_consistency.py" in content
         assert "same_time" in content
     assert "Stage B自体は順序graphの整合性判定を行わない" in _read(MERGED_DESIGN_PATH)
+    assert "この代表値はcanonical chronologyの採用値ではない" in _read(
+        MERGED_DESIGN_PATH
+    )
 
 
 def test_tasks_records_completed_stages_and_remaining_scope():
     content = _read(TASKS_PATH)
     assert "`codex/timeline-episode-order-value-conflict`" in content
-    assert "timeline contradiction detectionの第1〜第3段階" in content
-    assert "field間の意味対応とrelative orderとの数値比較方針" in content
+    assert "`codex/timeline-canonical-relative-consistency`" in content
+    assert "timeline contradiction detectionの第1〜第4段階" in content
+    assert "総順序判定、canonical Timeline確定、cross-story chronology" in content

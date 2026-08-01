@@ -2,13 +2,15 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://detariki-kb/schemas/timeline_consistency_report.schema.json",
   "title": "Timeline Consistency Report",
-  "description": "複数のStage A episode_extractionに含まれるrelative_order候補のsame_time縮約・横断循環とepisode metadata順序値の競合検出結果",
+  "description": "複数のStage A episode_extractionに含まれるrelative_order候補のsame_time縮約・横断循環、episode metadata順序値の競合、canonicalOrderと同一story内相対制約の不整合検出結果",
   "type": "object",
   "additionalProperties": false,
   "allOf": [
     {
       "if": {
-        "properties": { "schemaVersion": { "enum": ["0.2", "0.3"] } },
+        "properties": {
+          "schemaVersion": { "enum": ["0.2", "0.3", "0.4"] }
+        },
         "required": ["schemaVersion"]
       },
       "then": {
@@ -27,7 +29,7 @@
     },
     {
       "if": {
-        "properties": { "schemaVersion": { "const": "0.3" } },
+        "properties": { "schemaVersion": { "enum": ["0.3", "0.4"] } },
         "required": ["schemaVersion"]
       },
       "then": {
@@ -39,6 +41,23 @@
           "numericIgnoredObservations",
           "numericFindingCount",
           "numericFindings"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": { "schemaVersion": { "const": "0.4" } },
+        "required": ["schemaVersion"]
+      },
+      "then": {
+        "required": [
+          "canonicalOrderObservationCount",
+          "canonicalConstraintCandidateCount",
+          "canonicalConstraintCheckedCount",
+          "canonicalConstraintIgnoredCount",
+          "canonicalConstraintIgnoredCandidates",
+          "canonicalConstraintFindingCount",
+          "canonicalConstraintFindings"
         ]
       }
     }
@@ -63,7 +82,7 @@
     "findings"
   ],
   "properties": {
-    "schemaVersion": { "enum": ["0.1", "0.2", "0.3"] },
+    "schemaVersion": { "enum": ["0.1", "0.2", "0.3", "0.4"] },
     "documentType": { "const": "timeline_consistency_report" },
     "status": {
       "enum": ["passed", "needs_review", "invalid_input"]
@@ -110,6 +129,19 @@
     "numericFindings": {
       "type": "array",
       "items": { "$ref": "#/definitions/NumericFinding" }
+    },
+    "canonicalOrderObservationCount": { "type": "integer", "minimum": 0 },
+    "canonicalConstraintCandidateCount": { "type": "integer", "minimum": 0 },
+    "canonicalConstraintCheckedCount": { "type": "integer", "minimum": 0 },
+    "canonicalConstraintIgnoredCount": { "type": "integer", "minimum": 0 },
+    "canonicalConstraintIgnoredCandidates": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/CanonicalConstraintIgnoredCandidate" }
+    },
+    "canonicalConstraintFindingCount": { "type": "integer", "minimum": 0 },
+    "canonicalConstraintFindings": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/CanonicalConstraintFinding" }
     }
   },
   "definitions": {
@@ -411,6 +443,127 @@
           "type": "array",
           "minItems": 2,
           "items": { "$ref": "#/definitions/NumericObservation" }
+        }
+      }
+    },
+    "CanonicalOrderObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sourcePath",
+        "storyId",
+        "episodeId",
+        "candidateId",
+        "evidenceIds",
+        "orderValue",
+        "extractionRun"
+      ],
+      "properties": {
+        "sourcePath": { "type": "string" },
+        "storyId": { "type": "string" },
+        "episodeId": { "type": "string" },
+        "candidateId": { "type": "string" },
+        "evidenceIds": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "orderValue": { "type": "number" },
+        "extractionRun": { "$ref": "#/definitions/ExtractionRun" }
+      }
+    },
+    "RelativeConstraintObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sourcePath",
+        "storyId",
+        "sourceEpisodeId",
+        "relativeTo",
+        "relation",
+        "candidateId",
+        "evidenceIds",
+        "extractionRun"
+      ],
+      "properties": {
+        "sourcePath": { "type": "string" },
+        "storyId": { "type": "string" },
+        "sourceEpisodeId": { "type": "string" },
+        "relativeTo": { "type": "string" },
+        "relation": { "enum": ["before", "after", "same_time"] },
+        "candidateId": { "type": "string" },
+        "evidenceIds": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "extractionRun": { "$ref": "#/definitions/ExtractionRun" }
+      }
+    },
+    "CanonicalConstraintIgnoredCandidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reasons",
+        "constraint",
+        "sourceOrderObservations",
+        "targetOrderObservations"
+      ],
+      "properties": {
+        "reasons": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "cross_story_constraint",
+              "missing_source_canonical_order",
+              "missing_target_canonical_order",
+              "ambiguous_source_canonical_order",
+              "ambiguous_target_canonical_order"
+            ]
+          }
+        },
+        "constraint": { "$ref": "#/definitions/RelativeConstraintObservation" },
+        "sourceOrderObservations": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/CanonicalOrderObservation" }
+        },
+        "targetOrderObservations": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/CanonicalOrderObservation" }
+        }
+      }
+    },
+    "CanonicalConstraintFinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rule",
+        "severity",
+        "storyId",
+        "constraint",
+        "sourceCanonicalOrder",
+        "targetCanonicalOrder",
+        "sourceOrderObservations",
+        "targetOrderObservations"
+      ],
+      "properties": {
+        "rule": {
+          "const": "timeline_canonical_order_relative_constraint_conflict"
+        },
+        "severity": { "const": "warning" },
+        "storyId": { "type": "string" },
+        "constraint": { "$ref": "#/definitions/RelativeConstraintObservation" },
+        "sourceCanonicalOrder": { "type": "number" },
+        "targetCanonicalOrder": { "type": "number" },
+        "sourceOrderObservations": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/CanonicalOrderObservation" }
+        },
+        "targetOrderObservations": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/CanonicalOrderObservation" }
         }
       }
     }

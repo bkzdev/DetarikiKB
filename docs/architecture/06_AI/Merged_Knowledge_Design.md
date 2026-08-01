@@ -380,8 +380,8 @@ Timelineは**エンティティを持たない**ため、他の7種と同じ「�
 
 ## 7.3 conflict / 今後の課題
 
-- 同一episodeIdに矛盾する順序値が観測された場合（例: 再抽出前後で`canonicalOrder`が変わった等）はconflictとしてレポートに記録し、新しいextractionRun由来を暫定採用する
-- Stage B自体は順序graphの整合性判定を行わない。merge前の複数Stage A documentを入力する独立CLI `scripts/check_timeline_consistency.py`が、`relative_order`の`same_time`同値class縮約・class内before/after矛盾・class間有向循環に加え、episode metadata由来の`explicit_order`について同一episode・同一`orderField`の値競合をcandidate/Evidence/`extractionRun` provenance付きwarningとして検出する。field間換算、relative orderとの数値比較、総順序判定と順序確定は引き続きTimeline Builder（将来フェーズ）へ委ねる（`docs/runbooks/Timeline_Consistency_Check.md`）
+- 同一episodeIdに矛盾する順序値が観測された場合（例: 再抽出前後で`canonicalOrder`が変わった等）はconflictとしてレポートに記録し、Stage Bの一覧表示上は新しいextractionRun由来を暫定代表にする。この代表値はcanonical chronologyの採用値ではない。独立check v0.4は全observationを保持したまま`ambiguous_*_canonical_order`としてrelative constraintとの比較を行わず、winnerを選ばない
+- Stage B自体は順序graphの整合性判定を行わない。merge前の複数Stage A documentを入力する独立CLI `scripts/check_timeline_consistency.py`が、`relative_order`の`same_time`同値class縮約・class内before/after矛盾・class間有向循環、episode metadata由来`explicit_order`の同一episode/field値競合、同一story内の一意な`canonicalOrder`とrelative constraintの不整合をcandidate/Evidence/`extractionRun` provenance付きwarningとして検出する。release/displayによる補完、cross-story比較、総順序判定と順序確定は引き続き対象外とする（`docs/runbooks/Timeline_Consistency_Check.md`）
 
 ---
 

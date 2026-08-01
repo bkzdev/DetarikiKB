@@ -25,9 +25,13 @@ def _candidate(
 
 
 def _document(
-    episode_id: str, candidates: list[dict[str, Any]] | None = None
+    episode_id: str,
+    candidates: list[dict[str, Any]] | None = None,
+    *,
+    story_id: str = "STORY01",
 ) -> dict[str, Any]:
     return {
+        "storyId": story_id,
         "episodeId": episode_id,
         "timelineCandidates": candidates or [],
     }
