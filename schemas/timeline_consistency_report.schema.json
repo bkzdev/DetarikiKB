@@ -2,14 +2,14 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://detariki-kb/schemas/timeline_consistency_report.schema.json",
   "title": "Timeline Consistency Report",
-  "description": "複数のStage A episode_extractionに含まれるrelative_order候補のsame_time縮約・横断循環、episode metadata順序値の競合、canonicalOrderと同一story内相対制約の不整合検出結果",
+  "description": "複数のStage A episode_extractionに含まれるrelative_order候補のsame_time縮約・横断循環、episode metadata順序値の競合、canonicalOrderと同一story内相対制約の不整合、およびcanonical review準備状況の監査結果",
   "type": "object",
   "additionalProperties": false,
   "allOf": [
     {
       "if": {
         "properties": {
-          "schemaVersion": { "enum": ["0.2", "0.3", "0.4"] }
+          "schemaVersion": { "enum": ["0.2", "0.3", "0.4", "0.5"] }
         },
         "required": ["schemaVersion"]
       },
@@ -29,7 +29,7 @@
     },
     {
       "if": {
-        "properties": { "schemaVersion": { "enum": ["0.3", "0.4"] } },
+        "properties": { "schemaVersion": { "enum": ["0.3", "0.4", "0.5"] } },
         "required": ["schemaVersion"]
       },
       "then": {
@@ -46,7 +46,7 @@
     },
     {
       "if": {
-        "properties": { "schemaVersion": { "const": "0.4" } },
+        "properties": { "schemaVersion": { "enum": ["0.4", "0.5"] } },
         "required": ["schemaVersion"]
       },
       "then": {
@@ -58,6 +58,19 @@
           "canonicalConstraintIgnoredCandidates",
           "canonicalConstraintFindingCount",
           "canonicalConstraintFindings"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": { "schemaVersion": { "const": "0.5" } },
+        "required": ["schemaVersion"]
+      },
+      "then": {
+        "required": [
+          "canonicalReadinessStoryCount",
+          "canonicalReadyStoryCount",
+          "canonicalReadinessStories"
         ]
       }
     }
@@ -82,7 +95,7 @@
     "findings"
   ],
   "properties": {
-    "schemaVersion": { "enum": ["0.1", "0.2", "0.3", "0.4"] },
+    "schemaVersion": { "enum": ["0.1", "0.2", "0.3", "0.4", "0.5"] },
     "documentType": { "const": "timeline_consistency_report" },
     "status": {
       "enum": ["passed", "needs_review", "invalid_input"]
@@ -142,6 +155,12 @@
     "canonicalConstraintFindings": {
       "type": "array",
       "items": { "$ref": "#/definitions/CanonicalConstraintFinding" }
+    },
+    "canonicalReadinessStoryCount": { "type": "integer", "minimum": 0 },
+    "canonicalReadyStoryCount": { "type": "integer", "minimum": 0 },
+    "canonicalReadinessStories": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/CanonicalReadinessStory" }
     }
   },
   "definitions": {
@@ -565,6 +584,90 @@
           "minItems": 1,
           "items": { "$ref": "#/definitions/CanonicalOrderObservation" }
         }
+      }
+    },
+    "CanonicalReadinessAmbiguousEpisode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["episodeId", "values", "observations"],
+      "properties": {
+        "episodeId": { "type": "string" },
+        "values": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": { "type": "number" }
+        },
+        "observations": {
+          "type": "array",
+          "minItems": 2,
+          "items": { "$ref": "#/definitions/CanonicalOrderObservation" }
+        }
+      }
+    },
+    "CanonicalReadinessOrderBucket": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["orderValue", "episodeIds", "observations"],
+      "properties": {
+        "orderValue": { "type": "number" },
+        "episodeIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string" }
+        },
+        "observations": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/CanonicalOrderObservation" }
+        }
+      }
+    },
+    "CanonicalReadinessStory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "storyId",
+        "episodeIds",
+        "comparableEpisodeIds",
+        "missingEpisodeIds",
+        "ambiguousEpisodes",
+        "observedOrderBuckets",
+        "canonicalConstraintFindingCount",
+        "readyForCanonicalReview"
+      ],
+      "properties": {
+        "storyId": { "type": "string" },
+        "episodeIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string" }
+        },
+        "comparableEpisodeIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string" }
+        },
+        "missingEpisodeIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string" }
+        },
+        "ambiguousEpisodes": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/CanonicalReadinessAmbiguousEpisode" }
+        },
+        "observedOrderBuckets": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/CanonicalReadinessOrderBucket" }
+        },
+        "canonicalConstraintFindingCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "readyForCanonicalReview": { "type": "boolean" }
       }
     }
   }

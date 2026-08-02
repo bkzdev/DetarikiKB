@@ -39,7 +39,8 @@ def parse_args() -> argparse.Namespace:
         description=(
             "複数のStage A episode_extraction JSONからrelative_orderの"
             "same_time class内矛盾・有向循環、episode metadata順序値の競合、"
-            "canonicalOrderと同一story内相対制約の不整合を検出します"
+            "canonicalOrderと同一story内相対制約の不整合を検出し、"
+            "canonical review準備状況を監査します"
         )
     )
     parser.add_argument(
@@ -217,7 +218,7 @@ def _build_report(
         status = "passed"
 
     report = {
-        "schemaVersion": "0.4",
+        "schemaVersion": "0.5",
         "documentType": "timeline_consistency_report",
         "status": status,
         "inputFiles": len(raw_inputs),
@@ -260,7 +261,9 @@ def main() -> int:
             f"numeric_findings={report['numericFindingCount']} "
             f"canonical_checked={report['canonicalConstraintCheckedCount']} "
             f"canonical_ignored={report['canonicalConstraintIgnoredCount']} "
-            f"canonical_findings={report['canonicalConstraintFindingCount']}"
+            f"canonical_findings={report['canonicalConstraintFindingCount']} "
+            f"canonical_ready={report['canonicalReadyStoryCount']}/"
+            f"{report['canonicalReadinessStoryCount']}"
         )
         if args.report_output:
             print(f"[Timeline consistency] report={args.report_output}")
