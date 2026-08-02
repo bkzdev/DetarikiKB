@@ -495,11 +495,6 @@ def _numeric_ignore_reason(candidate: dict[str, Any]) -> str | None:
     return None
 
 
-def _append_distinct_value(values: list[int | float], value: int | float) -> None:
-    if not any(value == existing for existing in values):
-        values.append(value)
-
-
 def _analyze_numeric_episode_orders(
     documents: list[tuple[str, dict[str, Any]]],
 ) -> dict[str, Any]:
@@ -528,11 +523,7 @@ def _analyze_numeric_episode_orders(
 
     findings: list[dict[str, Any]] = []
     for (episode_id, order_field), observations in groups.items():
-        values: list[int | float] = []
-        for observation in observations:
-            value = observation["orderValue"]
-            assert isinstance(value, int | float) and not isinstance(value, bool)
-            _append_distinct_value(values, value)
+        values = _distinct_order_values(observations)
         if len(values) < 2:
             continue
         findings.append(
@@ -593,10 +584,13 @@ def _distinct_order_values(
     observations: list[dict[str, Any]],
 ) -> list[int | float]:
     values: list[int | float] = []
+    seen_values: set[int | float] = set()
     for observation in observations:
         value = observation["orderValue"]
         assert isinstance(value, int | float) and not isinstance(value, bool)
-        _append_distinct_value(values, value)
+        if value not in seen_values:
+            seen_values.add(value)
+            values.append(value)
     return values
 
 
@@ -745,6 +739,130 @@ def _analyze_canonical_constraints(
     }
 
 
+def _collect_canonical_readiness_inputs(
+    documents: list[tuple[str, dict[str, Any]]],
+) -> tuple[
+    dict[str, list[str]],
+    dict[tuple[str, str], list[dict[str, Any]]],
+]:
+    story_episodes: dict[str, list[str]] = {}
+    seen_story_episodes: dict[str, set[str]] = {}
+    canonical_groups: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    for source_path, document in documents:
+        story_id = document.get("storyId")
+        episode_id = document.get("episodeId")
+        if not isinstance(story_id, str) or not isinstance(episode_id, str):
+            continue
+        episodes = story_episodes.setdefault(story_id, [])
+        seen_episodes = seen_story_episodes.setdefault(story_id, set())
+        if episode_id not in seen_episodes:
+            seen_episodes.add(episode_id)
+            episodes.append(episode_id)
+        for candidate in document.get("timelineCandidates", []) or []:
+            if (
+                candidate.get("kind") != "explicit_order"
+                or candidate.get("scope") != "episode"
+                or candidate.get("orderField") != "canonicalOrder"
+                or candidate.get("orderValue") is None
+            ):
+                continue
+            canonical_groups.setdefault((story_id, episode_id), []).append(
+                _canonical_order_observation(
+                    source_path, story_id, episode_id, candidate
+                )
+            )
+    return story_episodes, canonical_groups
+
+
+def _build_canonical_readiness_story(
+    story_id: str,
+    episode_ids: list[str],
+    canonical_groups: dict[tuple[str, str], list[dict[str, Any]]],
+    constraint_finding_count: int,
+) -> dict[str, Any]:
+    comparable_episode_ids: list[str] = []
+    missing_episode_ids: list[str] = []
+    ambiguous_episodes: list[dict[str, Any]] = []
+    buckets_by_value: dict[int | float, dict[str, Any]] = {}
+    bucket_episode_ids: dict[int | float, set[str]] = {}
+
+    for episode_id in episode_ids:
+        observations = canonical_groups.get((story_id, episode_id), [])
+        values = _distinct_order_values(observations)
+        if not values:
+            missing_episode_ids.append(episode_id)
+        elif len(values) == 1:
+            comparable_episode_ids.append(episode_id)
+        else:
+            ambiguous_episodes.append(
+                {
+                    "episodeId": episode_id,
+                    "values": values,
+                    "observations": list(observations),
+                }
+            )
+
+        for observation in observations:
+            value = observation["orderValue"]
+            assert isinstance(value, int | float) and not isinstance(value, bool)
+            bucket = buckets_by_value.setdefault(
+                value,
+                {"orderValue": value, "episodeIds": [], "observations": []},
+            )
+            seen_episode_ids = bucket_episode_ids.setdefault(value, set())
+            if episode_id not in seen_episode_ids:
+                seen_episode_ids.add(episode_id)
+                bucket["episodeIds"].append(episode_id)
+            bucket["observations"].append(observation)
+
+    return {
+        "storyId": story_id,
+        "episodeIds": list(episode_ids),
+        "comparableEpisodeIds": comparable_episode_ids,
+        "missingEpisodeIds": missing_episode_ids,
+        "ambiguousEpisodes": ambiguous_episodes,
+        "observedOrderBuckets": sorted(
+            buckets_by_value.values(), key=lambda bucket: bucket["orderValue"]
+        ),
+        "canonicalConstraintFindingCount": constraint_finding_count,
+        "readyForCanonicalReview": (
+            not missing_episode_ids
+            and not ambiguous_episodes
+            and constraint_finding_count == 0
+        ),
+    }
+
+
+def _analyze_canonical_readiness(
+    documents: list[tuple[str, dict[str, Any]]],
+    canonical_constraint_findings: list[dict[str, Any]],
+) -> dict[str, Any]:
+    story_episodes, canonical_groups = _collect_canonical_readiness_inputs(documents)
+
+    finding_counts: dict[str, int] = {}
+    for finding in canonical_constraint_findings:
+        story_id = finding["storyId"]
+        finding_counts[story_id] = finding_counts.get(story_id, 0) + 1
+
+    story_results = [
+        _build_canonical_readiness_story(
+            story_id,
+            episode_ids,
+            canonical_groups,
+            finding_counts.get(story_id, 0),
+        )
+        for story_id, episode_ids in story_episodes.items()
+    ]
+
+    return {
+        "canonicalReadinessStoryCount": len(story_results),
+        "canonicalReadyStoryCount": sum(
+            result["readyForCanonicalReview"] for result in story_results
+        ),
+        "canonicalReadinessStories": story_results,
+    }
+
+
 def analyze_timeline_consistency(
     documents: list[tuple[str, dict[str, Any]]],
 ) -> dict[str, Any]:
@@ -807,6 +925,10 @@ def analyze_timeline_consistency(
     canonical_constraint_analysis = _analyze_canonical_constraints(
         documents, [*edge_observations, *same_time_observations]
     )
+    canonical_readiness_analysis = _analyze_canonical_readiness(
+        documents,
+        canonical_constraint_analysis["canonicalConstraintFindings"],
+    )
     return {
         "timelineCandidateCount": timeline_candidate_count,
         "relativeOrderCandidateCount": relative_order_candidate_count,
@@ -824,4 +946,5 @@ def analyze_timeline_consistency(
         "findings": findings,
         **numeric_analysis,
         **canonical_constraint_analysis,
+        **canonical_readiness_analysis,
     }

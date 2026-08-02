@@ -37,6 +37,9 @@ def test_runbook_defines_stage_a_cycle_check_contract():
         "timeline_canonical_order_relative_constraint_conflict",
         "cross_story_constraint",
         "releaseOrder` / `displayOrder`は補完・fallback・比較に使わない",
+        "readyForCanonicalReview",
+        "observedOrderBuckets",
+        "readinessがfalseであることだけでは失敗にせず",
     ):
         assert required in content
 
@@ -69,5 +72,6 @@ def test_tasks_records_completed_stages_and_remaining_scope():
     content = _read(TASKS_PATH)
     assert "`codex/timeline-episode-order-value-conflict`" in content
     assert "`codex/timeline-canonical-relative-consistency`" in content
-    assert "timeline contradiction detectionの第1〜第4段階" in content
+    assert "`codex/timeline-canonical-coverage-readiness`" in content
+    assert "timeline contradiction detectionの第1〜第5段階" in content
     assert "総順序判定、canonical Timeline確定、cross-story chronology" in content

@@ -114,7 +114,8 @@ TIMELINE_SCOPE_BLOCK = "block"
 # を許容するため、将来Parserが付与しうる拡張フィールドを想定する
 # (schemas/story.schema.json EpisodeMetadata定義)。存在するフィールドごとに
 # 個別のTimelineCandidateを生成し、優先順位付け・値の統合は行わない
-# (`displayOrder`の正式計算式・`canonicalOrder`の扱いは未確定, AI_CONTEXT.md §16)。
+# (`displayOrder`の正式計算式・`canonicalOrder`値の確定運用は未確定。
+# relative constraintとの比較方針は決定済み, AI_CONTEXT.md §16)。
 EPISODE_ORDER_METADATA_FIELDS = ("canonicalOrder", "releaseOrder", "displayOrder")
 
 # Block上の明示的な構造マーカーフィールド -> markerTypeの対応

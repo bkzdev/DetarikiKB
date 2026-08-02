@@ -538,7 +538,7 @@ MAIN_S01_C02_E01
 - 人間が確定したら `manual`
 - 公式情報があるなら `official`
 
-**比較方針は2026-08-01に決定済み。** `canonicalOrder`だけを作中時系列の数値表現として扱い、同一story内で一意に定まる値に限って`relative_order`と照合する。`same_time`は同値、`before`は小なり、`after`は大なりを要求する。`releaseOrder` / `displayOrder`は補完やfallbackに使わない。値欠落・複数値は推測で補わず、理由と全provenanceを保持する（`docs/runbooks/Timeline_Consistency_Check.md`）。
+**比較方針は2026-08-01に決定済み。** `canonicalOrder`だけを作中時系列の数値表現として扱い、同一story内で一意に定まる値に限って`relative_order`と照合する。`same_time`は同値、`before`は小なり、`after`は大なりを要求する。`releaseOrder` / `displayOrder`は補完やfallbackに使わない。値欠落・複数値は推測で補わず、理由と全provenanceを保持する。2026-08-03からはloaded episodeの値被覆と曖昧さをstory単位で監査し、全episodeが一意かつ既知constraint違反なしの場合だけreview準備済みと報告するが、これは値の確定・昇格を意味しない（`docs/runbooks/Timeline_Consistency_Check.md`）。
 
 値そのものの取得元と`sourceType`判定は上記4分類を維持する。比較方針の決定は、AI推定値の自動確定やcanonical timelineの生成を許可するものではない。
 
