@@ -75,3 +75,21 @@ def test_tasks_records_completed_stages_and_remaining_scope():
     assert "`codex/timeline-canonical-coverage-readiness`" in content
     assert "timeline contradiction detectionの第1〜第5段階" in content
     assert "総順序判定、canonical Timeline確定、cross-story chronology" in content
+
+
+def test_docs_record_first_real_readiness_dry_run_without_committing_reports():
+    runbook = _read(RUNBOOK_PATH)
+    tasks = _read(TASKS_PATH)
+    for required in (
+        "初回実データdry-run（2026-08-03）",
+        "resolved / valid input: 733 / 733",
+        "comparable / missing / ambiguous episode: 0 / 733 / 0",
+        "`readyForCanonicalReview: true`: 0 / 72 story",
+        "両runのreportはv0.5 schema error 0件",
+        "report本体は内部IDとlocal pathを含むため"
+        "`workspace/dry_runs/`だけに保持し、commitしない",
+        "`canonicalOrder`値の取得元・付与主体・人間確定後の保存先を仕様決定する必要がある",
+    ):
+        assert required in runbook
+    assert "`codex/timeline-canonical-readiness-first-real-dry-run`" in tasks
+    assert "全733 episodeでcanonical observation未付与" in tasks

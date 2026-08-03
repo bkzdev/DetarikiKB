@@ -147,3 +147,18 @@ uv run pytest tests/extractor/test_timeline_consistency.py `
 ```
 
 2・3 node cycle、自己loop、before/after正規化、same-timeの推移縮約・class内矛盾・class間cycle、同一episode・同一fieldの数値競合、同一storyのcanonical constraint、canonical review準備状況、値欠落・曖昧・cross-storyの不破棄、release/display非代用、重複観測、部分batch、invalid input、1500 episodeの非再帰走査、v0.1〜v0.5 report schema・no-clobber安全策を合成データだけで検証する。
+
+## 8. 初回実データdry-run（2026-08-03）
+
+現行ローカルで利用可能なStage A extraction corpus全体へv0.5 checkを2回実行した。report本体は内部IDとlocal pathを含むため`workspace/dry_runs/`だけに保持し、commitしない。以下は匿名集計である。
+
+- resolved / valid input: 733 / 733、invalid / skipped: 0 / 0
+- story: 72、loaded episode: 733
+- timeline candidate / `explicit_order` / `relative_order`: 0 / 0 / 0
+- comparable / missing / ambiguous episode: 0 / 733 / 0
+- `readyForCanonicalReview: true`: 0 / 72 story
+- relative / numeric / canonical constraint finding: 0 / 0 / 0
+- 両runのreportはv0.5 schema error 0件で、SHA-256が一致した
+- 生成した2 reportが`.gitignore`の`workspace/dry_runs/`規則に一致し、tracked / untracked差分へ現れないことを確認した
+
+`status: "passed"`は、観測済みcandidate間に矛盾が無く入力もvalidだったことを示す。今回はcandidate自体が0件であり、canonical reviewの入力が揃ったことを意味しない。現行corpusでは全loaded episodeが`missingEpisodeIds`へ分類されたため、総順序判定やcanonical Timeline確定へ進む前に、`canonicalOrder`値の取得元・付与主体・人間確定後の保存先を仕様決定する必要がある。このdry-runから値を補完・推測したり、`releaseOrder` / `displayOrder`を代用したりしない。
