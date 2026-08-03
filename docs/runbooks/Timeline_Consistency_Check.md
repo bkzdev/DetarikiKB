@@ -32,6 +32,7 @@ CLI: `scripts/check_timeline_consistency.py`
 
 - `kind: "explicit_order"`かつ`scope: "episode"`で、`orderField`が`canonicalOrder` / `releaseOrder` / `displayOrder`、`orderValue`が数値の候補だけを比較対象にする
 - `canonicalOrder`の正は、人間確認済み値だけを保持する`story_manifest.yaml`のepisode entryとする。Normalizerが`canonicalOrderStatus: confirmed`だけを`episodes[].metadata.canonicalOrder`へ伝播し、Extractorは`metadataSources.canonicalOrder`の`sourceType`/`confidence`をTimelineCandidateへ保持する。既存の出典なし入力だけ`script`/`0.9`へfallbackする
+- 初回・増分の実値割当は`docs/runbooks/Canonical_Order_Review.md`に従い、1 story限定のlocal-internal packetで人間確認した値だけをmanifestへ手動反映する。packet検証やreview statusからの自動反映は行わない
 - 比較keyは`(episodeId, orderField)`とする。異なるepisodeや異なるfieldの値は比較しない
 - 同じkeyで異なる値を2つ以上観測した場合は`timeline_episode_order_field_value_conflict`とする。同じ値の重複観測は競合にしない
 - 値の優先順位やwinnerは決定せず、値は初出順の重複なし一覧、observationは重複を含む全件を保持する

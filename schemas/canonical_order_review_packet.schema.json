@@ -1,0 +1,223 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://detariki-kb/schemas/canonical_order_review_packet.schema.json",
+  "title": "Canonical Order Review Packet",
+  "description": "1 storyずつcanonicalOrder候補と人間レビュー結果をworkspace限定で保持する。manifestへ未確認値を書き込まないための中間artifact。",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "documentType",
+    "packetId",
+    "reviewBatchId",
+    "classification",
+    "commitAllowed",
+    "createdAt",
+    "expiresAt",
+    "generatedFrom",
+    "story",
+    "episodes"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "const": "0.1" },
+    "documentType": { "const": "canonical_order_review_packet" },
+    "packetId": {
+      "type": "string",
+      "pattern": "^corp-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}$"
+    },
+    "reviewBatchId": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]*$"
+    },
+    "classification": { "const": "local_internal" },
+    "commitAllowed": { "const": false },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "expiresAt": { "type": "string", "format": "date-time" },
+    "generatedFrom": {
+      "type": "object",
+      "required": ["manifestSha256"],
+      "additionalProperties": false,
+      "properties": {
+        "manifestSha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "story": {
+      "type": "object",
+      "required": [
+        "reviewStoryKey",
+        "storyId",
+        "manifestStoryIndex",
+        "category",
+        "episodeCount"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "reviewStoryKey": { "const": "story-0001" },
+        "storyId": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+        "manifestStoryIndex": { "type": "integer", "minimum": 1 },
+        "category": {
+          "type": "string",
+          "enum": ["main", "event", "raid", "other", "character"]
+        },
+        "episodeCount": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "episodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/EpisodeReview" }
+    }
+  },
+  "definitions": {
+    "CanonicalOrderSource": {
+      "type": "object",
+      "required": ["sourceType"],
+      "additionalProperties": false,
+      "properties": {
+        "sourceType": {
+          "type": "string",
+          "enum": ["official", "manual", "ai_inferred", "unknown"]
+        },
+        "confidence": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "note": { "type": ["string", "null"], "maxLength": 500 }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "sourceType": { "const": "ai_inferred" } },
+            "required": ["sourceType"]
+          },
+          "then": {
+            "required": ["confidence"],
+            "properties": { "confidence": { "type": "number" } }
+          }
+        }
+      ]
+    },
+    "EpisodeReview": {
+      "type": "object",
+      "required": [
+        "episodeId",
+        "reviewEpisodeKey",
+        "manifestEpisodeIndex",
+        "episodeNumber",
+        "currentCanonicalOrder",
+        "currentCanonicalOrderStatus",
+        "currentCanonicalOrderSource",
+        "candidateCanonicalOrder",
+        "candidateSource",
+        "evidenceSummary",
+        "humanReviewStatus",
+        "humanConfirmedCanonicalOrder",
+        "humanConfirmedSource",
+        "reviewerNotes"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "reviewEpisodeKey": {
+          "type": "string",
+          "pattern": "^episode-[0-9]{4}$"
+        },
+        "episodeId": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+        "manifestEpisodeIndex": { "type": "integer", "minimum": 1 },
+        "episodeNumber": { "type": "integer", "minimum": 1 },
+        "currentCanonicalOrder": { "type": ["integer", "null"] },
+        "currentCanonicalOrderStatus": {
+          "type": "string",
+          "enum": ["unassigned", "confirmed"]
+        },
+        "currentCanonicalOrderSource": {
+          "oneOf": [
+            { "$ref": "#/definitions/CanonicalOrderSource" },
+            { "type": "null" }
+          ]
+        },
+        "candidateCanonicalOrder": { "type": ["integer", "null"] },
+        "candidateSource": {
+          "oneOf": [
+            { "$ref": "#/definitions/CanonicalOrderSource" },
+            { "type": "null" }
+          ]
+        },
+        "evidenceSummary": { "type": "string", "maxLength": 500 },
+        "humanReviewStatus": {
+          "type": "string",
+          "enum": ["pending", "confirmed", "rejected", "needs_more_context"]
+        },
+        "humanConfirmedCanonicalOrder": { "type": ["integer", "null"] },
+        "humanConfirmedSource": {
+          "oneOf": [
+            { "$ref": "#/definitions/CanonicalOrderSource" },
+            { "type": "null" }
+          ]
+        },
+        "reviewerNotes": { "type": "string", "maxLength": 500 }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "currentCanonicalOrderStatus": { "const": "confirmed" }
+            },
+            "required": ["currentCanonicalOrderStatus"]
+          },
+          "then": {
+            "properties": {
+              "currentCanonicalOrder": { "type": "integer" },
+              "currentCanonicalOrderSource": {
+                "$ref": "#/definitions/CanonicalOrderSource"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "currentCanonicalOrder": { "type": "null" },
+              "currentCanonicalOrderSource": { "type": "null" }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "candidateCanonicalOrder": { "type": "integer" } },
+            "required": ["candidateCanonicalOrder"]
+          },
+          "then": {
+            "properties": {
+              "candidateSource": { "$ref": "#/definitions/CanonicalOrderSource" },
+              "evidenceSummary": { "type": "string", "minLength": 1 }
+            }
+          },
+          "else": {
+            "properties": {
+              "candidateSource": { "type": "null" },
+              "evidenceSummary": { "const": "" }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "humanReviewStatus": { "const": "confirmed" } },
+            "required": ["humanReviewStatus"]
+          },
+          "then": {
+            "properties": {
+              "humanConfirmedCanonicalOrder": { "type": "integer" },
+              "humanConfirmedSource": {
+                "$ref": "#/definitions/CanonicalOrderSource"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "humanConfirmedCanonicalOrder": { "type": "null" },
+              "humanConfirmedSource": { "type": "null" }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

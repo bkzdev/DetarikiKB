@@ -1,0 +1,61 @@
+# Canonical Order Review Packet（合成データのみの見本）
+#
+# 実packetはscripts/build_canonical_order_review_packet.pyで
+# workspace/review_packets/canonical_order/へ生成し、commitしない。
+# candidateCanonicalOrderは候補であり、humanReviewStatus: confirmedに
+# 変更されるまでstory manifestへ反映してはならない。
+
+schemaVersion: "0.1"
+documentType: canonical_order_review_packet
+packetId: corp-20990101T000000Z-a1b2c3d4
+reviewBatchId: canonical-order-review-synthetic
+classification: local_internal
+commitAllowed: false
+createdAt: "2099-01-01T00:00:00Z"
+expiresAt: "2099-01-15T00:00:00Z"
+generatedFrom:
+  manifestSha256: "0000000000000000000000000000000000000000000000000000000000000000"
+story:
+  reviewStoryKey: story-0001
+  storyId: EVT_SYNTHETIC_REVIEW
+  manifestStoryIndex: 1
+  category: event
+  episodeCount: 2
+episodes:
+  - reviewEpisodeKey: episode-0001
+    episodeId: EVT_SYNTHETIC_REVIEW_E01
+    manifestEpisodeIndex: 1
+    episodeNumber: 1
+    currentCanonicalOrder: null
+    currentCanonicalOrderStatus: unassigned
+    currentCanonicalOrderSource: null
+    candidateCanonicalOrder: 10
+    candidateSource:
+      sourceType: ai_inferred
+      confidence: 0.7
+      note: 合成例。非逐語の根拠分類だけを短く記録する。
+    evidenceSummary: 合成例では、先行する出来事として解釈できる。
+    humanReviewStatus: pending
+    humanConfirmedCanonicalOrder: null
+    humanConfirmedSource: null
+    reviewerNotes: ""
+  - reviewEpisodeKey: episode-0002
+    episodeId: EVT_SYNTHETIC_REVIEW_E02
+    manifestEpisodeIndex: 2
+    episodeNumber: 2
+    currentCanonicalOrder: null
+    currentCanonicalOrderStatus: unassigned
+    currentCanonicalOrderSource: null
+    candidateCanonicalOrder: 20
+    candidateSource:
+      sourceType: manual
+      confidence: null
+      note: 合成例。人間が外部根拠を個別確認した想定。
+    evidenceSummary: 合成例では、後続する出来事として解釈できる。
+    humanReviewStatus: confirmed
+    humanConfirmedCanonicalOrder: 20
+    humanConfirmedSource:
+      sourceType: manual
+      confidence: null
+      note: 合成データに対する確認例。
+    reviewerNotes: 合成例のみ。実データ本文は記録しない。
