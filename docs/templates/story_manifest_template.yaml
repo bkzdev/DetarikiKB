@@ -46,6 +46,9 @@ stories:
         episodeNumber: 1
         subtitle: null
         displayTitle: null
+        canonicalOrder: null
+        canonicalOrderStatus: "unassigned"
+        canonicalOrderSource: null
         rawPath: "EVENT/csl_script_event_990101_sample_event_export/CAB-csl_script_event_990101_sample_event-episode1.dec"
         sourceFileName: "CAB-csl_script_event_990101_sample_event-episode1.dec"
         metadataStatus: "pending"
@@ -55,6 +58,9 @@ stories:
         episodeNumber: 2
         subtitle: null
         displayTitle: null
+        canonicalOrder: null
+        canonicalOrderStatus: "unassigned"
+        canonicalOrderSource: null
         rawPath: "EVENT/csl_script_event_990101_sample_event_export/CAB-csl_script_event_990101_sample_event-episode2.dec"
         sourceFileName: "CAB-csl_script_event_990101_sample_event-episode2.dec"
         metadataStatus: "pending"
@@ -94,6 +100,9 @@ stories:
         episodeNumber: 6
         subtitle: null
         displayTitle: null
+        canonicalOrder: null
+        canonicalOrderStatus: "unassigned"
+        canonicalOrderSource: null
         rawPath: "CHARACTER/csl_script_charastory_character990102_export/CAB-csl_script_charastory_character990102-H_scene6.dec"
         sourceFileName: "CAB-csl_script_charastory_character990102-H_scene6.dec"
         metadataStatus: "pending"
@@ -103,6 +112,9 @@ stories:
         episodeNumber: 1
         subtitle: null
         displayTitle: null
+        canonicalOrder: null
+        canonicalOrderStatus: "unassigned"
+        canonicalOrderSource: null
         rawPath: "CHARACTER/csl_script_charastory_character990102_export/CAB-csl_script_charastory_character990102-H_scene_s.dec"
         sourceFileName: "CAB-csl_script_charastory_character990102-H_scene_s.dec"
         metadataStatus: "pending"

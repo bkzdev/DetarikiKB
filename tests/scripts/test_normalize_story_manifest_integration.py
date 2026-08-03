@@ -18,6 +18,8 @@ from pathlib import Path
 
 import yaml
 
+from agents.extractor import Extractor
+
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 NORMALIZE_SCRIPT = PROJECT_ROOT / "scripts" / "normalize_story.py"
 
@@ -36,6 +38,9 @@ def _write_manifest(
     subtitle: str | None = None,
     public_story_id: str | None = None,
     public_episode_id: str | None = None,
+    canonical_order: int | None = None,
+    canonical_order_status: str | None = None,
+    canonical_order_source: dict | None = None,
 ) -> None:
     document = {
         "schemaVersion": "0.1.0",
@@ -67,6 +72,14 @@ def _write_manifest(
             }
         ],
     }
+    if canonical_order_status is not None:
+        document["stories"][0]["episodes"][0].update(
+            {
+                "canonicalOrder": canonical_order,
+                "canonicalOrderStatus": canonical_order_status,
+                "canonicalOrderSource": canonical_order_source,
+            }
+        )
     with open(path, "w", encoding="utf-8") as f:
         yaml.safe_dump(document, f, allow_unicode=True)
 
@@ -140,6 +153,131 @@ def test_manifest_match_populates_story_and_episode_metadata(tmp_path):
     assert manifest_info["rawPath"] == EPISODE_RAW_PATH
     assert manifest_info["publicStoryId"] is None
     assert manifest_info["publicEpisodeId"] is None
+
+
+def test_confirmed_manifest_canonical_order_propagates_with_source(tmp_path):
+    raw_root = tmp_path / "raw_root"
+    dec_path = _write_synthetic_dec(raw_root)
+    manifest_path = tmp_path / "story_manifest.yaml"
+    source = {
+        "sourceType": "manual",
+        "confidence": 1.0,
+        "note": "Synthetic review",
+    }
+    _write_manifest(
+        manifest_path,
+        canonical_order=7,
+        canonical_order_status="confirmed",
+        canonical_order_source=source,
+    )
+    output_dir = tmp_path / "out"
+
+    result = _run_cli(
+        [
+            "--input",
+            str(dec_path),
+            "--output",
+            str(output_dir),
+            "--manifest",
+            str(manifest_path),
+            "--raw-root",
+            str(raw_root),
+            "--manifest-strict",
+            "--validate",
+            "--quiet",
+        ]
+    )
+
+    assert result.returncode == 0, result.stderr
+    with open(output_dir / f"{STORY_ID}_E01.json", encoding="utf-8") as f:
+        episode_metadata = json.load(f)["episodes"][0]["metadata"]
+
+    assert episode_metadata["canonicalOrder"] == 7
+    assert episode_metadata["metadataSources"]["canonicalOrder"] == source
+
+
+def test_unconfirmed_manifest_canonical_order_does_not_propagate(tmp_path):
+    """schema外のpending候補をloaderが読んでもcanonical値へ昇格しない。"""
+    raw_root = tmp_path / "raw_root"
+    dec_path = _write_synthetic_dec(raw_root)
+    manifest_path = tmp_path / "story_manifest.yaml"
+    _write_manifest(
+        manifest_path,
+        canonical_order=7,
+        canonical_order_status="pending",
+        canonical_order_source={"sourceType": "ai_inferred", "confidence": 0.7},
+    )
+    output_dir = tmp_path / "out"
+
+    result = _run_cli(
+        [
+            "--input",
+            str(dec_path),
+            "--output",
+            str(output_dir),
+            "--manifest",
+            str(manifest_path),
+            "--raw-root",
+            str(raw_root),
+            "--manifest-strict",
+            "--quiet",
+        ]
+    )
+
+    assert result.returncode == 0, result.stderr
+    with open(output_dir / f"{STORY_ID}_E01.json", encoding="utf-8") as f:
+        episode_metadata = json.load(f)["episodes"][0]["metadata"]
+
+    assert "canonicalOrder" not in episode_metadata
+    assert "metadataSources" not in episode_metadata
+
+
+def test_confirmed_ai_canonical_order_reaches_timeline_candidate(tmp_path):
+    raw_root = tmp_path / "raw_root"
+    dec_path = _write_synthetic_dec(raw_root)
+    manifest_path = tmp_path / "story_manifest.yaml"
+    source = {
+        "sourceType": "ai_inferred",
+        "confidence": 0.7,
+        "note": "Synthetic human-reviewed inference",
+    }
+    _write_manifest(
+        manifest_path,
+        canonical_order=9,
+        canonical_order_status="confirmed",
+        canonical_order_source=source,
+    )
+    output_dir = tmp_path / "out"
+
+    result = _run_cli(
+        [
+            "--input",
+            str(dec_path),
+            "--output",
+            str(output_dir),
+            "--manifest",
+            str(manifest_path),
+            "--raw-root",
+            str(raw_root),
+            "--manifest-strict",
+            "--validate",
+            "--quiet",
+        ]
+    )
+
+    assert result.returncode == 0, result.stderr
+    with open(output_dir / f"{STORY_ID}_E01.json", encoding="utf-8") as f:
+        story_json = json.load(f)
+
+    episode_metadata = story_json["episodes"][0]["metadata"]
+    assert episode_metadata["canonicalOrder"] == 9
+    assert episode_metadata["metadataSources"]["canonicalOrder"] == source
+
+    candidate = Extractor().extract_story(story_json)[0]["timelineCandidates"][0]
+    assert candidate["orderField"] == "canonicalOrder"
+    assert candidate["orderValue"] == 9
+    assert candidate["sourceType"] == "ai_inferred"
+    assert candidate["confidence"] == 0.7
 
 
 def test_manifest_public_ids_propagate_to_source_manifest(tmp_path):

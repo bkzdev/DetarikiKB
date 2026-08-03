@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 import yaml
 from jsonschema import Draft7Validator
 
@@ -131,6 +132,16 @@ def test_template_metadata_status_is_pending():
             assert episode["metadataStatus"] == "pending"
 
 
+def test_template_canonical_order_is_explicitly_unassigned():
+    with open(TEMPLATE_PATH, encoding="utf-8") as f:
+        document = yaml.safe_load(f)
+    for story in document["stories"]:
+        for episode in story["episodes"]:
+            assert episode["canonicalOrder"] is None
+            assert episode["canonicalOrderStatus"] == "unassigned"
+            assert episode["canonicalOrderSource"] is None
+
+
 # ----------------------------------------------------------------
 # 合成データでのschema検証
 # ----------------------------------------------------------------
@@ -190,6 +201,92 @@ def test_rejects_wrong_document_type():
     document = _document(_synthetic_story())
     document["documentType"] = "not_story_manifest"
     assert _validate(document) != []
+
+
+# ----------------------------------------------------------------
+# canonicalOrder authority (story_manifest中心の確定値保存)
+# ----------------------------------------------------------------
+
+
+def test_confirmed_canonical_order_with_manual_source_is_valid():
+    story = _synthetic_story()
+    story["episodes"][0].update(
+        {
+            "canonicalOrder": 7,
+            "canonicalOrderStatus": "confirmed",
+            "canonicalOrderSource": {
+                "sourceType": "manual",
+                "confidence": 1.0,
+                "note": "Synthetic review",
+            },
+        }
+    )
+    assert _validate(_document(story)) == []
+
+
+def test_confirmed_ai_inferred_canonical_order_requires_confidence():
+    story = _synthetic_story()
+    story["episodes"][0].update(
+        {
+            "canonicalOrder": 7,
+            "canonicalOrderStatus": "confirmed",
+            "canonicalOrderSource": {
+                "sourceType": "ai_inferred",
+                "confidence": 0.7,
+                "note": "Synthetic reviewed inference",
+            },
+        }
+    )
+    assert _validate(_document(story)) == []
+
+
+def test_explicitly_unassigned_canonical_order_is_valid():
+    story = _synthetic_story()
+    story["episodes"][0].update(
+        {
+            "canonicalOrder": None,
+            "canonicalOrderStatus": "unassigned",
+            "canonicalOrderSource": None,
+        }
+    )
+    assert _validate(_document(story)) == []
+
+
+@pytest.mark.parametrize(
+    "canonical_fields",
+    [
+        {"canonicalOrder": 7},
+        {
+            "canonicalOrder": None,
+            "canonicalOrderStatus": "confirmed",
+            "canonicalOrderSource": {"sourceType": "manual"},
+        },
+        {
+            "canonicalOrder": 7,
+            "canonicalOrderStatus": "unassigned",
+            "canonicalOrderSource": None,
+        },
+        {
+            "canonicalOrder": 7,
+            "canonicalOrderStatus": "pending",
+            "canonicalOrderSource": {"sourceType": "manual"},
+        },
+        {
+            "canonicalOrder": 7.5,
+            "canonicalOrderStatus": "confirmed",
+            "canonicalOrderSource": {"sourceType": "manual"},
+        },
+        {
+            "canonicalOrder": 7,
+            "canonicalOrderStatus": "confirmed",
+            "canonicalOrderSource": {"sourceType": "ai_inferred"},
+        },
+    ],
+)
+def test_rejects_invalid_canonical_order_contract(canonical_fields):
+    story = _synthetic_story()
+    story["episodes"][0].update(canonical_fields)
+    assert _validate(_document(story)) != []
 
 
 # ----------------------------------------------------------------

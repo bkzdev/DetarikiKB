@@ -177,6 +177,11 @@ class Normalizer:
     # ----------------------------------------------------------------
 
     def _build_story_metadata(self) -> dict[str, Any]:
+        if self.story_metadata.get("canonicalOrder") is not None:
+            raise ValueError(
+                "story-level canonicalOrder is not supported; "
+                "use episode metadata canonicalOrder"
+            )
         base: dict[str, Any] = {
             "storyTitle": None,
             "displayTitle": None,

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from pathlib import Path, PureWindowsPath
 
+import pytest
 import yaml
 
 from agents.parser.story_manifest import (
@@ -141,6 +142,102 @@ def test_load_story_manifest_preserves_null_subtitle(tmp_path):
     manifest = load_story_manifest(manifest_path)
 
     assert manifest.stories[0].episodes[0].subtitle is None
+
+
+def test_load_story_manifest_reads_confirmed_canonical_order(tmp_path):
+    manifest_path = tmp_path / "story_manifest.yaml"
+    source = {
+        "sourceType": "manual",
+        "confidence": 1.0,
+        "note": "Synthetic review",
+    }
+    _write_manifest(
+        manifest_path,
+        _synthetic_manifest_dict(
+            canonicalOrder=7,
+            canonicalOrderStatus="confirmed",
+            canonicalOrderSource=source,
+        ),
+    )
+
+    episode = load_story_manifest(manifest_path).stories[0].episodes[0]
+
+    assert episode.canonical_order == 7
+    assert episode.canonical_order_status == "confirmed"
+    assert episode.canonical_order_source == source
+    assert episode.has_confirmed_canonical_order() is True
+
+
+def test_existing_manifest_without_canonical_order_fields_still_loads(tmp_path):
+    manifest_path = tmp_path / "story_manifest.yaml"
+    _write_manifest(manifest_path, _synthetic_manifest_dict())
+
+    episode = load_story_manifest(manifest_path).stories[0].episodes[0]
+
+    assert episode.canonical_order is None
+    assert episode.canonical_order_status is None
+    assert episode.canonical_order_source is None
+    assert episode.has_confirmed_canonical_order() is False
+
+
+def test_unassigned_canonical_order_is_not_confirmed(tmp_path):
+    manifest_path = tmp_path / "story_manifest.yaml"
+    _write_manifest(
+        manifest_path,
+        _synthetic_manifest_dict(
+            canonicalOrder=None,
+            canonicalOrderStatus="unassigned",
+            canonicalOrderSource=None,
+        ),
+    )
+
+    episode = load_story_manifest(manifest_path).stories[0].episodes[0]
+
+    assert episode.has_confirmed_canonical_order() is False
+
+
+def test_invalid_ai_inferred_source_is_not_confirmed_without_confidence(tmp_path):
+    """loaderはschema検証を強制しないため、normalizer側の防御条件も固定する。"""
+    manifest_path = tmp_path / "story_manifest.yaml"
+    _write_manifest(
+        manifest_path,
+        _synthetic_manifest_dict(
+            canonicalOrder=7,
+            canonicalOrderStatus="confirmed",
+            canonicalOrderSource={"sourceType": "ai_inferred"},
+        ),
+    )
+
+    episode = load_story_manifest(manifest_path).stories[0].episodes[0]
+
+    assert episode.has_confirmed_canonical_order() is False
+
+
+@pytest.mark.parametrize(
+    "invalid_source",
+    [
+        {"sourceType": "manual", "confidence": "high"},
+        {"sourceType": "official", "confidence": 1.5},
+        {"sourceType": "unknown", "unexpected": "value"},
+        {"sourceType": "manual", "note": 123},
+    ],
+)
+def test_schema_invalid_canonical_source_is_not_confirmed_at_runtime(
+    tmp_path, invalid_source
+):
+    manifest_path = tmp_path / "story_manifest.yaml"
+    _write_manifest(
+        manifest_path,
+        _synthetic_manifest_dict(
+            canonicalOrder=7,
+            canonicalOrderStatus="confirmed",
+            canonicalOrderSource=invalid_source,
+        ),
+    )
+
+    episode = load_story_manifest(manifest_path).stories[0].episodes[0]
+
+    assert episode.has_confirmed_canonical_order() is False
 
 
 def test_load_story_manifest_returns_empty_manifest_for_missing_file(tmp_path):

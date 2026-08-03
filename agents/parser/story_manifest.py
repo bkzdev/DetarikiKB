@@ -37,6 +37,10 @@ MANIFEST_CATEGORY_TO_STORY_CATEGORY: dict[str, str] = {
     "other": "OTHER",
 }
 
+CANONICAL_ORDER_SOURCE_TYPES = frozenset(
+    {"official", "manual", "ai_inferred", "unknown"}
+)
+
 
 def resolve_story_category(manifest_category: str) -> str | None:
     """story_manifest.yamlのcategoryから、normalize_story.pyの`--category`
@@ -64,6 +68,41 @@ class StoryManifestEpisode:
     metadata_status: str
     notes: str | None = None
     public_episode_id: str | None = None
+    canonical_order: int | None = None
+    canonical_order_status: str | None = None
+    canonical_order_source: dict[str, Any] | None = None
+
+    def has_confirmed_canonical_order(self) -> bool:
+        """schema検証を迂回した入力もcanonical値へ昇格させない。"""
+        if self.canonical_order_status != "confirmed":
+            return False
+        if not isinstance(self.canonical_order, int) or isinstance(
+            self.canonical_order, bool
+        ):
+            return False
+        if not isinstance(self.canonical_order_source, dict):
+            return False
+        if not set(self.canonical_order_source).issubset(
+            {"sourceType", "confidence", "note"}
+        ):
+            return False
+
+        source_type = self.canonical_order_source.get("sourceType")
+        if source_type not in CANONICAL_ORDER_SOURCE_TYPES:
+            return False
+
+        confidence = self.canonical_order_source.get("confidence")
+        if confidence is not None and (
+            not isinstance(confidence, (int, float))
+            or isinstance(confidence, bool)
+            or not 0 <= confidence <= 1
+        ):
+            return False
+        if source_type == "ai_inferred" and confidence is None:
+            return False
+
+        note = self.canonical_order_source.get("note")
+        return note is None or isinstance(note, str)
 
 
 @dataclass
@@ -121,6 +160,7 @@ class StoryManifestLookupResult:
 
 
 def _parse_episode(raw: dict[str, Any]) -> StoryManifestEpisode:
+    canonical_order_source = raw.get("canonicalOrderSource")
     return StoryManifestEpisode(
         episode_id=raw.get("episodeId", ""),
         episode_number=raw.get("episodeNumber", 0),
@@ -131,6 +171,13 @@ def _parse_episode(raw: dict[str, Any]) -> StoryManifestEpisode:
         metadata_status=raw.get("metadataStatus", "pending"),
         notes=raw.get("notes"),
         public_episode_id=raw.get("publicEpisodeId"),
+        canonical_order=raw.get("canonicalOrder"),
+        canonical_order_status=raw.get("canonicalOrderStatus"),
+        canonical_order_source=(
+            dict(canonical_order_source)
+            if isinstance(canonical_order_source, dict)
+            else None
+        ),
     )
 
 

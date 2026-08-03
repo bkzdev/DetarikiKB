@@ -221,6 +221,33 @@ def test_timeline_candidate_created_from_episode_metadata_canonical_order():
     assert "EP01" in extraction["evidenceIndex"]
 
 
+def test_episode_canonical_order_preserves_manifest_provenance():
+    block = _dialogue_block("EP01_DLG0001")
+    story = _build_normalized_story(
+        "EP01",
+        "TEST_STORY",
+        [_scene("EP01_SC001", [block])],
+        episode_metadata={
+            "canonicalOrder": 5,
+            "metadataSources": {
+                "canonicalOrder": {
+                    "sourceType": "manual",
+                    "confidence": 1.0,
+                    "note": "Synthetic review",
+                }
+            },
+        },
+    )
+
+    extraction = Extractor().extract_story(story)[0]
+    candidate = extraction["timelineCandidates"][0]
+
+    assert candidate["orderField"] == "canonicalOrder"
+    assert candidate["orderValue"] == 5
+    assert candidate["sourceType"] == "manual"
+    assert candidate["confidence"] == pytest.approx(1.0)
+
+
 def test_timeline_candidates_from_multiple_episode_order_fields():
     block = _dialogue_block("EP01_DLG0001")
     story = _build_normalized_story(

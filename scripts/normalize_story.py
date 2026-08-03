@@ -555,6 +555,11 @@ def _build_manifest_metadata(
         episode_metadata["displayTitle"] = episode.display_title
     if episode.public_episode_id is not None:
         episode_metadata["publicEpisodeId"] = episode.public_episode_id
+    if episode.has_confirmed_canonical_order():
+        episode_metadata["canonicalOrder"] = episode.canonical_order
+        episode_metadata["metadataSources"] = {
+            "canonicalOrder": dict(episode.canonical_order_source or {})
+        }
 
     return story_metadata, episode_metadata, manifest_source
 
@@ -571,8 +576,8 @@ def _normalize_story(
     """解析結果をNormalized Story JSONへ変換する。失敗時は ({}, 1) を返す。
 
     --manifest指定時は、一致したepisode entry由来のstoryTitle/
-    episodeSubtitle/displayTitle/metadataStatusをmanifest_story_metadata/
-    manifest_episode_metadataとして合成する。**明示的に指定された
+    episodeSubtitle/displayTitle/metadataStatusと、人間確認済みcanonicalOrderを
+    manifest_story_metadata/manifest_episode_metadataとして合成する。**明示的に指定された
     --story-title/--episode-titleが優先され、manifest由来の値で
     上書きされない。**
     """

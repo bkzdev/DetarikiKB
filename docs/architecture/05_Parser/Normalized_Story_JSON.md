@@ -213,6 +213,8 @@ StoryDocument
 
 Parserが自動取得できない値は `null` とする。
 
+Story-level `metadata.canonicalOrder`は後方互換の`null` placeholderであり、非null値は許可しない。作中時系列順は§10.3のEpisode metadataへ保持する。
+
 ---
 
 # 7. parser
@@ -334,10 +336,20 @@ Episodeは1つのストーリー内の個別エピソードを表す。
     "episodeTitle": null,
     "episodeSubtitle": null,
     "displayTitle": "第1期 第2章 エピソード1",
-    "sortKey": "MAIN_S01_C02_E01"
+    "sortKey": "MAIN_S01_C02_E01",
+    "canonicalOrder": 7,
+    "metadataSources": {
+      "canonicalOrder": {
+        "sourceType": "manual",
+        "confidence": 1.0,
+        "note": "人間レビュー済み"
+      }
+    }
   }
 }
 ```
+
+`canonicalOrder`は`story_manifest.yaml`で`canonicalOrderStatus: confirmed`となった値だけを伝播する。未割当・未確認候補は出力せず、`episodeNumber` / `releaseOrder` / `displayOrder`から補完しない。
 
 エピソードタイトルが判明している場合:
 

@@ -66,7 +66,10 @@
         "chapter": { "type": ["integer", "null"] },
         "displayOrder": { "type": ["integer", "null"] },
         "releaseOrder": { "type": ["integer", "null"] },
-        "canonicalOrder": { "type": ["integer", "null"] }
+        "canonicalOrder": {
+          "type": "null",
+          "description": "後方互換のlegacy placeholder。作中時系列順の正はepisodes[].metadata.canonicalOrderへ保存する"
+        }
       }
     },
 
@@ -315,8 +318,53 @@
           "type": ["string", "null"],
           "description": "story_manifest.yaml由来の公開Wiki URL用ID (任意、Story_ID_Policy_Decision.md #7)。未設定時はepisodeIdへfallbackする"
         },
-        "sortKey": { "type": ["string", "null"] }
+        "sortKey": { "type": ["string", "null"] },
+        "canonicalOrder": {
+          "type": ["integer", "null"],
+          "description": "人間確認済みの作中時系列順。releaseOrder/displayOrder/episodeNumberによる補完は禁止"
+        },
+        "metadataSources": {
+          "type": "object",
+          "description": "フィールド単位の出典情報",
+          "additionalProperties": true,
+          "properties": {
+            "canonicalOrder": {
+              "$ref": "#/definitions/CanonicalOrderMetadataSource"
+            }
+          }
+        }
       }
+    },
+
+    "CanonicalOrderMetadataSource": {
+      "type": "object",
+      "description": "story_manifestで人間確認されたcanonicalOrderの出典",
+      "required": ["sourceType"],
+      "additionalProperties": false,
+      "properties": {
+        "sourceType": {
+          "type": "string",
+          "enum": ["official", "manual", "ai_inferred", "unknown"]
+        },
+        "confidence": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "note": { "type": ["string", "null"] }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "sourceType": { "const": "ai_inferred" } },
+            "required": ["sourceType"]
+          },
+          "then": {
+            "required": ["confidence"],
+            "properties": { "confidence": { "type": "number" } }
+          }
+        }
+      ]
     },
 
     "SpeakerAssignment": {
