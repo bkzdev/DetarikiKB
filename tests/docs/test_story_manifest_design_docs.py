@@ -60,6 +60,23 @@ def test_design_doc_states_event_layout_supported_pattern():
     assert "EVT_250626_DANCER" in content
 
 
+def test_design_doc_states_schema_safe_event_source_key_escape_contract():
+    content = _read_design_doc()
+    section = content.split("# 8. storyId生成方針", 1)[1].split(
+        "# 9. episodeId生成方針", 1
+    )[0]
+
+    for phrase in (
+        "予約prefix `ENC_`",
+        "元sourceKeyのUTF-8 bytesを大文字hex化",
+        "unsafe sourceKeyの大小文字差・Unicode差を潰さない",
+        "raw traceabilityを失わない",
+        "blocking report",
+        "既に人間確認済みのmanifest",
+    ):
+        assert phrase in section
+
+
 def test_design_doc_states_subtitle_not_inferred_from_dec():
     content = _read_design_doc()
     assert "自動推測しない" in content
