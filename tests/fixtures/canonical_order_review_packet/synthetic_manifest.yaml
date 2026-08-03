@@ -1,0 +1,34 @@
+schemaVersion: "0.1.0"
+documentType: story_manifest
+stories:
+  - storyId: EVT_SYNTHETIC_REVIEW
+    category: event
+    sourceKey: synthetic_review
+    title: null
+    displayTitle: null
+    metadataStatus: pending
+    rawDirectory: EVENT/synthetic_review_export
+    notes: null
+    episodes:
+      - episodeId: EVT_SYNTHETIC_REVIEW_E01
+        episodeNumber: 1
+        subtitle: null
+        displayTitle: null
+        rawPath: EVENT/synthetic_review_export/synthetic-episode1.dec
+        sourceFileName: synthetic-episode1.dec
+        metadataStatus: pending
+        notes: null
+      - episodeId: EVT_SYNTHETIC_REVIEW_E02
+        episodeNumber: 2
+        subtitle: null
+        displayTitle: null
+        canonicalOrder: 8
+        canonicalOrderStatus: confirmed
+        canonicalOrderSource:
+          sourceType: manual
+          confidence: null
+          note: Synthetic confirmed value.
+        rawPath: EVENT/synthetic_review_export/synthetic-episode2.dec
+        sourceFileName: synthetic-episode2.dec
+        metadataStatus: confirmed
+        notes: null

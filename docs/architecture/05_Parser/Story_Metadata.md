@@ -560,7 +560,7 @@ MAIN_S01_C02_E01
 
 **比較方針は2026-08-01に決定済み。** `canonicalOrder`だけを作中時系列の数値表現として扱い、同一story内で一意に定まる値に限って`relative_order`と照合する。`same_time`は同値、`before`は小なり、`after`は大なりを要求する。`releaseOrder` / `displayOrder`は補完やfallbackに使わない。値欠落・複数値は推測で補わず、理由と全provenanceを保持する。2026-08-03からはloaded episodeの値被覆と曖昧さをstory単位で監査し、全episodeが一意かつ既知constraint違反なしの場合だけreview準備済みと報告するが、これは値の確定・昇格を意味しない（`docs/runbooks/Timeline_Consistency_Check.md`）。
 
-**保存先と付与主体は2026-08-03に決定済み。** 人間確認済みのepisode-level値だけを`story_manifest.yaml`の`canonicalOrder` / `canonicalOrderStatus: confirmed` / `canonicalOrderSource`へ保存し、Normalized Storyのepisode metadataとTimelineCandidateへ出典付きで伝播する。未割当は明示的な`unassigned` + `null`、または後方互換のため3フィールド全省略とする。未確認候補用の`pending`はmanifestに設けず、AI候補はworkspace限定のreview artifactに留める。詳細なcross-field invariantは`Story_Manifest_Design.md` §13.4を参照。
+**保存先と付与主体は2026-08-03に決定済み。** 人間確認済みのepisode-level値だけを`story_manifest.yaml`の`canonicalOrder` / `canonicalOrderStatus: confirmed` / `canonicalOrderSource`へ保存し、Normalized Storyのepisode metadataとTimelineCandidateへ出典付きで伝播する。未割当は明示的な`unassigned` + `null`、または後方互換のため3フィールド全省略とする。未確認候補用の`pending`はmanifestに設けず、AI候補はworkspace限定のreview artifactに留める。1 storyずつの生成・検証・人間確認・手動反映は`docs/runbooks/Canonical_Order_Review.md`、詳細なcross-field invariantは`Story_Manifest_Design.md` §13.4を参照。
 
 値そのものの取得元と`sourceType`判定は上記4分類を維持する。`canonicalOrderStatus`は人間review gate、`sourceType`は値の由来という別軸であり、`ai_inferred`には`confidence`を必須とする。保存先の決定は、AI推定値の自動確定、値の自動生成、canonical timelineの生成を許可するものではない。
 

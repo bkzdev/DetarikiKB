@@ -387,10 +387,11 @@ canonicalOrderSource:
 - `canonicalOrderStatus: unassigned`では`canonicalOrder`と`canonicalOrderSource`をともに`null`にする
 - `canonicalOrderStatus: confirmed`では`canonicalOrder`を整数、`canonicalOrderSource`を必須objectにする。これは値が人間レビュー済みであることを表し、episode全体の`metadataStatus`とは別のfield単位review gateである
 - `canonicalOrderSource.sourceType`は`official` / `manual` / `ai_inferred` / `unknown`の4分類とする。`ai_inferred`は`confidence`を必須とする。出典分類とreview状態は別軸なので、AI由来でも人間が値を確認した後は`confirmed`として保存できるが、未確認候補は保存しない
-- 未確認候補用の`pending`状態は設けない。AI候補・比較資料は`workspace/`のreview artifactに留め、人間確認前の値を正のmanifestへ昇格させない
+- 未確認候補用の`pending`状態は設けない。AI候補・比較資料は`workspace/`のreview artifactに留め、人間確認前の値を正のmanifestへ昇格させない。1 storyずつの候補・人間レビューには固定ignored rootへ生成する`Canonical_Order_Review.md`の専用packetを使い、validator PASSやreview statusからmanifestへ自動反映しない
 - `episodeNumber` / `releaseOrder` / `displayOrder`、ファイル順、タイトル、本文から`canonicalOrder`を補完・推測しない。同値は許容するが、連番性・一意性・総順序はこのschemaでは判定しない
 - Normalized StoryのStory-level `metadata.canonicalOrder`は後方互換の`null` placeholderに限定し、非null値を拒否する。Extractorが参照する正は常に`episodes[].metadata.canonicalOrder`であり、Story-level値との二重管理はしない
 - `scripts/build_story_manifest_candidates.py`はcanonical値を生成しない。合成templateでは3フィールドを明示的な`unassigned`として示すが、既存manifestや候補生成物での全省略も有効である
+- 実値割当の手順、packetのlocal-internal境界、本文・raw path非複写、confirmed値だけを手動反映する運用は`docs/runbooks/Canonical_Order_Review.md`を正とする
 
 ---
 
