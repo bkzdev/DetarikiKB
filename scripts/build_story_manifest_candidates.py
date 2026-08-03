@@ -16,7 +16,8 @@ docs/architecture/05_Parser/Character_Story_ID_Manifest_Design.md 参照。
 常にpendingとして出力する（DEC本文からタイトル・サブタイトルを推測する処理は
 一切行わない）。実DECファイル・生成したmanifest候補はcommitしないこと
 （`.gitignore`のworkspace/story_manifest/・story_manifest_candidates_*
-パターンを参照）。
+パターンを参照）。schema非対応文字を含むEVENT sourceKeyはID componentだけを
+決定的にescapeし、sourceKey/rawPath/sourceFileNameの元値は変更しない。
 
 対応するraw配置（EVENT・CHARACTER・CHARACTER_DATEカテゴリ、MAIN/RAID/OTHERは
 未対応、Story_Manifest_Design.md §18 OD-002）:
@@ -55,7 +56,7 @@ Usage:
 
 Exit codes:
     0: 成功（該当するストーリーが0件でも成功）
-    1: --raw-rootが存在しない、またはディレクトリでない
+    1: --raw-rootが存在しない、またはID衝突により安全に出力できない
 """
 
 from __future__ import annotations
@@ -75,6 +76,7 @@ from agents.parser.story_manifest_candidates import (  # noqa: E402
     build_candidate_document,
     build_character_story_manifest_candidates,
     build_story_manifest_candidates,
+    find_candidate_id_collisions,
 )
 
 _DEFAULT_CHARACTER_DICTIONARY = (
@@ -120,6 +122,27 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _print_collision_report(collision_report: list[dict]) -> None:
+    print(
+        f"[story-manifest] blocking ID衝突: {len(collision_report)} 件",
+        file=sys.stderr,
+    )
+    for issue in collision_report:
+        identifier = issue.get("storyId") or issue.get("episodeId")
+        print(f"  - [{issue['issueType']}] id={identifier}", file=sys.stderr)
+        for index, observation in enumerate(issue["observations"], start=1):
+            details = " ".join(f"{key}={value}" for key, value in observation.items())
+            print(f"      observation[{index}] {details}", file=sys.stderr)
+
+
+def _report_id_collisions(candidates: list[dict]) -> bool:
+    collision_report = find_candidate_id_collisions(candidates)
+    if not collision_report:
+        return False
+    _print_collision_report(collision_report)
+    return True
+
+
 def main() -> int:
     args = parse_args()
 
@@ -140,6 +163,8 @@ def main() -> int:
 
     candidates = event_candidates + character_candidates
     candidates.sort(key=lambda story: story["storyId"])
+    if _report_id_collisions(candidates):
+        return 1
     document = build_candidate_document(candidates)
     episode_count = sum(len(story["episodes"]) for story in candidates)
 

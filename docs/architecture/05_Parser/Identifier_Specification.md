@@ -780,6 +780,8 @@ site/docs/organizations/igyo-seibutsu-taisakuhan.md
 
 **field設計実装（`feature/story-manifest-public-id-fields-design`で追加）**: `publicStoryId`/`publicEpisodeId`を`story_manifest.yaml`側の任意フィールドとして実装した（`docs/architecture/05_Parser/Story_Manifest_Design.md` §13.2）。このOD-002（イベント番号の基準）自体は未解消のままであり、既存`EVT_{eventNumber}`/`EVT_{sourceKey}`の関係も変更していない。
 
+**sourceKey schema-safe escape（`codex/story-manifest-event-id-escape`）**: `EVT_{sourceKey}`候補生成で、ASCII英数字・underscore以外を含むsourceKeyと予約prefix `ENC_`で始まるsourceKeyだけを、`ENC_`＋元UTF-8 bytesのhexへescapeする。元`sourceKey`とraw trace fieldは変更せず、予約prefixで始まらない既存safe ASCII keyのIDも変更しない。同一runのstory/episode ID衝突は全observationを保持するblocking reportとする。この局所修正はOD-002のイベント番号基準やpublic ID採番を決定しない。
+
 ---
 
 ## OD-003: キャラクターストーリーの番号体系

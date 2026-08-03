@@ -11,7 +11,8 @@ docs/architecture/05_Parser/Character_Story_ID_Manifest_Design.md 参照。
 文字列処理のみ）。title/subtitle/displayTitleは常にnull、metadataStatusは
 常にpendingとして組み立てる。MAIN/RAIDカテゴリのraw配置規約は未確認のため、
 このモジュールはEVENT・CHARACTER・CHARACTER_DATEカテゴリのみに対応する
-（Story_Manifest_Design.md §6・§18 OD-002）。
+（Story_Manifest_Design.md §6・§18 OD-002）。EVENT sourceKeyのうちID schemaで
+許可されない値は、元値をraw trace fieldへ保持したまま§8の可逆なescapeを行う。
 """
 
 from __future__ import annotations
@@ -112,6 +113,8 @@ _DIRECTION_SUFFIX_PATTERNS = [
 # storyId/episodeIdがschemaのpattern (^[A-Z][A-Z0-9_]*$) を満たすかの確認用
 # (characterIdはCHARACTER_ID_PATTERNでハイフンを許容するが、storyId側は許容しない)。
 _STORY_ID_SAFE_PATTERN = re.compile(r"^[A-Z][A-Z0-9_]*$")
+_EVENT_SOURCE_KEY_SAFE_PATTERN = re.compile(r"^[A-Za-z0-9_]+$")
+_EVENT_SOURCE_KEY_ENCODED_PREFIX = "ENC_"
 
 
 def normalize_path_separators(path: str) -> str:
@@ -147,6 +150,70 @@ def parse_episode_filename(name: str, expected_source_key: str) -> int | None:
     return int(match.group("episode_number"))
 
 
+def encode_event_source_key_for_id(source_key: str) -> str:
+    """EVENT sourceKeyをstory/episode ID用のschema-safe componentへ変換する。
+
+    既存のASCII英数字・underscoreだけのkeyは大文字化して互換維持する。
+    schemaで許可されない文字を含むkeyと予約prefix ``ENC_`` で始まるkeyは、
+    元sourceKeyのUTF-8 bytesを16進化し、予約prefixを付ける。予約prefix自体も
+    escape対象にすることでliteral keyとencoded keyの衝突を避ける。
+    元のsourceKeyはmanifest fieldへ変更せず保持する。
+    """
+    upper_source_key = source_key.upper()
+    if _EVENT_SOURCE_KEY_SAFE_PATTERN.fullmatch(source_key) and not (
+        upper_source_key.startswith(_EVENT_SOURCE_KEY_ENCODED_PREFIX)
+    ):
+        return upper_source_key
+
+    encoded = source_key.encode("utf-8").hex().upper()
+    return f"{_EVENT_SOURCE_KEY_ENCODED_PREFIX}{encoded}"
+
+
+def find_candidate_id_collisions(
+    candidates: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """同一run内のstoryId / episodeId衝突を全provenance付きで返す。"""
+    story_observations: dict[str, list[dict[str, Any]]] = {}
+    episode_observations: dict[str, list[dict[str, Any]]] = {}
+    for story in candidates:
+        story_id = story["storyId"]
+        story_observations.setdefault(story_id, []).append(
+            {
+                "sourceKey": story["sourceKey"],
+                "rawDirectory": story["rawDirectory"],
+            }
+        )
+        for episode in story["episodes"]:
+            episode_observations.setdefault(episode["episodeId"], []).append(
+                {
+                    "storyId": story_id,
+                    "sourceKey": story["sourceKey"],
+                    "rawPath": episode["rawPath"],
+                }
+            )
+
+    reports: list[dict[str, Any]] = []
+    for story_id, observations in sorted(story_observations.items()):
+        if len(observations) > 1:
+            reports.append(
+                {
+                    "issueType": "story_id_collision",
+                    "storyId": story_id,
+                    "observations": observations,
+                }
+            )
+    for episode_id, observations in sorted(episode_observations.items()):
+        if len(observations) > 1:
+            reports.append(
+                {
+                    "issueType": "episode_id_collision",
+                    "episodeId": episode_id,
+                    "observations": observations,
+                }
+            )
+    return reports
+
+
 def build_story_manifest_candidate(
     export_dir: Path, raw_root: Path
 ) -> dict[str, Any] | None:
@@ -158,7 +225,7 @@ def build_story_manifest_candidate(
     if source_key is None:
         return None
 
-    story_id = f"EVT_{source_key.upper()}"
+    story_id = f"EVT_{encode_event_source_key_for_id(source_key)}"
     episodes: list[dict[str, Any]] = []
     for entry in export_dir.iterdir():
         if not entry.is_file():

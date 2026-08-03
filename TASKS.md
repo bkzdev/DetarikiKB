@@ -8,6 +8,7 @@
 
 ## Current Focus
 
+- `codex/story-manifest-event-id-escape`: canonical order実review packet生成preflightで、実raw由来EVENT sourceKey 1件の記号が`EVT_{SOURCE_KEY}`へ直出しされ、story 1件・episode 4件がmanifest ID schemaに適合しない既存不具合を検出した（**candidate builder修正PR、実値非commit**）。予約prefixで始まらないsafe ASCII keyは既存IDを完全維持し、unsafe keyと予約prefix `ENC_`開始keyだけを元UTF-8 bytesのhexへ単射escapeする。元sourceKey/raw trace fieldは保持し、同一runのstory/episode ID衝突は全observation付きblocking reportとして候補出力を止める。修正後の実raw filename-only dry-runは414 story / 2,421 episodeを保持してschema error 0、変更は当該1 story / 4 episodeのIDだけ、raw trace field差分0。candidateはignored領域だけに保持した。confirmed manifest/public ID/既存リンクの自動移行、タイトル推測、canonicalOrder値生成は行わない。後続は1 story限定review packet作成を再開する。
 - `codex/timeline-canonical-review-packet`: `canonicalOrder`初回実値割当の前提として、1 story限定のlocal-internal review packet生成・検証フローを実装する（**schema・CLI・runbook実装PR**）。実packetは固定ignored root、本文・raw path・source filename非複写、pending既定、no-clobber、保持期限付きとし、候補・人間確認値・出典を分離する。validator PASSや`confirmed`記入からmanifestへの自動反映は行わない。実値の生成・投入、一括confirmed化、release/display/episodeNumber補完、総順序・canonical Timeline確定は対象外。後続はこのpacketで1 storyを人間レビューし、確認済みepisodeだけを実manifestへ反映してv0.5 checkを再実行する。
 - `codex/story-manifest-canonical-order-authority`: 2026-08-03の仕様判断Aに基づき、episode-levelの人間確認済み`canonicalOrder`を`story_manifest.yaml`中心で保存する（**schema・parser・Normalizer・Extractor実装PR**）。値・field固有status・出典を3点セットにし、`confirmed`だけをNormalized Storyへ伝播する。未割当はnull、未確認候補用pendingはmanifestに設けず、AI候補はworkspace review artifactに留める。Extractorは出典`sourceType`/`confidence`をTimelineCandidateへ保持する。release/display/episodeNumber補完、値の自動生成、実manifestへの値投入、総順序・canonical Timeline確定は行わない。後続は根拠を人間確認できたepisodeからmanifestへ実値を割り当て、v0.5 readiness checkを再実行する。
 - `codex/timeline-canonical-readiness-first-real-dry-run`: 現行ローカルで利用可能なStage A extraction corpus全体（733 document / 72 story）へv0.5 Timeline整合性checkを2回実行した（**実データdry-run、生成物非commit**）。733件すべてvalid、全finding 0件、reportはschema error 0件かつ2 runのSHA-256一致。一方でTimelineCandidate自体が0件のため、comparable / missing / ambiguous episodeは0 / 733 / 0、`readyForCanonicalReview`は0 / 72 storyだった。これは整合性checkの失敗ではなく入力値未付与を示す。release/display補完、値推測、winner選択、canonical Timeline確定は行っていない。値の付与主体・確定値保存先は後続の`codex/story-manifest-canonical-order-authority`で決定・実装した。
@@ -164,7 +165,8 @@
 22. ~~**timeline-canonical-readiness-first-real-dry-run**~~ → `codex/timeline-canonical-readiness-first-real-dry-run`で現行ローカルStage A corpus全体へv0.5監査を決定的に適用し、全733 episodeでcanonical observation未付与、review準備済み0 / 72 storyと匿名集計した（Current Focus参照）。値の付与主体・確定値保存先は次項で決定・実装
 23. ~~**timeline-canonical-order-authority**~~ → `codex/story-manifest-canonical-order-authority`で、人間確認済み値の正をepisode-level `story_manifest.yaml`、field固有review gateを`canonicalOrderStatus`、出典を`canonicalOrderSource`とする契約・伝播経路を実装した（Current Focus参照）
 24. ~~**timeline-canonical-review-packet**~~ → `codex/timeline-canonical-review-packet`で、未確認値をmanifestへ混入させない1 story限定のlocal-internal review packet生成・検証フローを実装（Current Focus参照）。実packet・実値は非commitで、人間確認からmanifest反映は自動化しない
-25. **timeline-canonical-first-reviewed-assignment** → 上記packetで個別episodeの根拠を人間が確認し、確認済みepisodeだけを実manifestへ割り当てた上でv0.5 readiness checkを再実行する（実値の自動生成・一括confirmed化は禁止）
+25. ~~**story-manifest-event-id-escape**~~ → `codex/story-manifest-event-id-escape`で、schema非対応文字を含むEVENT sourceKeyのIDだけを元UTF-8 bytesのhexへ単射escapeし、ID衝突をblocking reportする（Current Focus参照）。実manifestやpublic IDは自動変更せず、ignored candidateを再生成する
+26. **timeline-canonical-first-reviewed-assignment** → 上記packetで個別episodeの根拠を人間が確認し、確認済みepisodeだけを実manifestへ割り当てた上でv0.5 readiness checkを再実行する（実値の自動生成・一括confirmed化は禁止）
 
 ---
 

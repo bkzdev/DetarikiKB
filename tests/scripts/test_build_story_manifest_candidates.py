@@ -20,6 +20,8 @@ from pathlib import Path
 import yaml
 from jsonschema import Draft7Validator
 
+from scripts import build_story_manifest_candidates as manifest_cli
+
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 SCRIPT_PATH = PROJECT_ROOT / "scripts" / "build_story_manifest_candidates.py"
 SCHEMA_PATH = PROJECT_ROOT / "schemas" / "story_manifest.schema.json"
@@ -37,6 +39,78 @@ def _make_episode_file(export_dir: Path, source_key: str, episode_number: int) -
     path = export_dir / f"CAB-csl_script_event_{source_key}-episode{episode_number}.dec"
     path.write_text("", encoding="utf-8")
     return path
+
+
+def _colliding_candidates() -> list[dict]:
+    def story(source_key: str, raw_directory: str) -> dict:
+        return {
+            "storyId": "EVT_SYNTHETIC_COLLISION",
+            "sourceKey": source_key,
+            "rawDirectory": raw_directory,
+            "episodes": [
+                {
+                    "episodeId": "EVT_SYNTHETIC_COLLISION_E01",
+                    "rawPath": f"{raw_directory}/synthetic-episode1.dec",
+                }
+            ],
+        }
+
+    return [
+        story("synthetic_collision", "EVENT/SYNTHETIC_COLLISION_A"),
+        story("SYNTHETIC_COLLISION", "EVENT/SYNTHETIC_COLLISION_B"),
+    ]
+
+
+def test_collision_report_prints_full_provenance(capsys):
+    blocked = manifest_cli._report_id_collisions(_colliding_candidates())
+
+    assert blocked is True
+    stderr = capsys.readouterr().err
+    for expected in (
+        "story_id_collision",
+        "episode_id_collision",
+        "sourceKey=synthetic_collision",
+        "sourceKey=SYNTHETIC_COLLISION",
+        "rawDirectory=EVENT/SYNTHETIC_COLLISION_A",
+        "rawPath=EVENT/SYNTHETIC_COLLISION_B/synthetic-episode1.dec",
+    ):
+        assert expected in stderr
+
+
+def test_cli_collision_reports_all_observations_and_does_not_write_candidate(
+    tmp_path, monkeypatch, capsys
+):
+    candidate_path = tmp_path / "story_manifest_candidates.yaml"
+    monkeypatch.setattr(
+        manifest_cli,
+        "build_story_manifest_candidates",
+        lambda _root: _colliding_candidates(),
+    )
+    monkeypatch.setattr(manifest_cli, "load_character_dictionary", lambda _path: [])
+    monkeypatch.setattr(
+        manifest_cli,
+        "build_character_story_manifest_candidates",
+        lambda _root, _entries: ([], []),
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            str(SCRIPT_PATH),
+            "--raw-root",
+            str(tmp_path),
+            "--output",
+            str(candidate_path),
+            "--quiet",
+        ],
+    )
+
+    assert manifest_cli.main() == 1
+    assert not candidate_path.exists()
+    stderr = capsys.readouterr().err
+    assert stderr.count("observation[1]") == 2
+    assert stderr.count("observation[2]") == 2
+    assert "rawPath=EVENT/SYNTHETIC_COLLISION_A/synthetic-episode1.dec" in stderr
 
 
 def test_cli_missing_raw_root_returns_exit_1(tmp_path):
@@ -82,6 +156,38 @@ def test_cli_generates_output_matching_schema(tmp_path):
     errors = list(Draft7Validator(schema).iter_errors(document))
     assert errors == []
     assert document["stories"][0]["episodes"][0]["episodeNumber"] == 1
+
+
+def test_cli_schema_safely_encodes_unsupported_event_source_key(tmp_path):
+    source_key = "synthetic+review"
+    export_dir = _make_export_dir(tmp_path, source_key)
+    _make_episode_file(export_dir, source_key, 1)
+    output_path = tmp_path / "out" / "story_manifest_candidates.yaml"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            "--raw-root",
+            str(tmp_path),
+            "--output",
+            str(output_path),
+            "--quiet",
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    with open(output_path, encoding="utf-8") as f:
+        document = yaml.safe_load(f)
+    with open(SCHEMA_PATH, encoding="utf-8") as f:
+        schema = json.load(f)
+    assert list(Draft7Validator(schema).iter_errors(document)) == []
+    assert document["stories"][0]["sourceKey"] == source_key
+    assert document["stories"][0]["storyId"] == (
+        "EVT_ENC_73796E7468657469632B726576696577"
+    )
 
 
 def test_cli_without_output_does_not_write_file(tmp_path):

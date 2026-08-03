@@ -9,6 +9,7 @@ agents/parser/story_manifest_candidates.py のユニットテスト。
 
 from __future__ import annotations
 
+import copy
 import json
 from pathlib import Path
 
@@ -25,6 +26,8 @@ from agents.parser.story_manifest_candidates import (
     build_story_manifest_candidate,
     build_story_manifest_candidates,
     classify_auxiliary_suffix,
+    encode_event_source_key_for_id,
+    find_candidate_id_collisions,
     find_character_category_directory,
     find_character_date_category_directory,
     normalize_path_separators,
@@ -104,6 +107,64 @@ def test_normalize_path_separators_converts_backslashes():
     )
 
 
+def test_event_source_key_safe_component_keeps_existing_id_contract():
+    assert (
+        encode_event_source_key_for_id("250626_synthetic_dancer")
+        == "250626_SYNTHETIC_DANCER"
+    )
+
+
+def test_event_source_key_unsupported_character_uses_stable_utf8_hex_escape():
+    assert (
+        encode_event_source_key_for_id("synthetic+review")
+        == "ENC_73796E7468657469632B726576696577"
+    )
+    assert encode_event_source_key_for_id("SYNTHETIC+REVIEW") == (
+        "ENC_53594E5448455449432B524556494557"
+    )
+
+
+def test_event_source_key_unicode_and_case_variants_remain_distinct():
+    assert encode_event_source_key_for_id("\u5408\u6210+review") == (
+        "ENC_E59088E688902B726576696577"
+    )
+    assert encode_event_source_key_for_id("Synthetic+Review") != (
+        encode_event_source_key_for_id("synthetic+review")
+    )
+
+
+def test_event_source_key_reserved_prefix_is_escaped_to_prevent_collision():
+    encoded_unsafe = encode_event_source_key_for_id("synthetic+review")
+    encoded_literal = encode_event_source_key_for_id(encoded_unsafe)
+
+    assert encoded_literal == (
+        "ENC_454E435F3733373936453734363836353734363936333242373236353736363936353737"
+    )
+    assert encoded_literal != encoded_unsafe
+    assert encode_event_source_key_for_id("enc_7379") == "ENC_656E635F37333739"
+
+
+def test_candidate_id_collisions_are_reported_without_dropping_observations(tmp_path):
+    export_dir = _make_export_dir(tmp_path)
+    _make_episode_file(export_dir, SOURCE_KEY, 1)
+    first = build_story_manifest_candidate(export_dir, tmp_path)
+    assert first is not None
+    second = copy.deepcopy(first)
+    second["sourceKey"] = SOURCE_KEY.upper()
+    second["rawDirectory"] = "EVENT/SYNTHETIC_COLLISION"
+    second["episodes"][0]["rawPath"] = "EVENT/SYNTHETIC_COLLISION/episode1.dec"
+
+    report = find_candidate_id_collisions([first, second])
+
+    assert [issue["issueType"] for issue in report] == [
+        "story_id_collision",
+        "episode_id_collision",
+    ]
+    assert all(len(issue["observations"]) == 2 for issue in report)
+    assert report[0]["observations"][0]["sourceKey"] == SOURCE_KEY
+    assert report[0]["observations"][1]["sourceKey"] == SOURCE_KEY.upper()
+
+
 # ----------------------------------------------------------------
 # build_story_manifest_candidate / build_story_manifest_candidates
 # ----------------------------------------------------------------
@@ -133,6 +194,26 @@ def test_build_story_manifest_candidate_generates_story_and_episode_ids(tmp_path
     assert candidate["category"] == "event"
     assert candidate["sourceKey"] == SOURCE_KEY
     assert candidate["episodes"][0]["episodeId"] == "EVT_250626_SYNTHETIC_DANCER_E01"
+
+
+def test_build_story_manifest_candidate_encodes_schema_unsafe_source_key(tmp_path):
+    source_key = "synthetic+review"
+    export_dir = _make_export_dir(tmp_path, source_key)
+    _make_episode_file(export_dir, source_key, 1)
+
+    candidate = build_story_manifest_candidate(export_dir, tmp_path)
+
+    assert candidate is not None
+    assert candidate["sourceKey"] == source_key
+    assert candidate["storyId"] == "EVT_ENC_73796E7468657469632B726576696577"
+    assert candidate["episodes"][0]["episodeId"] == (
+        "EVT_ENC_73796E7468657469632B726576696577_E01"
+    )
+
+    with open(SCHEMA_PATH, encoding="utf-8") as f:
+        schema = json.load(f)
+    document = build_candidate_document([candidate])
+    assert list(Draft7Validator(schema).iter_errors(document)) == []
 
 
 def test_build_story_manifest_candidate_ignores_non_matching_files(tmp_path):

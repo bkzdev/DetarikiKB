@@ -126,12 +126,24 @@ csl_script_event_250626_dancer_export
 
 # 8. storyId生成方針
 
-`storyId`は`EVT_{sourceKeyを大文字化}`とする。
+`storyId`は原則として`EVT_{sourceKeyを大文字化}`とする。
 
 ```text
 sourceKey: 250626_dancer
 storyId:   EVT_250626_DANCER
 ```
+
+`sourceKey`がASCII英数字・underscoreだけで構成され、かつ予約prefix `ENC_`で始まらない場合は、この既存規則を完全に維持する。`storyId` schemaで許可されない文字を含む場合、または大文字小文字を問わず`ENC_`で始まる場合は、ID componentを`ENC_{元sourceKeyのUTF-8 bytesを大文字hex化}`とする。
+
+```text
+sourceKey: synthetic+review
+ID component: ENC_73796E7468657469632B726576696577
+storyId: EVT_ENC_73796E7468657469632B726576696577
+```
+
+hex化は元bytesに対して単射であり、unsafe sourceKeyの大小文字差・Unicode差を潰さない。予約prefixで始まるsafe literal自体もhex化するため、encoded値との衝突を避けられる。`sourceKey` / `rawDirectory` / `rawPath` / `sourceFileName`は元値を変更せず保持し、raw traceabilityを失わない。同一生成run内でstoryIdまたはepisodeIdが衝突した場合は、全observationをblocking reportとしてstderrへ残してexit code 1とし、候補fileを出力しない。安全上必要なerror reportなので`--quiet`でも抑制しない。実データ由来provenanceを含む別fileは新規生成しない。
+
+このescapeは、これまでschema不適合で有効な候補IDを持たなかったsourceKeyだけをschema適合させる。既に人間確認済みのmanifest、割当済みpublic ID、既存リンクを自動移行・変更するものではない。ignored領域の未確認candidateはbuilderで再生成する。
 
 ## 8.1 `Identifier_Specification.md` §4.3との関係（重要な相違点）
 
@@ -143,7 +155,7 @@ storyId:   EVT_250626_DANCER
 - `sourceKey`はraw配置から機械的かつ安定して導出できる（`Identifier_Specification.md` §2.1「一度割り当てたIDは原則として変更しない」の「安定性」に資する）のに対し、`eventNumber`（連番）は人間が採番方針を決めるまで存在しない
 - `story_manifest.yaml`の`metadataStatus: pending`は、このstoryIdが**まだ人間確認前の候補**であることを明示する（`Canonical_ID_Policy.md`の「名前一致だけでcanonicalIdを自動確定しない」という既存の慎重な運用方針を、Story ID領域でも踏襲したもの）
 
-**本PRはこの相違を解消しない。** `EVT_{sourceKey}`形式を候補IDとしてそのまま採用し続けるか、人間確認時に`EVT_{eventNumber}`形式へ改めて採番し直すかは、`docs/runbooks/Character_Dictionary_Review.md`のconfirmed化運用に相当する将来の人間レビュー時に判断する未確定事項として残す（§18 OD-001）。
+**schema-safe escapeはこの相違を解消しない。** `EVT_{sourceKey}`形式を候補IDとしてそのまま採用し続けるか、人間確認時に`EVT_{eventNumber}`形式へ改めて採番し直すかは、`docs/runbooks/Character_Dictionary_Review.md`のconfirmed化運用に相当する将来の人間レビュー時に判断する未確定事項として残す（§18 OD-001）。
 
 ---
 
