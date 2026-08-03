@@ -289,6 +289,9 @@ stories:
         episodeNumber: 1
         subtitle: null
         displayTitle: null
+        canonicalOrder: null
+        canonicalOrderStatus: "unassigned"
+        canonicalOrderSource: null
         rawPath: "EVENT/csl_script_event_250626_dancer_export/CAB-csl_script_event_250626_dancer-episode1.dec"
         sourceFileName: "CAB-csl_script_event_250626_dancer-episode1.dec"
         metadataStatus: "pending"
@@ -367,6 +370,28 @@ episodes: [ ... ]
 - **parser/normalizerへの伝播**: `agents/parser/story_manifest.py`の`StoryManifestStory.character_id`/`auxiliary_files`（`StoryManifestAuxiliaryFile`のリスト）として読み込む。既存manifestに無い場合は`None`/空リストを返す（後方互換）。`scripts/normalize_story.py`側の伝播（`source.manifest`等への反映）は本PRでは実施していない（Non-goals、将来PR Dで必要になれば実施）
 - **候補生成**: `scripts/build_story_manifest_candidates.py`が`CHARACTER`/`CHARACTER_DATE`カテゴリに対応した（§16.1参照）。実データ由来の候補・manifest自体はcommitしない（§17）
 
+## 13.4 canonicalOrder authority
+
+2026-08-03の仕様判断（案A）により、episode単位の人間確認済み`canonicalOrder`は`story_manifest.yaml`を正として保存する。別のcanonical order Registryは設けない。
+
+```yaml
+canonicalOrder: 7
+canonicalOrderStatus: "confirmed"
+canonicalOrderSource:
+  sourceType: "manual"
+  confidence: 1.0
+  note: "Synthetic review"
+```
+
+- 3フィールドは既存manifestとの後方互換のため、グループ全体を省略できる。いずれか1つを記述する場合は3つすべてを必須とする
+- `canonicalOrderStatus: unassigned`では`canonicalOrder`と`canonicalOrderSource`をともに`null`にする
+- `canonicalOrderStatus: confirmed`では`canonicalOrder`を整数、`canonicalOrderSource`を必須objectにする。これは値が人間レビュー済みであることを表し、episode全体の`metadataStatus`とは別のfield単位review gateである
+- `canonicalOrderSource.sourceType`は`official` / `manual` / `ai_inferred` / `unknown`の4分類とする。`ai_inferred`は`confidence`を必須とする。出典分類とreview状態は別軸なので、AI由来でも人間が値を確認した後は`confirmed`として保存できるが、未確認候補は保存しない
+- 未確認候補用の`pending`状態は設けない。AI候補・比較資料は`workspace/`のreview artifactに留め、人間確認前の値を正のmanifestへ昇格させない
+- `episodeNumber` / `releaseOrder` / `displayOrder`、ファイル順、タイトル、本文から`canonicalOrder`を補完・推測しない。同値は許容するが、連番性・一意性・総順序はこのschemaでは判定しない
+- Normalized StoryのStory-level `metadata.canonicalOrder`は後方互換の`null` placeholderに限定し、非null値を拒否する。Extractorが参照する正は常に`episodes[].metadata.canonicalOrder`であり、Story-level値との二重管理はしない
+- `scripts/build_story_manifest_candidates.py`はcanonical値を生成しない。合成templateでは3フィールドを明示的な`unassigned`として示すが、既存manifestや候補生成物での全省略も有効である
+
 ---
 
 # 14. parser/normalizerとの連携方針
@@ -375,11 +400,11 @@ episodes: [ ... ]
 
 - `agents/parser/story_manifest.py`（新規）に、`story_manifest.yaml`の読み込み・rawPath/sourceFileNameによるepisode entry検索を実装した。`load_story_manifest(path)`はファイルが存在しない場合は空の`StoryManifest`を返す（`character_profiles.py`の`load_character_profiles`と同じ方針）。`resolve_manifest_episode(manifest, input_path, raw_root=None)`が、`find_episode_by_raw_path`（優先順位1: `raw_root`相対の完全一致、優先順位2: 正規化input pathの末尾一致=suffix match）→`find_episode_by_source_filename`（優先順位3、複数一致時は呼び出し側でambiguous判定）の順に検索する
 - `scripts/normalize_story.py`に任意引数`--manifest`/`--raw-root`/`--manifest-strict`を追加した。`--story-id`/`--category`は`required=True`から`required=False`（デフォルトNone）に変更したが、**`--manifest`未指定時、または一致するepisode entryが見つからない場合は、従来通り実質必須**（明示指定が無ければexit code 1、既存の「必須引数」相当の挙動を維持する）
-- **manifestが提供する責務**: `storyId`/`episodeId`/`category`/`title`/`subtitle`/`displayTitle`/`metadataStatus`/`rawPath`/`sourceFileName`の対応
+- **manifestが提供する責務**: `storyId`/`episodeId`/`category`/`title`/`subtitle`/`displayTitle`/`metadataStatus`/`rawPath`/`sourceFileName`の対応、および人間確認済み`canonicalOrder`の正
 - **parserが担う責務**: DEC本文を読み、Block/Scene/Dialogue等の構造化（変更なし）
 - **優先順位**: `--story-id`/`--category`/`--episode-id`/`--story-title`が明示的に指定されていればそちらを優先し、manifest由来の値で上書きしない。`--manifest`一致時のみ、指定されなかった項目をmanifest由来の値で補う。`category`（manifest上は小文字`event`等）は`agents/parser/story_manifest.py`の`resolve_story_category()`で`--category`相当の大文字prefixへ変換する。`character`カテゴリはCHAR_MAIN/CHAR_EXTRA/CHAR_DATEのいずれか判定できないため自動解決しない（§6・§18 OD-003のまま、明示的な`--category`指定が必要）
 - **一致しない場合の挙動**: `--manifest-strict`未指定なら`[警告]`を表示した上で処理を継続する（`--story-id`/`--category`の明示指定が前提）。`--manifest-strict`指定時はunmatched/ambiguousいずれもexit code 1で失敗する
-- **Normalized Story JSONへの反映**: `agents/parser/normalizer.py`の`Normalizer`に任意の`manifest_source`引数を追加し、`source.manifest`（`manifestPath`/`manifestMatched`/`matchedBy`/`sourceFileName`/`rawPath`、`feature/story-manifest-public-id-fields-design`で`publicStoryId`/`publicEpisodeId`を追加、raw manifest照合結果のtraceability記録用）として出典情報を記録する（`SourceInfo`は`additionalProperties: true`のためschema変更不要）。`story_metadata`/`episode_metadata`（いずれも既存の`additionalProperties: true`）へ、一致時のみ`storyTitle`/`displayTitle`/`episodeSubtitle`/`metadataStatus`を追加する。**`subtitle`がnullの場合もそのままnullとして`episodeSubtitle`へ反映する**（DEC本文から推測して埋めることはしない）。`feature/story-manifest-public-id-renderer-switch`で、`story_metadata.publicStoryId`/`episode_metadata.publicEpisodeId`も同じ経路（`storyTitle`/`episodeSubtitle`と同様、値が設定されている場合のみ追加）で伝播するようにした。これがExtractor/Merger/Wiki rendererまで届く実際の公開ID伝播経路であり、`source.manifest`側は生値のtraceability記録として引き続き独立に保持する
+- **Normalized Story JSONへの反映**: `agents/parser/normalizer.py`の`Normalizer`に任意の`manifest_source`引数を追加し、`source.manifest`（`manifestPath`/`manifestMatched`/`matchedBy`/`sourceFileName`/`rawPath`、`feature/story-manifest-public-id-fields-design`で`publicStoryId`/`publicEpisodeId`を追加、raw manifest照合結果のtraceability記録用）として出典情報を記録する（`SourceInfo`は`additionalProperties: true`のためschema変更不要）。`story_metadata`/`episode_metadata`へ、一致時のみ`storyTitle`/`displayTitle`/`episodeSubtitle`/`metadataStatus`を追加する。**`subtitle`がnullの場合もそのままnullとして`episodeSubtitle`へ反映する**（DEC本文から推測して埋めることはしない）。`feature/story-manifest-public-id-renderer-switch`で、`story_metadata.publicStoryId`/`episode_metadata.publicEpisodeId`も同じ経路で伝播するようにした。さらに§13.4の3フィールドがschemaとruntime防御条件を満たす`confirmed`値だけを`episodes[].metadata.canonicalOrder`と`metadataSources.canonicalOrder`へ転記する。省略・`unassigned`・未確認・不正な組み合わせはcanonical値へ昇格しない。Extractorのepisode-level TimelineCandidateはこの`sourceType`/`confidence`を保持し、出典が無い従来入力だけ`script`/`0.9`へfallbackする
 - **`subtitle`はparserがDEC本文から推測しない**（§11.1の方針をparser側にも適用する。manifestが持つ`subtitle`値をそのまま`episodeSubtitle`へ転記するだけ）
 - **既存挙動の維持**: `--manifest`未指定時は、`--story-id`/`--category`明示指定＋既存の出力（`source`に`manifest`キーが追加されない、`metadata`に`metadataStatus`が追加されない）が完全に維持されることをテストで確認済み
 

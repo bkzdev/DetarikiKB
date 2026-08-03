@@ -90,6 +90,21 @@ def test_design_doc_states_metadata_status_values():
         assert status in content
 
 
+def test_design_doc_records_confirmed_only_canonical_order_authority():
+    content = _read_design_doc()
+    section = content.split("## 13.4 canonicalOrder authority", 1)[1]
+    for required in (
+        "story_manifest.yaml`を正",
+        "canonicalOrderStatus: unassigned",
+        "canonicalOrderStatus: confirmed",
+        "未確認候補用の`pending`状態は設けない",
+        "`episodeNumber` / `releaseOrder` / `displayOrder`",
+        "Normalized Story",
+        "TimelineCandidate",
+    ):
+        assert required in section
+
+
 def test_design_doc_does_not_reference_real_character_names():
     """実データ由来のキャラクター名が紛れ込んでいないことの簡易チェック
     (tests/docs/test_wiki_output_design_docs.py と同じ確認パターン)。"""

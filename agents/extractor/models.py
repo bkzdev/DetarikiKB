@@ -379,6 +379,8 @@ class TimelineCandidateAccumulator:
     order_field: str | None = None
     marker_type: str | None = None
     is_resolved: bool = False
+    source_type: str | None = None
+    confidence: float | None = None
     scene_refs: list[str] = field(default_factory=list)
     evidence_ids: list[str] = field(default_factory=list)
 

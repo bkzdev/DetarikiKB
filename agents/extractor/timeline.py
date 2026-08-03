@@ -145,18 +145,44 @@ def _record_episode_metadata_order(
     存在するフィールドごとに個別のcandidateを生成し、優先順位付けはしない。
     """
     metadata = episode.get("metadata", {}) or {}
+    metadata_sources = metadata.get("metadataSources", {}) or {}
+    if not isinstance(metadata_sources, dict):
+        metadata_sources = {}
     for field_name in EPISODE_ORDER_METADATA_FIELDS:
         order_value = _as_order_value(metadata.get(field_name))
         if order_value is None:
             continue
 
         key = ("episode_order", episode_id, field_name)
+        source = metadata_sources.get(field_name, {}) or {}
+        if not isinstance(source, dict):
+            source = {}
+        source_type = source.get("sourceType")
+        if source_type not in {
+            "official",
+            "script",
+            "ai_extracted",
+            "ai_inferred",
+            "manual",
+            "unknown",
+        }:
+            source_type = None
+        source_confidence = source.get("confidence")
+        if (
+            not isinstance(source_confidence, (int, float))
+            or isinstance(source_confidence, bool)
+            or not 0 <= source_confidence <= 1
+        ):
+            source_confidence = None
+
         accumulators[key] = TimelineCandidateAccumulator(
             kind=TIMELINE_KIND_EXPLICIT_ORDER,
             scope=TIMELINE_SCOPE_EPISODE,
             order_value=order_value,
             order_field=field_name,
             is_resolved=True,
+            source_type=source_type,
+            confidence=source_confidence,
         )
         order.append(key)
         accumulators[key].add_evidence(episode_id)
@@ -412,7 +438,9 @@ def _finalize_timeline_candidates(
             continue
 
         index = len(candidates) + 1
-        if accumulator.kind == TIMELINE_KIND_TEMPORAL_MARKER:
+        if accumulator.confidence is not None:
+            confidence = accumulator.confidence
+        elif accumulator.kind == TIMELINE_KIND_TEMPORAL_MARKER:
             confidence = TIMELINE_CANDIDATE_CONFIDENCE_MARKER
         elif accumulator.is_resolved:
             confidence = TIMELINE_CANDIDATE_CONFIDENCE_RESOLVED
@@ -423,7 +451,7 @@ def _finalize_timeline_candidates(
             {
                 "id": f"{episode_id}_CAND_TL{index:03d}",
                 "type": TIMELINE_CANDIDATE_TYPE,
-                "sourceType": TIMELINE_CANDIDATE_SOURCE_TYPE,
+                "sourceType": accumulator.source_type or TIMELINE_CANDIDATE_SOURCE_TYPE,
                 "confidence": confidence,
                 "evidenceIds": list(accumulator.evidence_ids),
                 "extractionRun": extraction_run,

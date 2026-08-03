@@ -148,6 +148,22 @@
           "oneOf": [{ "type": "string" }, { "type": "null" }],
           "description": "Wiki表示用の完全なタイトル。無い場合はnull"
         },
+        "canonicalOrder": {
+          "oneOf": [{ "type": "integer" }, { "type": "null" }],
+          "description": "人間確認済みの作中時系列順。canonicalOrderStatus=confirmedの場合だけ整数を設定し、releaseOrder/displayOrder/episodeNumberからは補完しない"
+        },
+        "canonicalOrderStatus": {
+          "type": "string",
+          "enum": ["unassigned", "confirmed"],
+          "description": "canonicalOrder固有の確認状態。confirmedは値が人間レビュー済みであることを表し、未確認候補を表すpending状態は設けない"
+        },
+        "canonicalOrderSource": {
+          "oneOf": [
+            { "$ref": "#/definitions/CanonicalOrderSource" },
+            { "type": "null" }
+          ],
+          "description": "canonicalOrderの出典。confirmedの場合は必須、unassignedの場合はnull"
+        },
         "rawPath": {
           "type": "string",
           "description": "raw DECファイルの相対パス。区切り文字は/に正規化する (例: EVENT/csl_script_event_250626_dancer_export/CAB-csl_script_event_250626_dancer-episode1.dec)"
@@ -165,7 +181,55 @@
           "oneOf": [{ "type": "string" }, { "type": "null" }],
           "description": "自由記述の補足 (実データ本文の転記はしない)"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "anyOf": [
+              { "required": ["canonicalOrder"] },
+              { "required": ["canonicalOrderStatus"] },
+              { "required": ["canonicalOrderSource"] }
+            ]
+          },
+          "then": {
+            "required": [
+              "canonicalOrder",
+              "canonicalOrderStatus",
+              "canonicalOrderSource"
+            ]
+          }
+        },
+        {
+          "if": {
+            "required": ["canonicalOrderStatus"],
+            "properties": {
+              "canonicalOrderStatus": { "const": "confirmed" }
+            }
+          },
+          "then": {
+            "properties": {
+              "canonicalOrder": { "type": "integer" },
+              "canonicalOrderSource": {
+                "$ref": "#/definitions/CanonicalOrderSource"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["canonicalOrderStatus"],
+            "properties": {
+              "canonicalOrderStatus": { "const": "unassigned" }
+            }
+          },
+          "then": {
+            "properties": {
+              "canonicalOrder": { "type": "null" },
+              "canonicalOrderSource": { "type": "null" }
+            }
+          }
+        }
+      ]
     },
 
     "AuxiliaryFileEntry": {
@@ -225,6 +289,43 @@
           "description": "自由記述の補足 (実データ本文の転記はしない)"
         }
       }
+    },
+
+    "CanonicalOrderSource": {
+      "type": "object",
+      "description": "人間レビュー済みcanonicalOrderの出典情報。canonicalOrderStatusがreview gate、sourceTypeが値の由来を表す",
+      "required": ["sourceType"],
+      "additionalProperties": false,
+      "properties": {
+        "sourceType": {
+          "type": "string",
+          "enum": ["official", "manual", "ai_inferred", "unknown"],
+          "description": "Story_Metadata.md OD-002のcanonicalOrder出典分類"
+        },
+        "confidence": {
+          "oneOf": [
+            { "type": "number", "minimum": 0, "maximum": 1 },
+            { "type": "null" }
+          ],
+          "description": "出典値への確信度。ai_inferredでは0以上1以下の数値を必須とする"
+        },
+        "note": {
+          "oneOf": [{ "type": "string" }, { "type": "null" }],
+          "description": "確認根拠の補足。実データ本文やローカルpathは転記しない"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "sourceType": { "const": "ai_inferred" } },
+            "required": ["sourceType"]
+          },
+          "then": {
+            "required": ["confidence"],
+            "properties": { "confidence": { "type": "number" } }
+          }
+        }
+      ]
     }
   }
 }

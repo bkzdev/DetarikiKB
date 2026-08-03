@@ -31,6 +31,7 @@ CLI: `scripts/check_timeline_consistency.py`
 ### 2.1 Episode metadata順序値
 
 - `kind: "explicit_order"`かつ`scope: "episode"`で、`orderField`が`canonicalOrder` / `releaseOrder` / `displayOrder`、`orderValue`が数値の候補だけを比較対象にする
+- `canonicalOrder`の正は、人間確認済み値だけを保持する`story_manifest.yaml`のepisode entryとする。Normalizerが`canonicalOrderStatus: confirmed`だけを`episodes[].metadata.canonicalOrder`へ伝播し、Extractorは`metadataSources.canonicalOrder`の`sourceType`/`confidence`をTimelineCandidateへ保持する。既存の出典なし入力だけ`script`/`0.9`へfallbackする
 - 比較keyは`(episodeId, orderField)`とする。異なるepisodeや異なるfieldの値は比較しない
 - 同じkeyで異なる値を2つ以上観測した場合は`timeline_episode_order_field_value_conflict`とする。同じ値の重複観測は競合にしない
 - 値の優先順位やwinnerは決定せず、値は初出順の重複なし一覧、observationは重複を含む全件を保持する
@@ -161,4 +162,4 @@ uv run pytest tests/extractor/test_timeline_consistency.py `
 - 両runのreportはv0.5 schema error 0件で、SHA-256が一致した
 - 生成した2 reportが`.gitignore`の`workspace/dry_runs/`規則に一致し、tracked / untracked差分へ現れないことを確認した
 
-`status: "passed"`は、観測済みcandidate間に矛盾が無く入力もvalidだったことを示す。今回はcandidate自体が0件であり、canonical reviewの入力が揃ったことを意味しない。現行corpusでは全loaded episodeが`missingEpisodeIds`へ分類されたため、総順序判定やcanonical Timeline確定へ進む前に、`canonicalOrder`値の取得元・付与主体・人間確定後の保存先を仕様決定する必要がある。このdry-runから値を補完・推測したり、`releaseOrder` / `displayOrder`を代用したりしない。
+`status: "passed"`は、観測済みcandidate間に矛盾が無く入力もvalidだったことを示す。今回はcandidate自体が0件であり、canonical reviewの入力が揃ったことを意味しない。値の付与主体と保存先は、その後の2026-08-03判断で「人間確認後に`story_manifest.yaml`へ保存」と決定し、伝播経路も実装した。次の実データ作業は、個別episodeの根拠を人間が確認してmanifestへ値を割り当て、同じcheckを再実行することである。このdry-runから値を補完・推測したり、`releaseOrder` / `displayOrder`を代用したりしない。

@@ -88,7 +88,8 @@ def test_docs_record_first_real_readiness_dry_run_without_committing_reports():
         "両runのreportはv0.5 schema error 0件",
         "report本体は内部IDとlocal pathを含むため"
         "`workspace/dry_runs/`だけに保持し、commitしない",
-        "`canonicalOrder`値の取得元・付与主体・人間確定後の保存先を仕様決定する必要がある",
+        "人間確認後に`story_manifest.yaml`へ保存",
+        "個別episodeの根拠を人間が確認してmanifestへ値を割り当て",
     ):
         assert required in runbook
     assert "`codex/timeline-canonical-readiness-first-real-dry-run`" in tasks

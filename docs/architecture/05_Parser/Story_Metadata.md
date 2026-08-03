@@ -291,15 +291,20 @@ Season 1 Chapter 2 Episode 1
 
 ## 5.3 作中時系列順
 
-作中世界での時系列順。
+作中世界での時系列順。値はStory全体ではなく、各Episodeのmetadataに保持する。
 
 ```json
 {
-  "canonicalOrder": null
+  "episodeId": "MAIN_S01_C02_E01",
+  "metadata": {
+    "canonicalOrder": null
+  }
 }
 ```
 
 時系列が不明な場合は `null` とする。
+
+Normalized StoryのStory-level `metadata.canonicalOrder`は旧出力との後方互換のため`null` placeholderとしてのみ残す。非null値は許可せず、TimelineCandidate抽出も必ず`episodes[].metadata.canonicalOrder`を参照する。
 
 AIが推定した場合は `sourceType` を `ai_inferred` とする。
 
@@ -408,19 +413,31 @@ Parserで変換元ファイルを追跡するための情報。
 
 ```json
 {
-  "storyTitle": "異形生物対策班、始動！",
-  "metadataSources": {
-    "storyTitle": {
-      "sourceType": "manual",
-      "confidence": 1.0,
-      "note": "ユーザー提供の章タイトル"
-    },
-    "canonicalOrder": {
-      "sourceType": "ai_inferred",
-      "confidence": 0.62,
-      "note": "本文内容から推定"
+  "metadata": {
+    "storyTitle": "異形生物対策班、始動！",
+    "metadataSources": {
+      "storyTitle": {
+        "sourceType": "manual",
+        "confidence": 1.0,
+        "note": "ユーザー提供の章タイトル"
+      }
     }
-  }
+  },
+  "episodes": [
+    {
+      "episodeId": "MAIN_S01_C02_E01",
+      "metadata": {
+        "canonicalOrder": 7,
+        "metadataSources": {
+          "canonicalOrder": {
+            "sourceType": "ai_inferred",
+            "confidence": 0.62,
+            "note": "人間レビュー済みの推定候補"
+          }
+        }
+      }
+    }
+  ]
 }
 ```
 
@@ -460,7 +477,8 @@ Parserで変換元ファイルを追跡するための情報。
       "episodeTitle": null,
       "episodeSubtitle": null,
       "displayTitle": "第1期 第2章 エピソード1",
-      "sortKey": "MAIN_S01_C02_E01"
+      "sortKey": "MAIN_S01_C02_E01",
+      "canonicalOrder": null
     },
     {
       "episodeId": "MAIN_S01_C02_E02",
@@ -468,7 +486,8 @@ Parserで変換元ファイルを追跡するための情報。
       "episodeTitle": null,
       "episodeSubtitle": null,
       "displayTitle": "第1期 第2章 エピソード2",
-      "sortKey": "MAIN_S01_C02_E02"
+      "sortKey": "MAIN_S01_C02_E02",
+      "canonicalOrder": null
     },
     {
       "episodeId": "MAIN_S01_C02_E03",
@@ -476,7 +495,8 @@ Parserで変換元ファイルを追跡するための情報。
       "episodeTitle": null,
       "episodeSubtitle": null,
       "displayTitle": "第1期 第2章 エピソード3",
-      "sortKey": "MAIN_S01_C02_E03"
+      "sortKey": "MAIN_S01_C02_E03",
+      "canonicalOrder": null
     }
   ],
   "source": {
@@ -540,7 +560,9 @@ MAIN_S01_C02_E01
 
 **比較方針は2026-08-01に決定済み。** `canonicalOrder`だけを作中時系列の数値表現として扱い、同一story内で一意に定まる値に限って`relative_order`と照合する。`same_time`は同値、`before`は小なり、`after`は大なりを要求する。`releaseOrder` / `displayOrder`は補完やfallbackに使わない。値欠落・複数値は推測で補わず、理由と全provenanceを保持する。2026-08-03からはloaded episodeの値被覆と曖昧さをstory単位で監査し、全episodeが一意かつ既知constraint違反なしの場合だけreview準備済みと報告するが、これは値の確定・昇格を意味しない（`docs/runbooks/Timeline_Consistency_Check.md`）。
 
-値そのものの取得元と`sourceType`判定は上記4分類を維持する。比較方針の決定は、AI推定値の自動確定やcanonical timelineの生成を許可するものではない。
+**保存先と付与主体は2026-08-03に決定済み。** 人間確認済みのepisode-level値だけを`story_manifest.yaml`の`canonicalOrder` / `canonicalOrderStatus: confirmed` / `canonicalOrderSource`へ保存し、Normalized Storyのepisode metadataとTimelineCandidateへ出典付きで伝播する。未割当は明示的な`unassigned` + `null`、または後方互換のため3フィールド全省略とする。未確認候補用の`pending`はmanifestに設けず、AI候補はworkspace限定のreview artifactに留める。詳細なcross-field invariantは`Story_Manifest_Design.md` §13.4を参照。
+
+値そのものの取得元と`sourceType`判定は上記4分類を維持する。`canonicalOrderStatus`は人間review gate、`sourceType`は値の由来という別軸であり、`ai_inferred`には`confidence`を必須とする。保存先の決定は、AI推定値の自動確定、値の自動生成、canonical timelineの生成を許可するものではない。
 
 ---
 

@@ -108,6 +108,65 @@ def test_scene_accepts_structured_extension_fields(schema):
     validate(instance=story_json, schema=schema)
 
 
+def test_episode_metadata_accepts_confirmed_canonical_order_source(schema):
+    parser = StoryParser()
+    parse_result = parser.parse_text(
+        "合成ナレーションです。\n", source_file="test_canonical_order"
+    )
+    normalizer = Normalizer(
+        story_id="TEST_CANONICAL_ORDER",
+        story_category="OTHER",
+        source_file="test_canonical_order",
+        episode_metadata={
+            "canonicalOrder": 7,
+            "metadataSources": {
+                "canonicalOrder": {
+                    "sourceType": "manual",
+                    "confidence": 1.0,
+                    "note": "Synthetic review",
+                }
+            },
+        },
+    )
+
+    validate(instance=normalizer.normalize(parse_result), schema=schema)
+
+
+def test_episode_metadata_rejects_ai_source_without_confidence(schema):
+    parser = StoryParser()
+    parse_result = parser.parse_text(
+        "合成ナレーションです。\n", source_file="test_invalid_canonical_order"
+    )
+    normalizer = Normalizer(
+        story_id="TEST_INVALID_CANONICAL_ORDER",
+        story_category="OTHER",
+        source_file="test_invalid_canonical_order",
+        episode_metadata={
+            "canonicalOrder": 7,
+            "metadataSources": {"canonicalOrder": {"sourceType": "ai_inferred"}},
+        },
+    )
+
+    with pytest.raises(ValidationError):
+        validate(instance=normalizer.normalize(parse_result), schema=schema)
+
+
+def test_story_level_canonical_order_is_rejected(schema):
+    parser = StoryParser()
+    parse_result = parser.parse_text(
+        "合成ナレーションです。\n", source_file="test_story_canonical_order"
+    )
+    normalizer = Normalizer(
+        story_id="TEST_STORY_CANONICAL_ORDER",
+        story_category="OTHER",
+        source_file="test_story_canonical_order",
+        story_metadata={"canonicalOrder": 7},
+    )
+
+    with pytest.raises(ValueError, match="story-level canonicalOrder"):
+        normalizer.normalize(parse_result)
+
+
 def test_scene_extensions_keep_core_field_constraints(schema):
     """拡張許容後もSceneの既知フィールド制約は維持される。"""
     parser = StoryParser()
