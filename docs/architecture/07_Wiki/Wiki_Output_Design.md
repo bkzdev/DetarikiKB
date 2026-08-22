@@ -267,6 +267,7 @@ Relationship page（独立ページ）は現時点では見送り、Character/Or
 - 表示: `kind`別（`explicit_order`/`temporal_marker`）にセクション分割、`scope`（episode/block）ごとの一覧
 - 表示してはいけないもの: 順序の「確定」表現。`Merged_Knowledge_Design.md` §7.1の通りStage Bでは順序を確定しないため、Wikiページ上も「観測された順序情報の一覧」であることを明示し、確定した年表のように見せない
 - global chronology・canonical Timelineは`../03_Data_Model/Canonical_Timeline_Scope_Decision.md`でEVENT限定partial order・human-confirmed gate・internal-onlyを採択した。public表示は別decisionまで行わず、story-local `canonicalOrder`をglobal順序へ昇格・表示しない
+- `../03_Data_Model/Canonical_Timeline_Schema.md`のv0.1 schemaはinternal data contractだけであり、Wiki sourceや表示許可を意味しない。実artifact・public projection・rendererは未実装のままとする
 - テンプレート名（案）: `templates/wiki/timeline.md.j2`
 
 ## 9.12 Unresolved report page

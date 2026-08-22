@@ -23,6 +23,13 @@ DECISION_FRAME_PATH = (
     / "03_Data_Model"
     / "Canonical_Timeline_Scope_Decision.md"
 )
+CANONICAL_TIMELINE_SCHEMA_DOC_PATH = (
+    PROJECT_ROOT
+    / "docs"
+    / "architecture"
+    / "03_Data_Model"
+    / "Canonical_Timeline_Schema.md"
+)
 TIMELINE_MODEL_PATH = (
     PROJECT_ROOT / "docs" / "architecture" / "03_Data_Model" / "Timeline.md"
 )
@@ -220,3 +227,63 @@ def test_cross_story_inventory_records_first_real_empty_dry_run_safely():
     tasks = _read(TASKS_PATH)
     assert "`codex/timeline-cross-story-constraint-inventory`" in tasks
     assert "全候補分類0、両report byte-identical" in tasks
+
+
+def test_canonical_timeline_schema_docs_fix_internal_contract_and_gates():
+    content = _read(CANONICAL_TIMELINE_SCHEMA_DOC_PATH)
+    for required in (
+        "schemas/canonical_timeline.schema.json",
+        'scopeStoryCategory` | `"EVT"`固定',
+        'visibility` | `"internal_only"`固定',
+        "`(storyId, episodeId)`",
+        "before",
+        "after",
+        "same_time",
+        "unknown",
+        "conflict",
+        "reviewStatus",
+        "adoptionStatus",
+        "confirmed + candidate",
+        "humanDecision",
+        "candidateProvenance",
+        "conflictは複数根拠の不一致なので最低2件",
+        "将来semantic validatorの責務",
+        "`from.storyId`と`to.storyId`が異なること",
+        'format: "date-time"`とRFC 3339形式のpatternを併用',
+        "実artifact生成CLIはまだ存在しない",
+        "Wiki / public projectionを定義しない",
+    ):
+        assert required in content
+
+
+def test_canonical_timeline_schema_docs_keep_existing_values_and_outputs_out():
+    content = _read(CANONICAL_TIMELINE_SCHEMA_DOC_PATH)
+    for required in (
+        "既存`canonicalOrder`は引き続きstory-local",
+        "実node / edge / global値の生成・commit",
+        "candidate生成、自然文推定",
+        "semantic validator、CLI、review packet、human decision import、promotion",
+        "renderer、Wiki、public projection",
+        "既存v0.5 check、inventory、manifest、Stage A / B schemaの変更",
+    ):
+        assert required in content
+
+
+def test_timeline_and_wiki_docs_link_schema_without_enabling_public_output():
+    for path in (
+        DECISION_FRAME_PATH,
+        TIMELINE_MODEL_PATH,
+        TIMELINE_PAGE_PATH,
+        WIKI_OUTPUT_DESIGN_PATH,
+    ):
+        content = _read(path)
+        assert "Canonical_Timeline_Schema.md" in content
+        assert "internal" in content
+    assert "本ページのrenderer・source・URLを変更しない" in _read(TIMELINE_PAGE_PATH)
+
+
+def test_tasks_records_canonical_timeline_schema_contract():
+    content = _read(TASKS_PATH)
+    assert "`codex/canonical-timeline-schema-contract`" in content
+    assert "schemas/canonical_timeline.schema.json" in content
+    assert "実node / edge / artifact" in content

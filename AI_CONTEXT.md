@@ -95,6 +95,7 @@ Parser:
 - `docs/architecture/05_Parser/Story_Manifest_Design.md`
 
 Extraction / Merge:
+- `docs/architecture/03_Data_Model/Canonical_Timeline_Schema.md`（採択済みEVENT限定partial order profileを合成fixtureだけで固定するinternal-only v0.1 schema契約。5 relation state、review / adoption分離、human decision gate、candidate provenanceを表現する。実node / edge、semantic validator、CLI、review / promotion、保存先、public表示は未実装）
 - `docs/architecture/06_AI/Extraction_Pipeline.md`
 - `docs/architecture/06_AI/Extraction_Result_Schema.md`
 - `docs/architecture/06_AI/Merged_Knowledge_Design.md`
