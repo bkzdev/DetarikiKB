@@ -13,6 +13,22 @@ RESULT_SCHEMA_PATH = (
 MERGED_DESIGN_PATH = (
     PROJECT_ROOT / "docs" / "architecture" / "06_AI" / "Merged_Knowledge_Design.md"
 )
+DECISION_FRAME_PATH = (
+    PROJECT_ROOT
+    / "docs"
+    / "architecture"
+    / "03_Data_Model"
+    / "Canonical_Timeline_Scope_Decision.md"
+)
+TIMELINE_MODEL_PATH = (
+    PROJECT_ROOT / "docs" / "architecture" / "03_Data_Model" / "Timeline.md"
+)
+TIMELINE_PAGE_PATH = (
+    PROJECT_ROOT / "docs" / "architecture" / "07_Wiki" / "Timeline_Page.md"
+)
+WIKI_OUTPUT_DESIGN_PATH = (
+    PROJECT_ROOT / "docs" / "architecture" / "07_Wiki" / "Wiki_Output_Design.md"
+)
 TASKS_PATH = PROJECT_ROOT / "TASKS.md"
 
 
@@ -94,3 +110,54 @@ def test_docs_record_first_real_readiness_dry_run_without_committing_reports():
         assert required in runbook
     assert "`codex/timeline-canonical-readiness-first-real-dry-run`" in tasks
     assert "全733 episodeでcanonical observation未付与" in tasks
+
+
+def test_global_scope_decision_frame_keeps_current_freeze_and_lists_decisions():
+    content = _read(DECISION_FRAME_PATH)
+    for required in (
+        "Status: Proposed — 実装前に人間判断が必要",
+        "# 2. 現在確定している境界",
+        "# 4. 判断前に維持する不変則",
+        "## D1. 初期global scope",
+        "## D2. 順序表現",
+        "## D3. 関係状態",
+        "## D4. 許容するcross-story根拠",
+        "## D5. Review unitとpromotion gate",
+        "## D6. Internal / public出力",
+        "partial order graph",
+        "same_time",
+        "unknown",
+        "conflict",
+        "cross_story_constraint",
+        "provenance",
+        "未採択",
+    ):
+        assert required in content
+
+
+def test_global_scope_decision_frame_rejects_implicit_global_promotion():
+    content = _read(DECISION_FRAME_PATH)
+    for required in (
+        "既存`canonicalOrder`の数値をstory間で比較しない",
+        "`releaseOrder` / `displayOrder` / `episodeNumber`",
+        "winner選択",
+        "自動promotionしない",
+        "canonical Timelineのpromotionまたは公開",
+    ):
+        assert required in content
+
+
+def test_timeline_docs_link_to_global_scope_decision_frame():
+    for path in (
+        RUNBOOK_PATH,
+        TIMELINE_MODEL_PATH,
+        TIMELINE_PAGE_PATH,
+        WIKI_OUTPUT_DESIGN_PATH,
+    ):
+        assert "Canonical_Timeline_Scope_Decision.md" in _read(path)
+
+
+def test_tasks_records_global_scope_decision_frame_as_proposed():
+    content = _read(TASKS_PATH)
+    assert "`codex/timeline-canonical-global-scope-decision-frame`" in content
+    assert "docs-only、Status: Proposed" in content
