@@ -137,6 +137,12 @@ canonical readinessがfalseであることだけでは失敗にせず、report�
 - merged entity / merge reportへのfinding書き戻し
 - canonical timelineの確定、manual override、Wiki / Knowledge Graph表示
 
+### 6.1 次のDecision gate
+
+全EVENTのstory-local readiness確認後に残るglobal chronologyの判断事項は、`docs/architecture/03_Data_Model/Canonical_Timeline_Scope_Decision.md`へ集約する。同文書は`Status: Proposed`の判断枠であり、採択済み仕様ではない。
+
+人間がglobal scope・partial / total order・関係状態・許容source・review gate・internal / public境界を明示的に決めるまでは、既存`canonicalOrder`をstory間で比較せず、`cross_story_constraint`をprovenance付きの未検査候補として保持する。現行v0.5 checkは変更しない。
+
 ## 7. 検証
 
 ```powershell
