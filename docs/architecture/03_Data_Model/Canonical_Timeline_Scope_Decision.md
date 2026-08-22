@@ -172,7 +172,7 @@ D6=A  internal-only
 # 8. 次段階
 
 1. ~~**cross-story constraint inventory**~~: `scripts/build_cross_story_constraint_inventory.py`と専用v0.1 report schemaで、既存candidateを判定・変換せずprovenance付きの2 story単位review queueへ集計する。EVENT固定・internal-onlyで、現行v0.5は変更しない
-2. **canonical Timeline schema**: 採択profileを合成fixtureだけで表現する
+2. ~~**canonical Timeline schema**~~: `schemas/canonical_timeline.schema.json` v0.1と`Canonical_Timeline_Schema.md`で、採択profileを合成fixtureだけで表現する。実node / edge、validator、CLI、review / promotion、保存先、公開は作らない
 3. **consistency check**: partial order、same-time、unknown、conflictの不変則を検査する
 4. **review / promotion tooling**: default dry-run、no-clobber、human-confirmed gateでcanonical artifactへ反映する
 5. **small local sample**: 承認済みcross-story根拠だけでend-to-end検証する
@@ -209,6 +209,7 @@ D6=A  internal-only
 - `docs/runbooks/Timeline_Consistency_Check.md`
 - `docs/runbooks/Cross_Story_Constraint_Inventory.md`
 - `docs/runbooks/Canonical_Order_Review.md`
+- `docs/architecture/03_Data_Model/Canonical_Timeline_Schema.md`
 - `docs/architecture/05_Parser/Story_Metadata.md` §OD-002
 - `docs/architecture/05_Parser/Story_Manifest_Design.md` §13.4
 - `docs/architecture/06_AI/Extraction_Pipeline.md` Timeline節

@@ -1,0 +1,248 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://detariki-kb/schemas/canonical_timeline.schema.json",
+  "title": "Canonical Timeline",
+  "description": "EVENT限定のinternal-only canonical Timeline v0.1。cross-story chronologyをpartial order graphとして保持し、候補とhuman-confirmed canonical採用を分離する。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "documentType",
+    "scopeStoryCategory",
+    "visibility",
+    "nodes",
+    "edges"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "0.1" },
+    "documentType": { "const": "canonical_timeline" },
+    "scopeStoryCategory": { "const": "EVT" },
+    "visibility": { "const": "internal_only" },
+    "nodes": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/EpisodeRef" }
+    },
+    "edges": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/TimelineEdge" }
+    }
+  },
+  "definitions": {
+    "EpisodeRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["storyId", "episodeId", "storyCategory"],
+      "properties": {
+        "storyId": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_-]+$"
+        },
+        "episodeId": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_-]+$"
+        },
+        "storyCategory": { "const": "EVT" }
+      }
+    },
+    "ExtractionRun": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "extractionVersion",
+        "extractionMethod",
+        "modelProvider",
+        "modelName",
+        "promptVersion",
+        "extractedAt",
+        "parserCompatibilityAtExtraction"
+      ],
+      "properties": {
+        "extractionVersion": { "type": "string", "minLength": 1 },
+        "extractionMethod": {
+          "enum": ["rule_based", "llm", "manual", "hybrid"]
+        },
+        "modelProvider": { "type": ["string", "null"] },
+        "modelName": { "type": ["string", "null"] },
+        "promptVersion": { "type": ["string", "null"] },
+        "extractedAt": { "type": ["string", "null"] },
+        "parserCompatibilityAtExtraction": {
+          "enum": ["compatible", "warning", "needs_update", "blocked"]
+        }
+      }
+    },
+    "CandidateProvenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidateId",
+        "sourceEpisode",
+        "targetEpisode",
+        "observedRelation",
+        "evidenceIds",
+        "sourceType",
+        "confidence",
+        "extractionRun"
+      ],
+      "properties": {
+        "candidateId": { "type": "string", "minLength": 1 },
+        "sourceEpisode": { "$ref": "#/definitions/EpisodeRef" },
+        "targetEpisode": { "$ref": "#/definitions/EpisodeRef" },
+        "observedRelation": {
+          "enum": ["before", "after", "same_time"]
+        },
+        "evidenceIds": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "sourceType": {
+          "enum": [
+            "official",
+            "script",
+            "ai_extracted",
+            "ai_inferred",
+            "manual",
+            "unknown"
+          ]
+        },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "extractionRun": { "$ref": "#/definitions/ExtractionRun" }
+      }
+    },
+    "HumanDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reviewer", "decidedAt", "evidenceSummary"],
+      "properties": {
+        "reviewer": { "type": "string", "minLength": 1 },
+        "decidedAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|[+-]\\d{2}:\\d{2})$"
+        },
+        "evidenceSummary": { "type": "string", "minLength": 1 },
+        "notes": { "type": ["string", "null"] }
+      }
+    },
+    "TimelineEdge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "to",
+        "relationState",
+        "stateReason",
+        "adoptionStatus",
+        "reviewStatus",
+        "candidateProvenance",
+        "humanDecision"
+      ],
+      "properties": {
+        "from": { "$ref": "#/definitions/EpisodeRef" },
+        "to": { "$ref": "#/definitions/EpisodeRef" },
+        "relationState": {
+          "enum": ["before", "after", "same_time", "unknown", "conflict"]
+        },
+        "stateReason": { "type": ["string", "null"] },
+        "adoptionStatus": { "enum": ["candidate", "canonical"] },
+        "reviewStatus": {
+          "enum": ["pending", "confirmed", "rejected", "needs_more_context"]
+        },
+        "candidateProvenance": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/CandidateProvenance" }
+        },
+        "humanDecision": {
+          "oneOf": [
+            { "$ref": "#/definitions/HumanDecision" },
+            { "type": "null" }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "relationState": {
+                "enum": ["before", "after", "same_time"]
+              }
+            },
+            "required": ["relationState"]
+          },
+          "then": {
+            "properties": { "stateReason": { "type": "null" } }
+          },
+          "else": {
+            "properties": { "stateReason": { "type": "string", "minLength": 1 } }
+          }
+        },
+        {
+          "if": {
+            "properties": { "reviewStatus": { "const": "confirmed" } },
+            "required": ["reviewStatus"]
+          },
+          "then": {
+            "properties": {
+              "humanDecision": { "$ref": "#/definitions/HumanDecision" },
+              "relationState": {
+                "enum": ["before", "after", "same_time"]
+              }
+            }
+          },
+          "else": {
+            "if": {
+              "properties": { "reviewStatus": { "const": "pending" } },
+              "required": ["reviewStatus"]
+            },
+            "then": {
+              "properties": { "humanDecision": { "type": "null" } }
+            },
+            "else": {
+              "properties": {
+                "humanDecision": { "$ref": "#/definitions/HumanDecision" }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "adoptionStatus": { "const": "canonical" } },
+            "required": ["adoptionStatus"]
+          },
+          "then": {
+            "properties": {
+              "reviewStatus": { "const": "confirmed" },
+              "humanDecision": { "$ref": "#/definitions/HumanDecision" },
+              "relationState": {
+                "enum": ["before", "after", "same_time"]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "reviewStatus": {
+                "enum": ["pending", "rejected", "needs_more_context"]
+              }
+            },
+            "required": ["reviewStatus"]
+          },
+          "then": {
+            "properties": { "adoptionStatus": { "const": "candidate" } }
+          }
+        },
+        {
+          "if": {
+            "properties": { "relationState": { "const": "conflict" } },
+            "required": ["relationState"]
+          },
+          "then": {
+            "properties": { "candidateProvenance": { "minItems": 2 } }
+          }
+        }
+      ]
+    }
+  }
+}
