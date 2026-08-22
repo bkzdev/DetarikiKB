@@ -1,0 +1,270 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://detariki-kb/schemas/cross_story_constraint_inventory.schema.json",
+  "title": "Cross-story Constraint Inventory",
+  "description": "EVENTのStage A relative_order候補を判定・変換せずstory pair単位へ集計するinternal-only report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "documentType",
+    "status",
+    "inputFiles",
+    "resolvedInputFiles",
+    "validInputs",
+    "invalidInputs",
+    "skippedInputs",
+    "inputResults",
+    "scopeStoryCategory",
+    "inScopeDocumentCount",
+    "outOfScopeDocumentRefs",
+    "relativeOrderCandidateCount",
+    "crossStoryCandidateObservationCount",
+    "distinctStoryPairCount",
+    "sameStoryCandidateCount",
+    "unresolvedTargetCount",
+    "ambiguousTargetStoryCount",
+    "invalidRelativeCandidateCount",
+    "storyPairs",
+    "invalidRelativeCandidates",
+    "unresolvedTargets",
+    "ambiguousTargetStories"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "0.1" },
+    "documentType": { "const": "cross_story_constraint_inventory" },
+    "status": { "enum": ["passed", "invalid_input"] },
+    "inputFiles": { "type": "integer", "minimum": 0 },
+    "resolvedInputFiles": { "type": "integer", "minimum": 0 },
+    "validInputs": { "type": "integer", "minimum": 0 },
+    "invalidInputs": { "type": "integer", "minimum": 0 },
+    "skippedInputs": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "inputResults": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/InputResult" }
+    },
+    "scopeStoryCategory": { "const": "EVT" },
+    "inScopeDocumentCount": { "type": "integer", "minimum": 0 },
+    "outOfScopeDocumentRefs": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/DocumentRef" }
+    },
+    "relativeOrderCandidateCount": { "type": "integer", "minimum": 0 },
+    "crossStoryCandidateObservationCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "distinctStoryPairCount": { "type": "integer", "minimum": 0 },
+    "sameStoryCandidateCount": { "type": "integer", "minimum": 0 },
+    "unresolvedTargetCount": { "type": "integer", "minimum": 0 },
+    "ambiguousTargetStoryCount": { "type": "integer", "minimum": 0 },
+    "invalidRelativeCandidateCount": { "type": "integer", "minimum": 0 },
+    "storyPairs": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/StoryPair" }
+    },
+    "invalidRelativeCandidates": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/InvalidRelativeCandidate" }
+    },
+    "unresolvedTargets": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/UnresolvedTarget" }
+    },
+    "ambiguousTargetStories": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/AmbiguousTargetStory" }
+    }
+  },
+  "definitions": {
+    "InputResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "status", "errors", "warnings"],
+      "properties": {
+        "path": { "type": "string" },
+        "status": { "enum": ["valid", "invalid", "skipped"] },
+        "errors": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "warnings": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "ExtractionRun": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "extractionVersion",
+        "extractionMethod",
+        "modelProvider",
+        "modelName",
+        "promptVersion",
+        "extractedAt",
+        "parserCompatibilityAtExtraction"
+      ],
+      "properties": {
+        "extractionVersion": { "type": "string" },
+        "extractionMethod": {
+          "enum": ["rule_based", "llm", "manual", "hybrid"]
+        },
+        "modelProvider": { "type": ["string", "null"] },
+        "modelName": { "type": ["string", "null"] },
+        "promptVersion": { "type": ["string", "null"] },
+        "extractedAt": { "type": ["string", "null"] },
+        "parserCompatibilityAtExtraction": {
+          "enum": ["compatible", "warning", "needs_update", "blocked"]
+        }
+      }
+    },
+    "DocumentRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sourcePath",
+        "storyId",
+        "episodeId",
+        "storyCategory",
+        "extractionRun"
+      ],
+      "properties": {
+        "sourcePath": { "type": "string" },
+        "storyId": { "type": "string" },
+        "episodeId": { "type": "string" },
+        "storyCategory": {
+          "enum": [
+            "MAIN",
+            "EVT",
+            "RAID",
+            "OTHER",
+            "CHAR_MAIN",
+            "CHAR_EXTRA",
+            "CHAR_DATE",
+            "CHAR_HS"
+          ]
+        },
+        "extractionRun": { "$ref": "#/definitions/ExtractionRun" }
+      }
+    },
+    "CandidateObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sourcePath",
+        "sourceStoryId",
+        "sourceEpisodeId",
+        "relativeTo",
+        "relation",
+        "candidateId",
+        "evidenceIds",
+        "sourceType",
+        "confidence",
+        "extractionRun",
+        "targetDocumentRefs"
+      ],
+      "properties": {
+        "sourcePath": { "type": "string" },
+        "sourceStoryId": { "type": "string" },
+        "sourceEpisodeId": { "type": "string" },
+        "relativeTo": { "type": ["string", "null"] },
+        "relation": { "type": ["string", "null"] },
+        "candidateId": { "type": "string" },
+        "evidenceIds": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" }
+        },
+        "sourceType": {
+          "enum": [
+            "official",
+            "script",
+            "ai_extracted",
+            "ai_inferred",
+            "manual",
+            "unknown"
+          ]
+        },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "extractionRun": { "$ref": "#/definitions/ExtractionRun" },
+        "targetDocumentRefs": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/DocumentRef" }
+        }
+      }
+    },
+    "StoryPair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "storyIds",
+        "candidateObservationCount",
+        "relationCounts",
+        "candidates"
+      ],
+      "properties": {
+        "storyIds": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": { "type": "string" }
+        },
+        "candidateObservationCount": { "type": "integer", "minimum": 1 },
+        "relationCounts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["before", "after", "same_time"],
+          "properties": {
+            "before": { "type": "integer", "minimum": 0 },
+            "after": { "type": "integer", "minimum": 0 },
+            "same_time": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "candidates": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/CandidateObservation" }
+        }
+      }
+    },
+    "InvalidRelativeCandidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reason", "candidate"],
+      "properties": {
+        "reason": {
+          "enum": [
+            "missing_relative_to",
+            "missing_relation",
+            "unsupported_relation"
+          ]
+        },
+        "candidate": { "$ref": "#/definitions/CandidateObservation" }
+      }
+    },
+    "UnresolvedTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reason", "candidate"],
+      "properties": {
+        "reason": { "enum": ["target_not_loaded", "target_out_of_scope"] },
+        "candidate": { "$ref": "#/definitions/CandidateObservation" }
+      }
+    },
+    "AmbiguousTargetStory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reason", "candidate"],
+      "properties": {
+        "reason": { "const": "ambiguous_target_story" },
+        "candidate": { "$ref": "#/definitions/CandidateObservation" }
+      }
+    }
+  }
+}

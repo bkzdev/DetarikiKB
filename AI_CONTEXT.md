@@ -111,6 +111,7 @@ Wiki:
 Runbooks:
 - `docs/runbooks/Real_Data_Dry_Run.md`
 - `docs/runbooks/Timeline_Consistency_Check.md`（複数Stage A documentをmerge前に横断検査する独立check。`relative_order`のsame-time縮約・class内矛盾・class間循環、episode metadata由来`explicit_order`の同一episode/field値競合、同一story内の一意な`canonicalOrder`と`same_time =` / `before <` / `after >`制約の不整合をprovenance付きで検出し、story単位のcanonical review準備状況をinformationalに監査する。release/display補完・cross-story比較・順序確定・自然文推定は対象外）
+- `docs/runbooks/Cross_Story_Constraint_Inventory.md`（採択済みEVENT限定profileに基づき、既存のcross-story `relative_order`候補を判定・変換・重複排除せず、全provenance付きで2 story単位のinternal-only review queueへ集計する専用CLI / v0.1 report契約。story-local `canonicalOrder`比較、候補生成、canonical edge、review / promotion、public表示は対象外で、現行v0.5 checkは無変更）
 - `docs/runbooks/MkDocs_Local_Preview_Dry_Run.md`
 - `docs/runbooks/Story_Title_Subtitle_Import.md`
 - `docs/runbooks/Character_Dictionary_Review.md`
