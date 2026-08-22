@@ -112,12 +112,13 @@ def test_docs_record_first_real_readiness_dry_run_without_committing_reports():
     assert "全733 episodeでcanonical observation未付与" in tasks
 
 
-def test_global_scope_decision_frame_keeps_current_freeze_and_lists_decisions():
+def test_global_scope_decision_records_accepted_profile_and_safety_boundary():
     content = _read(DECISION_FRAME_PATH)
     for required in (
-        "Status: Proposed — 実装前に人間判断が必要",
+        "Status: Accepted",
+        "Decision date: 2026-08-23",
         "# 2. 現在確定している境界",
-        "# 4. 判断前に維持する不変則",
+        "# 4. 採択後も維持する不変則",
         "## D1. 初期global scope",
         "## D2. 順序表現",
         "## D3. 関係状態",
@@ -130,9 +131,11 @@ def test_global_scope_decision_frame_keeps_current_freeze_and_lists_decisions():
         "conflict",
         "cross_story_constraint",
         "provenance",
-        "未採択",
+        "2026-08-23のユーザー承認",
+        "# 7. 採択記録",
     ):
         assert required in content
+    assert "Status: Proposed" not in content
 
 
 def test_global_scope_decision_frame_rejects_implicit_global_promotion():
@@ -157,7 +160,9 @@ def test_timeline_docs_link_to_global_scope_decision_frame():
         assert "Canonical_Timeline_Scope_Decision.md" in _read(path)
 
 
-def test_tasks_records_global_scope_decision_frame_as_proposed():
+def test_tasks_records_global_scope_decision_frame_and_adoption():
     content = _read(TASKS_PATH)
     assert "`codex/timeline-canonical-global-scope-decision-frame`" in content
     assert "docs-only、Status: Proposed" in content
+    assert "`codex/timeline-canonical-global-scope-decision`" in content
+    assert "Status: Accepted" in content
