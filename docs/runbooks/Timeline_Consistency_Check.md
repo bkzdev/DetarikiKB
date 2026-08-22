@@ -139,9 +139,9 @@ canonical readinessがfalseであることだけでは失敗にせず、report�
 
 ### 6.1 次のDecision gate
 
-全EVENTのstory-local readiness確認後に残るglobal chronologyの判断事項は、`docs/architecture/03_Data_Model/Canonical_Timeline_Scope_Decision.md`へ集約する。同文書は`Status: Proposed`の判断枠であり、採択済み仕様ではない。
+全EVENTのstory-local readiness確認後に残るglobal chronologyの初期profileは、`docs/architecture/03_Data_Model/Canonical_Timeline_Scope_Decision.md`で2026-08-23に採択した。対象はEVENT限定のpartial order graphで、5状態分離、human-confirmed gate、2 story単位review、internal-onlyを維持する。
 
-人間がglobal scope・partial / total order・関係状態・許容source・review gate・internal / public境界を明示的に決めるまでは、既存`canonicalOrder`をstory間で比較せず、`cross_story_constraint`をprovenance付きの未検査候補として保持する。現行v0.5 checkは変更しない。
+採択後も、既存`canonicalOrder`をstory間で比較せず、`cross_story_constraint`をprovenance付きの未検査候補として保持する。inventory・review queueは後続PRでadditiveに実装し、現行v0.5 checkは変更しない。
 
 ## 7. 検証
 
