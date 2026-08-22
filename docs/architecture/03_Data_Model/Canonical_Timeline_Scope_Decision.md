@@ -63,7 +63,7 @@ story内の`canonicalOrder`付与と全EVENT corpusのreadiness確認が完了�
 4. unknownとconflictを欠落扱いにせず、保留理由とprovenanceを保持する
 5. AI候補、機械抽出、review済みcanonical関係を同じstatusで扱わない
 6. internal review artifactとpublic表示を分離し、公開許可前にcanonical Timelineとして表示しない
-7. schema・CLI・既存manifest・v0.5 report・Wiki rendererは、後続の採択・実装PRまで変更しない
+7. 既存schema・CLI・manifest・v0.5 report・Wiki rendererは破壊的に変更しない。後続機能は専用契約としてadditiveに実装する
 
 ---
 
@@ -171,14 +171,14 @@ D6=A  internal-only
 
 # 8. 次段階
 
-1. **cross-story constraint inventory**: 判定せず、既存candidateをprovenance付きで集計してreview queueを作る
+1. ~~**cross-story constraint inventory**~~: `scripts/build_cross_story_constraint_inventory.py`と専用v0.1 report schemaで、既存candidateを判定・変換せずprovenance付きの2 story単位review queueへ集計する。EVENT固定・internal-onlyで、現行v0.5は変更しない
 2. **canonical Timeline schema**: 採択profileを合成fixtureだけで表現する
 3. **consistency check**: partial order、same-time、unknown、conflictの不変則を検査する
 4. **review / promotion tooling**: default dry-run、no-clobber、human-confirmed gateでcanonical artifactへ反映する
 5. **small local sample**: 承認済みcross-story根拠だけでend-to-end検証する
 6. **public projection decision**: internal artifact完成後、公開目的とpublic-safe要件を別途判断する
 
-現行rule-based extractorは通常`relative_order`を生成しない。実データinventoryが空の場合、自然文からの自動推定器を先に実装せず、合成fixtureで契約を固定した上で承認済み根拠の入手方法を判断する。
+第1段階の運用契約は`docs/runbooks/Cross_Story_Constraint_Inventory.md`を正とする。現行rule-based extractorは通常`relative_order`を生成しない。実データinventoryが空の場合、自然文からの自動推定器を先に実装せず、承認済み根拠の入手方法を判断する。
 
 ---
 
@@ -198,7 +198,7 @@ D6=A  internal-only
 - global値、cross-story edge、same-time classの実値作成
 - 既存`canonicalOrder`の再採番、連番化、一意化
 - `releaseOrder` / `displayOrder` / `episodeNumber`等からの補完
-- Timeline schema、report schema、parser、extractor、merger、checker、rendererの変更
+- 既存Timeline schema、v0.5 report schema / CLI、parser、merger、rendererの破壊的変更
 - 実manifest、review packet、Normalized Story、Stage A、report、Wiki生成物のcommit
 - canonical Timelineのpromotionまたは公開
 
@@ -207,6 +207,7 @@ D6=A  internal-only
 # 11. 関連文書
 
 - `docs/runbooks/Timeline_Consistency_Check.md`
+- `docs/runbooks/Cross_Story_Constraint_Inventory.md`
 - `docs/runbooks/Canonical_Order_Review.md`
 - `docs/architecture/05_Parser/Story_Metadata.md` §OD-002
 - `docs/architecture/05_Parser/Story_Manifest_Design.md` §13.4

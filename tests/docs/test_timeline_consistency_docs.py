@@ -4,6 +4,9 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 RUNBOOK_PATH = PROJECT_ROOT / "docs" / "runbooks" / "Timeline_Consistency_Check.md"
+CROSS_STORY_RUNBOOK_PATH = (
+    PROJECT_ROOT / "docs" / "runbooks" / "Cross_Story_Constraint_Inventory.md"
+)
 PIPELINE_PATH = (
     PROJECT_ROOT / "docs" / "architecture" / "06_AI" / "Extraction_Pipeline.md"
 )
@@ -166,3 +169,54 @@ def test_tasks_records_global_scope_decision_frame_and_adoption():
     assert "docs-only、Status: Proposed" in content
     assert "`codex/timeline-canonical-global-scope-decision`" in content
     assert "Status: Accepted" in content
+
+
+def test_cross_story_inventory_docs_fix_nonjudgmental_internal_contract():
+    runbook = _read(CROSS_STORY_RUNBOOK_PATH)
+    decision = _read(DECISION_FRAME_PATH)
+    timeline_runbook = _read(RUNBOOK_PATH)
+    for required in (
+        "scripts/build_cross_story_constraint_inventory.py",
+        "schemas/cross_story_constraint_inventory.schema.json",
+        'scopeStoryCategory: "EVT"',
+        "candidate ID、Evidence ID",
+        "target_not_loaded",
+        "target_out_of_scope",
+        "ambiguous_target_story",
+        "同じcandidateや同じ関係が複数回観測されても重複排除しない",
+        "canonicalOrder",
+        "internal-only",
+        "既存reportの上書きは禁止",
+        "内部ID・入力path・出力pathを表示しない",
+    ):
+        assert required in runbook
+    for content in (decision, timeline_runbook):
+        assert "Cross_Story_Constraint_Inventory.md" in content
+        assert "scripts/build_cross_story_constraint_inventory.py" in content
+
+
+def test_cross_story_inventory_does_not_promote_or_compare_candidates():
+    content = _read(CROSS_STORY_RUNBOOK_PATH)
+    for required in (
+        "候補の発見・判定・昇格を行わない",
+        "story-local `canonicalOrder`をstory間で比較、再採番、補完すること",
+        "winner、score、edge status、canonical artifactを作ること",
+        "自然文自動推定を追加しない",
+    ):
+        assert required in content
+
+
+def test_cross_story_inventory_records_first_real_empty_dry_run_safely():
+    content = _read(CROSS_STORY_RUNBOOK_PATH)
+    for required in (
+        "初回実データdry-run（2026-08-23）",
+        "resolved / valid / invalid / skipped input: 537 / 537 / 0 / 0",
+        "relative candidate / cross-story observation / story pair: 0 / 0 / 0",
+        "両reportはbyte-identical",
+        "内部IDとlocal pathを含むため`workspace/dry_runs/`だけに保持し、commitしない",
+        "候補・edge・global順序を補完しない",
+    ):
+        assert required in content
+    tasks = _read(TASKS_PATH)
+    assert "`codex/timeline-cross-story-constraint-inventory`" in tasks
+    assert "全候補分類0、両report byte-identical" in tasks

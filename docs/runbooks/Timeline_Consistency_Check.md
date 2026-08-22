@@ -141,7 +141,7 @@ canonical readinessがfalseであることだけでは失敗にせず、report�
 
 全EVENTのstory-local readiness確認後に残るglobal chronologyの初期profileは、`docs/architecture/03_Data_Model/Canonical_Timeline_Scope_Decision.md`で2026-08-23に採択した。対象はEVENT限定のpartial order graphで、5状態分離、human-confirmed gate、2 story単位review、internal-onlyを維持する。
 
-採択後も、既存`canonicalOrder`をstory間で比較せず、`cross_story_constraint`をprovenance付きの未検査候補として保持する。inventory・review queueは後続PRでadditiveに実装し、現行v0.5 checkは変更しない。
+採択後も、既存`canonicalOrder`をstory間で比較せず、`cross_story_constraint`をprovenance付きの未検査候補として保持する。非判定inventoryは`scripts/build_cross_story_constraint_inventory.py`と専用v0.1 schemaでadditiveに実装した。入力・分類・internal-only出力の契約は`docs/runbooks/Cross_Story_Constraint_Inventory.md`を正とし、現行v0.5 checkは変更しない。
 
 ## 7. 検証
 
