@@ -58,6 +58,10 @@ def _run_both_paths(tmp_path: Path, script: str) -> tuple[dict, dict]:
     )
     standalone = {
         "unknownCommands": set(standalone_result.unknown_commands.keys()),
+        "unknownCommandCounts": {
+            command: entry["count"]
+            for command, entry in standalone_result.unknown_commands.items()
+        },
         "newSpeechCommands": {
             e["command"] for e in standalone_result.new_speech_commands
         },
@@ -75,6 +79,9 @@ def _run_both_paths(tmp_path: Path, script: str) -> tuple[dict, dict]:
     report = story_json["compatibilityReport"]
     embedded = {
         "unknownCommands": {c["command"] for c in report["unknownCommands"]},
+        "unknownCommandCounts": {
+            entry["command"]: entry["count"] for entry in report["unknownCommands"]
+        },
         "newSpeechCommands": {c["command"] for c in report["newSpeechCommands"]},
         "status": report["parserCompatibility"],
     }
@@ -446,6 +453,10 @@ caemra 0
     assert embedded["unknownCommands"] == set()
     assert standalone["newSpeechCommands"] == set()
     assert embedded["newSpeechCommands"] == set()
+    # `caemra`はstandalone側でcase variant warningを残す。Parser側が
+    # case variantを追跡しない既知の別系統の差は、本PRでは変更しない。
+    assert standalone["status"] == "warning"
+    assert embedded["status"] == "compatible"
 
 
 def test_bare_word_parameter_token_batch_002_not_unknown_on_either_path(tmp_path):
@@ -479,35 +490,66 @@ oneAuto
     assert embedded["newSpeechCommands"] == set()
 
 
-def test_bare_word_parameter_tokens_left_unregistered_still_unknown_on_embedded_path(
+def test_unregistered_bare_ascii_lines_are_unknown_on_both_paths(
     tmp_path,
 ):
     """PR #153・本PRいずれの登録対象にも含まれない合成裸単語行
-    (実データ由来ではない) が、実parser側では引き続きunknownCommandsに
-    現れること (不破棄不変則) の無回帰を確認する。
-
-    standalone checker側は既存の非対称性 (is_command_lineが@/$接頭辞
-    または既知コマンド集合のみを対象とするため、未登録の裸単語行自体を
-    コマンド行として検出しない) により、これらの行を報告しない。この
-    既存の非対称性自体は本PRのスコープ外 (TASKS.md Known Issues参照)
-    であり、embedded側の不破棄不変則のみを確認する。"""
+    (実データ由来ではない) が、standalone / embedded両経路で同じ
+    unknownCommandsとwarningを返すことを確認する。"""
     script = """synthUnregisteredBareWordAlpha 0
+synthUnregisteredBareWordAlpha 1
 synthUnregisteredBareWordBeta true
 """
-    parser = StoryParser()
-    parse_result = parser.parse_text(script)
-    normalizer = Normalizer(
-        story_id="TEST_BARE_WORD_UNREGISTERED",
-        story_category="OTHER",
-        commands_config_path=DEFAULT_COMMANDS_CONFIG,
-    )
-    story_json = normalizer.normalize(parse_result)
-    report = story_json["compatibilityReport"]
+    standalone, embedded = _run_both_paths(tmp_path, script)
 
-    assert {c["command"] for c in report["unknownCommands"]} == {
-        "synthUnregisteredBareWordAlpha",
-        "synthUnregisteredBareWordBeta",
-    }
+    assert (
+        standalone["unknownCommands"]
+        == embedded["unknownCommands"]
+        == {
+            "synthUnregisteredBareWordAlpha",
+            "synthUnregisteredBareWordBeta",
+        }
+    )
+    assert (
+        standalone["unknownCommandCounts"]
+        == embedded["unknownCommandCounts"]
+        == {
+            "synthUnregisteredBareWordAlpha": 2,
+            "synthUnregisteredBareWordBeta": 1,
+        }
+    )
+    assert standalone["newSpeechCommands"] == embedded["newSpeechCommands"] == set()
+    assert standalone["status"] == embedded["status"] == "warning"
+
+
+def test_bare_ascii_speech_hint_is_detected_on_both_paths(tmp_path):
+    standalone, embedded = _run_both_paths(
+        tmp_path,
+        "synthUnregisteredBareTalkVariant 0\n",
+    )
+
+    assert standalone == embedded
+    assert standalone["unknownCommands"] == {"synthUnregisteredBareTalkVariant"}
+    assert standalone["newSpeechCommands"] == {"synthUnregisteredBareTalkVariant"}
+    assert standalone["status"] == "needs_update"
+
+
+def test_bare_ascii_fallback_does_not_misclassify_other_line_types(tmp_path):
+    script = """// synthetic comment
+- speed 0.1
+$num0 = 26
+branch option-a option-b
+#if $branch == 1
+#endif
+camera 0
+日本語本文
+……
+"""
+    standalone, embedded = _run_both_paths(tmp_path, script)
+
+    assert standalone["unknownCommands"] == embedded["unknownCommands"] == set()
+    assert standalone["newSpeechCommands"] == embedded["newSpeechCommands"] == set()
+    assert standalone["status"] == embedded["status"] == "compatible"
 
 
 def test_consumption_context_unknown_character_ids_match_on_both_paths(tmp_path):

@@ -277,6 +277,13 @@ Parser Phase 1で必ず対応する。
 
 既知コマンド辞書に存在しない場合、未知コマンドとして記録する。
 
+`@` / `$`接頭辞や既知キーワードを持たない行も、ParserのTokenizerと同じ
+最終fallbackを適用する。日本語を含む行・非ASCII行は本文として扱い、既存の
+空行・コメント・ハイフン補助行・代入・分岐分類にも該当しない裸ASCII行だけを
+未知コマンドとして記録する。これにより、新しい裸単語命令が追加された場合も
+standalone checkerとNormalized Storyの`compatibilityReport`で同じ
+`unknownCommands` / `newSpeechCommands` / statusを得る。
+
 ---
 
 ## 8.2 出力例

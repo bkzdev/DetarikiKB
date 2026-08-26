@@ -355,6 +355,8 @@ PR B〜E（§9表、`feature/script-command-dictionary-spinetalk-variant-only-ba
 
    H_scene全パイプライン再実行（`workspace/local_inputs/hscene_full_pipeline_dry_run.py`、workspace限定・非commit）の結果、`type: "unknown"`ブロック数は**2,377件→0件**（完全解消）、`compatStatusDistribution`は`{"compatible": 503, "warning": 230}`→`{"compatible": 677, "warning": 56}`に改善した（extraction/judgment分布は無変化、無回帰）。①〜③はこれで全て解消済みとなった。
 
+   **checker構造の後続解消（`codex/compatibility-bare-ascii-unknown-parity`）**: 上記は実測32種をすべて既知登録して現行corpusのunknown blockを解消した結果であり、将来の未登録裸単語をstandalone checkerが見落とす構造自体は残っていた。standalone checkerへTokenizerと同じ最終fallback（非ASCII本文ではない未分類の裸ASCII行をunknownとして保持）を追加し、合成fixtureでunknown集約・会話候補・statusがembedded経路と一致することを固定した。Parser / Tokenizer / command辞書や実データ出力は変更していない。
+
    **昇格済みEvidence Index 8 story（EVENT 7・RAID 1、26 episodeファイル）の再normalize比較**（git worktree経由、変更前後の2バージョン）: 今回のデータ再スキャンで、残り17種のうち`log`が26ファイルの1つ（EVENT_164_260425の該当episode）に実際に1件出現していることを新たに確認した（`log --------------------environment:$environment`、既存の`postProcess`等14種が_spine系character/ファイル以外には出現しない前提だった§9.1.2の1の記述を補足する新発見）。`blocks`（dialogue/monologue/narration/choice）は26ファイル全てで完全一致（差分ゼロ）を確認した——`unknown`→`stage_direction`への分類変更は`blocks`比較の対象型（dialogue/monologue/narration/choice）に含まれないため、この1件を含め無影響であることを実データで裏付けた。
 2. **未登録キャラクターID記録の代入時点/消費時点の非対称性**: 実parserの`SpeakerResolver._resolve_character_id`（`agents/parser/resolver.py`）は、`@ScenarioCos`/`$numX=`/`@ScenarioCosLoad`によるスロット**代入時点**で無条件に`unresolved_character_ids`へ記録する（`assign_character`/`assign_variable`/`assign_from_variable`から呼ばれる）。これは、`scripts/check_script_compatibility.py`が`#141`（`feature/checker-consumption-context-fix`）で採用した**消費時点**（実際に発話コマンドで話者として使われたスロットのみを未登録として扱う）ベースの判定とは異なるロジックであり、`#141`修正はstandalone checker側のみに適用され、実parserの`resolver.py`側は据え置かれていた（TASKS.md Backlog「parser-auto-bind-non-speaker-slot-review」で既に検討対象として記録されている自動バインド挙動そのもの）。この非対称性により、`compatibilityReport.unknownCharacterIds`集計ベースの件数（614episode・815 distinct ID）は、実際にdialogue/monologueブロックの話者として表面化する件数（162episode・3 distinct ID）を大幅に上回った。
 
@@ -478,7 +480,7 @@ block単位で`speaker.isResolved == false`が実際に残る件数を実測し�
 
 ### 9.2.7 §9.1との対比（品質改善の系列）
 
-§9.1（2026-07-17 dry-run）時点ではcompatibility側に3件の不具合・非対称性（裸単語コマンド検出範囲の非対称性／未登録キャラクターID記録の代入時点・消費時点の非対称性／`sourceCharacterId`への非ID文字列混入）が残っていたが、§9.1.2記録の後続PR群（`feature/bare-word-parameter-token-registration`〜`feature/costume-slot-binding-fix`）でいずれも解消され、本実行（build 001）では`unknownブロック0件・未登録ID distinct 0件`という目標値をそのまま達成した。extraction/dedup・判定分布は§9.1から完全に不変（無回帰）であり、今回新たに追加した話者解決の実測（807件/163episode）も全件が既知の構造的ケースへ帰着することを確認した。
+§9.1（2026-07-17 dry-run）時点ではcompatibility側に3件の不具合・非対称性（裸単語コマンド検出範囲の非対称性／未登録キャラクターID記録の代入時点・消費時点の非対称性／`sourceCharacterId`への非ID文字列混入）が残っていた。§9.1.2記録の後続PR群（`feature/bare-word-parameter-token-registration`〜`feature/costume-slot-binding-fix`）で現行corpus上の実測原因を解消し、本実行（build 001）では`unknownブロック0件・未登録ID distinct 0件`という目標値を達成した。さらに`codex/compatibility-bare-ascii-unknown-parity`で将来の未登録裸ASCII行をstandalone checkerもunknownとして保持する構造的対称性を回復した。extraction/dedup・判定分布は§9.1から完全に不変（無回帰）であり、今回新たに追加した話者解決の実測（807件/163episode）も全件が既知の構造的ケースへ帰着することを確認した。
 
 ---
 
