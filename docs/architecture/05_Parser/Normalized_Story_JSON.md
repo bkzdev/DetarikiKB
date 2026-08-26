@@ -959,6 +959,30 @@ Parserは以下を保持する。
 }
 ```
 
+さらに、`CASE_VARIANTS_MAP`で非自己正規化された表記をParser全体で集約し、
+表記ゆれが1件以上ある場合だけ`compatibilityReport.caseVariants`へ出力する。
+`variants`は同じ正規形に対応するdistinctなRaw表記、`count`はその要素数であり、
+Raw Script上の総出現回数ではない。正規形そのものと自己mappingは表記ゆれへ
+数えない。
+
+```json
+{
+  "caseVariants": [
+    {
+      "normalizedCommand": "@VisibleOff",
+      "variants": ["@Visibleoff", "@visibleoff"],
+      "count": 2
+    }
+  ]
+}
+```
+
+`@`付きcommand、裸keyword、`$`付きvariableのいずれも診断対象にできるが、
+この集約は既存のcommand処理・variable評価・話者slot束縛を変更しない。
+表記ゆれを含むNormalized Storyの`parserCompatibility`は、standalone checkerと
+同じ既存規則により`warning`以上となる。表記ゆれが無い出力には任意field
+`caseVariants`を追加しない。
+
 ---
 
 # 22. Unknown Block

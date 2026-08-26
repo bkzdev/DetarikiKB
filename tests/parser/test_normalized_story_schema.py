@@ -27,6 +27,7 @@ def test_normalized_json_schema(schema):
     # テスト用の簡易スクリプト
     script = """$num0 = 26
 @ScenarioCos 1 26
+@Visibleoff
 @ChTalk 0
 正常な会話ブロックです。
 msg
@@ -41,7 +42,15 @@ msg
         source_file="test_script",
     )
 
-    story_json = normalizer.normalize(parse_result, line_count=6)
+    story_json = normalizer.normalize(parse_result, line_count=7)
+
+    assert story_json["compatibilityReport"]["caseVariants"] == [
+        {
+            "normalizedCommand": "@VisibleOff",
+            "variants": ["@Visibleoff"],
+            "count": 1,
+        }
+    ]
 
     # jsonschemaによる検証
     try:

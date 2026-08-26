@@ -311,6 +311,9 @@ CASE_VARIANTS_MAP: dict[str, str] = {
     "@ChCameraoff": "@ChCameraOff",
     "@ChCharaEyeoff": "@ChCharaEyeOff",
     "@Smartphoneoff": "@SmartphoneOff",
+    # config/script_commands.yamlで既に管理しているvariable typo。
+    # compatibilityReportの観測にだけ使い、変数評価・束縛の意味は変えない。
+    "$vaule0": "$value0",
     # script-command-dictionary-expansion-batch-002: 実データ全量scanで
     # 見つかった表記ゆれ80種 (config/script_commands.yaml の
     # case_variants と対で追加)。
@@ -527,6 +530,9 @@ class ParseResult:
     control_chars_removed: int = 0
     unknown_commands: dict[str, int] = field(default_factory=dict)
     new_speech_commands: list[str] = field(default_factory=list)
+    # normalized command -> distinct raw variants。出現回数ではなく、
+    # standalone compatibility checkerと同じ表記集合を不破棄で保持する。
+    case_variants: dict[str, set[str]] = field(default_factory=dict)
 
 
 @dataclass
@@ -727,6 +733,11 @@ class StoryParser:
 
     def _handle_token(self, state: _ParseState, token: ScriptToken) -> None:
         """token種別ごとのhandlerへ処理を委譲する。"""
+        command = token.command or ""
+        normalized = CASE_VARIANTS_MAP.get(command)
+        if normalized is not None and normalized != command:
+            state.result.case_variants.setdefault(normalized, set()).add(command)
+
         handlers = {
             TokenType.VARIABLE: self._handle_variable,
             TokenType.COMMAND: self._handle_command,

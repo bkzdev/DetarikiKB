@@ -18,7 +18,7 @@ from types import ModuleType
 
 from agents.parser.compatibility import DEFAULT_COMMANDS_CONFIG
 from agents.parser.normalizer import Normalizer
-from agents.parser.parser import StoryParser
+from agents.parser.parser import CASE_VARIANTS_MAP, StoryParser
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 CHECK_SCRIPT_PATH = PROJECT_ROOT / "scripts" / "check_script_compatibility.py"
@@ -65,6 +65,10 @@ def _run_both_paths(tmp_path: Path, script: str) -> tuple[dict, dict]:
         "newSpeechCommands": {
             e["command"] for e in standalone_result.new_speech_commands
         },
+        "caseVariants": {
+            normalized: tuple(sorted(variants))
+            for normalized, variants in standalone_result.case_variants.items()
+        },
         "status": standalone_result.parser_compatibility,
     }
 
@@ -83,6 +87,10 @@ def _run_both_paths(tmp_path: Path, script: str) -> tuple[dict, dict]:
             entry["command"]: entry["count"] for entry in report["unknownCommands"]
         },
         "newSpeechCommands": {c["command"] for c in report["newSpeechCommands"]},
+        "caseVariants": {
+            entry["normalizedCommand"]: tuple(entry["variants"])
+            for entry in report.get("caseVariants", [])
+        },
         "status": report["parserCompatibility"],
     }
 
@@ -453,10 +461,41 @@ caemra 0
     assert embedded["unknownCommands"] == set()
     assert standalone["newSpeechCommands"] == set()
     assert embedded["newSpeechCommands"] == set()
-    # `caemra`はstandalone側でcase variant warningを残す。Parser側が
-    # case variantを追跡しない既知の別系統の差は、本PRでは変更しない。
+    assert standalone == embedded
+    assert standalone["caseVariants"] == {"camera": ("caemra",)}
     assert standalone["status"] == "warning"
-    assert embedded["status"] == "compatible"
+
+
+def test_case_variants_aggregate_on_both_paths(tmp_path):
+    """@command・裸keyword・variableの表記ゆれをdistinct表記単位で集約し、
+    canonical表記や同じvariantの再出現は増分にしない。"""
+    script = """@Visibleoff
+@visibleoff
+@Visibleoff
+@SmartphoneOff
+caemra 0
+$vaule0 = 55070
+"""
+    standalone, embedded = _run_both_paths(tmp_path, script)
+
+    mod = _load_check_script_module()
+    config = mod.load_command_config(DEFAULT_COMMANDS_CONFIG)
+    config_non_self_variants = {
+        raw: normalized
+        for raw, normalized in mod.build_case_variants_map(config).items()
+        if raw != normalized
+    }
+    assert CASE_VARIANTS_MAP == config_non_self_variants
+
+    assert standalone == embedded
+    assert standalone["caseVariants"] == {
+        "@VisibleOff": ("@Visibleoff", "@visibleoff"),
+        "$value0": ("$vaule0",),
+        "camera": ("caemra",),
+    }
+    assert standalone["unknownCommands"] == set()
+    assert standalone["newSpeechCommands"] == set()
+    assert standalone["status"] == "warning"
 
 
 def test_bare_word_parameter_token_batch_002_not_unknown_on_either_path(tmp_path):
