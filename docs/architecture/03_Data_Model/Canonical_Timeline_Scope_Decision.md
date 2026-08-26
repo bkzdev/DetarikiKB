@@ -176,7 +176,8 @@ D6=A  internal-only
 3. ~~**consistency check**~~: `agents/extractor/canonical_timeline_consistency.py`の純粋関数で、schema-validな単一documentのcross-story参照・完全重複record・canonical partial-order cycle / same-time矛盾・conflict provenanceを合成fixtureだけで検査する。実edge生成、CLI / report、review / promotionは行わない
 4. **review / promotion tooling**:
    1. ~~**review packet contract**~~: `schemas/canonical_timeline_review_packet.schema.json`と`Canonical_Timeline_Review_Packet.md`で、2 distinct EVENT story、edge単位4 status、human decision、candidate provenance、internal-only / commit禁止を合成fixtureだけで固定する。実packet、CLI / validator、promotionは作らない
-   2. **builder / validator / promotion planner**: workspace限定、default dry-run、no-clobber、human-confirmed gateでpacket生成・検証とcanonical artifactへの反映計画を分離する
+   2. ~~**read-only validator**~~: 固定workspace root内の既存packetをoffline schema・semantic・free-text境界で検証し、safe aggregateだけを出す。file / report write、retention、promotionは行わない
+   3. **builder / promotion planner**: retention contractと人間確認済みlocal sampleの決定後、workspace限定、default dry-run、no-clobber、human-confirmed gateでpacket生成とcanonical artifactへの反映計画を分離する
 5. **small local sample**: 承認済みcross-story根拠だけでend-to-end検証する
 6. **public projection decision**: internal artifact完成後、公開目的とpublic-safe要件を別途判断する
 
