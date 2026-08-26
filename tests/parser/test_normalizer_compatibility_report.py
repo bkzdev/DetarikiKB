@@ -110,6 +110,55 @@ def test_compatibility_report_compatible_when_all_known(tmp_path):
     assert report["parserCompatibility"] == "compatible"
     assert report["unknownCommands"] == []
     assert report["newSpeechCommands"] == []
+    assert "caseVariants" not in report
+
+
+def test_compatibility_report_preserves_case_variants_without_changing_semantics():
+    """Parserが3 token種別の表記ゆれを観測し、Normalizerがdistinct表記を
+    決定的に出力する。variable typoは診断だけで、blockや束縛を増やさない。"""
+    script = """@Visibleoff
+@visibleoff
+@Visibleoff
+caemra 0
+$vaule0 = 55070
+"""
+    parse_result = StoryParser().parse_text(script)
+    story_json = Normalizer(
+        story_id="TEST_CASE_VARIANTS",
+        story_category="OTHER",
+    ).normalize(parse_result)
+
+    assert parse_result.case_variants == {
+        "@VisibleOff": {"@Visibleoff", "@visibleoff"},
+        "camera": {"caemra"},
+        "$value0": {"$vaule0"},
+    }
+    report = story_json["compatibilityReport"]
+    assert report["caseVariants"] == [
+        {
+            "normalizedCommand": "$value0",
+            "variants": ["$vaule0"],
+            "count": 1,
+        },
+        {
+            "normalizedCommand": "@VisibleOff",
+            "variants": ["@Visibleoff", "@visibleoff"],
+            "count": 2,
+        },
+        {
+            "normalizedCommand": "camera",
+            "variants": ["caemra"],
+            "count": 1,
+        },
+    ]
+    assert report["parserCompatibility"] == "warning"
+    blocks = story_json["episodes"][0]["scenes"][0]["blocks"]
+    assert [block["type"] for block in blocks] == [
+        "stage_direction",
+        "stage_direction",
+        "stage_direction",
+        "stage_direction",
+    ]
 
 
 # ----------------------------------------------------------------

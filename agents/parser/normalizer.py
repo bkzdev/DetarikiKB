@@ -259,6 +259,18 @@ class Normalizer:
         for cmd, count in parse_result.unknown_commands.items():
             unknown_cmds.append({"command": cmd, "count": count})
 
+        # 表記ゆれ。standalone checkerと同じく、正規形ごとのdistinctな
+        # raw表記集合を決定的な順序で出力する。非空時だけ任意fieldを追加し、
+        # 表記ゆれのない既存Normalized Story出力は変更しない。
+        case_variants = [
+            {
+                "normalizedCommand": normalized,
+                "variants": sorted(variants),
+                "count": len(variants),
+            }
+            for normalized, variants in sorted(parse_result.case_variants.items())
+        ]
+
         # 新規会話コマンド候補
         # (config/script_commands.yamlのnew_speech_detection_hintsを使い、
         # scripts/check_script_compatibility.pyと同じ判定を行う。
@@ -275,18 +287,17 @@ class Normalizer:
         # 互換性ステータス決定
         # (agents/parser/compatibility.pyのdetermine_compatibility_statusを
         # scripts/check_script_compatibility.pyと共有。StoryParserは
-        # branch_issues (孤立#elseif等) やcase_variants使用箇所を追跡
-        # していないため、has_critical_branch_issue/
-        # has_high_severity_branch_issue/has_case_variantsは常にFalseで
-        # 呼び出す — 両経路の既知の非対称性、TASKS.md参照)
+        # case_variantsを追跡する。branch_issues (孤立#elseif等) はまだ
+        # 追跡しないため、branch issue系だけはFalseのまま呼び出す)
         compat = determine_compatibility_status(
             has_new_speech_commands=bool(new_speech_cmds),
             has_unknown_commands=bool(unknown_cmds),
             has_unknown_character_ids=bool(unresolved_ids),
             has_control_chars_removed=parse_result.control_chars_removed > 0,
+            has_case_variants=bool(case_variants),
         )
 
-        return {
+        report = {
             "parserCompatibility": compat,
             "unknownCommands": unknown_cmds,
             "newSpeechCommands": new_speech_cmds,
@@ -295,6 +306,9 @@ class Normalizer:
             "nonLiteralSpeakerExpressions": non_literal_speaker_expressions,
             "controlCharsRemoved": parse_result.control_chars_removed,
         }
+        if case_variants:
+            report["caseVariants"] = case_variants
+        return report
 
     # ----------------------------------------------------------------
     # Episodes

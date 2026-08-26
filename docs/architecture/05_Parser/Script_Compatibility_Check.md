@@ -743,6 +743,15 @@ Parserでは本文として扱わず除去する。
 - `rawCommand` には元表記を保存
 - `normalizedCommand` には正規化後の表記を保存
 - Parser内部では正規化後のコマンドで処理する
+- `compatibilityReport.caseVariants`は正規形ごとのdistinctなRaw表記を保持する
+- `count`はdistinct表記数であり、Raw Script上の総出現回数ではない
+- 正規形そのもの・自己mappingは表記ゆれとして数えない
+
+standalone checkerとNormalized Story埋め込みreportは、`@`付きcommand、裸keyword、
+`$`付きvariableの表記ゆれを同じ既存mappingから観測する。埋め込みreportは
+非空時だけ`caseVariants`を出力し、表記ゆれを含む入力を既存status規則どおり
+`warning`以上にする。この観測によってvariable評価・話者slot束縛・block分類の
+意味は変更しない。
 
 ---
 
@@ -755,9 +764,9 @@ Parserでは本文として扱わず除去する。
       "normalizedCommand": "@VisibleOff",
       "variants": [
         "@Visibleoff",
-        "@VisibleOff"
+        "@visibleoff"
       ],
-      "count": 144
+      "count": 2
     }
   ]
 }

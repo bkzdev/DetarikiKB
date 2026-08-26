@@ -107,12 +107,10 @@ def determine_compatibility_status(
     もの。呼び出し側 (check_script_compatibility.py・normalizer.py) は
     それぞれが持つデータからこれらのbool値を組み立てて渡す。
 
-    agents/parser/のStoryParserは現状branch_issues (孤立した#elseif/
-    #else/#endif、閉じられていない#if等) やcase_variants (表記ゆれの
-    使用箇所) を追跡していないため、Normalizer側からは
-    has_critical_branch_issue/has_high_severity_branch_issue/
-    has_case_variantsは常にFalseで呼び出される
-    (TASKS.md「保証するフィールド」参照、既知の非対称性)。
+    agents/parser/のStoryParserはcase_variants (表記ゆれの使用箇所) を
+    追跡する。branch_issues (孤立した#elseif/#else/#endif、閉じられて
+    いない#if等) は追跡していないため、Normalizer側のbranch issue系だけは
+    Falseで呼び出される (TASKS.md「保証するフィールド」参照)。
     """
     if has_parse_error:
         return "blocked"
