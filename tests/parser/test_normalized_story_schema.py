@@ -80,6 +80,8 @@ def test_normalized_json_with_choice(schema):
 
     story_json = normalizer.normalize(parse_result)
 
+    assert "branchIssues" not in story_json["compatibilityReport"]
+
     # jsonschemaによる検証
     try:
         validate(instance=story_json, schema=schema)
@@ -88,6 +90,25 @@ def test_normalized_json_with_choice(schema):
             f"Schema validation failed (choice block): {e.message}\n"
             f"Path: {list(e.path)}"
         )
+
+
+def test_normalized_json_with_branch_issue(schema):
+    parse_result = StoryParser().parse_text("#else\n", source_file="test_branch")
+    story_json = Normalizer(
+        story_id="TEST_BRANCH_ISSUE",
+        story_category="EVT",
+        source_file="test_branch",
+    ).normalize(parse_result)
+
+    assert story_json["compatibilityReport"]["branchIssues"] == [
+        {
+            "type": "orphan_else",
+            "lineNumber": 1,
+            "raw": "#else",
+            "severity": "high",
+        }
+    ]
+    validate(instance=story_json, schema=schema)
 
 
 def test_scene_accepts_structured_extension_fields(schema):

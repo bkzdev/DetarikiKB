@@ -533,6 +533,9 @@ class ParseResult:
     # normalized command -> distinct raw variants。出現回数ではなく、
     # standalone compatibility checkerと同じ表記集合を不破棄で保持する。
     case_variants: dict[str, set[str]] = field(default_factory=dict)
+    # standalone compatibility checkerと同じ分岐構文診断を、検出順のまま
+    # 保持する。choice block生成用のbranch_stackとは独立した情報である。
+    branch_issues: list[dict[str, int | str]] = field(default_factory=list)
 
 
 @dataclass
@@ -557,6 +560,9 @@ class _ParseState:
     current_option_idx: int = 0
     # nested branch の終了時に、外側 choice と option index の両方を復元する。
     branch_stack: list[tuple[BlockData | None, int]] = field(default_factory=list)
+    # #if/#endif対応の診断専用stack。choice block復元用branch_stackとは
+    # 意味が異なるため共有しない。
+    diagnostic_if_stack: list[int] = field(default_factory=list)
     text_lines: list[str] = field(default_factory=list)
     text_line_start: int | None = None
     text_line_end: int | None = None
@@ -728,6 +734,15 @@ class StoryParser:
         # 最後の蓄積テキストをフラッシュ
         state.flush_text()
         state.finalize_episode()
+        for open_line in state.diagnostic_if_stack:
+            result.branch_issues.append(
+                {
+                    "type": "missing_endif",
+                    "lineNumber": open_line,
+                    "raw": "#if (unclosed)",
+                    "severity": "high",
+                }
+            )
 
         return result
 
@@ -900,6 +915,7 @@ class StoryParser:
 
     def _handle_keyword(self, state: _ParseState, token: ScriptToken) -> None:
         keyword = token.command or ""
+        self._record_branch_issue(state, token, keyword)
         self._apply_keyword_slot_binding(state, token, keyword)
 
         handlers = {
@@ -941,6 +957,56 @@ class StoryParser:
                     note=f"Unknown keyword: {keyword}",
                 )
             )
+
+    @staticmethod
+    def _record_branch_issue(
+        state: _ParseState,
+        token: ScriptToken,
+        keyword: str,
+    ) -> None:
+        """standalone checkerと同じ分岐構文診断を記録する。
+
+        Parserのchoice block生成・復元状態は変更せず、#if構文だけを専用stackで
+        追跡する。rawはTokenizerが制御文字除去・前後stripした値を使う。
+        """
+        if keyword == "branch":
+            if not token.args:
+                state.result.branch_issues.append(
+                    {
+                        "type": "empty_branch",
+                        "lineNumber": token.line_number,
+                        "raw": token.raw,
+                        "severity": "medium",
+                    }
+                )
+            return
+
+        if keyword == "#if":
+            state.diagnostic_if_stack.append(token.line_number)
+            return
+
+        issue_type = {
+            "#elseif": "orphan_elseif",
+            "#else": "orphan_else",
+            "#endif": "orphan_endif",
+        }.get(keyword)
+        if issue_type is None:
+            return
+
+        if keyword == "#endif" and state.diagnostic_if_stack:
+            state.diagnostic_if_stack.pop()
+            return
+        if keyword != "#endif" and state.diagnostic_if_stack:
+            return
+
+        state.result.branch_issues.append(
+            {
+                "type": issue_type,
+                "lineNumber": token.line_number,
+                "raw": token.raw,
+                "severity": "high",
+            }
+        )
 
     @staticmethod
     def _apply_keyword_slot_binding(

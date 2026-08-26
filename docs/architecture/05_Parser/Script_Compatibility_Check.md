@@ -670,7 +670,25 @@ branch
 - `branch` に選択肢テキストが存在するか
 - `#if` と `#endif` が対応しているか
 - `#elseif` / `#else` が不自然な位置にないか
-- 分岐内に本文ブロックが存在するか
+
+診断typeとseverityは次のとおり。
+
+| type | 条件 | severity |
+|---|---|---|
+| `empty_branch` | `branch`に選択肢がない | `medium` |
+| `orphan_elseif` | 対応するopen `#if`がない | `high` |
+| `orphan_else` | 対応するopen `#if`がない | `high` |
+| `orphan_endif` | 対応するopen `#if`がない | `high` |
+| `missing_endif` | ファイル末尾で`#if`が未close | `high` |
+
+standalone checkerとStoryParser / Normalizer埋め込み経路は、`type`・
+`lineNumber`・`raw`・`severity`・検出順を一致させる。`missing_endif`の`raw`は
+入力行の内容を推測せず固定値`#if (unclosed)`とする。`high`を1件以上含む場合は
+`parserCompatibility: needs_update`、`medium`だけの場合は既存statusを維持する。
+将来`critical`を追加した場合は`blocked`とする。
+
+Parser側はchoice block復元用stackとは別の診断専用`#if` stackを使う。
+このチェックは分岐を修復・自動close・rejectせず、choice blockの生成結果も変更しない。
 
 ---
 
@@ -682,7 +700,7 @@ branch
     {
       "type": "missing_endif",
       "lineNumber": 140,
-      "raw": "#if $branch",
+      "raw": "#if (unclosed)",
       "severity": "high"
     }
   ]

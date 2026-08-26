@@ -69,6 +69,8 @@ def _run_both_paths(tmp_path: Path, script: str) -> tuple[dict, dict]:
             normalized: tuple(sorted(variants))
             for normalized, variants in standalone_result.case_variants.items()
         },
+        "branchIssues": standalone_result.branch_issues,
+        "controlCharsRemoved": standalone_result.control_chars_removed,
         "status": standalone_result.parser_compatibility,
     }
 
@@ -91,6 +93,8 @@ def _run_both_paths(tmp_path: Path, script: str) -> tuple[dict, dict]:
             entry["normalizedCommand"]: tuple(entry["variants"])
             for entry in report.get("caseVariants", [])
         },
+        "branchIssues": report.get("branchIssues", []),
+        "controlCharsRemoved": report["controlCharsRemoved"],
         "status": report["parserCompatibility"],
     }
 
@@ -747,6 +751,112 @@ def test_branch_choice_script_matches_on_both_paths(tmp_path):
     assert standalone["unknownCommands"] == set()
     assert standalone["newSpeechCommands"] == set()
     assert standalone["status"] == "compatible"
+
+
+def test_branch_issue_types_order_payload_and_status_match_on_both_paths(tmp_path):
+    """5種類の既存診断を検出順のpayloadごと埋め込み経路へ伝播する。
+
+    mediumのempty_branch単独ではstatusを上げず、high診断を含む全体は
+    needs_updateになる。未closeの#ifはstandalone同様、走査後にopen順で付く。
+    """
+    script = """  branch
+  #elseif $branch
+\x02#else
+#endif
+#if $outer
+#if $inner
+caemra 0
+synthUnregisteredBareWordBranchMix 0
+"""
+    standalone, embedded = _run_both_paths(tmp_path, script)
+
+    assert standalone == embedded
+    assert standalone["branchIssues"] == [
+        {
+            "type": "empty_branch",
+            "lineNumber": 1,
+            "raw": "branch",
+            "severity": "medium",
+        },
+        {
+            "type": "orphan_elseif",
+            "lineNumber": 2,
+            "raw": "#elseif $branch",
+            "severity": "high",
+        },
+        {
+            "type": "orphan_else",
+            "lineNumber": 3,
+            "raw": "#else",
+            "severity": "high",
+        },
+        {
+            "type": "orphan_endif",
+            "lineNumber": 4,
+            "raw": "#endif",
+            "severity": "high",
+        },
+        {
+            "type": "missing_endif",
+            "lineNumber": 5,
+            "raw": "#if (unclosed)",
+            "severity": "high",
+        },
+        {
+            "type": "missing_endif",
+            "lineNumber": 6,
+            "raw": "#if (unclosed)",
+            "severity": "high",
+        },
+    ]
+    assert standalone["caseVariants"] == {"camera": ("caemra",)}
+    assert standalone["unknownCommands"] == {"synthUnregisteredBareWordBranchMix"}
+    assert standalone["controlCharsRemoved"] == 1
+    assert standalone["status"] == "needs_update"
+
+    medium_only_standalone, medium_only_embedded = _run_both_paths(
+        tmp_path,
+        "branch\n",
+    )
+    assert medium_only_standalone == medium_only_embedded
+    assert [issue["type"] for issue in medium_only_standalone["branchIssues"]] == [
+        "empty_branch"
+    ]
+    assert medium_only_standalone["status"] == "compatible"
+
+
+def test_branch_diagnostic_stack_is_independent_from_choice_stack(tmp_path):
+    """branch choiceを#endifで閉じる既存意味処理と、#if診断を混同しない。"""
+    script = """branch option-a
+#endif
+"""
+    standalone, embedded = _run_both_paths(tmp_path, script)
+
+    assert standalone == embedded
+    assert standalone["branchIssues"] == [
+        {
+            "type": "orphan_endif",
+            "lineNumber": 2,
+            "raw": "#endif",
+            "severity": "high",
+        }
+    ]
+
+    parse_result = StoryParser().parse_text(script)
+    blocks = parse_result.episodes[0].scenes[0].blocks
+    assert len(blocks) == 1
+    assert blocks[0].block_type == "choice"
+    assert [option["optionText"] for option in blocks[0].options] == ["option-a"]
+
+
+def test_branch_diagnostics_reset_between_parse_calls():
+    parser = StoryParser()
+
+    first = parser.parse_text("#if $branch\n")
+    second = parser.parse_text("#if $branch\n#endif\n")
+
+    assert [issue["type"] for issue in first.branch_issues] == ["missing_endif"]
+    assert second.branch_issues == []
 
 
 # ----------------------------------------------------------------
