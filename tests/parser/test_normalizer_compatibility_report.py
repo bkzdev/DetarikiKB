@@ -111,6 +111,32 @@ def test_compatibility_report_compatible_when_all_known(tmp_path):
     assert report["unknownCommands"] == []
     assert report["newSpeechCommands"] == []
     assert "caseVariants" not in report
+    assert "branchIssues" not in report
+
+
+def test_compatibility_report_preserves_branch_issues_and_severity():
+    parse_result = StoryParser().parse_text("branch\n#if $branch\n")
+    story_json = Normalizer(
+        story_id="TEST_BRANCH_ISSUES",
+        story_category="OTHER",
+    ).normalize(parse_result)
+
+    report = story_json["compatibilityReport"]
+    assert report["branchIssues"] == [
+        {
+            "type": "empty_branch",
+            "lineNumber": 1,
+            "raw": "branch",
+            "severity": "medium",
+        },
+        {
+            "type": "missing_endif",
+            "lineNumber": 2,
+            "raw": "#if (unclosed)",
+            "severity": "high",
+        },
+    ]
+    assert report["parserCompatibility"] == "needs_update"
 
 
 def test_compatibility_report_preserves_case_variants_without_changing_semantics():

@@ -296,6 +296,17 @@ Parser自身の情報を記録する。
 }
 ```
 
+分岐構文に問題がある場合、Parserはstandalone compatibility checkerと同じ
+`branchIssues`を検出順のまま保持する。対象は空の`branch`、対応する`#if`がない
+`#elseif` / `#else` / `#endif`、および未closeの`#if`である。`severity: high`
+は`parserCompatibility: needs_update`、`severity: critical`は`blocked`へ反映する。
+`severity: medium`だけではstatusを上げない。問題のない出力には任意field
+`branchIssues`を追加しない。
+
+この診断はParserのchoice block生成や分岐の修復を行わない。choice復元用の
+stackと`#if`対応確認用の診断stackは独立しており、入力の既存意味処理を変更せず
+構文上の不整合だけをreportへ残す。
+
 ---
 
 # 10. Episode

@@ -29,6 +29,37 @@ PARSER_NAME = "DKB Story Parser"
 PARSER_VERSION = "0.2.0"
 
 
+def _branch_issue_severities(
+    branch_issues: list[dict[str, int | str]],
+) -> set[str]:
+    """分岐診断のseverity集合をcompatibility status判定用に返す。"""
+    return {
+        severity
+        for issue in branch_issues
+        if isinstance((severity := issue.get("severity")), str)
+    }
+
+
+def _copy_branch_issues(
+    branch_issues: list[dict[str, int | str]],
+) -> list[dict[str, int | str]]:
+    """出力JSONがParseResultの可変dictを共有しないよう浅く複製する。"""
+    return [dict(issue) for issue in branch_issues]
+
+
+def _add_optional_compatibility_fields(
+    report: dict[str, Any],
+    *,
+    case_variants: list[dict[str, Any]],
+    branch_issues: list[dict[str, int | str]],
+) -> None:
+    """非空時だけ出力する互換性診断fieldを追加する。"""
+    if case_variants:
+        report["caseVariants"] = case_variants
+    if branch_issues:
+        report["branchIssues"] = branch_issues
+
+
 # ----------------------------------------------------------------
 # ID Generator
 # ----------------------------------------------------------------
@@ -271,6 +302,11 @@ class Normalizer:
             for normalized, variants in sorted(parse_result.case_variants.items())
         ]
 
+        # 分岐構文診断。Parserがstandalone checkerと同じ検出順・payloadで
+        # 保持する。非空時だけ任意fieldを追加し、正常入力の既存出力は変えない。
+        branch_issues = _copy_branch_issues(parse_result.branch_issues)
+        branch_issue_severities = _branch_issue_severities(branch_issues)
+
         # 新規会話コマンド候補
         # (config/script_commands.yamlのnew_speech_detection_hintsを使い、
         # scripts/check_script_compatibility.pyと同じ判定を行う。
@@ -286,11 +322,12 @@ class Normalizer:
 
         # 互換性ステータス決定
         # (agents/parser/compatibility.pyのdetermine_compatibility_statusを
-        # scripts/check_script_compatibility.pyと共有。StoryParserは
-        # case_variantsを追跡する。branch_issues (孤立#elseif等) はまだ
-        # 追跡しないため、branch issue系だけはFalseのまま呼び出す)
+        # scripts/check_script_compatibility.pyと共有。StoryParserが保持した
+        # branch issue severityも同じ優先順位で判定へ渡す)
         compat = determine_compatibility_status(
+            has_critical_branch_issue="critical" in branch_issue_severities,
             has_new_speech_commands=bool(new_speech_cmds),
+            has_high_severity_branch_issue="high" in branch_issue_severities,
             has_unknown_commands=bool(unknown_cmds),
             has_unknown_character_ids=bool(unresolved_ids),
             has_control_chars_removed=parse_result.control_chars_removed > 0,
@@ -306,8 +343,11 @@ class Normalizer:
             "nonLiteralSpeakerExpressions": non_literal_speaker_expressions,
             "controlCharsRemoved": parse_result.control_chars_removed,
         }
-        if case_variants:
-            report["caseVariants"] = case_variants
+        _add_optional_compatibility_fields(
+            report,
+            case_variants=case_variants,
+            branch_issues=branch_issues,
+        )
         return report
 
     # ----------------------------------------------------------------
