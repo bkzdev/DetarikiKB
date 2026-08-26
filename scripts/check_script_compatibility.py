@@ -714,6 +714,7 @@ def _check_command_line(
         first_token.startswith("@")
         or first_token.startswith("$")
         or first_token in known_commands
+        or first_token in case_variants_map
         or NUM_VAR_PATTERN.match(line) is not None
     )
     if not is_command_line:
@@ -728,12 +729,28 @@ def _check_command_line(
     check_token = normalized if normalized else first_token
 
     if check_token not in known_commands:
-        _record_unknown_command(result, first_token, line_number, line)
-
-        if is_speech_candidate(first_token, speech_hints):
-            _record_new_speech_command(result, first_token, line_number, line)
+        _record_unknown_line(
+            result,
+            first_token,
+            line_number,
+            line,
+            speech_hints,
+        )
 
     return True
+
+
+def _record_unknown_line(
+    result: FileCompatibilityResult,
+    first_token: str,
+    line_number: int,
+    line: str,
+    speech_hints: list[str],
+) -> None:
+    """未知行を既存集約へ保持し、会話コマンド候補も同じ経路で記録する。"""
+    _record_unknown_command(result, first_token, line_number, line)
+    if is_speech_candidate(first_token, speech_hints):
+        _record_new_speech_command(result, first_token, line_number, line)
 
 
 def _process_line(
@@ -772,7 +789,7 @@ def _process_line(
     if _check_branch_syntax(first_token, line, line_number, branch_stack, result):
         return
 
-    _check_command_line(
+    if _check_command_line(
         first_token,
         line,
         line_number,
@@ -780,8 +797,20 @@ def _process_line(
         case_variants_map,
         speech_hints,
         result,
-    )
-    # 本文行 (コマンド行でない場合はここで何もしない)
+    ):
+        return
+
+    # Tokenizerは既存分類にも非ASCII本文にも該当しない裸ASCII行を
+    # UNKNOWNとして保持する。standalone checkerも同じ最終fallbackを使い、
+    # 将来の未登録裸単語を事前checkで黙って落とさない。
+    if line.isascii():
+        _record_unknown_line(
+            result,
+            first_token,
+            line_number,
+            line,
+            speech_hints,
+        )
 
 
 def check_file(
