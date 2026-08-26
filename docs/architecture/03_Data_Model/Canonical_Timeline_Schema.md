@@ -2,7 +2,7 @@
 
 Version: 0.1
 
-Status: Implemented schema contract
+Status: Implemented schema and semantic consistency contract
 
 Schema: `schemas/canonical_timeline.schema.json`
 
@@ -12,7 +12,7 @@ Schema: `schemas/canonical_timeline.schema.json`
 
 `Canonical_Timeline_Scope_Decision.md`で採択したEVENT限定・partial order・5状態分離・human-confirmed gate・2 story単位review・internal-onlyの初期profileを、合成fixtureで検証可能なJSON Schemaへ固定する。
 
-本書とschemaはデータ表現だけを定義する。実candidateの生成、inventoryからの変換、実edgeの作成、人間判断の取り込み、promotion、整合性判定、保存先、公開を実装しない。
+本書とschemaはデータ表現を定義し、`agents/extractor/canonical_timeline_consistency.py`はschema-validな単一documentに対するsemantic consistencyだけを検査する。実candidateの生成、inventoryからの変換、実edgeの作成、人間判断の取り込み、promotion、保存先、公開は実装しない。
 
 ---
 
@@ -47,7 +47,7 @@ nodeは次の複合参照だけで表す。
 
 - nodeの運用上の識別子は`(storyId, episodeId)`であり、global node integerを導入しない
 - `canonicalOrder` / `releaseOrder` / `displayOrder` / `episodeNumber` / `sequence` / `globalOrder`を持たない
-- nodeの重複はJSON Schemaだけでは複合keyの一意性を検査できないため、将来semantic validatorの責務とする
+- nodeの重複はJSON Schemaだけでは複合keyの一意性を検査できないため、semantic validatorで検出する
 
 既存`canonicalOrder`は引き続きstory-localであり、このnodeへコピー・換算しない。
 
@@ -106,19 +106,20 @@ candidate provenanceは少なくとも次を保持する。
 
 # 6. Schemaとsemantic validationの境界
 
-Draft 7 JSON Schema v0.1はfield型・enum・必須field・状態組合せを検証する。次は複数要素を横断するため、後続semantic validatorの責務とする。
+Draft 7 JSON Schema v0.1はfield型・enum・必須field・状態組合せを検証する。`validate_canonical_timeline_consistency()`は、schema validation済みの単一dictを変更せず、複数要素を横断する次の不変則を決定的なerror findingとして検査する。
 
 - `(storyId, episodeId)` nodeの重複
 - edgeの`from` / `to`が`nodes`に存在すること
 - edgeの`from.storyId`と`to.storyId`が異なること。同一story edgeは現行v0.5の責務であり、cross-story graphへ入れない
 - 自己edge
-- 同一edgeの重複
-- confirmed edge間のcycle
-- same-time classとbefore / afterの矛盾
-- conflictの根拠が実際に相反すること
-- `candidateId` / `evidenceIds` / `extractionRun`が入力candidateへ解決できること
+- 完全同一edge recordの重複。両端とrelationが同じでもprovenance等が異なる複数観測は重複として破棄しない
+- `adoptionStatus: canonical`かつ`reviewStatus: confirmed`のbefore / after / same_timeだけを使ったcycle
+- canonical same-time class内のbefore / after矛盾。推移的なsame-time classも同値関係として扱う
+- conflict provenanceがedgeの両端を指すことと、観測方向を保って正規化した根拠が実際に2種類以上の両立不能なrelationを含むこと
 
-本PRでは、これらをJSON Schemaへ無理に埋め込まず、validator・CLIも追加しない。
+before / afterはgraph検査のためにだけ有向辺へ正規化し、入力edgeを書き換えない。unknown / conflict、pending、rejected、needs_more_context、`confirmed + candidate`はcanonical graphへ入れず、推論やwinner選択に使わない。実装は再帰に依存しないため、大きな合成graphでもPythonの再帰上限に依存しない。
+
+semantic validatorはschema検証、file I/O、CLI、report永続化、relationやedgeの生成・反転・dedup、review / promotionを行わない。`candidateId` / `evidenceIds` / `extractionRun`の外部candidateへの解決、source confidenceによる採否、unknownの解消、conflict winner選択も、入力corpusと運用契約が未確定なので対象外とする。
 
 ---
 
@@ -146,8 +147,8 @@ canonical Timeline artifactは初期profileでinternal-onlyである。v0.1 sche
 - 実node / edge / global値の生成・commit
 - `canonicalOrder`等のstory間比較・補完・再採番
 - candidate生成、自然文推定、LLM / provider実装
-- relation反転、same-time縮約、推移閉包、cycle / winner / score算出
-- semantic validator、CLI、review packet、human decision import、promotion
+- relation / edgeを入力へ反映する反転、same-time class / transitive edge artifact生成、推移閉包、winner / score算出
+- schema validationを含むCLI / report、review packet、human decision import、promotion
 - EVENT以外へのscope拡張
 - renderer、Wiki、public projection
 - 既存v0.5 check、inventory、manifest、Stage A / B schemaの変更
@@ -156,10 +157,10 @@ canonical Timeline artifactは初期profileでinternal-onlyである。v0.1 sche
 
 # 10. 検証
 
-合成`TEST_*`値だけで、5 relation stateのvalid表現、review / adoption / human decisionのconditional、unknown / conflictのreasonとprovenance、EVENT / internal-only固定、禁止順序field・余分fieldの拒否、Draft 7 schema自体の妥当性を検証する。
+合成`TEST_*`値だけで、5 relation stateのvalid表現、review / adoption / human decisionのconditional、unknown / conflictのreasonとprovenance、EVENT / internal-only固定、禁止順序field・余分fieldの拒否、Draft 7 schema自体の妥当性を検証する。semantic consistency testでは、§6の各rule、canonical以外をgraphへ混ぜない境界、入力不変、入力順に依存しない決定性、再帰に依存しない大規模graphを検証する。
 
 ```powershell
-uv run pytest tests/schemas/test_canonical_timeline_schema.py
+uv run pytest tests/schemas/test_canonical_timeline_schema.py tests/extractor/test_canonical_timeline_consistency.py
 ```
 
 実データfixture、実artifact、内部ID・タイトル・pathは使用しない。

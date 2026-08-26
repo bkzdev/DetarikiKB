@@ -173,7 +173,7 @@ D6=A  internal-only
 
 1. ~~**cross-story constraint inventory**~~: `scripts/build_cross_story_constraint_inventory.py`と専用v0.1 report schemaで、既存candidateを判定・変換せずprovenance付きの2 story単位review queueへ集計する。EVENT固定・internal-onlyで、現行v0.5は変更しない
 2. ~~**canonical Timeline schema**~~: `schemas/canonical_timeline.schema.json` v0.1と`Canonical_Timeline_Schema.md`で、採択profileを合成fixtureだけで表現する。実node / edge、validator、CLI、review / promotion、保存先、公開は作らない
-3. **consistency check**: partial order、same-time、unknown、conflictの不変則を検査する
+3. ~~**consistency check**~~: `agents/extractor/canonical_timeline_consistency.py`の純粋関数で、schema-validな単一documentのcross-story参照・完全重複record・canonical partial-order cycle / same-time矛盾・conflict provenanceを合成fixtureだけで検査する。実edge生成、CLI / report、review / promotionは行わない
 4. **review / promotion tooling**: default dry-run、no-clobber、human-confirmed gateでcanonical artifactへ反映する
 5. **small local sample**: 承認済みcross-story根拠だけでend-to-end検証する
 6. **public projection decision**: internal artifact完成後、公開目的とpublic-safe要件を別途判断する
