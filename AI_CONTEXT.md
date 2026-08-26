@@ -95,7 +95,8 @@ Parser:
 - `docs/architecture/05_Parser/Story_Manifest_Design.md`
 
 Extraction / Merge:
-- `docs/architecture/03_Data_Model/Canonical_Timeline_Schema.md`（採択済みEVENT限定partial order profileを合成fixtureだけで固定するinternal-only v0.1 schema / semantic consistency契約。5 relation state、review / adoption分離、human decision gate、candidate provenanceを表現し、schema-validな単一documentの重複node・参照欠落・同一story edge・完全重複record・canonical cycle / same-time矛盾・conflict根拠を純粋関数で検査する。実node / edge、CLI / report、review / promotion、保存先、public表示は未実装）
+- `docs/architecture/03_Data_Model/Canonical_Timeline_Schema.md`（採択済みEVENT限定partial order profileを合成fixtureだけで固定するinternal-only v0.1 schema / semantic consistency契約。5 relation state、review / adoption分離、human decision gate、candidate provenanceを表現し、schema-validな単一documentの重複node・参照欠落・同一story edge・完全重複record・canonical cycle / same-time矛盾・conflict根拠を純粋関数で検査する。実node / edge、CLI / report、review結果import / promotion、保存先、public表示は未実装）
+- `docs/architecture/03_Data_Model/Canonical_Timeline_Review_Packet.md`（2 distinct EVENT story間の小規模edge集合を人間reviewするlocal internal v0.1 schema契約。5 relation stateと4 review status、human decision conditional、元方向を保持するcandidate provenance、confirmedとpromotionの分離、commit禁止を合成fixtureだけで固定する。実packet、builder / validator、review import / promotionは未実装）
 - `docs/architecture/06_AI/Extraction_Pipeline.md`
 - `docs/architecture/06_AI/Extraction_Result_Schema.md`
 - `docs/architecture/06_AI/Merged_Knowledge_Design.md`

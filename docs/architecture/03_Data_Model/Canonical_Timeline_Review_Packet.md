@@ -1,0 +1,146 @@
+# Canonical Timeline Review Packet契約
+
+Version: 0.1
+
+Status: Implemented schema contract
+
+Schema: `schemas/canonical_timeline_review_packet.schema.json`
+
+---
+
+# 1. 目的
+
+canonical Timelineのcross-story candidateを、2 story間の小さなedge集合として人間が確認するためのlocal internal packetを定義する。packetは候補とreview結果を保持する中間artifactであり、canonical Timelineの正ではない。
+
+`humanReviewStatus: confirmed`に相当する`reviewStatus: confirmed`を記録しても、canonical artifactへのpromotionは起動しない。本schema contractは合成fixtureだけを対象とし、実packet生成、file I/O、validator、review結果の取り込み、promotionを実装しない。
+
+---
+
+# 2. Root契約
+
+rootは次の境界を固定する。
+
+| field | 契約 |
+|---|---|
+| `schemaVersion` | `"0.1"` |
+| `documentType` | `"canonical_timeline_review_packet"` |
+| `packetId` | titleを含まないlocal packet ID |
+| `reviewBatchId` | story titleを含まないlocal review batch識別子 |
+| `classification` | `"local_internal"`固定 |
+| `commitAllowed` | `false`固定 |
+| `scopeStoryCategory` | `"EVT"`固定 |
+| `visibility` | `"internal_only"`固定 |
+| `createdAt` | RFC 3339 date-time |
+| `storyPair` | 相異なる2 EVENT storyだけ |
+| `edges` | 1件以上のreview対象edge |
+
+`additionalProperties: false`とし、global整数、story-local `canonicalOrder`、public ID / URL、raw text / path用fieldを受理しない。実packetはworkspace限定・非commitとするが、保存root、retention、expiration、atomic write、no-clobberは後続builder / validatorで確定・実装する。
+
+---
+
+# 3. Story pairとEpisode参照
+
+`storyPair`は`storyId`と`storyCategory: "EVT"`だけを持つ2要素の配列で、`uniqueItems: true`とする。1 story packet、3 story以上、同じStoryRefの重複、EVENT外storyを拒否する。
+
+edgeとcandidate provenanceのEpisodeRefは既存`canonical_timeline.schema.json`の定義を再利用し、`storyId` / `episodeId` / `storyCategory: "EVT"`を保持する。次は値同士の動的比較が必要なので、後続semantic validatorの責務とする。
+
+- edgeの`from` / `to`が`storyPair`内の異なるstoryを指すこと
+- candidate provenanceの`sourceEpisode` / `targetEpisode`が同じpairとedgeの両端に解決できること
+- `reviewEdgeKey`がpacket内で一意であること
+- 完全重複edgeを検出し、provenanceが異なる観測は重複として破棄しないこと
+- conflict provenanceの向きを正規化した結果が実際に両立不能であること
+
+schemaだけではpair外EpisodeRefを拒否できない。この境界を理由にstory IDを文字列から推測したり、pair外candidateを黙って削除したりしない。
+
+---
+
+# 4. Review edge
+
+ReviewEdgeは次を保持する。
+
+- packet内だけで使う`reviewEdgeKey`。canonical edge IDではない
+- `from` / `to` EpisodeRefと5値の`relationState`
+- unknown / conflictを不破棄で残す`stateReason`
+- 元方向を保持する`candidateProvenance`
+- edge単位の`reviewStatus`と`humanDecision`
+
+`adoptionStatus`はpacketに置かない。confirmed edgeもreview済みcandidateに留まり、promotion後のcanonical状態をpacketから表現しない。
+
+## 4.1 Relation state
+
+| relationState | stateReason |
+|---|---|
+| `before` / `after` / `same_time` | `null` |
+| `unknown` / `conflict` | 非空文字列 |
+
+conflictは最低2件のcandidate provenanceを要求する。before / afterの方向反転、same-time class化、winner選択はpacket schemaで行わない。
+
+## 4.2 Review status
+
+| reviewStatus | humanDecision | relationState |
+|---|---|---|
+| `pending` | `null` | 5状態 |
+| `confirmed` | 必須 | `before` / `after` / `same_time`だけ |
+| `rejected` | 必須 | 5状態 |
+| `needs_more_context` | 必須 | 5状態 |
+
+unknown / conflictをconfirmedへ変換せず、pending / rejected / needs_more_contextとして理由・provenanceと共に保持する。rejectedとneeds_more_contextも人間判断なので、reviewer、決定日時、非逐語のevidence summaryを欠落させない。
+
+---
+
+# 5. Canonical Timeline schemaとの関係
+
+EpisodeRef、CandidateProvenance、HumanDecisionは`canonical_timeline.schema.json`のdefinitionsをoffline external referenceとして再利用する。これによりsource / targetの元方向、candidate / Evidence ID、source type、confidence、extraction runの契約を分岐させない。
+
+consumer / validatorはrepo内のcanonical Timeline schemaをRegistryへ明示登録して解決し、networkやremote schema fetchへ依存しない。
+
+canonical Timeline artifactのTimelineEdgeは`adoptionStatus`を持つが、ReviewEdgeは持たない。packetからcanonical artifactへの変換、confirmed decisionのimport、promotion前後のsemantic validationは後続toolingの責務である。
+
+---
+
+# 6. 安全境界
+
+- packet、実candidate、review note、内部ID対応表はworkspace限定で、commitしない
+- `stateReason` / `evidenceSummary` / `notes`は原文を転載しない短い根拠要約だけにする
+- raw path、source filename、source key、DEC本文、セリフ、raw command、URLをpacketへ複写しない
+- builder / validatorのstdout / stderrへ内部story / episode / candidate / Evidence IDやpathを出さない
+- pendingをconfirmedへ自動変更せず、confirmedをcanonicalへ自動promotionしない
+- inventory 0件からcandidate / edgeを補完しない
+
+free-text内容のpath / raw marker検査、固定workspace root、retention、no-clobber、default dry-run、atomic writeは後続builder / validator contractでblockingに実装する。本schemaの通過だけで運用上安全なpacketとは判定しない。
+
+`createdAt`のschema patternは明白な形式不正を拒否する境界であり、暦日・時刻範囲を含む厳密なRFC 3339妥当性は後続validatorで検査する。
+
+---
+
+# 7. Non-goals
+
+- candidate生成、inventoryからの自動変換、edge方向の反転・winner選択
+- 実node / edge / packet生成、humanDecision自動記入
+- canonical artifact反映、review import、promotion、`--execute`
+- schema validationを含むCLI / report / file I/O
+- global integer、total order、story-local `canonicalOrder`比較・補完
+- EVENT以外への拡張、renderer、Wiki、public projection
+- 実データfixture、実packet、raw / generated artifactのcommit
+- 既存canonical Timeline schema / semantic validator、v0.5、inventory、manifest、Stage A / Bの変更
+
+---
+
+# 8. 検証
+
+合成`TEST_*`値だけで、Draft 7 schema妥当性、2 distinct EVENT story、5 relation state、4 review statusとhumanDecision条件、unknown / conflictの理由・provenance不破棄、confirmedとpromotionの分離、internal-only / commit禁止、外部definitionのoffline解決、禁止fieldの拒否を検証する。
+
+```powershell
+uv run pytest tests/schemas/test_canonical_timeline_review_packet_schema.py
+```
+
+pair外EpisodeRefがschema単独では通りうることも合成testで境界として固定し、後続semantic validatorで拒否するまで実運用へ投入しない。
+
+---
+
+# 9. 関連文書
+
+- `Canonical_Timeline_Scope_Decision.md`
+- `Canonical_Timeline_Schema.md`
+- `../../runbooks/Cross_Story_Constraint_Inventory.md`
+- `../../runbooks/Canonical_Order_Review.md`

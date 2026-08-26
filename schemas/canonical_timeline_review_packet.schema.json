@@ -1,0 +1,164 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://detariki-kb/schemas/canonical_timeline_review_packet.schema.json",
+  "title": "Canonical Timeline Review Packet",
+  "description": "2 EVENT story間のcanonical Timeline候補をinternal-onlyで人間レビューするための、昇格を伴わないv0.1 packet。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "documentType",
+    "packetId",
+    "reviewBatchId",
+    "classification",
+    "commitAllowed",
+    "scopeStoryCategory",
+    "visibility",
+    "createdAt",
+    "storyPair",
+    "edges"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "0.1" },
+    "documentType": { "const": "canonical_timeline_review_packet" },
+    "packetId": {
+      "type": "string",
+      "description": "titleを含まないlocal opaque/time-based identifier。",
+      "pattern": "^ctrp-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}$"
+    },
+    "reviewBatchId": {
+      "type": "string",
+      "description": "story titleを含まないlocal review batch identifier。",
+      "pattern": "^[a-z0-9][a-z0-9_-]*$"
+    },
+    "classification": { "const": "local_internal" },
+    "commitAllowed": { "const": false },
+    "scopeStoryCategory": { "const": "EVT" },
+    "visibility": { "const": "internal_only" },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|[+-]\\d{2}:\\d{2})$"
+    },
+    "storyPair": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "uniqueItems": true,
+      "items": { "$ref": "#/definitions/StoryRef" }
+    },
+    "edges": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/ReviewEdge" }
+    }
+  },
+  "definitions": {
+    "StoryRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["storyId", "storyCategory"],
+      "properties": {
+        "storyId": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_-]+$"
+        },
+        "storyCategory": { "const": "EVT" }
+      }
+    },
+    "ReviewEdge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reviewEdgeKey",
+        "from",
+        "to",
+        "relationState",
+        "stateReason",
+        "reviewStatus",
+        "candidateProvenance",
+        "humanDecision"
+      ],
+      "properties": {
+        "reviewEdgeKey": {
+          "type": "string",
+          "pattern": "^edge-[0-9]{4}$"
+        },
+        "from": {
+          "$ref": "https://detariki-kb/schemas/canonical_timeline.schema.json#/definitions/EpisodeRef"
+        },
+        "to": {
+          "$ref": "https://detariki-kb/schemas/canonical_timeline.schema.json#/definitions/EpisodeRef"
+        },
+        "relationState": {
+          "enum": ["before", "after", "same_time", "unknown", "conflict"]
+        },
+        "stateReason": { "type": ["string", "null"] },
+        "reviewStatus": {
+          "enum": ["pending", "confirmed", "rejected", "needs_more_context"]
+        },
+        "candidateProvenance": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "https://detariki-kb/schemas/canonical_timeline.schema.json#/definitions/CandidateProvenance"
+          }
+        },
+        "humanDecision": {
+          "oneOf": [
+            {
+              "$ref": "https://detariki-kb/schemas/canonical_timeline.schema.json#/definitions/HumanDecision"
+            },
+            { "type": "null" }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "relationState": { "enum": ["before", "after", "same_time"] }
+            },
+            "required": ["relationState"]
+          },
+          "then": { "properties": { "stateReason": { "type": "null" } } },
+          "else": {
+            "properties": { "stateReason": { "type": "string", "minLength": 1 } }
+          }
+        },
+        {
+          "if": {
+            "properties": { "reviewStatus": { "const": "pending" } },
+            "required": ["reviewStatus"]
+          },
+          "then": { "properties": { "humanDecision": { "type": "null" } } },
+          "else": {
+            "properties": {
+              "humanDecision": {
+                "$ref": "https://detariki-kb/schemas/canonical_timeline.schema.json#/definitions/HumanDecision"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "reviewStatus": { "const": "confirmed" } },
+            "required": ["reviewStatus"]
+          },
+          "then": {
+            "properties": {
+              "relationState": { "enum": ["before", "after", "same_time"] }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "relationState": { "const": "conflict" } },
+            "required": ["relationState"]
+          },
+          "then": { "properties": { "candidateProvenance": { "minItems": 2 } } }
+        }
+      ]
+    }
+  }
+}

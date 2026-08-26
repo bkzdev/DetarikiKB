@@ -30,6 +30,13 @@ CANONICAL_TIMELINE_SCHEMA_DOC_PATH = (
     / "03_Data_Model"
     / "Canonical_Timeline_Schema.md"
 )
+CANONICAL_TIMELINE_REVIEW_PACKET_DOC_PATH = (
+    PROJECT_ROOT
+    / "docs"
+    / "architecture"
+    / "03_Data_Model"
+    / "Canonical_Timeline_Review_Packet.md"
+)
 TIMELINE_MODEL_PATH = (
     PROJECT_ROOT / "docs" / "architecture" / "03_Data_Model" / "Timeline.md"
 )
@@ -269,7 +276,7 @@ def test_canonical_timeline_schema_docs_keep_existing_values_and_outputs_out():
         "candidate生成、自然文推定",
         "same-time class / transitive edge artifact生成",
         (
-            "schema validationを含むCLI / report、review packet、"
+            "schema validationを含むCLI / report、実review packet生成、"
             "human decision import、promotion"
         ),
         "renderer、Wiki、public projection",
@@ -299,6 +306,55 @@ def test_canonical_timeline_semantic_validator_remains_pure_and_synthetic_only()
     decision = _read(DECISION_FRAME_PATH)
     assert "~~**consistency check**~~" in decision
     assert "canonical_timeline_consistency.py" in decision
+
+
+def test_canonical_timeline_review_packet_contract_is_internal_and_non_promoting():
+    content = _read(CANONICAL_TIMELINE_REVIEW_PACKET_DOC_PATH)
+    for required in (
+        "schemas/canonical_timeline_review_packet.schema.json",
+        "相異なる2 EVENT story",
+        '`classification` | `"local_internal"`固定',
+        "`commitAllowed` | `false`固定",
+        '`scopeStoryCategory` | `"EVT"`固定',
+        '`visibility` | `"internal_only"`固定',
+        "pending",
+        "confirmed",
+        "rejected",
+        "needs_more_context",
+        "unknown / conflictをconfirmedへ変換せず",
+        "`adoptionStatus`はpacketに置かない",
+        "confirmed edgeもreview済みcandidate",
+        "candidateProvenance",
+        "offline external reference",
+        "networkやremote schema fetchへ依存しない",
+        "workspace限定・非commit",
+        "`stateReason` / `evidenceSummary` / `notes`",
+        "schemaだけではpair外EpisodeRefを拒否できない",
+        "後続semantic validatorの責務",
+        "実packet生成、file I/O、validator",
+    ):
+        assert required in content
+
+
+def test_canonical_timeline_review_packet_contract_keeps_values_and_outputs_out():
+    content = _read(CANONICAL_TIMELINE_REVIEW_PACKET_DOC_PATH)
+    for required in (
+        "candidate生成、inventoryからの自動変換",
+        "canonical artifact反映、review import、promotion",
+        "global integer、total order、story-local `canonicalOrder`比較・補完",
+        "renderer、Wiki、public projection",
+        "実データfixture、実packet、raw / generated artifactのcommit",
+        "既存canonical Timeline schema / semantic validator",
+    ):
+        assert required in content
+
+    tasks = _read(TASKS_PATH)
+    assert "`codex/canonical-timeline-review-packet-contract`" in tasks
+    assert "packetに`adoptionStatus`を持たせず" in tasks
+
+    decision = _read(DECISION_FRAME_PATH)
+    assert "~~**review packet contract**~~" in decision
+    assert "Canonical_Timeline_Review_Packet.md" in decision
 
 
 def test_timeline_and_wiki_docs_link_schema_without_enabling_public_output():

@@ -138,7 +138,7 @@ semantic validatorはschema検証、file I/O、CLI、report永続化、relation�
 
 canonical Timeline artifactは初期profileでinternal-onlyである。v0.1 schemaは`visibility: "internal_only"`だけを受理し、Wiki / public projectionを定義しない。
 
-実artifactの保存先、retention、review packet、promotion copy、公開用IDは未決定である。実データartifactやreview reportはcommitしない。
+review packetのデータ契約は`Canonical_Timeline_Review_Packet.md`で定義する。実artifact / packetの保存root、retention、builder / validator、promotion copy、公開用IDは未決定である。実データartifactやreview packet / reportはcommitしない。
 
 ---
 
@@ -148,7 +148,7 @@ canonical Timeline artifactは初期profileでinternal-onlyである。v0.1 sche
 - `canonicalOrder`等のstory間比較・補完・再採番
 - candidate生成、自然文推定、LLM / provider実装
 - relation / edgeを入力へ反映する反転、same-time class / transitive edge artifact生成、推移閉包、winner / score算出
-- schema validationを含むCLI / report、review packet、human decision import、promotion
+- schema validationを含むCLI / report、実review packet生成、human decision import、promotion
 - EVENT以外へのscope拡張
 - renderer、Wiki、public projection
 - 既存v0.5 check、inventory、manifest、Stage A / B schemaの変更
@@ -171,6 +171,7 @@ uv run pytest tests/schemas/test_canonical_timeline_schema.py tests/extractor/te
 
 - `Canonical_Timeline_Scope_Decision.md`
 - `Timeline.md`
+- `Canonical_Timeline_Review_Packet.md`
 - `../../runbooks/Cross_Story_Constraint_Inventory.md`
 - `../../runbooks/Timeline_Consistency_Check.md`
 - `../07_Wiki/Timeline_Page.md`
