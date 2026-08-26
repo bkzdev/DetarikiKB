@@ -247,8 +247,13 @@ def test_canonical_timeline_schema_docs_fix_internal_contract_and_gates():
         "humanDecision",
         "candidateProvenance",
         "conflictは複数根拠の不一致なので最低2件",
-        "将来semantic validatorの責務",
+        "validate_canonical_timeline_consistency()",
         "`from.storyId`と`to.storyId`が異なること",
+        "完全同一edge recordの重複",
+        "canonical same-time class内のbefore / after矛盾",
+        "実際に2種類以上の両立不能なrelation",
+        "入力edgeを書き換えない",
+        "`confirmed + candidate`はcanonical graphへ入れず",
         'format: "date-time"`とRFC 3339形式のpatternを併用',
         "実artifact生成CLIはまだ存在しない",
         "Wiki / public projectionを定義しない",
@@ -262,11 +267,38 @@ def test_canonical_timeline_schema_docs_keep_existing_values_and_outputs_out():
         "既存`canonicalOrder`は引き続きstory-local",
         "実node / edge / global値の生成・commit",
         "candidate生成、自然文推定",
-        "semantic validator、CLI、review packet、human decision import、promotion",
+        "same-time class / transitive edge artifact生成",
+        (
+            "schema validationを含むCLI / report、review packet、"
+            "human decision import、promotion"
+        ),
         "renderer、Wiki、public projection",
         "既存v0.5 check、inventory、manifest、Stage A / B schemaの変更",
     ):
         assert required in content
+
+
+def test_canonical_timeline_semantic_validator_remains_pure_and_synthetic_only():
+    content = _read(CANONICAL_TIMELINE_SCHEMA_DOC_PATH)
+    for required in (
+        "schema validation済みの単一dictを変更せず",
+        "unknown / conflict、pending、rejected、needs_more_context",
+        "file I/O、CLI、report永続化",
+        "winner選択",
+        "再帰に依存しない",
+        "合成`TEST_*`値だけ",
+        "tests/extractor/test_canonical_timeline_consistency.py",
+    ):
+        assert required in content
+
+    tasks = _read(TASKS_PATH)
+    assert "`codex/canonical-timeline-semantic-consistency`" in tasks
+    assert "完全同一edge record重複" in tasks
+    assert "実node / edge、review / promotion" in tasks
+
+    decision = _read(DECISION_FRAME_PATH)
+    assert "~~**consistency check**~~" in decision
+    assert "canonical_timeline_consistency.py" in decision
 
 
 def test_timeline_and_wiki_docs_link_schema_without_enabling_public_output():
