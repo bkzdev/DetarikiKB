@@ -2,7 +2,7 @@
 
 Version: 0.1
 
-Status: Implemented schema contract
+Status: Implemented schema and validation contract
 
 Schema: `schemas/canonical_timeline_review_packet.schema.json`
 
@@ -12,7 +12,7 @@ Schema: `schemas/canonical_timeline_review_packet.schema.json`
 
 canonical Timelineのcross-story candidateを、2 story間の小さなedge集合として人間が確認するためのlocal internal packetを定義する。packetは候補とreview結果を保持する中間artifactであり、canonical Timelineの正ではない。
 
-`humanReviewStatus: confirmed`に相当する`reviewStatus: confirmed`を記録しても、canonical artifactへのpromotionは起動しない。本schema contractは合成fixtureだけを対象とし、実packet生成、file I/O、validator、review結果の取り込み、promotionを実装しない。
+`humanReviewStatus: confirmed`に相当する`reviewStatus: confirmed`を記録しても、canonical artifactへのpromotionは起動しない。schemaとvalidatorは合成fixtureだけで検証し、実packet生成、review結果の取り込み、promotionを実装しない。
 
 ---
 
@@ -42,7 +42,7 @@ rootは次の境界を固定する。
 
 `storyPair`は`storyId`と`storyCategory: "EVT"`だけを持つ2要素の配列で、`uniqueItems: true`とする。1 story packet、3 story以上、同じStoryRefの重複、EVENT外storyを拒否する。
 
-edgeとcandidate provenanceのEpisodeRefは既存`canonical_timeline.schema.json`の定義を再利用し、`storyId` / `episodeId` / `storyCategory: "EVT"`を保持する。次は値同士の動的比較が必要なので、後続semantic validatorの責務とする。
+edgeとcandidate provenanceのEpisodeRefは既存`canonical_timeline.schema.json`の定義を再利用し、`storyId` / `episodeId` / `storyCategory: "EVT"`を保持する。JSON Schemaだけでは表せない次の動的比較は、`validate_canonical_timeline_review_packet_consistency()`が入力を変更せず決定的に検査する。
 
 - edgeの`from` / `to`が`storyPair`内の異なるstoryを指すこと
 - candidate provenanceの`sourceEpisode` / `targetEpisode`が同じpairとedgeの両端に解決できること
@@ -50,7 +50,7 @@ edgeとcandidate provenanceのEpisodeRefは既存`canonical_timeline.schema.json
 - 完全重複edgeを検出し、provenanceが異なる観測は重複として破棄しないこと
 - conflict provenanceの向きを正規化した結果が実際に両立不能であること
 
-schemaだけではpair外EpisodeRefを拒否できない。この境界を理由にstory IDを文字列から推測したり、pair外candidateを黙って削除したりしない。
+schema単独ではpair外EpisodeRefを受理しうるが、packet validatorはsemantic findingとして拒否する。この境界を理由にstory IDを文字列から推測したり、pair外candidateを黙って削除したりしない。
 
 ---
 
@@ -107,9 +107,11 @@ canonical Timeline artifactのTimelineEdgeは`adoptionStatus`を持つが、Revi
 - pendingをconfirmedへ自動変更せず、confirmedをcanonicalへ自動promotionしない
 - inventory 0件からcandidate / edgeを補完しない
 
-free-text内容のpath / raw marker検査、固定workspace root、retention、no-clobber、default dry-run、atomic writeは後続builder / validator contractでblockingに実装する。本schemaの通過だけで運用上安全なpacketとは判定しない。
+読取専用CLIはfree-text内容のpath / raw marker / packet内内部ID、固定workspace root、Git ignored / untracked、symlink / reparse pointをblocking検査する。schemaとsemantic validationの両方が通るまで運用上validなpacketとは判定しない。
 
-`createdAt`のschema patternは明白な形式不正を拒否する境界であり、暦日・時刻範囲を含む厳密なRFC 3339妥当性は後続validatorで検査する。
+packet v0.1には`expiresAt`がないため、retention / expirationは検査しない。no-clobber、default dry-run、atomic writeは後続builderの責務であり、validatorはfile / reportを書き込まない。
+
+`createdAt`と`humanDecision.decidedAt`は、schema patternに加えてread-only validatorの`FormatChecker`でRFC 3339の暦日・時刻範囲を検査する。
 
 ---
 
@@ -118,7 +120,7 @@ free-text内容のpath / raw marker検査、固定workspace root、retention、n
 - candidate生成、inventoryからの自動変換、edge方向の反転・winner選択
 - 実node / edge / packet生成、humanDecision自動記入
 - canonical artifact反映、review import、promotion、`--execute`
-- schema validationを含むCLI / report / file I/O
+- 実packet生成、report永続化、writeを伴うCLI / file I/O
 - global integer、total order、story-local `canonicalOrder`比較・補完
 - EVENT以外への拡張、renderer、Wiki、public projection
 - 実データfixture、実packet、raw / generated artifactのcommit
@@ -128,13 +130,14 @@ free-text内容のpath / raw marker検査、固定workspace root、retention、n
 
 # 8. 検証
 
-合成`TEST_*`値だけで、Draft 7 schema妥当性、2 distinct EVENT story、5 relation state、4 review statusとhumanDecision条件、unknown / conflictの理由・provenance不破棄、confirmedとpromotionの分離、internal-only / commit禁止、外部definitionのoffline解決、禁止fieldの拒否を検証する。
+合成`TEST_*`値だけで、Draft 7 schema妥当性、2 distinct EVENT story、5 relation state、4 review statusとhumanDecision条件、unknown / conflictの理由・provenance不破棄、confirmedとpromotionの分離、internal-only / commit禁止、外部definitionのoffline解決、禁止fieldの拒否を検証する。semantic / CLI testではpair・provenance・conflict・重複、不変性・決定性、固定root / Git / reparse / free-text境界、safe aggregate出力を検証する。
 
 ```powershell
 uv run pytest tests/schemas/test_canonical_timeline_review_packet_schema.py
+uv run pytest tests/extractor/test_canonical_timeline_review_packet_consistency.py tests/scripts/test_validate_canonical_timeline_review_packet.py
 ```
 
-pair外EpisodeRefがschema単独では通りうることも合成testで境界として固定し、後続semantic validatorで拒否するまで実運用へ投入しない。
+pair外EpisodeRefがschema単独では通りうることも合成testで境界として固定し、semantic validatorでblocking findingにする。
 
 ---
 
@@ -144,3 +147,4 @@ pair外EpisodeRefがschema単独では通りうることも合成testで境界�
 - `Canonical_Timeline_Schema.md`
 - `../../runbooks/Cross_Story_Constraint_Inventory.md`
 - `../../runbooks/Canonical_Order_Review.md`
+- `../../runbooks/Canonical_Timeline_Review.md`

@@ -37,6 +37,9 @@ CANONICAL_TIMELINE_REVIEW_PACKET_DOC_PATH = (
     / "03_Data_Model"
     / "Canonical_Timeline_Review_Packet.md"
 )
+CANONICAL_TIMELINE_REVIEW_RUNBOOK_PATH = (
+    PROJECT_ROOT / "docs" / "runbooks" / "Canonical_Timeline_Review.md"
+)
 TIMELINE_MODEL_PATH = (
     PROJECT_ROOT / "docs" / "architecture" / "03_Data_Model" / "Timeline.md"
 )
@@ -329,9 +332,9 @@ def test_canonical_timeline_review_packet_contract_is_internal_and_non_promoting
         "networkやremote schema fetchへ依存しない",
         "workspace限定・非commit",
         "`stateReason` / `evidenceSummary` / `notes`",
-        "schemaだけではpair外EpisodeRefを拒否できない",
-        "後続semantic validatorの責務",
-        "実packet生成、file I/O、validator",
+        "schema単独ではpair外EpisodeRefを受理しうる",
+        "validate_canonical_timeline_review_packet_consistency()",
+        "実packet生成、review結果の取り込み",
     ):
         assert required in content
 
@@ -355,6 +358,36 @@ def test_canonical_timeline_review_packet_contract_keeps_values_and_outputs_out(
     decision = _read(DECISION_FRAME_PATH)
     assert "~~**review packet contract**~~" in decision
     assert "Canonical_Timeline_Review_Packet.md" in decision
+
+
+def test_canonical_timeline_review_validator_is_read_only_and_non_promoting():
+    content = _read(CANONICAL_TIMELINE_REVIEW_RUNBOOK_PATH)
+    for required in (
+        "scripts/validate_canonical_timeline_review_packet.py",
+        "workspace/review_packets/canonical_timeline/",
+        "Git worktree root",
+        "symlink / Windows reparse point",
+        "常に非変更",
+        "network / remote schema fetchへfallbackしない",
+        "reviewEdgeKey`重複",
+        "storyPair`外、同一story、self",
+        "実際に2種類以上の両立不能なrelation",
+        "完全同一ReviewEdge record",
+        "provenance、status、decision等が異なる観測は重複として削除・統合しない",
+        "free-text",
+        "fixed issue code",
+        "file / report write、retention、promotion",
+        "packet v0.1 schemaは`expiresAt`を持たない",
+        "inventory 0件から自然文推定・LLM抽出で候補を補完しない",
+    ):
+        assert required in content
+
+    tasks = _read(TASKS_PATH)
+    assert "`codex/canonical-timeline-review-packet-validator`" in tasks
+    assert "file / report writeは0" in tasks
+
+    decision = _read(DECISION_FRAME_PATH)
+    assert "~~**read-only validator**~~" in decision
 
 
 def test_timeline_and_wiki_docs_link_schema_without_enabling_public_output():

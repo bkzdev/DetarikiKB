@@ -96,7 +96,7 @@ Parser:
 
 Extraction / Merge:
 - `docs/architecture/03_Data_Model/Canonical_Timeline_Schema.md`（採択済みEVENT限定partial order profileを合成fixtureだけで固定するinternal-only v0.1 schema / semantic consistency契約。5 relation state、review / adoption分離、human decision gate、candidate provenanceを表現し、schema-validな単一documentの重複node・参照欠落・同一story edge・完全重複record・canonical cycle / same-time矛盾・conflict根拠を純粋関数で検査する。実node / edge、CLI / report、review結果import / promotion、保存先、public表示は未実装）
-- `docs/architecture/03_Data_Model/Canonical_Timeline_Review_Packet.md`（2 distinct EVENT story間の小規模edge集合を人間reviewするlocal internal v0.1 schema契約。5 relation stateと4 review status、human decision conditional、元方向を保持するcandidate provenance、confirmedとpromotionの分離、commit禁止を合成fixtureだけで固定する。実packet、builder / validator、review import / promotionは未実装）
+- `docs/architecture/03_Data_Model/Canonical_Timeline_Review_Packet.md`（2 distinct EVENT story間の小規模edge集合を人間reviewするlocal internal v0.1 schema / validation契約。5 relation stateと4 review status、human decision conditional、元方向を保持するcandidate provenance、confirmedとpromotionの分離、commit禁止を固定し、固定workspace内の既存packetをoffline schema・semantic・free-text境界でread-only検証する。実packet、builder、review import / promotionは未実装）
 - `docs/architecture/06_AI/Extraction_Pipeline.md`
 - `docs/architecture/06_AI/Extraction_Result_Schema.md`
 - `docs/architecture/06_AI/Merged_Knowledge_Design.md`
@@ -114,6 +114,7 @@ Runbooks:
 - `docs/runbooks/Real_Data_Dry_Run.md`
 - `docs/runbooks/Timeline_Consistency_Check.md`（複数Stage A documentをmerge前に横断検査する独立check。`relative_order`のsame-time縮約・class内矛盾・class間循環、episode metadata由来`explicit_order`の同一episode/field値競合、同一story内の一意な`canonicalOrder`と`same_time =` / `before <` / `after >`制約の不整合をprovenance付きで検出し、story単位のcanonical review準備状況をinformationalに監査する。release/display補完・cross-story比較・順序確定・自然文推定は対象外）
 - `docs/runbooks/Cross_Story_Constraint_Inventory.md`（採択済みEVENT限定profileに基づき、既存のcross-story `relative_order`候補を判定・変換・重複排除せず、全provenance付きで2 story単位のinternal-only review queueへ集計する専用CLI / v0.1 report契約。story-local `canonicalOrder`比較、候補生成、canonical edge、review / promotion、public表示は対象外で、現行v0.5 checkは無変更）
+- `docs/runbooks/Canonical_Timeline_Review.md`（canonical Timeline review packetの読取専用validator運用。固定ignored / untracked workspace root、reparse point拒否、repo内Registryによるoffline schema解決、pair / provenance / conflict / 重複semantic検査、free-text非漏えい、匿名aggregate出力を定義する。report / file write、retention、builder / promotionは対象外）
 - `docs/runbooks/MkDocs_Local_Preview_Dry_Run.md`
 - `docs/runbooks/Story_Title_Subtitle_Import.md`
 - `docs/runbooks/Character_Dictionary_Review.md`
