@@ -12,7 +12,7 @@ Schema: `schemas/canonical_timeline.schema.json`
 
 `Canonical_Timeline_Scope_Decision.md`で採択したEVENT限定・partial order・5状態分離・human-confirmed gate・2 story単位review・internal-onlyの初期profileを、合成fixtureで検証可能なJSON Schemaへ固定する。
 
-本書とschemaはデータ表現を定義し、`agents/extractor/canonical_timeline_consistency.py`はschema-validな単一documentに対するsemantic consistencyだけを検査する。実candidateの生成、inventoryからの変換、実edgeの作成、人間判断の取り込み、promotion、保存先、公開は実装しない。
+本書とschemaはデータ表現を定義し、`agents/extractor/canonical_timeline_consistency.py`はschema-validな単一documentに対するsemantic consistencyだけを検査する。これら自身は実candidateの生成、inventoryからの変換、実edgeの作成、人間判断の取り込み、promotion、file I/O、公開を行わない。明示的なlocal反映は別tool / runbookへ分離する。
 
 ---
 
@@ -138,7 +138,7 @@ semantic validatorはschema検証、file I/O、CLI、report永続化、relation�
 
 canonical Timeline artifactは初期profileでinternal-onlyである。v0.1 schemaは`visibility: "internal_only"`だけを受理し、Wiki / public projectionを定義しない。
 
-review packetのデータ契約は`Canonical_Timeline_Review_Packet.md`で定義する。固定workspace root、v0.2の90日retention、read-only validator、pending packet builderまで実装済みである。human-confirmedなknown relationを非実行proposalとして保持する契約は`Canonical_Timeline_Promotion_Plan.md`で分離し、in-memory projector、cross-document semantic validator、既存artifactへのread-only preflightまで実装済みである。plan CLI / file I/O / executor、canonical artifactへのpromotion copy、公開用IDは未決定で、実データartifactやreview packet / plan / reportはcommitしない。
+review packetのデータ契約は`Canonical_Timeline_Review_Packet.md`で定義する。固定workspace root、v0.2の90日retention、read-only validator、pending packet builderまで実装済みである。human-confirmedなknown relationを非実行proposalとして保持する契約は`Canonical_Timeline_Promotion_Plan.md`で分離し、in-memory projector、cross-document semantic validator、read-only preflight、固定ignored workspace用executorまで実装済みである。実行運用は`../../runbooks/Canonical_Timeline_Promotion.md`を正とし、実データartifactやreview packet / plan / reportはcommitしない。公開用IDとpublic projectionは未決定である。
 
 ---
 
@@ -148,7 +148,7 @@ review packetのデータ契約は`Canonical_Timeline_Review_Packet.md`で定義
 - `canonicalOrder`等のstory間比較・補完・再採番
 - candidate生成、自然文推定、LLM / provider実装
 - relation / edgeを入力へ反映する反転、same-time class / transitive edge artifact生成、推移閉包、winner / score算出
-- canonical artifactのCLI / report、human decision import、promotion plan CLI / file I/O / executor
+- canonical artifact report、human decision import、promotion plan builder CLI
 - EVENT以外へのscope拡張
 - renderer、Wiki、public projection
 - 既存v0.5 check、inventory、manifest、Stage A / B schemaの変更

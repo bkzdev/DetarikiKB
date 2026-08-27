@@ -47,6 +47,9 @@ CANONICAL_TIMELINE_PROMOTION_PLAN_DOC_PATH = (
 CANONICAL_TIMELINE_REVIEW_RUNBOOK_PATH = (
     PROJECT_ROOT / "docs" / "runbooks" / "Canonical_Timeline_Review.md"
 )
+CANONICAL_TIMELINE_PROMOTION_RUNBOOK_PATH = (
+    PROJECT_ROOT / "docs" / "runbooks" / "Canonical_Timeline_Promotion.md"
+)
 TIMELINE_MODEL_PATH = (
     PROJECT_ROOT / "docs" / "architecture" / "03_Data_Model" / "Timeline.md"
 )
@@ -285,7 +288,7 @@ def test_canonical_timeline_schema_docs_keep_existing_values_and_outputs_out():
         "実node / edge / global値の生成・commit",
         "candidate生成、自然文推定",
         "same-time class / transitive edge artifact生成",
-        "canonical artifactのCLI / report、human decision import、promotion",
+        "canonical artifact report、human decision import、promotion plan builder CLI",
         "renderer、Wiki、public projection",
         "既存v0.5 check、inventory、manifest、Stage A / B schemaの変更",
     ):
@@ -352,7 +355,7 @@ def test_canonical_timeline_review_packet_contract_keeps_values_and_outputs_out(
     content = _read(CANONICAL_TIMELINE_REVIEW_PACKET_DOC_PATH)
     for required in (
         "Normalized Story本文からのcandidate推定",
-        "canonical artifact反映、review import、promotion",
+        "review import、promotion plan builder CLI、自動promotion",
         "global integer、total order、story-local `canonicalOrder`比較・補完",
         "renderer、Wiki、public projection",
         "実データfixture、実packet、raw / generated artifactのcommit",
@@ -400,7 +403,7 @@ def test_canonical_timeline_review_validator_is_read_only_and_non_promoting():
     tasks = _read(TASKS_PATH)
     assert "`codex/canonical-timeline-review-packet-validator`" in tasks
     assert "file / report writeは0" in tasks
-    assert "PR #246" in tasks
+    assert "PR #247" in tasks
     assert "read-only preflight" in tasks
 
     decision = _read(DECISION_FRAME_PATH)
@@ -429,19 +432,20 @@ def test_canonical_timeline_promotion_plan_contract_is_nonexecuting_and_internal
         "preflight_canonical_timeline_promotion",
         "baseline_invalid",
         "仮document、仮edge、node、provenance本文は返却しない",
-        "CLI / report / file I/O",
+        "promotion plan builder CLI",
         "cycle / same-time矛盾 / 完全record重複",
     ):
         assert required in content
 
     tasks = _read(TASKS_PATH)
-    assert "`codex/canonical-timeline-promotion-preflight`" in tasks
-    assert "cross-document semantic validator" in tasks
+    assert "`codex/canonical-timeline-promotion-executor`" in tasks
+    assert "plan / packet SHA-256 pin" in tasks
 
     decision = _read(DECISION_FRAME_PATH)
     assert "~~**promotion plan contract**~~" in decision
     assert "~~**promotion plan projector / semantic validator**~~" in decision
     assert "~~**promotion read-only preflight**~~" in decision
+    assert "~~**promotion executor**~~" in decision
 
     for path in (
         CANONICAL_TIMELINE_SCHEMA_DOC_PATH,
@@ -450,6 +454,23 @@ def test_canonical_timeline_promotion_plan_contract_is_nonexecuting_and_internal
         TIMELINE_MODEL_PATH,
     ):
         assert "Canonical_Timeline_Promotion_Plan.md" in _read(path)
+
+
+def test_canonical_timeline_promotion_executor_is_explicit_and_local_only():
+    content = _read(CANONICAL_TIMELINE_PROMOTION_RUNBOOK_PATH)
+    for required in (
+        "scripts/apply_canonical_timeline_promotion.py",
+        "workspace/canonical_timeline/canonical_timeline.json",
+        "defaultはdry-run",
+        "--expected-plan-sha256",
+        "--expected-packet-sha256",
+        "--expected-artifact-sha256",
+        "history",
+        "atomic replace",
+        "自動rollbackしない",
+        "実データでは実行していない",
+    ):
+        assert required in content
 
 
 def test_timeline_and_wiki_docs_link_schema_without_enabling_public_output():

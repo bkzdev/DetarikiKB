@@ -181,7 +181,7 @@ D6=A  internal-only
    4. ~~**promotion plan contract**~~: `schemas/canonical_timeline_promotion_plan.schema.json`と`Canonical_Timeline_Promotion_Plan.md`で、v0.2 packetのhuman-confirmedなknown relationだけを元edge・全provenance保持の`proposed_canonical_edge`へ写すlocal internal / plan-only契約を合成fixtureで固定する。builder / validator / CLI、canonical artifact write、promotion実行は作らない
    5. ~~**promotion plan projector / semantic validator**~~: 検証済みv0.2 packetの全適格edgeを非実行planへ決定的にdeep copyし、source packet / story pair / expiry / edge 1:1対応を純粋関数で検査する。CLI / file I/O、canonical artifact preflight / write、promotion実行は行わない
    6. ~~**promotion read-only preflight**~~: plan edgeをメモリ内だけで仮canonical化し、既存canonical Timelineへの追加時のcycle / same-time矛盾 / 完全重複をsafe aggregateで検査する。baseline不正はfail-closedとし、artifact write / adoptionは行わない
-   7. **promotion executor**: preflight済みplanを入力するdefault dry-run toolingを別PRで設計し、canonical artifactへの反映計画と実行を分離する
+   7. ~~**promotion executor**~~: 固定ignored workspace内のplan / packetを再検証し、default dry-run、入力・現artifact digest pin、seed no-clobber、update lock / snapshot / atomic replaceでinternal canonical artifactへ反映する。実データ実行は行わない
 5. **small local sample**: 承認済みcross-story根拠だけでend-to-end検証する
 6. **public projection decision**: internal artifact完成後、公開目的とpublic-safe要件を別途判断する
 
