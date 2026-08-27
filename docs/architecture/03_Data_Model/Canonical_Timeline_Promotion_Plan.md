@@ -2,7 +2,7 @@
 
 Version: 0.1
 
-Status: Implemented schema contract, in-memory projector, semantic validator, and read-only preflight
+Status: Implemented contract, projector, validator, preflight, and local executor
 
 Schema: `schemas/canonical_timeline_promotion_plan.schema.json`
 
@@ -12,7 +12,7 @@ Schema: `schemas/canonical_timeline_promotion_plan.schema.json`
 
 人間確認済みのCanonical Timeline review edgeを、canonical artifactへまだ書き込まない「反映候補」として表現する。promotion planはinternal-onlyの非実行artifactであり、canonical Timelineの正でも、実行指示でもない。
 
-schema契約に加え、検証済みpacketからplanを構築する純粋関数、planとpacketのcross-document整合性を検査する純粋関数、既存canonical Timelineへ仮想追加した場合を検査するread-only preflightを実装する。CLI / file I/O、canonical artifactの生成・更新、promotion実行は未実装である。
+schema契約に加え、検証済みpacketからplanを構築する純粋関数、planとpacketのcross-document整合性を検査する純粋関数、既存canonical Timelineへ仮想追加した場合を検査するread-only preflightを実装した。固定local workspaceにだけ反映するdefault dry-run executorの運用は`../../runbooks/Canonical_Timeline_Promotion.md`を正とする。
 
 ---
 
@@ -103,11 +103,18 @@ semantic validatorは次を確認する。
 
 ---
 
-# 7. Non-goals
+# 7. Local executor境界
 
-- CLI / report / file I/O、workspaceへのplan保存
-- `--execute`、canonical artifact write、promotion executor
-- preflight結果からの自動adoption、自動copy、canonical artifact更新
+`scripts/apply_canonical_timeline_promotion.py`は、固定rootに置かれたplan / packetを再検証し、`workspace/canonical_timeline/canonical_timeline.json`へ反映する。dry-runを既定とし、実行時はplan / packetのSHA-256、更新時は現artifactのSHA-256も必須とする。seedはno-clobber、updateは排他lock、旧artifact snapshot、lock内再読込、preflight、atomic replaceを行う。
+
+期限切れpacketは既存契約どおりwarning-onlyであり、実行を暗黙に許可も禁止もしない。実行成功後の一時file / lock cleanup失敗は、反映済みであることを固定warning codeで返し、失敗として誤報しない。artifact・history・plan・packetはGitへcommitしない。詳細と復旧判断はrunbookを参照する。
+
+---
+
+# 8. Non-goals
+
+- promotion plan builder CLI、review結果の自動import
+- preflight結果からの自動実行、自動adoption
 - candidate生成、Normalized Story本文の自動推定、LLM / provider実装
 - humanDecision自動記入、relation反転、winner / score、dedup、複数packet統合
 - global integer、total order、story-local `canonicalOrder`比較・補完
@@ -117,19 +124,21 @@ semantic validatorは次を確認する。
 
 ---
 
-# 8. 検証
+# 9. 検証
 
 合成`TEST_*`値だけで、Draft 7妥当性、offline external reference、EVENT / internal-only / plan-only、confirmed known relation + humanDecision gate、元edge / provenance保持、v0.2 source packet、期限切れ状態の保持、禁止field拒否、projectionの決定性と入力不変、cross-document改変・欠落・余分・重複検出、preflightの仮node追加・cycle / same-time矛盾 / 完全重複・baseline fail-closed・safe aggregateを検証する。
 
 ```powershell
 uv run pytest tests/schemas/test_canonical_timeline_promotion_plan_schema.py tests/extractor/test_canonical_timeline_promotion_plan.py tests/extractor/test_canonical_timeline_promotion_preflight.py
+uv run pytest tests/scripts/test_apply_canonical_timeline_promotion.py
 ```
 
 ---
 
-# 9. 関連文書
+# 10. 関連文書
 
 - `Canonical_Timeline_Scope_Decision.md`
 - `Canonical_Timeline_Schema.md`
 - `Canonical_Timeline_Review_Packet.md`
 - `../../runbooks/Canonical_Timeline_Review.md`
+- `../../runbooks/Canonical_Timeline_Promotion.md`
