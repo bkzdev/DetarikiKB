@@ -2,7 +2,7 @@
 
 Version: 0.1
 
-Status: Implemented schema contract, in-memory projector, and semantic validator
+Status: Implemented schema contract, in-memory projector, semantic validator, and read-only preflight
 
 Schema: `schemas/canonical_timeline_promotion_plan.schema.json`
 
@@ -12,7 +12,7 @@ Schema: `schemas/canonical_timeline_promotion_plan.schema.json`
 
 人間確認済みのCanonical Timeline review edgeを、canonical artifactへまだ書き込まない「反映候補」として表現する。promotion planはinternal-onlyの非実行artifactであり、canonical Timelineの正でも、実行指示でもない。
 
-schema契約に加え、検証済みpacketからplanを構築する純粋関数と、planとpacketのcross-document整合性を検査する純粋関数を実装する。CLI / file I/O、canonical artifactの生成・更新、promotion実行は未実装である。
+schema契約に加え、検証済みpacketからplanを構築する純粋関数、planとpacketのcross-document整合性を検査する純粋関数、既存canonical Timelineへ仮想追加した場合を検査するread-only preflightを実装する。CLI / file I/O、canonical artifactの生成・更新、promotion実行は未実装である。
 
 ---
 
@@ -95,7 +95,9 @@ semantic validatorは次を確認する。
 - packet内の全適格edgeとplan entryが欠落・余分・改変なく1対1対応すること
 - `planEntryKey`と`sourceEdge.reviewEdgeKey`が一意であること
 
-既存canonical artifactへ追加した場合のcycle / same-time矛盾は、artifactの保存・実行契約を伴うため、後続のexecutor前read-only preflightの責務とする。
+`agents/extractor/canonical_timeline_promotion_preflight.py`の`preflight_canonical_timeline_promotion`は、既存canonical Timelineがsemantic-validであることをfail-closedで確認した後、plan edgeをメモリ内だけで`adoptionStatus: "canonical"`の仮edgeへdeep copyする。不足nodeも仮documentへ一意に追加し、既存validatorでcycle / same-time矛盾 / 完全record重複を検査する。
+
+仮document、仮edge、node、provenance本文は返却しない。結果は`clean` / `blocked`、固定rule、関連する`planEntryKey`、件数だけのsafe aggregateである。baselineが不正な場合は詳細を返さず、固定`baseline_invalid` findingだけでplan評価を停止する。
 
 不一致時もwinnerを選ばず、元packet・provenance・human decisionを削除しない。
 
@@ -105,7 +107,7 @@ semantic validatorは次を確認する。
 
 - CLI / report / file I/O、workspaceへのplan保存
 - `--execute`、canonical artifact write、promotion executor
-- 既存canonical artifactを読むcycle / same-time preflight
+- preflight結果からの自動adoption、自動copy、canonical artifact更新
 - candidate生成、Normalized Story本文の自動推定、LLM / provider実装
 - humanDecision自動記入、relation反転、winner / score、dedup、複数packet統合
 - global integer、total order、story-local `canonicalOrder`比較・補完
@@ -117,10 +119,10 @@ semantic validatorは次を確認する。
 
 # 8. 検証
 
-合成`TEST_*`値だけで、Draft 7妥当性、offline external reference、EVENT / internal-only / plan-only、confirmed known relation + humanDecision gate、元edge / provenance保持、v0.2 source packet、期限切れ状態の保持、禁止field拒否、projectionの決定性と入力不変、cross-document改変・欠落・余分・重複検出を検証する。
+合成`TEST_*`値だけで、Draft 7妥当性、offline external reference、EVENT / internal-only / plan-only、confirmed known relation + humanDecision gate、元edge / provenance保持、v0.2 source packet、期限切れ状態の保持、禁止field拒否、projectionの決定性と入力不変、cross-document改変・欠落・余分・重複検出、preflightの仮node追加・cycle / same-time矛盾 / 完全重複・baseline fail-closed・safe aggregateを検証する。
 
 ```powershell
-uv run pytest tests/schemas/test_canonical_timeline_promotion_plan_schema.py tests/extractor/test_canonical_timeline_promotion_plan.py
+uv run pytest tests/schemas/test_canonical_timeline_promotion_plan_schema.py tests/extractor/test_canonical_timeline_promotion_plan.py tests/extractor/test_canonical_timeline_promotion_preflight.py
 ```
 
 ---

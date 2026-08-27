@@ -15,7 +15,7 @@ CLI:
 
 検証済みStage Aに既に存在するcross-story `relative_order`から、2 EVENT storyだけのlocal internal packetを安全に構築し、schema・cross-story semantic・free-text安全境界の3層で読み取り専用検証する。packetはreview用の中間artifactであり、validator PASSや`reviewStatus: confirmed`はcanonical artifactへのpromotionを起動しない。
 
-本runbookは合成fixtureで検証したbuilder / validator運用を定義する。human-confirmedなknown relationを非実行proposalとして保持する契約とin-memory projector / semantic validatorは`../architecture/03_Data_Model/Canonical_Timeline_Promotion_Plan.md`で定義済みだが、Normalized Story本文からの候補推定、review結果import、canonical artifact作成・更新、promotion plan CLI / file I/O / executorは未実装である。confirmed edgeからplanやpromotionが自動起動することはない。
+本runbookは合成fixtureで検証したbuilder / validator運用を定義する。human-confirmedなknown relationを非実行proposalとして保持する契約、in-memory projector / semantic validator、read-only preflightは`../architecture/03_Data_Model/Canonical_Timeline_Promotion_Plan.md`で定義済みだが、Normalized Story本文からの候補推定、review結果import、canonical artifact作成・更新、promotion plan CLI / file I/O / executorは未実装である。confirmed edgeやpreflight PASSからplanやpromotionが自動起動することはない。
 
 ---
 

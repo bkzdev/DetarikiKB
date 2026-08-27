@@ -400,8 +400,8 @@ def test_canonical_timeline_review_validator_is_read_only_and_non_promoting():
     tasks = _read(TASKS_PATH)
     assert "`codex/canonical-timeline-review-packet-validator`" in tasks
     assert "file / report writeは0" in tasks
-    assert "PR #245" in tasks
-    assert "期限切れはwarning-onlyで保持" in tasks
+    assert "PR #246" in tasks
+    assert "read-only preflight" in tasks
 
     decision = _read(DECISION_FRAME_PATH)
     assert "~~**read-only validator**~~" in decision
@@ -426,18 +426,22 @@ def test_canonical_timeline_promotion_plan_contract_is_nonexecuting_and_internal
         '`adoptionStatus: "canonical"`はplanに置かず',
         "build_canonical_timeline_promotion_plan",
         "validate_canonical_timeline_promotion_plan_consistency",
+        "preflight_canonical_timeline_promotion",
+        "baseline_invalid",
+        "仮document、仮edge、node、provenance本文は返却しない",
         "CLI / report / file I/O",
-        "既存canonical artifactへ追加した場合のcycle / same-time矛盾",
+        "cycle / same-time矛盾 / 完全record重複",
     ):
         assert required in content
 
     tasks = _read(TASKS_PATH)
-    assert "`codex/canonical-timeline-promotion-plan-projector`" in tasks
+    assert "`codex/canonical-timeline-promotion-preflight`" in tasks
     assert "cross-document semantic validator" in tasks
 
     decision = _read(DECISION_FRAME_PATH)
     assert "~~**promotion plan contract**~~" in decision
     assert "~~**promotion plan projector / semantic validator**~~" in decision
+    assert "~~**promotion read-only preflight**~~" in decision
 
     for path in (
         CANONICAL_TIMELINE_SCHEMA_DOC_PATH,

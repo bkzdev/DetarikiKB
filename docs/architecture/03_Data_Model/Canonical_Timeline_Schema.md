@@ -138,7 +138,7 @@ semantic validatorはschema検証、file I/O、CLI、report永続化、relation�
 
 canonical Timeline artifactは初期profileでinternal-onlyである。v0.1 schemaは`visibility: "internal_only"`だけを受理し、Wiki / public projectionを定義しない。
 
-review packetのデータ契約は`Canonical_Timeline_Review_Packet.md`で定義する。固定workspace root、v0.2の90日retention、read-only validator、pending packet builderまで実装済みである。human-confirmedなknown relationを非実行proposalとして保持する契約は`Canonical_Timeline_Promotion_Plan.md`で分離し、in-memory projectorとcross-document semantic validatorまで実装済みである。plan CLI / file I/O / executor、canonical artifactへのpreflight / promotion copy、公開用IDは未決定で、実データartifactやreview packet / plan / reportはcommitしない。
+review packetのデータ契約は`Canonical_Timeline_Review_Packet.md`で定義する。固定workspace root、v0.2の90日retention、read-only validator、pending packet builderまで実装済みである。human-confirmedなknown relationを非実行proposalとして保持する契約は`Canonical_Timeline_Promotion_Plan.md`で分離し、in-memory projector、cross-document semantic validator、既存artifactへのread-only preflightまで実装済みである。plan CLI / file I/O / executor、canonical artifactへのpromotion copy、公開用IDは未決定で、実データartifactやreview packet / plan / reportはcommitしない。
 
 ---
 
