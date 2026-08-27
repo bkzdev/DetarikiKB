@@ -126,7 +126,7 @@ validatorの`--render-review-brief`は、edge数・関係別件数・provenance�
 
 - Normalized Story本文からのcandidate推定、LLM / provider実装、edge方向の反転・winner選択
 - humanDecision自動記入
-- canonical artifact反映、review import、promotion plan builder / validator / executor（非実行schema契約は`Canonical_Timeline_Promotion_Plan.md`）
+- canonical artifact反映、review import、promotion plan CLI / file I/O / executor（非実行schema契約とin-memory projector / validatorは`Canonical_Timeline_Promotion_Plan.md`）
 - report永続化、期限切れpacketの自動削除
 - global integer、total order、story-local `canonicalOrder`比較・補完
 - EVENT以外への拡張、renderer、Wiki、public projection

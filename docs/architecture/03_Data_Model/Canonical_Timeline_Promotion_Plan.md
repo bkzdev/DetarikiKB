@@ -2,7 +2,7 @@
 
 Version: 0.1
 
-Status: Implemented schema contract only
+Status: Implemented schema contract, in-memory projector, and semantic validator
 
 Schema: `schemas/canonical_timeline_promotion_plan.schema.json`
 
@@ -12,13 +12,13 @@ Schema: `schemas/canonical_timeline_promotion_plan.schema.json`
 
 人間確認済みのCanonical Timeline review edgeを、canonical artifactへまだ書き込まない「反映候補」として表現する。promotion planはinternal-onlyの非実行artifactであり、canonical Timelineの正でも、実行指示でもない。
 
-本契約はschemaと合成fixtureだけを実装する。plan builder / validator / CLI、review packetの読込、canonical artifactの生成・更新、promotion実行は未実装である。
+schema契約に加え、検証済みpacketからplanを構築する純粋関数と、planとpacketのcross-document整合性を検査する純粋関数を実装する。CLI / file I/O、canonical artifactの生成・更新、promotion実行は未実装である。
 
 ---
 
 # 2. 入力gate
 
-将来のplannerが入力として扱えるのは、validatorを通ったv0.2 review packetのうち、次をすべて満たすedgeだけである。
+projectorが入力として扱えるのは、schemaとreview packet semantic validatorを通ったv0.2 review packetのうち、次をすべて満たすedgeだけである。
 
 - `reviewStatus: "confirmed"`
 - `relationState`が`before` / `after` / `same_time`のいずれか
@@ -56,9 +56,9 @@ v0.1 review packetは`expiresAt`を持たないため直接入力にせず、後
 
 `sourcePacket`はpacket ID、review batch ID、`schemaVersion: "0.2"`、作成日時、90日保持期限、plan作成時点の期限状態`expiredAtPlanning`を保持する。
 
-`expiredAtPlanning: true`もschema-validである。期限切れはwarning-onlyであり、自動削除、自動却下、confirmed decisionの取消し、自動promotionの理由にしない。将来のplannerは元packetをread-only validatorへ通し、`expiresAt = createdAt + 90日`を確認してから値を複写する。
+`expiredAtPlanning: true`もschema-validである。期限切れはwarning-onlyであり、自動削除、自動却下、confirmed decisionの取消し、自動promotionの理由にしない。projectorはplan作成時刻と`expiresAt`を比較して期限状態を記録する。入力前に元packetをread-only validatorへ通し、`expiresAt = createdAt + 90日`を確認する。
 
-schema単独ではsource packet本体とのcross-document照合や90日差分計算を行わない。これらは将来のplanner / semantic validatorの責務である。
+schema単独ではsource packet本体とのcross-document照合や90日差分計算を行わない。cross-document照合は本契約のsemantic validator、90日差分は入力前のreview packet validatorが担当する。
 
 ---
 
@@ -73,6 +73,8 @@ schema単独ではsource packet本体とのcross-document照合や90日差分計
 
 `sourceEdge`はreview packet schemaのReviewEdgeをoffline external referenceとして再利用し、さらにconfirmed + known relation + humanDecision必須へ制限する。`reviewEdgeKey`、`from` / `to`、relation、state reason、全candidate provenance、human decisionをそのまま保持する。
 
+`build_canonical_timeline_promotion_plan`は適格edgeを内容で決定的にsortし、`plan-entry-0001`から連番を付けてdeep copyする。入力packetとedgeは変更しない。適格edgeが0件、v0.2以外、timezone情報のない作成時刻は固定codeで拒否する。
+
 relationの反転、winner選択、dedup、same-time class化、複数packet統合、cycle解決、edge ID採番は行わない。`adoptionStatus: "canonical"`はplanに置かず、confirmed reviewとcanonical adoptionを分離する。
 
 ---
@@ -81,13 +83,19 @@ relationの反転、winner選択、dedup、same-time class化、複数packet統�
 
 consumerはpromotion plan、review packet、canonical Timelineの3 schemaをrepo内`referencing.Registry`へ登録し、network / remote schema fetchへ依存しない。
 
-Draft 7だけでは次を動的に検査できないため、将来のplanner / semantic validatorが入力を変更せず確認する。
+`agents/extractor/canonical_timeline_promotion_plan.py`は次の純粋関数を提供する。
 
-- source packet ID・story pair・edgeが実際のv0.2 packetと一致すること
-- source edgeの両端がstory pair内の異なるstoryであること
-- `planEntryKey`と`sourceEdge.reviewEdgeKey`の一意性
-- 同じsource edgeが複数planへ重複採用されていないこと
-- plan対象edgeを既存canonical artifactへ追加した場合のcycle / same-time矛盾
+- `build_canonical_timeline_promotion_plan`: 検証済みv0.2 packetから非実行planを構築する
+- `validate_canonical_timeline_promotion_plan_consistency`: planと元packetを変更せず、固定ruleの決定的findingを返す
+
+semantic validatorは次を確認する。
+
+- source packetのID・batch・version・作成日時・期限とstory pairが元packetから完全複写されていること
+- `expiredAtPlanning`がplan作成時刻とpacket期限の比較結果に一致すること
+- packet内の全適格edgeとplan entryが欠落・余分・改変なく1対1対応すること
+- `planEntryKey`と`sourceEdge.reviewEdgeKey`が一意であること
+
+既存canonical artifactへ追加した場合のcycle / same-time矛盾は、artifactの保存・実行契約を伴うため、後続のexecutor前read-only preflightの責務とする。
 
 不一致時もwinnerを選ばず、元packet・provenance・human decisionを削除しない。
 
@@ -95,8 +103,9 @@ Draft 7だけでは次を動的に検査できないため、将来のplanner / 
 
 # 7. Non-goals
 
-- plan builder / validator / CLI / report / file I/O
+- CLI / report / file I/O、workspaceへのplan保存
 - `--execute`、canonical artifact write、promotion executor
+- 既存canonical artifactを読むcycle / same-time preflight
 - candidate生成、Normalized Story本文の自動推定、LLM / provider実装
 - humanDecision自動記入、relation反転、winner / score、dedup、複数packet統合
 - global integer、total order、story-local `canonicalOrder`比較・補完
@@ -108,10 +117,10 @@ Draft 7だけでは次を動的に検査できないため、将来のplanner / 
 
 # 8. 検証
 
-合成`TEST_*`値だけで、Draft 7妥当性、offline external reference、EVENT / internal-only / plan-only、confirmed known relation + humanDecision gate、元edge / provenance保持、v0.2 source packet、期限切れ状態の保持、禁止field拒否を検証する。
+合成`TEST_*`値だけで、Draft 7妥当性、offline external reference、EVENT / internal-only / plan-only、confirmed known relation + humanDecision gate、元edge / provenance保持、v0.2 source packet、期限切れ状態の保持、禁止field拒否、projectionの決定性と入力不変、cross-document改変・欠落・余分・重複検出を検証する。
 
 ```powershell
-uv run pytest tests/schemas/test_canonical_timeline_promotion_plan_schema.py
+uv run pytest tests/schemas/test_canonical_timeline_promotion_plan_schema.py tests/extractor/test_canonical_timeline_promotion_plan.py
 ```
 
 ---

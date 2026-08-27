@@ -179,7 +179,8 @@ D6=A  internal-only
    2. ~~**read-only validator**~~: 固定workspace root内の既存packetをoffline schema・semantic・free-text境界で検証し、safe aggregateだけを出す。file / report write、retention、promotionは行わない
    3. ~~**review packet builder**~~: ユーザー決定（2026-08-27）の90日保持・期限切れwarningのみ・自動削除なしをv0.2 packetへ固定し、既存Stage A `relative_order`の1 story pairだけをpending packetへ変換するdefault dry-run / no-clobber builderを実装する
    4. ~~**promotion plan contract**~~: `schemas/canonical_timeline_promotion_plan.schema.json`と`Canonical_Timeline_Promotion_Plan.md`で、v0.2 packetのhuman-confirmedなknown relationだけを元edge・全provenance保持の`proposed_canonical_edge`へ写すlocal internal / plan-only契約を合成fixtureで固定する。builder / validator / CLI、canonical artifact write、promotion実行は作らない
-   5. **promotion planner / executor**: plan contractを入力するdefault dry-run toolingを別PRで設計し、canonical artifactへの反映計画・検証・実行を分離する
+   5. ~~**promotion plan projector / semantic validator**~~: 検証済みv0.2 packetの全適格edgeを非実行planへ決定的にdeep copyし、source packet / story pair / expiry / edge 1:1対応を純粋関数で検査する。CLI / file I/O、canonical artifact preflight / write、promotion実行は行わない
+   6. **promotion preflight / executor**: plan contractを入力するdefault dry-run toolingを別PRで設計し、既存canonical artifactとのpreflight、反映計画、実行を分離する
 5. **small local sample**: 承認済みcross-story根拠だけでend-to-end検証する
 6. **public projection decision**: internal artifact完成後、公開目的とpublic-safe要件を別途判断する
 
