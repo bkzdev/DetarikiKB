@@ -403,8 +403,8 @@ def test_canonical_timeline_review_validator_is_read_only_and_non_promoting():
     tasks = _read(TASKS_PATH)
     assert "`codex/canonical-timeline-review-packet-validator`" in tasks
     assert "file / report writeは0" in tasks
-    assert "PR #247" in tasks
-    assert "read-only preflight" in tasks
+    assert "PR #248" in tasks
+    assert "promotion executor" in tasks
 
     decision = _read(DECISION_FRAME_PATH)
     assert "~~**read-only validator**~~" in decision
@@ -438,8 +438,8 @@ def test_canonical_timeline_promotion_plan_contract_is_nonexecuting_and_internal
         assert required in content
 
     tasks = _read(TASKS_PATH)
-    assert "`codex/canonical-timeline-promotion-executor`" in tasks
-    assert "plan / packet SHA-256 pin" in tasks
+    assert "`codex/canonical-timeline-first-cross-story-sample`" in tasks
+    assert "plan / packet SHA-256を指定" in tasks
 
     decision = _read(DECISION_FRAME_PATH)
     assert "~~**promotion plan contract**~~" in decision
@@ -468,9 +468,18 @@ def test_canonical_timeline_promotion_executor_is_explicit_and_local_only():
         "history",
         "atomic replace",
         "自動rollbackしない",
-        "実データでは実行していない",
+        "初回小規模sample（2026-08-28）",
+        "2 nodes / 1 edge",
+        "schema error 0",
+        "semantic finding 0",
+        "ユーザーの明示承認",
+        "実story / episode / Evidence ID、本文、path、digestは文書化・commitしていない",
     ):
         assert required in content
+
+    tasks = _read(TASKS_PATH)
+    assert "`codex/canonical-timeline-first-cross-story-sample`" in tasks
+    assert "生成物非commit" in tasks
 
 
 def test_timeline_and_wiki_docs_link_schema_without_enabling_public_output():

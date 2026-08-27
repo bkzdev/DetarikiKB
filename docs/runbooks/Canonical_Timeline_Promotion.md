@@ -50,7 +50,15 @@ atomic replaceはprocess間の可視性を守るが、電源断まで含むdirec
 
 ## 現在の境界
 
-本executorは合成fixtureだけで検証しており、実データでは実行していない。promotion plan builder CLI、review結果の自動import、自動promotion、複数plan統合、実artifactのcommit、EVENT外、public projectionは対象外である。
+executor本体は合成fixtureで検証する。実データ由来のartifact、packet、planはlocal ignored workspaceだけに保持し、commitしない。promotion plan builder CLI、review結果の自動import、自動promotion、複数plan統合、EVENT外、public projectionは対象外である。
+
+## 初回小規模sample（2026-08-28）
+
+Normalized Story本文だけを根拠として、先行事件の未解決予告と後続事件冒頭の継続状態が明確につながる2 EVENT storyを選定した。日付、番号、ファイル名、配列順、story-local `canonicalOrder`はcross-story関係の根拠に使用していない。親agentと独立agentの一致を内部IDなしで説明し、ユーザーの明示承認後に`before` 1件をconfirmed review packetへ記録した。
+
+packetのschema / semantic / free-text検証と期限確認、promotion planのprojection / preflight、executor dry-runを順に通した。dry-runで得たplan / packet digestを明示指定して初期seedを実行し、書込後artifactが候補digestと一致することを確認した。結果は2 nodes / 1 edge、schema error 0、semantic finding 0だった。
+
+packet、plan、artifactは固定ignored workspaceへだけ保存し、実story / episode / Evidence ID、本文、path、digestは文書化・commitしていない。追加候補の自動抽出、2件目以降のedge、総順序化、公開は行っていない。
 
 ```powershell
 uv run pytest tests/scripts/test_apply_canonical_timeline_promotion.py
