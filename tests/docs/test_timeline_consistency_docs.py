@@ -278,10 +278,7 @@ def test_canonical_timeline_schema_docs_keep_existing_values_and_outputs_out():
         "実node / edge / global値の生成・commit",
         "candidate生成、自然文推定",
         "same-time class / transitive edge artifact生成",
-        (
-            "schema validationを含むCLI / report、実review packet生成、"
-            "human decision import、promotion"
-        ),
+        "canonical artifactのCLI / report、human decision import、promotion",
         "renderer、Wiki、public projection",
         "既存v0.5 check、inventory、manifest、Stage A / B schemaの変更",
     ):
@@ -334,7 +331,12 @@ def test_canonical_timeline_review_packet_contract_is_internal_and_non_promoting
         "`stateReason` / `evidenceSummary` / `notes`",
         "schema単独ではpair外EpisodeRefを受理しうる",
         "validate_canonical_timeline_review_packet_consistency()",
-        "実packet生成、review結果の取り込み",
+        "v0.2は`expiresAt = createdAt + 90日`を必須",
+        "期限切れでもvalidatorはexit 0を維持",
+        "scripts/build_canonical_timeline_review_packet.py",
+        "既定はdry-run",
+        "replace-free",
+        "--render-review-brief",
     ):
         assert required in content
 
@@ -342,7 +344,7 @@ def test_canonical_timeline_review_packet_contract_is_internal_and_non_promoting
 def test_canonical_timeline_review_packet_contract_keeps_values_and_outputs_out():
     content = _read(CANONICAL_TIMELINE_REVIEW_PACKET_DOC_PATH)
     for required in (
-        "candidate生成、inventoryからの自動変換",
+        "Normalized Story本文からのcandidate推定",
         "canonical artifact反映、review import、promotion",
         "global integer、total order、story-local `canonicalOrder`比較・補完",
         "renderer、Wiki、public projection",
@@ -367,7 +369,7 @@ def test_canonical_timeline_review_validator_is_read_only_and_non_promoting():
         "workspace/review_packets/canonical_timeline/",
         "Git worktree root",
         "symlink / Windows reparse point",
-        "常に非変更",
+        "validatorはfileを書き換えず",
         "network / remote schema fetchへfallbackしない",
         "reviewEdgeKey`重複",
         "storyPair`外、同一story、self",
@@ -376,18 +378,27 @@ def test_canonical_timeline_review_validator_is_read_only_and_non_promoting():
         "provenance、status、decision等が異なる観測は重複として削除・統合しない",
         "free-text",
         "fixed issue code",
-        "file / report write、retention、promotion",
-        "packet v0.1 schemaは`expiresAt`を持たない",
-        "inventory 0件から自然文推定・LLM抽出で候補を補完しない",
+        "scripts/build_canonical_timeline_review_packet.py",
+        "--story-pair-index",
+        "--execute",
+        "--render-review-brief",
+        "作成時刻から90日",
+        "期限切れはwarningだけでexit 0",
+        "validatorもbuilderも期限切れpacketを削除・変更しない",
+        "Normalized Storyからのagent-assisted候補抽出",
+        "LLM provider実装や自然文からの自動大量抽出を意味しない",
     ):
         assert required in content
 
     tasks = _read(TASKS_PATH)
     assert "`codex/canonical-timeline-review-packet-validator`" in tasks
     assert "file / report writeは0" in tasks
+    assert "`codex/canonical-timeline-review-packet-builder`" in tasks
+    assert "期限切れwarningのみ・自動削除なし" in tasks
 
     decision = _read(DECISION_FRAME_PATH)
     assert "~~**read-only validator**~~" in decision
+    assert "~~**review packet builder**~~" in decision
 
 
 def test_timeline_and_wiki_docs_link_schema_without_enabling_public_output():

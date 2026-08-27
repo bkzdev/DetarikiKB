@@ -10,6 +10,7 @@ import stat
 import subprocess
 import sys
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -41,6 +42,9 @@ _URL = re.compile(r"(?i)\b(?:https?|ftp|file)://")
 _RAW_COMMAND = re.compile(r"(?<![A-Za-z0-9_.+-])@[A-Za-z_][A-Za-z0-9_]*")
 _RAW_MARKERS = (".dec", "$num", "$value", "<script")
 _INTERNAL_ID_CHARACTERS = "A-Za-z0-9_-"
+_RETENTION_DAYS = 90
+_RETENTION_WINDOW_INVALID = "canonical_timeline_review_retention_window_invalid"
+_PACKET_EXPIRED = "canonical_timeline_review_packet_expired"
 
 
 class ConfigError(Exception):
@@ -54,11 +58,19 @@ class ConfigError(Exception):
 @dataclass(frozen=True)
 class ValidationResult:
     issue_codes: tuple[str, ...]
+    warning_codes: tuple[str, ...] = ()
     edge_count: int = 0
     confirmed_count: int = 0
     pending_count: int = 0
     rejected_count: int = 0
     needs_more_context_count: int = 0
+    before_count: int = 0
+    after_count: int = 0
+    same_time_count: int = 0
+    unknown_count: int = 0
+    conflict_count: int = 0
+    provenance_count: int = 0
+    evidence_ref_count: int = 0
 
     @property
     def is_valid(self) -> bool:
@@ -74,7 +86,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         required=True,
         help="workspace/review_packets/canonical_timeline直下のbasename",
     )
-    parser.add_argument("--quiet", "-q", action="store_true")
+    output_group = parser.add_mutually_exclusive_group()
+    output_group.add_argument("--quiet", "-q", action="store_true")
+    output_group.add_argument(
+        "--render-review-brief",
+        action="store_true",
+        help="内部IDや本文を含まない自然文の匿名review briefを表示する",
+    )
     return parser.parse_args(argv)
 
 
@@ -280,7 +298,59 @@ def _check_free_text(packet: dict[str, Any], issues: list[str]) -> None:
             _append_once(issues, "free-text-internal-id")
 
 
-def validate_packet_document(packet: Any) -> ValidationResult:
+def _parse_timestamp(value: str) -> datetime:
+    return datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(timezone.utc)
+
+
+def _retention_codes(
+    packet: dict[str, Any],
+    *,
+    current_time: datetime,
+) -> tuple[list[str], list[str]]:
+    if packet.get("schemaVersion") != "0.2":
+        return [], []
+
+    created_at = _parse_timestamp(packet["createdAt"])
+    expires_at = _parse_timestamp(packet["expiresAt"])
+    issues: list[str] = []
+    warnings: list[str] = []
+    if expires_at != created_at + timedelta(days=_RETENTION_DAYS):
+        issues.append(_RETENTION_WINDOW_INVALID)
+    if current_time.astimezone(timezone.utc) > expires_at:
+        warnings.append(_PACKET_EXPIRED)
+    return issues, warnings
+
+
+def render_review_brief(result: ValidationResult) -> str:
+    """内部ID・path・本文を含まない固定templateのreview案内を返す。"""
+    retention_state = "期限切れ（warningのみ）" if result.warning_codes else "有効"
+    return "\n".join(
+        (
+            "Canonical Timeline レビュー概要",
+            "- 対象: 2つのEVENT story間の候補",
+            f"- 確認対象: {result.edge_count} edge",
+            "- 関係候補: "
+            f"before={result.before_count}, after={result.after_count}, "
+            f"same_time={result.same_time_count}, unknown={result.unknown_count}, "
+            f"conflict={result.conflict_count}",
+            "- 根拠参照: "
+            f"observations={result.provenance_count}, "
+            f"evidence_refs={result.evidence_ref_count}",
+            "- review状態: "
+            f"pending={result.pending_count}, confirmed={result.confirmed_count}, "
+            f"rejected={result.rejected_count}, "
+            f"needs_more_context={result.needs_more_context_count}",
+            f"- 保持期限: {retention_state}",
+            "- 注意: reviewやcanonical昇格、公開、削除は自動実行されません。",
+        )
+    )
+
+
+def validate_packet_document(
+    packet: Any,
+    *,
+    current_time: datetime | None = None,
+) -> ValidationResult:
     validator = _load_validator()
     try:
         if list(validator.iter_errors(packet)):
@@ -293,15 +363,36 @@ def validate_packet_document(packet: Any) -> ValidationResult:
     for finding in validate_canonical_timeline_review_packet_consistency(packet):
         _append_once(issues, finding["rule"])
     _check_free_text(packet, issues)
+    retention_issues, warnings = _retention_codes(
+        packet,
+        current_time=current_time or datetime.now(timezone.utc),
+    )
+    for issue in retention_issues:
+        _append_once(issues, issue)
 
     statuses = [edge["reviewStatus"] for edge in packet["edges"]]
+    relations = [edge["relationState"] for edge in packet["edges"]]
     return ValidationResult(
         tuple(sorted(issues)),
+        tuple(sorted(warnings)),
         edge_count=len(statuses),
         confirmed_count=statuses.count("confirmed"),
         pending_count=statuses.count("pending"),
         rejected_count=statuses.count("rejected"),
         needs_more_context_count=statuses.count("needs_more_context"),
+        before_count=relations.count("before"),
+        after_count=relations.count("after"),
+        same_time_count=relations.count("same_time"),
+        unknown_count=relations.count("unknown"),
+        conflict_count=relations.count("conflict"),
+        provenance_count=sum(
+            len(edge["candidateProvenance"]) for edge in packet["edges"]
+        ),
+        evidence_ref_count=sum(
+            len(provenance["evidenceIds"])
+            for edge in packet["edges"]
+            for provenance in edge["candidateProvenance"]
+        ),
     )
 
 
@@ -330,7 +421,14 @@ def main(argv: list[str] | None = None) -> int:
                 file=sys.stderr,
             )
             return 1
-        if not args.quiet:
+        for warning_code in result.warning_codes:
+            print(
+                "[canonical-timeline-review] status=warning code=" + warning_code,
+                file=sys.stderr,
+            )
+        if args.render_review_brief:
+            print(render_review_brief(result))
+        elif not args.quiet:
             print(
                 "[canonical-timeline-review] status=valid "
                 f"edges={result.edge_count} confirmed={result.confirmed_count} "

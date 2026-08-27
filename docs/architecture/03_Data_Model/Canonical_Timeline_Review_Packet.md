@@ -1,8 +1,8 @@
 # Canonical Timeline Review Packet契約
 
-Version: 0.1
+Version: 0.2
 
-Status: Implemented schema and validation contract
+Status: Implemented schema, validator, and pending packet builder
 
 Schema: `schemas/canonical_timeline_review_packet.schema.json`
 
@@ -12,7 +12,7 @@ Schema: `schemas/canonical_timeline_review_packet.schema.json`
 
 canonical Timelineのcross-story candidateを、2 story間の小さなedge集合として人間が確認するためのlocal internal packetを定義する。packetは候補とreview結果を保持する中間artifactであり、canonical Timelineの正ではない。
 
-`humanReviewStatus: confirmed`に相当する`reviewStatus: confirmed`を記録しても、canonical artifactへのpromotionは起動しない。schemaとvalidatorは合成fixtureだけで検証し、実packet生成、review結果の取り込み、promotionを実装しない。
+`humanReviewStatus: confirmed`に相当する`reviewStatus: confirmed`を記録しても、canonical artifactへのpromotionは起動しない。schema、validator、builderは合成fixtureだけで検証し、実packetをcommitせず、review結果の取り込みとpromotionを実装しない。
 
 ---
 
@@ -22,7 +22,7 @@ rootは次の境界を固定する。
 
 | field | 契約 |
 |---|---|
-| `schemaVersion` | `"0.1"` |
+| `schemaVersion` | `"0.1"`または`"0.2"`。builderの新規出力は`"0.2"` |
 | `documentType` | `"canonical_timeline_review_packet"` |
 | `packetId` | titleを含まないlocal packet ID |
 | `reviewBatchId` | story titleを含まないlocal review batch識別子 |
@@ -31,10 +31,11 @@ rootは次の境界を固定する。
 | `scopeStoryCategory` | `"EVT"`固定 |
 | `visibility` | `"internal_only"`固定 |
 | `createdAt` | RFC 3339 date-time |
+| `expiresAt` | v0.2だけで必須。`createdAt`の90日後 |
 | `storyPair` | 相異なる2 EVENT storyだけ |
 | `edges` | 1件以上のreview対象edge |
 
-`additionalProperties: false`とし、global整数、story-local `canonicalOrder`、public ID / URL、raw text / path用fieldを受理しない。実packetはworkspace限定・非commitとするが、保存root、retention、expiration、atomic write、no-clobberは後続builder / validatorで確定・実装する。
+`additionalProperties: false`とし、global整数、story-local `canonicalOrder`、public ID / URL、raw text / path用fieldを受理しない。v0.1は後方互換で読めるが`expiresAt`を受理せず、v0.2は`expiresAt`を必須とする。実packetは固定workspace限定・非commitである。
 
 ---
 
@@ -109,7 +110,13 @@ canonical Timeline artifactのTimelineEdgeは`adoptionStatus`を持つが、Revi
 
 読取専用CLIはfree-text内容のpath / raw marker / packet内内部ID、固定workspace root、Git ignored / untracked、symlink / reparse pointをblocking検査する。schemaとsemantic validationの両方が通るまで運用上validなpacketとは判定しない。
 
-packet v0.1には`expiresAt`がないため、retention / expirationは検査しない。no-clobber、default dry-run、atomic writeは後続builderの責務であり、validatorはfile / reportを書き込まない。
+packet v0.1には`expiresAt`がないためretention / expirationは検査しない。v0.2は`expiresAt = createdAt + 90日`を必須とし、ずれはblocking issue、期限超過はwarningだけとする。期限切れでもvalidatorはexit 0を維持し、packetを削除・変更・promotionしない。自動cleanupは実装しない。
+
+builderは`scripts/build_canonical_timeline_review_packet.py`で、schema / semantic-validなStage A入力の既存`relative_order`だけを利用する。決定的に並べたstory pairを1-based `--story-pair-index`で1件選び、元方向と全candidate provenanceを保持した`pending` edgeへ変換する。同じedge形状の複数観測は1 ReviewEdgeのprovenance配列へ保持し、観測自体は重複排除しない。
+
+出力先は`workspace/review_packets/canonical_timeline/`固定である。既定はdry-run、書込みは`--execute`明示時だけとし、固定rootを作成後に再検査する。一時fileを排他的に作成し、schema + semantic validation後にreplace-freeで公開する。既存targetは上書きせず、`os.replace`や上書きfallbackを使わない。
+
+validatorの`--render-review-brief`は、edge数・関係別件数・provenance件数・review状態・期限状態だけを固定templateの自然文で表示する。story / episode / candidate / Evidence ID、path、URL、raw textは表示しない。
 
 `createdAt`と`humanDecision.decidedAt`は、schema patternに加えてread-only validatorの`FormatChecker`でRFC 3339の暦日・時刻範囲を検査する。
 
@@ -117,10 +124,10 @@ packet v0.1には`expiresAt`がないため、retention / expirationは検査し
 
 # 7. Non-goals
 
-- candidate生成、inventoryからの自動変換、edge方向の反転・winner選択
-- 実node / edge / packet生成、humanDecision自動記入
-- canonical artifact反映、review import、promotion、`--execute`
-- 実packet生成、report永続化、writeを伴うCLI / file I/O
+- Normalized Story本文からのcandidate推定、LLM / provider実装、edge方向の反転・winner選択
+- humanDecision自動記入
+- canonical artifact反映、review import、promotion planner / execute
+- report永続化、期限切れpacketの自動削除
 - global integer、total order、story-local `canonicalOrder`比較・補完
 - EVENT以外への拡張、renderer、Wiki、public projection
 - 実データfixture、実packet、raw / generated artifactのcommit
@@ -134,7 +141,7 @@ packet v0.1には`expiresAt`がないため、retention / expirationは検査し
 
 ```powershell
 uv run pytest tests/schemas/test_canonical_timeline_review_packet_schema.py
-uv run pytest tests/extractor/test_canonical_timeline_review_packet_consistency.py tests/scripts/test_validate_canonical_timeline_review_packet.py
+uv run pytest tests/extractor/test_canonical_timeline_review_packet_consistency.py tests/extractor/test_canonical_timeline_review_packet_builder.py tests/scripts/test_validate_canonical_timeline_review_packet.py tests/scripts/test_build_canonical_timeline_review_packet.py
 ```
 
 pair外EpisodeRefがschema単独では通りうることも合成testで境界として固定し、semantic validatorでblocking findingにする。
