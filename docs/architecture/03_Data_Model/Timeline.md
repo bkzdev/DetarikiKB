@@ -6,4 +6,4 @@ episode-level `canonicalOrder`は、同一story内だけで比較するstory-loc
 
 採択profileのJSON表現とsemantic consistency境界は`Canonical_Timeline_Schema.md`と`schemas/canonical_timeline.schema.json`を正とする。2 story単位の人間review入力契約、read-only validator、pending packet builderは`Canonical_Timeline_Review_Packet.md`および`../../runbooks/Canonical_Timeline_Review.md`を参照する。builderは固定workspace root、default dry-run、no-clobberでv0.2 packetを生成できるが、実corpusの候補は0件であり実packetは生成していない。
 
-human-confirmedなknown relationをcanonical artifactへまだ書き込まない非実行proposalとして表す契約は`Canonical_Timeline_Promotion_Plan.md`を正とする。in-memory projectorとcross-document semantic validatorまで実装済みであるが、plan CLI / file I/O、review結果import、既存artifactとのpreflight、canonical artifact write、promotion executor、実plan、公開は未実装である。
+human-confirmedなknown relationをcanonical artifactへまだ書き込まない非実行proposalとして表す契約は`Canonical_Timeline_Promotion_Plan.md`を正とする。in-memory projector、cross-document semantic validator、既存artifactへのread-only preflightまで実装済みであるが、plan CLI / file I/O、review結果import、canonical artifact write、promotion executor、実plan、公開は未実装である。
