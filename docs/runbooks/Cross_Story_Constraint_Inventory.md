@@ -96,7 +96,7 @@ reportには`canonicalOrder`、`releaseOrder`、`displayOrder`、global order値
 - story-local `canonicalOrder`をstory間で比較、再採番、補完すること
 - `before` / `after`の反転、same-time class、推移閉包、cycle findingを作ること
 - candidateを評価してwinner、score、edge status、canonical artifactを作ること
-- review packet、human decision取り込み、promotionを実装すること
+- review packetからhuman decisionを取り込み、promotionすること（pending packet builderは別runbookで実装済み）
 - EVENT以外へscopeを拡張すること
 - Wiki / public projectionへ表示すること
 

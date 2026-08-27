@@ -122,9 +122,28 @@ def _packet(*edges: dict, **overrides: object) -> dict:
     return packet
 
 
+def _packet_v2(*edges: dict, **overrides: object) -> dict:
+    packet = _packet(*edges)
+    packet.update(
+        {
+            "schemaVersion": "0.2",
+            "expiresAt": "2099-04-01T00:00:00Z",
+        }
+    )
+    packet.update(overrides)
+    return packet
+
+
 def test_schema_is_valid_draft7_and_external_refs_resolve_offline():
     Draft7Validator.check_schema(_load_schema(SCHEMA_PATH))
     assert _errors(_packet()) == []
+    assert _errors(_packet_v2()) == []
+
+
+def test_schema_versions_keep_v01_compatible_and_require_v02_expiration():
+    assert _errors(_packet(expiresAt="2099-04-01T00:00:00Z")) != []
+    assert _errors(_packet(schemaVersion="0.2")) != []
+    assert _errors(_packet_v2(expiresAt="not-a-date")) != []
 
 
 def test_minimal_pending_known_edge_is_valid_and_not_promoted():
@@ -251,7 +270,7 @@ def test_story_pair_is_exactly_two_distinct_event_story_refs():
 
 def test_event_internal_and_no_commit_constants_are_enforced():
     for field, value in (
-        ("schemaVersion", "0.2"),
+        ("schemaVersion", "0.3"),
         ("documentType", "canonical_timeline"),
         ("classification", "public"),
         ("scopeStoryCategory", "MAIN"),

@@ -177,11 +177,12 @@ D6=A  internal-only
 4. **review / promotion tooling**:
    1. ~~**review packet contract**~~: `schemas/canonical_timeline_review_packet.schema.json`と`Canonical_Timeline_Review_Packet.md`で、2 distinct EVENT story、edge単位4 status、human decision、candidate provenance、internal-only / commit禁止を合成fixtureだけで固定する。実packet、CLI / validator、promotionは作らない
    2. ~~**read-only validator**~~: 固定workspace root内の既存packetをoffline schema・semantic・free-text境界で検証し、safe aggregateだけを出す。file / report write、retention、promotionは行わない
-   3. **builder / promotion planner**: retention contractと人間確認済みlocal sampleの決定後、workspace限定、default dry-run、no-clobber、human-confirmed gateでpacket生成とcanonical artifactへの反映計画を分離する
+   3. ~~**review packet builder**~~: ユーザー決定（2026-08-27）の90日保持・期限切れwarningのみ・自動削除なしをv0.2 packetへ固定し、既存Stage A `relative_order`の1 story pairだけをpending packetへ変換するdefault dry-run / no-clobber builderを実装する
+   4. **promotion planner**: 人間review済みdecisionを取り込む契約を別PRで設計し、canonical artifactへの反映計画と実行を分離する
 5. **small local sample**: 承認済みcross-story根拠だけでend-to-end検証する
 6. **public projection decision**: internal artifact完成後、公開目的とpublic-safe要件を別途判断する
 
-第1段階の運用契約は`docs/runbooks/Cross_Story_Constraint_Inventory.md`を正とする。現行rule-based extractorは通常`relative_order`を生成しない。実データinventoryが空の場合、自然文からの自動推定器を先に実装せず、承認済み根拠の入手方法を判断する。
+第1段階の運用契約は`docs/runbooks/Cross_Story_Constraint_Inventory.md`を正とする。現行rule-based extractorは通常`relative_order`を生成しない。2026-08-27のユーザー承認により、Normalized Storyをagentが読んで小規模な候補を提示することは許可されたが、候補の人間確認前の確定・promotion・公開、および`agents/extractor/`へのLLM provider実装は許可されていない。
 
 ---
 

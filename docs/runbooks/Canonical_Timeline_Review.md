@@ -1,18 +1,21 @@
 # Canonical Timeline Review運用手順
 
-Version: 0.1
+Version: 0.2
 
 対象: 2 EVENT story間のcanonical Timeline review packet
 
-CLI: `scripts/validate_canonical_timeline_review_packet.py`
+CLI:
+
+- `scripts/build_canonical_timeline_review_packet.py`
+- `scripts/validate_canonical_timeline_review_packet.py`
 
 ---
 
 # 1. 目的
 
-`canonical_timeline_review_packet.schema.json`に従うlocal internal packetを、schema・cross-story semantic・free-text安全境界の3層で読み取り専用検証する。packetはreview用の中間artifactであり、validator PASSや`reviewStatus: confirmed`はcanonical artifactへのpromotionを起動しない。
+検証済みStage Aに既に存在するcross-story `relative_order`から、2 EVENT storyだけのlocal internal packetを安全に構築し、schema・cross-story semantic・free-text安全境界の3層で読み取り専用検証する。packetはreview用の中間artifactであり、validator PASSや`reviewStatus: confirmed`はcanonical artifactへのpromotionを起動しない。
 
-本runbookは合成fixtureで検証したvalidator運用だけを定義する。実packetの生成、review結果import、canonical artifact作成・更新、promotion plannerは未実装である。
+本runbookは合成fixtureで検証したbuilder / validator運用を定義する。Normalized Story本文からの候補推定、review結果import、canonical artifact作成・更新、promotion plannerは未実装である。
 
 ---
 
@@ -27,38 +30,59 @@ packetは固定root `workspace/review_packets/canonical_timeline/`直下のJSON�
 - UTF-8 JSONのregular fileだけを読む
 - packet、review note、内部ID対応表はcommitしない
 
-validatorはfileを書き換えず、reportも保存しない。`--write` / `--execute`は存在しないため、常に非変更である。
+validatorはfileを書き換えず、reportも保存しない。builderは既定dry-runで、`--execute`を明示した場合だけ新規packetをno-clobberで作成する。
 
 ---
 
-# 3. 実行
+# 3. Builder実行
+
+入力はrepo内のschema-validなStage A JSON file / directory / globである。builderは各resolved fileのrepo / reparse境界を読込前に検査し、EVENT scopeにある明示的な`relative_order`だけをinventory化する。利用可能pairと決定的な1-based indexは、先に`Cross_Story_Constraint_Inventory.md`のinventory reportで確認し、builderではそのindexを1件選ぶ。builderの匿名集計は選択済みpairが1件であることだけを示す。
+
+```powershell
+uv run python scripts/build_canonical_timeline_review_packet.py `
+  --input workspace/dry_runs/{run}/extraction `
+  --recursive `
+  --story-pair-index 1 `
+  --packet-name canonical_timeline_review_batch_001.json `
+  --review-batch-id review-batch-001
+```
+
+正常なdry-runではpacketを書かず、匿名集計だけを表示する。内容を確認後、同じ引数へ`--execute`を追加して新規packetを作成する。既存packetは上書きしない。
+
+builderはrelationを反転・統合・推定せず、全観測の元方向、candidate ID、Evidence ID、source type、confidence、extraction runをpacket内provenanceへ保持する。stdout / stderrへこれらの内部値やpathを出さない。
+
+builderのexit codeは、0=正常、1=invalid inputまたは選択可能pairなし、2=固定root・packet名・write等の設定異常である。
+
+---
+
+# 4. Validator実行
 
 ```powershell
 uv run python scripts/validate_canonical_timeline_review_packet.py `
   --packet-name canonical_timeline_review_batch_001.json
 ```
 
-正常時はedge数と4 review statusの匿名集計だけをstdoutへ出す。`--quiet`では正常時に何も出さない。異常時はfixed issue code（固定issue code）と件数だけをstderrへ出し、path、story / episode / candidate / Evidence ID、free-text、raw内容を表示しない。
+正常時はedge数と4 review statusの匿名集計だけをstdoutへ出す。`--render-review-brief`では関係別・provenance・review状態・保持期限の匿名集計を固定templateの自然文で表示する。`--quiet`では正常時に何も出さないが、期限切れwarningは隠さない。異常時はfixed issue code（固定issue code）と件数だけをstderrへ出し、path、story / episode / candidate / Evidence ID、free-text、raw内容を表示しない。
 
 exit codeは次の通り。
 
 | code | 意味 |
 |---:|---|
-| 0 | schema・semantic・free-text検証がすべてvalid |
+| 0 | schema・semantic・free-text検証がすべてvalid（期限切れwarningを含みうる） |
 | 1 | JSON / schema / semantic / free-textがinvalid |
 | 2 | packet名、固定root、Git境界、reparse point、schema読込等の設定異常 |
 
 ---
 
-# 4. Schema検証
+# 5. Schema検証
 
 packet schemaとcanonical Timeline schemaをrepo内`referencing.Registry`へ明示登録し、external `$ref`を完全offlineで解決する。network / remote schema fetchへfallbackしない。
 
-Draft 7とFormatCheckerで、2 distinct EVENT story、5 relation state、4 review status、humanDecision conditional、candidate provenance、internal-only / commit禁止、禁止fieldを検証する。
+Draft 7とFormatCheckerで、2 distinct EVENT story、5 relation state、4 review status、humanDecision conditional、candidate provenance、internal-only / commit禁止、禁止fieldを検証する。v0.1は`expiresAt`なしで後方互換、v0.2は`expiresAt`必須である。
 
 ---
 
-# 5. Semantic検証
+# 6. Semantic検証
 
 schema valid後、入力dictを変更せず次を決定的に検査する。
 
@@ -74,7 +98,7 @@ unknown / conflict、pending / rejected / needs_more_context / confirmedをcanon
 
 ---
 
-# 6. Free-text検証
+# 7. Free-text検証
 
 `stateReason`、`humanDecision.reviewer`、`evidenceSummary`、`notes`を検査し、次をblocking issueとして扱う。
 
@@ -87,42 +111,40 @@ unknown / conflict、pending / rejected / needs_more_context / confirmedをcanon
 
 ---
 
-# 7. 保持期限とbuilderの境界
+# 8. 保持期限と削除境界
 
-packet v0.1 schemaは`expiresAt`を持たない。validatorはretentionや期限切れを検査せず、実装済みとも扱わない。
+ユーザー決定（2026-08-27）により、新規builder出力はpacket v0.2、保持期限は作成時刻から90日とする。v0.2では`expiresAt = createdAt + 90日`の完全一致をvalidatorが検査し、ずれはblocking issueとする。
 
-builder着手前に、schema version、`expiresAt`、既定保持日数、許容範囲、期限切れをerror / warningのどちらにするか、削除主体を決める必要がある。builderはその決定後に、固定rootの再検査、一時fileの排他的作成、schema + semantic validation、replaceしないatomic publish、no-clobberを別PRで実装する。`os.replace`や上書きfallbackは使わない。
+期限切れはwarningだけでexit 0を維持する。validatorもbuilderも期限切れpacketを削除・変更しない。自動cleanup、期限延長、上書き更新は実装しない。v0.1 packetには`expiresAt`がないため、retention検査の対象外である。
 
----
-
-# 8. 次の人間・データgate
-
-builderへ進むには、次の両方が必要である。
-
-1. retention運用の明示的な決定
-2. story-local順序から推測していない、2 EVENT story間の根拠付きcross-story candidateを1件以上、人間確認済みlocal sampleとして用意すること
-
-このgateを満たすまで、inventory 0件から自然文推定・LLM抽出で候補を補完しない。
+builderは固定root作成後にもrootからleafまでを再検査し、一時fileを排他的に作成する。生成packetがschema + semantic + free-text検証に通った後だけ、同一directoryのhard linkを使ってreplace-freeに公開する。`os.replace`や上書きfallbackは使わず、publish失敗時は一時fileを片付ける。
 
 ---
 
-# 9. Non-goals
+# 9. 次の人間・データgate
 
-- packet / candidate / edge生成、inventory変換
+保持期限とbuilderの契約は確定した。実corpusの既存inventoryは0件なので、本物のpacketを作るには、Normalized Storyを根拠として2 EVENT story間の関係候補をagentが提示し、人間確認gateを通す小規模local sampleが必要である。候補提示では対象2 storyの内容と関係根拠を自然文で説明し、ユーザーが内部IDを読まなくても判断できる形にする。
+
+ユーザーは2026-08-27に、Normalized Storyからのagent-assisted候補抽出、internal-only、人間確認前の自動確定・promotion・公開を行わない条件を承認した。この承認は`agents/extractor/`のLLM provider実装や自然文からの自動大量抽出を意味しない。まず小規模local sampleをagentが読み取り、候補を個別に説明する。
+
+---
+
+# 10. Non-goals
+
+- Normalized Story本文から候補を自動生成するLLM / provider実装、大量抽出
 - humanDecision自動記入、review結果import
 - canonical artifact作成・更新、promotion plan / execute
-- file / report write、retention、promotion
-- cleanup / expiration判定
+- report永続化、期限切れpacketの自動cleanup
 - global integer、total order、story-local `canonicalOrder`比較・補完
 - EVENT外拡張、renderer、Wiki、public projection
 - 実packet / 実データfixture / raw / generated artifactのcommit
 
 ---
 
-# 10. 検証
+# 11. 検証
 
 ```powershell
-uv run pytest tests/extractor/test_canonical_timeline_review_packet_consistency.py tests/scripts/test_validate_canonical_timeline_review_packet.py
+uv run pytest tests/schemas/test_canonical_timeline_review_packet_schema.py tests/extractor/test_canonical_timeline_review_packet_consistency.py tests/extractor/test_canonical_timeline_review_packet_builder.py tests/scripts/test_validate_canonical_timeline_review_packet.py tests/scripts/test_build_canonical_timeline_review_packet.py
 ```
 
 すべて合成`TEST_*` packetを一時directoryで扱い、実workspaceへpacketを生成しない。

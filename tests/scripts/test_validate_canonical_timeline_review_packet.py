@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import subprocess
 from copy import deepcopy
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -65,8 +66,8 @@ def _edge(**overrides: object) -> dict[str, object]:
     return value
 
 
-def _packet(*edges: dict[str, object]) -> dict[str, object]:
-    return {
+def _packet(*edges: dict[str, object], **overrides: object) -> dict[str, object]:
+    packet: dict[str, object] = {
         "schemaVersion": "0.1",
         "documentType": "canonical_timeline_review_packet",
         "packetId": "ctrp-20990101T000000Z-deadbeef",
@@ -82,6 +83,20 @@ def _packet(*edges: dict[str, object]) -> dict[str, object]:
         ],
         "edges": list(edges) or [_edge()],
     }
+    packet.update(overrides)
+    return packet
+
+
+def _packet_v2(*edges: dict[str, object], **overrides: object) -> dict[str, object]:
+    packet = _packet(*edges)
+    packet.update(
+        {
+            "schemaVersion": "0.2",
+            "expiresAt": "2099-04-01T00:00:00Z",
+        }
+    )
+    packet.update(overrides)
+    return packet
 
 
 def _completed(returncode: int, stdout: str = "") -> subprocess.CompletedProcess[str]:
@@ -126,6 +141,54 @@ def test_document_validation_is_offline_schema_and_semantic_read_only() -> None:
     invalid = _packet(_edge(to=_episode(3)))
     result = validator.validate_packet_document(invalid)
     assert "canonical_timeline_review_edge_outside_story_pair" in result.issue_codes
+
+
+def test_v02_retention_is_exact_and_expiration_is_warning_only() -> None:
+    packet = _packet_v2()
+    original = deepcopy(packet)
+    current_time = datetime(2099, 4, 2, tzinfo=timezone.utc)
+
+    result = validator.validate_packet_document(packet, current_time=current_time)
+    assert result.is_valid
+    assert result.warning_codes == ("canonical_timeline_review_packet_expired",)
+    assert packet == original
+
+    invalid = _packet_v2(expiresAt="2099-03-31T23:59:59Z")
+    result = validator.validate_packet_document(
+        invalid,
+        current_time=datetime(2099, 1, 1, tzinfo=timezone.utc),
+    )
+    assert result.issue_codes == ("canonical_timeline_review_retention_window_invalid",)
+
+
+def test_review_brief_is_fixed_natural_language_without_internal_values() -> None:
+    packet = _packet_v2(
+        _edge(
+            candidateProvenance=[
+                _provenance(),
+                _provenance(candidateId="TEST_CANDIDATE_002"),
+            ]
+        )
+    )
+    result = validator.validate_packet_document(
+        packet,
+        current_time=datetime(2099, 1, 1, tzinfo=timezone.utc),
+    )
+    brief = validator.render_review_brief(result)
+
+    assert "対象: 2つのEVENT story間の候補" in brief
+    assert "確認対象: 1 edge" in brief
+    assert "observations=2" in brief
+    for forbidden in (
+        "EVT_TEST",
+        "TEST_CANDIDATE",
+        "TEST_EVIDENCE",
+        "sourcePath",
+        "http://",
+        "https://",
+        ".dec",
+    ):
+        assert forbidden not in brief
 
 
 @pytest.mark.parametrize(
@@ -197,6 +260,40 @@ def test_cli_quiet_valid_has_no_output(
     assert validator.main(["--packet-name", path.name, "--quiet"]) == 0
     captured = capsys.readouterr()
     assert captured.out == captured.err == ""
+
+
+def test_cli_expired_packet_returns_zero_warning_and_never_deletes(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    root = _configure_workspace(monkeypatch, tmp_path)
+    packet = _packet_v2(
+        createdAt="2000-01-01T00:00:00Z",
+        expiresAt="2000-03-31T00:00:00Z",
+    )
+    path = _write_packet(root, packet)
+    before = path.read_bytes()
+
+    assert validator.main(["--packet-name", path.name, "--quiet"]) == 0
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "canonical_timeline_review_packet_expired" in captured.err
+    assert path.read_bytes() == before
+
+
+def test_cli_can_render_anonymous_review_brief(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    root = _configure_workspace(monkeypatch, tmp_path)
+    path = _write_packet(root, _packet_v2())
+
+    assert validator.main(["--packet-name", path.name, "--render-review-brief"]) == 0
+    captured = capsys.readouterr()
+    assert "Canonical Timeline レビュー概要" in captured.out
+    assert "EVT_TEST" not in captured.out + captured.err
 
 
 def test_cli_invalid_json_and_semantic_values_do_not_leak(

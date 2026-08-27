@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://detariki-kb/schemas/canonical_timeline_review_packet.schema.json",
   "title": "Canonical Timeline Review Packet",
-  "description": "2 EVENT story間のcanonical Timeline候補をinternal-onlyで人間レビューするための、昇格を伴わないv0.1 packet。",
+  "description": "2 EVENT story間のcanonical Timeline候補をinternal-onlyで人間レビューするための、昇格を伴わないpacket。v0.2は90日retentionを持つ。",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -19,7 +19,7 @@
     "edges"
   ],
   "properties": {
-    "schemaVersion": { "const": "0.1" },
+    "schemaVersion": { "enum": ["0.1", "0.2"] },
     "documentType": { "const": "canonical_timeline_review_packet" },
     "packetId": {
       "type": "string",
@@ -40,6 +40,11 @@
       "format": "date-time",
       "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|[+-]\\d{2}:\\d{2})$"
     },
+    "expiresAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|[+-]\\d{2}:\\d{2})$"
+    },
     "storyPair": {
       "type": "array",
       "minItems": 2,
@@ -53,6 +58,16 @@
       "items": { "$ref": "#/definitions/ReviewEdge" }
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "schemaVersion": { "const": "0.2" } },
+        "required": ["schemaVersion"]
+      },
+      "then": { "required": ["expiresAt"] },
+      "else": { "not": { "required": ["expiresAt"] } }
+    }
+  ],
   "definitions": {
     "StoryRef": {
       "type": "object",
