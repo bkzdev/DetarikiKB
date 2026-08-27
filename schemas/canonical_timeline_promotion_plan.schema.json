@@ -1,0 +1,128 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://detariki-kb/schemas/canonical_timeline_promotion_plan.schema.json",
+  "title": "Canonical Timeline Promotion Plan",
+  "description": "Human-confirmed EVENT review edgeをcanonical artifactへ書き込まず、internal-onlyの非実行proposalとして保持するv0.1 plan。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "documentType",
+    "planId",
+    "classification",
+    "commitAllowed",
+    "scopeStoryCategory",
+    "visibility",
+    "executionMode",
+    "createdAt",
+    "sourcePacket",
+    "storyPair",
+    "entries"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "0.1" },
+    "documentType": { "const": "canonical_timeline_promotion_plan" },
+    "planId": {
+      "type": "string",
+      "pattern": "^ctpp-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}$"
+    },
+    "classification": { "const": "local_internal" },
+    "commitAllowed": { "const": false },
+    "scopeStoryCategory": { "const": "EVT" },
+    "visibility": { "const": "internal_only" },
+    "executionMode": { "const": "plan_only" },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|[+-]\\d{2}:\\d{2})$"
+    },
+    "sourcePacket": { "$ref": "#/definitions/SourcePacket" },
+    "storyPair": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "https://detariki-kb/schemas/canonical_timeline_review_packet.schema.json#/definitions/StoryRef"
+      }
+    },
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/PlanEntry" }
+    }
+  },
+  "definitions": {
+    "SourcePacket": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "packetId",
+        "reviewBatchId",
+        "schemaVersion",
+        "createdAt",
+        "expiresAt",
+        "expiredAtPlanning"
+      ],
+      "properties": {
+        "packetId": {
+          "type": "string",
+          "pattern": "^ctrp-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}$"
+        },
+        "reviewBatchId": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_-]*$"
+        },
+        "schemaVersion": { "const": "0.2" },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|[+-]\\d{2}:\\d{2})$"
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|[+-]\\d{2}:\\d{2})$"
+        },
+        "expiredAtPlanning": { "type": "boolean" }
+      }
+    },
+    "ConfirmedReviewEdge": {
+      "allOf": [
+        {
+          "$ref": "https://detariki-kb/schemas/canonical_timeline_review_packet.schema.json#/definitions/ReviewEdge"
+        },
+        {
+          "type": "object",
+          "required": ["relationState", "reviewStatus", "humanDecision"],
+          "properties": {
+            "relationState": { "enum": ["before", "after", "same_time"] },
+            "reviewStatus": { "const": "confirmed" },
+            "humanDecision": {
+              "$ref": "https://detariki-kb/schemas/canonical_timeline.schema.json#/definitions/HumanDecision"
+            }
+          }
+        }
+      ]
+    },
+    "PlanEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "planEntryKey",
+        "proposedAction",
+        "executionStatus",
+        "sourceEdge"
+      ],
+      "properties": {
+        "planEntryKey": {
+          "type": "string",
+          "pattern": "^plan-entry-[0-9]{4}$"
+        },
+        "proposedAction": { "const": "proposed_canonical_edge" },
+        "executionStatus": { "const": "not_executed" },
+        "sourceEdge": { "$ref": "#/definitions/ConfirmedReviewEdge" }
+      }
+    }
+  }
+}

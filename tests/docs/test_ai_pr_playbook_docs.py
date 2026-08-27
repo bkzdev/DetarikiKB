@@ -14,6 +14,8 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 PLAYBOOK_PATH = PROJECT_ROOT / "docs" / "runbooks" / "AI_PR_Playbook.md"
 AI_CONTEXT_PATH = PROJECT_ROOT / "AI_CONTEXT.md"
+AGENTS_PATH = PROJECT_ROOT / "AGENTS.md"
+CODEX_CONFIG_PATH = PROJECT_ROOT / ".codex" / "config.toml"
 
 REQUIRED_SECTIONS = (
     "# 1. 目的",
@@ -105,6 +107,36 @@ def test_playbook_states_standard_verification_commands():
         "mkdocs build --strict",
     ):
         assert cmd in section
+    for policy in (
+        "対象テストを論理的な編集バッチごとにまとめて実行",
+        "独立レビューで差分を確定した後",
+        "コミット前に1回実行",
+        "ローカルの標準検証を繰り返さない",
+        "merge後はmain同期",
+    ):
+        assert policy in section
+
+
+def test_playbook_allows_explicit_codex_operation_policy_updates():
+    content = _read_doc()
+    assert "ユーザーがCodexの運用既定の更新を明示した場合に限り" in content
+    assert "`AGENTS.md`" in content
+    assert "`.codex/config.toml`" in content
+
+
+def test_codex_operation_defaults_match_the_recorded_policy():
+    agents = AGENTS_PATH.read_text(encoding="utf-8")
+    config = CODEX_CONFIG_PATH.read_text(encoding="utf-8")
+    for required in (
+        "`gpt-5.6-sol`・推論強度`medium`",
+        "原則`gpt-5.6-terra`・推論強度`high`",
+        "`xhigh`は常用せず",
+        "対象テストを論理的な編集バッチごとにまとめて実行",
+        "過去のサブエージェントstatusだけでは停止しない",
+    ):
+        assert required in agents
+    assert 'model = "gpt-5.6-sol"' in config
+    assert 'model_reasoning_effort = "medium"' in config
 
 
 def test_playbook_states_commit_forbidden_list():

@@ -77,6 +77,8 @@ PR種別: {docs-only | 実装 | dry-run}（§4参照）
 - `agents/`・`scripts/`・`schemas/`配下の実装変更
 - `tests/`配下のtests（**合成fixtureのみ**。実データ由来のfixtureは追加しない）
 
+ユーザーがCodexの運用既定の更新を明示した場合に限り、`AGENTS.md`と`.codex/config.toml`もcommit対象に含めてよい。PR本文にユーザー決定に基づく例外であることを記載する。
+
 ### dry-run PR
 
 複数story・batch処理等をworkspace限定で試行するPR。許容差分は原則docs-only PRと同じ（docs/TASKS/AI_CONTEXT/docs tests）。dry-run自体の生成物（Registry候補・projection output・mapping・各種report・review note・rendered Markdown/HTML等）は**すべてworkspace限定とし、一切commitしない**（§7）。
@@ -95,6 +97,8 @@ PR種別: {docs-only | 実装 | dry-run}（§4参照）
 # 6. 標準検証コマンド（恒常）
 
 すべてのPRで、コミット前に以下を実行しPASSを確認する。
+
+編集途中は変更領域に対応する対象テストを論理的な編集バッチごとにまとめて実行する。独立レビューで差分を確定した後、以下の標準検証一式をコミット前に1回実行する。push後はGitHub Actions CIを正として確認し、CIが同じ検証を実行している場合はローカルの標準検証を繰り返さない。merge後はmain同期と`git status --short`による確認だけを行う。
 
 ```powershell
 uv run pytest
