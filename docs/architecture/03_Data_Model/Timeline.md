@@ -4,4 +4,6 @@
 
 episode-level `canonicalOrder`は、同一story内だけで比較するstory-localな運用値である。`Canonical_Timeline_Scope_Decision.md`で、EVENT限定のpartial order graph、5状態分離、human-confirmed gate、2 story単位review、internal-onlyを初期profileとして採択した。global整数値・total order・公開は採択しておらず、story-local値から補完しない。
 
-採択profileのJSON表現とsemantic consistency境界は`Canonical_Timeline_Schema.md`と`schemas/canonical_timeline.schema.json`を正とする。2 story単位の人間review入力契約と読取専用validatorは`Canonical_Timeline_Review_Packet.md`および`../../runbooks/Canonical_Timeline_Review.md`を参照する。いずれも合成fixtureだけで状態・gate・provenanceを固定しており、実artifact / packet生成、write / report、review結果import / promotion、公開は未実装である。
+採択profileのJSON表現とsemantic consistency境界は`Canonical_Timeline_Schema.md`と`schemas/canonical_timeline.schema.json`を正とする。2 story単位の人間review入力契約、read-only validator、pending packet builderは`Canonical_Timeline_Review_Packet.md`および`../../runbooks/Canonical_Timeline_Review.md`を参照する。builderは固定workspace root、default dry-run、no-clobberでv0.2 packetを生成できるが、実corpusの候補は0件であり実packetは生成していない。
+
+human-confirmedなknown relationをcanonical artifactへまだ書き込まない非実行proposalとして表すschema契約は`Canonical_Timeline_Promotion_Plan.md`を正とする。promotion plan builder / validator / CLI、review結果import、canonical artifact write、promotion executor、実plan、公開は未実装である。

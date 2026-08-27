@@ -37,6 +37,13 @@ CANONICAL_TIMELINE_REVIEW_PACKET_DOC_PATH = (
     / "03_Data_Model"
     / "Canonical_Timeline_Review_Packet.md"
 )
+CANONICAL_TIMELINE_PROMOTION_PLAN_DOC_PATH = (
+    PROJECT_ROOT
+    / "docs"
+    / "architecture"
+    / "03_Data_Model"
+    / "Canonical_Timeline_Promotion_Plan.md"
+)
 CANONICAL_TIMELINE_REVIEW_RUNBOOK_PATH = (
     PROJECT_ROOT / "docs" / "runbooks" / "Canonical_Timeline_Review.md"
 )
@@ -393,12 +400,49 @@ def test_canonical_timeline_review_validator_is_read_only_and_non_promoting():
     tasks = _read(TASKS_PATH)
     assert "`codex/canonical-timeline-review-packet-validator`" in tasks
     assert "file / report writeは0" in tasks
-    assert "`codex/canonical-timeline-review-packet-builder`" in tasks
-    assert "期限切れwarningのみ・自動削除なし" in tasks
+    assert "PR #244" in tasks
+    assert "期限切れ状態もwarning-onlyで保持" in tasks
 
     decision = _read(DECISION_FRAME_PATH)
     assert "~~**read-only validator**~~" in decision
     assert "~~**review packet builder**~~" in decision
+
+
+def test_canonical_timeline_promotion_plan_contract_is_nonexecuting_and_internal():
+    content = _read(CANONICAL_TIMELINE_PROMOTION_PLAN_DOC_PATH)
+    for required in (
+        "schemas/canonical_timeline_promotion_plan.schema.json",
+        "confirmed",
+        "before` / `after` / `same_time",
+        "humanDecision",
+        "proposed_canonical_edge",
+        "not_executed",
+        "expiredAtPlanning: true",
+        "warning-only",
+        "自動削除",
+        "sourceEdge",
+        "全`candidateProvenance`",
+        "network / remote schema fetchへ依存しない",
+        '`adoptionStatus: "canonical"`はplanに置かず',
+        "将来のplanner / semantic validator",
+        "plan builder / validator / CLI / report / file I/O",
+    ):
+        assert required in content
+
+    tasks = _read(TASKS_PATH)
+    assert "`codex/canonical-timeline-promotion-plan-contract`" in tasks
+    assert "親`gpt-5.6-sol/medium`" in tasks
+
+    decision = _read(DECISION_FRAME_PATH)
+    assert "~~**promotion plan contract**~~" in decision
+
+    for path in (
+        CANONICAL_TIMELINE_SCHEMA_DOC_PATH,
+        CANONICAL_TIMELINE_REVIEW_PACKET_DOC_PATH,
+        CANONICAL_TIMELINE_REVIEW_RUNBOOK_PATH,
+        TIMELINE_MODEL_PATH,
+    ):
+        assert "Canonical_Timeline_Promotion_Plan.md" in _read(path)
 
 
 def test_timeline_and_wiki_docs_link_schema_without_enabling_public_output():
