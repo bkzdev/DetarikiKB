@@ -121,11 +121,13 @@ builderは固定root作成後にもrootからleafまでを再検査し、一時f
 
 ---
 
-# 9. 次の人間・データgate
+# 9. Review委任と次の人間・データgate
 
-保持期限とbuilderの契約は確定した。実corpusの既存inventoryは0件なので、本物のpacketを作るには、Normalized Storyを根拠として2 EVENT story間の関係候補をagentが提示し、人間確認gateを通す小規模local sampleが必要である。候補提示では対象2 storyの内容と関係根拠を自然文で説明し、ユーザーが内部IDを読まなくても判断できる形にする。
+保持期限とbuilderの契約は確定した。実corpusの既存inventoryは0件なので、本物のpacketはNormalized Storyだけを根拠としてagentが2 EVENT story間の関係候補を選ぶ。候補の内容と関係根拠は、内部IDを読まなくても監査できる非逐語要約にする。
 
-ユーザーは2026-08-27に、Normalized Storyからのagent-assisted候補抽出、internal-only、人間確認前の自動確定・promotion・公開を行わない条件を承認した。この承認は`agents/extractor/`のLLM provider実装や自然文からの自動大量抽出を意味しない。まず小規模local sampleをagentが読み取り、候補を個別に説明する。
+ユーザーは2026-08-27にNormalized Storyからのagent-assisted候補抽出を、2026-08-28に高信頼候補のreviewを親agentと独立監査agentへ委任した。両者が同じ関係を高信頼で支持し、Normalized Story本文のEvidenceと非逐語要約を保持できる場合は、`reviewer: user-delegated-agent-review`としてconfirmedへ記録できる。固定の数値閾値は採択しない。検証済みpacket / planのdry-run、preflight、semantic checkがすべて通るinternal local反映も委任範囲とする。
+
+1 edgeごとのユーザー確認は行わない。不一致、低信頼、曖昧、`unknown` / `conflict`、追加資料不足は確定せず保留し、複数件をまとめて確認する。公開、scope拡張、削除、rollback、既存canonical値の変更は委任範囲外であり、個別の人間判断を必要とする。この委任はLLM provider実装や自然文からの自動大量抽出を意味しない。無監査の自然文大量抽出や自動promotionを許可しない。
 
 ---
 

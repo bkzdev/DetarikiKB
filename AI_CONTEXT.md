@@ -4,6 +4,8 @@ Project: Detariki Knowledge Base (DKB)
 Audience: Antigravity / Claude Code / Codex / GPT-OSS120B / future AI coding agents
 Language policy: ドキュメントは日本語、コード/データキーは英語
 
+全体の進捗とv1完成までの区切りは`docs/architecture/01_Project/Project_Milestones.md`を参照する。細かな現在作業は`TASKS.md`を正とする。
+
 このファイルはAIエージェントが作業開始前に必ず読む「短い前提情報」である。詳細な設計・手順・完了済み履歴はここに書かず、各詳細docsへリンクする。作業状態・優先順位は`TASKS.md`を正とする。
 
 ---
@@ -96,8 +98,8 @@ Parser:
 
 Extraction / Merge:
 - `docs/architecture/03_Data_Model/Canonical_Timeline_Schema.md`（採択済みEVENT限定partial order profileを合成fixtureだけで固定するinternal-only v0.1 schema / semantic consistency契約。5 relation state、review / adoption分離、human decision gate、candidate provenanceを表現し、schema-validな単一documentの重複node・参照欠落・同一story edge・完全重複record・canonical cycle / same-time矛盾・conflict根拠を純粋関数で検査する。実node / edge、CLI / report、review結果import / promotion、保存先、public表示は未実装）
-- `docs/architecture/03_Data_Model/Canonical_Timeline_Review_Packet.md`（2 distinct EVENT story間の小規模edge集合を人間reviewするlocal internal packet契約。v0.1読込互換と、90日保持・期限切れwarningのみ・自動削除なしのv0.2を定義する。既存Stage A `relative_order`の1 story pairだけを元方向・全provenance保持のpending packetへ変換するdefault dry-run / no-clobber builder、offline schema・semantic・free-text validator、匿名自然文briefまで実装済み。human decision import / promotion / public表示は未実装）
-- `docs/architecture/03_Data_Model/Canonical_Timeline_Promotion_Plan.md`（v0.2 review packetのhuman-confirmedなknown relationを、元edge・全provenance・decision保持の`proposed_canonical_edge`として表すlocal internal / plan-only v0.1契約。in-memory projector、cross-document semantic validator、read-only preflight、固定ignored workspaceへ明示反映するdefault dry-run executorまで実装済み。実plan / packet / artifactの生成・実行とpublic表示は未実施）
+- `docs/architecture/03_Data_Model/Canonical_Timeline_Review_Packet.md`（2 distinct EVENT story間の小規模edge集合をreviewするlocal internal packet契約。v0.1読込互換と、90日保持・期限切れwarningのみ・自動削除なしのv0.2を定義する。既存Stage A `relative_order`の1 story pairだけを元方向・全provenance保持のpending packetへ変換するdefault dry-run / no-clobber builder、offline schema・semantic・free-text validator、匿名自然文briefまで実装済み。高信頼候補は2026-08-28の明示委任により親agent＋独立監査agent一致で確認でき、曖昧・競合・公開判断だけを人間へまとめて確認する。public表示は未実装）
+- `docs/architecture/03_Data_Model/Canonical_Timeline_Promotion_Plan.md`（v0.2 review packetのhuman-confirmedなknown relationを、元edge・全provenance・decision保持の`proposed_canonical_edge`として表すlocal internal / plan-only v0.1契約。in-memory projector、cross-document semantic validator、read-only preflight、固定ignored workspaceへ明示反映するdefault dry-run executorまで実装済み。実データ小規模sample 2件をlocal artifactへ反映済みで、生成物は非commit。public表示は未実装）
 - `docs/architecture/06_AI/Extraction_Pipeline.md`
 - `docs/architecture/06_AI/Extraction_Result_Schema.md`
 - `docs/architecture/06_AI/Merged_Knowledge_Design.md`

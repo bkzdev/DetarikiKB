@@ -35,6 +35,13 @@
 - Codexが使用枠の残量を事前取得できるとは仮定しない。現在の処理で使用制限・モデル切替errorが発生した場合、アプリの現在有効な警告を確認した場合、またはusage dashboardで対象枠の枯渇を確認した場合は、新しいサブエージェント、次PR、追加のフル検証を開始せず、実行中の短い処理だけを終えて安全な再開地点で停止する。発生時刻を確認できない過去のサブエージェントstatusだけでは停止しない。
 - 警告が無い場合も、原則として1 PRの完了を自然な区切りとする。テスト削減ではなく実行頻度の集約でトークンと待ち時間を抑える。
 
+## ユーザー確認の集約
+
+- 2026-08-28のユーザー委任により、Normalized Story本文に基づく高信頼なcross-story関係は、親エージェントと独立監査サブエージェントが一致した場合にエージェント側で確認済みとして扱ってよい。1 edgeごとの質問は行わない。固定の数値閾値は未採択とする。
+- 不一致、低信頼、曖昧、`unknown` / `conflict`、追加資料不足は確定せず、複数件をまとめてユーザーへ確認する。
+- 検証済みinternal artifactへの可逆なlocal反映は委任範囲に含む。公開、scope拡張、削除、rollback、既存canonical値の変更など不可逆または意味を変える操作は、引き続き人間判断を必要とする。
+- 詳細なTimeline review条件は`docs/architecture/03_Data_Model/Canonical_Timeline_Scope_Decision.md`と`docs/runbooks/Canonical_Timeline_Review.md`を正とする。
+
 ## 重要不変則（要点、詳細は`AI_CONTEXT.md`）
 
 - **不明情報を破棄しない**: 未知コマンド・未登録キャラID・分類不能行は捨てず、`compatibilityReport`または`type: "unknown"`として保持する（`AI_CONTEXT.md` §3.2/§13.3）。

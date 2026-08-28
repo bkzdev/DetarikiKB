@@ -482,6 +482,46 @@ def test_canonical_timeline_promotion_executor_is_explicit_and_local_only():
     assert "生成物非commit" in tasks
 
 
+def test_delegated_timeline_review_and_project_milestones_are_recorded():
+    decision = _read(DECISION_FRAME_PATH)
+    runbook = _read(CANONICAL_TIMELINE_REVIEW_RUNBOOK_PATH)
+    tasks = _read(TASKS_PATH)
+    milestones = _read(
+        PROJECT_ROOT / "docs/architecture/01_Project/Project_Milestones.md"
+    )
+
+    for content in (decision, runbook):
+        assert "user-delegated-agent-review" in content
+        assert "親agent" in content
+        assert "独立監査agent" in content
+        assert "1 edgeごと" in content
+        assert "unknown` / `conflict" in content
+
+    assert "`codex/canonical-timeline-milestones-and-second-sample`" in tasks
+    assert "4 nodes / 2 edges" in tasks
+    for required in (
+        "# DKB v1 マイルストーン",
+        "M1 基盤と安全境界",
+        "M4 Canonical curation",
+        "M6 公開準備",
+        "1 edgeごとの承認要求は行わず",
+        "TASKS.md",
+    ):
+        assert required in milestones
+
+    promotion = _read(CANONICAL_TIMELINE_PROMOTION_RUNBOOK_PATH)
+    for required in (
+        "2件目と委任review（2026-08-28）",
+        "confidence 0.99",
+        "4 nodes / 2 edges",
+        "schema error 0",
+        "semantic finding 0",
+        "1 edgeごとのユーザー確認を行わない",
+        "旧artifactはhistoryへsnapshot",
+    ):
+        assert required in promotion
+
+
 def test_timeline_and_wiki_docs_link_schema_without_enabling_public_output():
     for path in (
         DECISION_FRAME_PATH,

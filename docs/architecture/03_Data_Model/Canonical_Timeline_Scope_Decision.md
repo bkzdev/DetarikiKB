@@ -107,13 +107,17 @@ story内の`canonicalOrder`付与と全EVENT corpusのreadiness確認が完了�
 
 | source | candidate化 | canonical昇格の候補条件 |
 |---|---|---|
-| official | 許容候補 | 出典・対象・関係を人間確認 |
+| official | 許容候補 | 出典・対象・関係を直接または委任reviewで確認 |
 | manual | 許容候補 | reviewerと根拠要約を記録 |
-| ai_inferred | 許容候補または不採用 | confidenceだけで昇格せず、人間が根拠を確認 |
+| ai_inferred | 許容候補または不採用 | confidenceだけで昇格せず、直接または委任reviewで根拠を確認 |
 | script / rule-based | 許容候補または不採用 | 抽出規則とEvidenceを確認 |
 | unknown | 保留 | sourceが解決するまで昇格しない |
 
 **採択:** source種別にかかわらずcandidateとcanonicalを分離し、human-confirmed gateを必須とする。
+
+2026-08-28のユーザー決定により、このgateは直接の個別確認に加え、ユーザーが明示委任したagent reviewを含む。委任reviewは、Normalized Story本文だけを根拠に親agentと独立監査agentが同じ関係を高信頼で支持し、根拠要約・Evidence・両者の一致を`humanDecision`へ記録できる場合に限る。reviewerは`user-delegated-agent-review`とする。固定の数値閾値は採択せず、日付、ファイル名、episode番号、配列順、story-local `canonicalOrder`は根拠にしない。
+
+1 edgeごとのユーザー確認は行わない。結論不一致、低信頼、曖昧性、`unknown` / `conflict`、追加資料が必要な場合は確定せず、保留事項をbatch単位でユーザーへ確認する。検証済みinternal artifactへの可逆なlocal反映も同じ委任範囲に含めるが、公開、scope拡張、削除、rollback、既存canonical値の変更は含めない。
 
 ## D5. Review unitとpromotion gate
 
@@ -145,7 +149,7 @@ story内の`canonicalOrder`付与と全EVENT corpusのreadiness確認が完了�
 D1=A  EVENT限定
 D2=A  partial order graph
 D3=before/after/same_time/unknown/conflictを分離
-D4=candidateとcanonicalを分離し、全sourceでhuman-confirmed gate必須
+D4=candidateとcanonicalを分離し、全sourceでhuman-confirmed gate必須（直接確認または明示委任review）
 D5=2 story間の小さなedge集合をreview、edge単位status
 D6=A  internal-only
 ```
@@ -162,7 +166,7 @@ D6=A  internal-only
 2. `story_manifest.yaml`はstory-local `canonicalOrder`の正として維持し、cross-story canonical artifactとは分離する
 3. cross-story artifactはadditiveな専用契約とし、正確なschema・保存先・ID安定性は後続の設計・実装PRで合成fixtureとともに固定する
 4. `same_time`は明示的根拠がある場合だけ採用し、`unknown` / `conflict`を欠落やnullへ潰さない
-5. review packet、human decision、promotionを分離し、自動promotionしない
+5. review packet、human decision、promotionを分離し、未委任では自動promotionしない
 6. 初期artifactとreview reportはinternal-onlyとし、public projectionは別decisionまで実装しない
 7. 現行v0.5 checkと`story_manifest.yaml`は破壊的に変更せず、必要なinventory機能をadditiveに実装する
 8. 最初の実装検証は合成fixtureで行い、実edgeのreview段階でのみ承認済みlocal sampleを使う
@@ -182,10 +186,10 @@ D6=A  internal-only
    5. ~~**promotion plan projector / semantic validator**~~: 検証済みv0.2 packetの全適格edgeを非実行planへ決定的にdeep copyし、source packet / story pair / expiry / edge 1:1対応を純粋関数で検査する。CLI / file I/O、canonical artifact preflight / write、promotion実行は行わない
    6. ~~**promotion read-only preflight**~~: plan edgeをメモリ内だけで仮canonical化し、既存canonical Timelineへの追加時のcycle / same-time矛盾 / 完全重複をsafe aggregateで検査する。baseline不正はfail-closedとし、artifact write / adoptionは行わない
    7. ~~**promotion executor**~~: 固定ignored workspace内のplan / packetを再検証し、default dry-run、入力・現artifact digest pin、seed no-clobber、update lock / snapshot / atomic replaceでinternal canonical artifactへ反映する。実データ実行は行わない
-5. **small local sample**: 承認済みcross-story根拠だけでend-to-end検証する
+5. **small local sample（進行中）**: 2件のconfirmed relationをlocal artifactへ反映済み。高信頼・親/独立監査一致の小規模batchを追加してend-to-end運用を検証する
 6. **public projection decision**: internal artifact完成後、公開目的とpublic-safe要件を別途判断する
 
-第1段階の運用契約は`docs/runbooks/Cross_Story_Constraint_Inventory.md`を正とする。現行rule-based extractorは通常`relative_order`を生成しない。2026-08-27のユーザー承認により、Normalized Storyをagentが読んで小規模な候補を提示することは許可されたが、候補の人間確認前の確定・promotion・公開、および`agents/extractor/`へのLLM provider実装は許可されていない。
+第1段階の運用契約は`docs/runbooks/Cross_Story_Constraint_Inventory.md`を正とする。現行rule-based extractorは通常`relative_order`を生成しない。2026-08-27のユーザー承認によりNormalized Storyをagentが読む小規模候補提示が、2026-08-28のユーザー委任により高信頼・親/独立監査一致時の確認済み記録とinternal local反映が許可された。曖昧・競合候補の確定、公開、および`agents/extractor/`へのLLM provider実装は許可されていない。
 
 ---
 
