@@ -92,6 +92,14 @@ packet、plan、artifact、snapshotはignored workspaceだけに保持し、実s
 
 packet、plan、artifact、snapshotはignored workspaceだけに保持し、実story / episode / Evidence ID、本文、path、digestはcommitしていない。既存canonical値の変更・rollback、relation統合、総順序化、EVENT外拡張、public projectionは行っていない。
 
+## 4回目の小規模batch（2026-08-28）
+
+同じ投票の開始から参加者のアピール施策、周年会場トラブルの解決からその直接回顧、首謀者の再会予告から前回襲撃を踏まえた再接触へ進む3組をreviewした。全組で親agentと独立監査agentが`before`を高信頼で支持し、曖昧・競合・追加資料要求は0だった。日付、番号、ファイル名、配列順、story-local `canonicalOrder`は根拠に使用していない。
+
+既存11 story pairとの重複がないことをpacket作成前に確認し、3組を別々のv0.2 packet / planとしてschema / semantic / free-text検証、builder一致、dry-run / preflightを通した。digest pin付きlocal update後のfinal artifactは28 nodes / 14 edges、14 distinct story pair、schema error 0、semantic finding 0である。作業開始時の既存22 nodes / 11 edgesは内容不変でhistoryへsnapshotした。
+
+packet、plan、artifact、snapshotはignored workspaceだけに保持し、実story / episode / Evidence ID、本文、path、digestはcommitしていない。既存canonical値の変更・rollback、relation統合、総順序化、EVENT外拡張、public projectionは行っていない。
+
 ```powershell
 uv run pytest tests/scripts/test_apply_canonical_timeline_promotion.py
 ```
