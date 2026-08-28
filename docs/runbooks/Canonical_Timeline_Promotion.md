@@ -76,6 +76,14 @@ packet validation、plan projection、既存artifactへのdry-run / preflightを
 
 packet、plan、artifact、snapshotはignored workspaceだけに保持し、実story / episode / Evidence ID、本文、path、digestはcommitしていない。relationの統合・推移edge生成、総順序化、EVENT外拡張、public projectionは行っていない。
 
+## 2回目の小規模batch（2026-08-28）
+
+前回の共同戦線、活動再開時の固有発言、前回と同じ制作担当を後続事件が具体的に参照する3組をreviewした。全組で親agentと独立監査agentが`before`を高信頼で支持し、曖昧・競合・追加資料要求は0だった。日付、番号、ファイル名、配列順、story-local `canonicalOrder`は根拠に使用していない。
+
+候補探索時に既存story pairと重複する1組を検出したため、その追加観測はfinal artifactへ重ねず、未登録の明示接続1組へ差し替えた。これは同一batch内の未完了追加の是正であり、作業開始時の既存5 canonical edgeは変更・rollbackしていない。除外前の中間artifactも内容digest名のhistory snapshotとして復元し、過程を不破棄保持した。最終3組は別々のv0.2 packet / planとしてschema / semantic / free-text検証、builder一致、dry-run / preflightを通し、digest pin付きlocal updateを実行した。final artifactは16 nodes / 8 edges、8 distinct story pair、schema error 0、semantic finding 0である。
+
+packet、plan、artifact、snapshotはignored workspaceだけに保持し、実story / episode / Evidence ID、本文、path、digestはcommitしていない。既存canonical値の変更、relation統合、総順序化、EVENT外拡張、public projectionは行っていない。
+
 ```powershell
 uv run pytest tests/scripts/test_apply_canonical_timeline_promotion.py
 ```

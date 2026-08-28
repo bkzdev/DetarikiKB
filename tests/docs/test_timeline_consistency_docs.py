@@ -548,8 +548,42 @@ def test_first_delegated_timeline_batch_is_recorded_anonymously():
     ):
         assert required in promotion
 
-    assert "合計5関係を反映済み" in milestones
-    assert "初回小規模batch運用を実証済み" in milestones
+    assert "合計8関係を反映済み" in milestones
+    assert "2回の小規模batch運用を実証済み" in milestones
+
+
+def test_second_delegated_timeline_batch_is_recorded_anonymously():
+    tasks = _read(TASKS_PATH)
+    promotion = _read(CANONICAL_TIMELINE_PROMOTION_RUNBOOK_PATH)
+    milestones = _read(
+        PROJECT_ROOT / "docs/architecture/01_Project/Project_Milestones.md"
+    )
+
+    for required in (
+        "`codex/canonical-timeline-batch-004`",
+        "16 nodes / 8 edges",
+        "8 distinct story pair",
+        "既存story pairと重複する候補1組",
+        "除外前の中間artifactも内容digest名のhistory snapshotとして復元",
+        "schema error 0",
+        "semantic finding 0",
+    ):
+        assert required in tasks
+
+    for required in (
+        "2回目の小規模batch（2026-08-28）",
+        "未登録の明示接続1組へ差し替え",
+        "16 nodes / 8 edges",
+        "8 distinct story pair",
+        "同一batch内の未完了追加の是正",
+        "除外前の中間artifactも内容digest名のhistory snapshotとして復元",
+        "既存canonical値の変更",
+        "public projection",
+    ):
+        assert required in promotion
+
+    assert "合計8関係を反映済み" in milestones
+    assert "2回の小規模batch運用を実証済み" in milestones
 
 
 def test_timeline_and_wiki_docs_link_schema_without_enabling_public_output():
