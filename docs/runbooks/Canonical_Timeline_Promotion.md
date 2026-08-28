@@ -68,6 +68,14 @@ packet validation、plan projection、既存artifactへのdry-run / preflightを
 
 以後、親agentと独立監査agentが一致する高信頼relationは同じ委任reviewを使い、1 edgeごとのユーザー確認を行わない。固定の数値閾値は採択しない。不一致、低信頼、曖昧、`unknown` / `conflict`は保留してbatchで確認する。公開、scope拡張、削除、rollback、既存canonical値の変更は委任範囲外である。
 
+## 初回小規模batch（2026-08-28）
+
+過去の来訪・研修、前回と同じ対処方法、帰還前の交流を後続事件が具体的に参照する3組をまとめてreviewした。全組で親agentと独立監査agentが`before`を高信頼で支持し、曖昧・競合・追加資料要求は0だった。日付、番号、ファイル名、配列順、story-local `canonicalOrder`は根拠に使用していない。
+
+3組を別々のv0.2 packet / planへ保持し、各packetのschema / semantic / free-text検証、planのbuilder一致 / semantic検証、現artifactへのdry-run / preflightを順に通した。digest pin付きlocal updateを1組ずつ実行し、毎回直前artifactをhistoryへsnapshotした。最終結果は10 nodes / 5 edges、schema error 0、semantic finding 0である。
+
+packet、plan、artifact、snapshotはignored workspaceだけに保持し、実story / episode / Evidence ID、本文、path、digestはcommitしていない。relationの統合・推移edge生成、総順序化、EVENT外拡張、public projectionは行っていない。
+
 ```powershell
 uv run pytest tests/scripts/test_apply_canonical_timeline_promotion.py
 ```

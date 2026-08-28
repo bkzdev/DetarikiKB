@@ -522,6 +522,36 @@ def test_delegated_timeline_review_and_project_milestones_are_recorded():
         assert required in promotion
 
 
+def test_first_delegated_timeline_batch_is_recorded_anonymously():
+    tasks = _read(TASKS_PATH)
+    promotion = _read(CANONICAL_TIMELINE_PROMOTION_RUNBOOK_PATH)
+    milestones = _read(
+        PROJECT_ROOT / "docs/architecture/01_Project/Project_Milestones.md"
+    )
+
+    for required in (
+        "`codex/canonical-timeline-batch-003`",
+        "10 nodes / 5 edges",
+        "schema error 0",
+        "semantic finding 0",
+        "3個のignored v0.2 packet / plan",
+    ):
+        assert required in tasks
+
+    for required in (
+        "初回小規模batch（2026-08-28）",
+        "3組を別々のv0.2 packet / plan",
+        "毎回直前artifactをhistoryへsnapshot",
+        "10 nodes / 5 edges",
+        "総順序化",
+        "public projection",
+    ):
+        assert required in promotion
+
+    assert "合計5関係を反映済み" in milestones
+    assert "初回小規模batch運用を実証済み" in milestones
+
+
 def test_timeline_and_wiki_docs_link_schema_without_enabling_public_output():
     for path in (
         DECISION_FRAME_PATH,
