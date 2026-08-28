@@ -60,6 +60,14 @@ packetのschema / semantic / free-text検証と期限確認、promotion planのp
 
 packet、plan、artifactは固定ignored workspaceへだけ保存し、実story / episode / Evidence ID、本文、path、digestは文書化・commitしていない。追加候補の自動抽出、2件目以降のedge、総順序化、公開は行っていない。
 
+## 2件目と委任review（2026-08-28）
+
+先行事件の帰還後、後続事件が同じ異常の再発・症状の二回目・前回の装置と来訪記憶を明示する2 EVENT storyを選定した。日付、番号、ファイル名、配列順、story-local `canonicalOrder`は根拠に使用していない。親agentと独立監査agentが`before`をconfidence 0.99で支持し、ユーザーの関係承認と今後の高信頼review委任に基づいてconfirmed packetへ記録した。
+
+packet validation、plan projection、既存artifactへのdry-run / preflightを通し、固定digestを指定してlocal updateを実行した。旧artifactはhistoryへsnapshotされ、更新後は4 nodes / 2 edges、schema error 0、semantic finding 0である。packet、plan、artifact、snapshotはignored workspaceだけに保持し、実story / episode / Evidence ID、本文、path、digestはcommitしていない。
+
+以後、親agentと独立監査agentが一致する高信頼relationは同じ委任reviewを使い、1 edgeごとのユーザー確認を行わない。固定の数値閾値は採択しない。不一致、低信頼、曖昧、`unknown` / `conflict`は保留してbatchで確認する。公開、scope拡張、削除、rollback、既存canonical値の変更は委任範囲外である。
+
 ```powershell
 uv run pytest tests/scripts/test_apply_canonical_timeline_promotion.py
 ```
