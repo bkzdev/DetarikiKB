@@ -15,14 +15,14 @@ Raw Scriptを安全に正規化し、根拠・不明情報・内部IDを失わ�
 | M1 基盤と安全境界 | 完了 | schema、匿名化、非commit境界、PR/検証手順が固定される | parser・KB・Wikiを進める共通契約は整備済み |
 | M2 Parser / Normalized Story | ほぼ完了 | 主要カテゴリを再現可能に正規化し、unknownを不破棄で診断できる | 主経路は実装済み。残る互換性差分と長尾commandを小さく解消中 |
 | M3 Extraction / Merge / 内部KB | 進行中 | candidateとprovenanceを保持して主要entityを統合できる | Stage A、8種entityの最小merge、Evidence・Summary基盤は実装済み。実corpusの充足は継続 |
-| M4 Canonical curation | 進行中 | ID・profile・story内順序・story間Timelineをreview可能な形で保持できる | EVENT story内順序は完了。story間Timelineは基盤と5回の小規模batch運用を実証済み |
+| M4 Canonical curation | 進行中 | ID・profile・story内順序・story間Timelineをreview可能な形で保持できる | EVENT story内順序は完了。story間Timelineは基盤と6回の小規模batch運用を実証済み |
 | M5 Wiki / 閲覧体験 | 進行中 | public-safeなStory/Episode/Character/Evidenceページを一貫生成できる | 基本rendererとlocal previewは実装済み。残entityページ・関係表示・全体目視確認が残る |
 | M6 公開準備 | 未着手 | 公開範囲、ホスティング、更新・rollback、漏えい検査を決定し、限定公開できる | internal/public分離は済み。公開方式とTimeline projectionは別decision待ち |
 | M7 v1リリースと継続運用 | 未着手 | 再生成手順、品質指標、障害対応、定期更新が運用できる | M2〜M6の完了後にrelease checklistを固定する |
 
 ## 現在地と直近の区切り
 
-現在の主対象はM4である。Canonical Timelineのschema、semantic check、review packet、promotion plan、安全なlocal executorは完成している。実データでは単独sample 2件と3件batch 5回、合計17関係を反映済みで、弱い候補を保留し、既存pair重複を除外しながら複数関係を矛盾なく更新できることを確認した。
+現在の主対象はM4である。Canonical Timelineのschema、semantic check、review packet、promotion plan、安全なlocal executorは完成している。実データでは単独sample 2件と3件batch 6回、合計20関係を反映済みで、弱い候補を保留し、既存pair重複を除外しながら複数関係を矛盾なく更新できることを確認した。
 
 次の切りのよい到達点は次の3つである。
 
