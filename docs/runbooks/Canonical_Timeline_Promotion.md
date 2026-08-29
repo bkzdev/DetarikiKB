@@ -116,6 +116,14 @@ packet、plan、artifact、snapshotはignored workspaceだけに保持し、実s
 
 packet、plan、artifact、snapshotはignored workspaceだけに保持し、実story / episode / Evidence ID、本文、path、digestはcommitしていない。保留候補の自動確定、既存canonical値の変更・rollback、relation統合、総順序化、EVENT外拡張、public projectionは行っていない。
 
+## 7回目の小規模batch（2026-08-29）
+
+倫理観を崩す敵への対策完了から同じ敵・装備・担当者による再対策、無人島での特殊な敵への直接出動から同じ場所への再派遣、人気投票二位・三位の贈呈からその内容を回収した一位の贈呈へ進む3組をreviewした。全組で親agentと独立監査agentが`before`を高信頼で支持した。一方、シリーズ内の状態継承は支持されるが当該先行事件の直接回収について評価が一致しない別候補1組は`needs_more_context`相当として確定せず、packet化・反映から除外した。日付、番号、ファイル名、配列順、story-local `canonicalOrder`は根拠に使用していない。
+
+既存20 story pairとの重複がないことをpacket作成前に確認し、採用3組を別々のv0.2 packet / planとしてschema / semantic / free-text検証、builder一致、dry-run / preflightを通した。digest pin付きlocal update後のfinal artifactは46 nodes / 23 edges、23 distinct story pair、schema error 0、semantic finding 0である。作業開始時の既存40 nodes / 20 edgesは内容不変でhistoryへsnapshotした。
+
+packet、plan、artifact、snapshotはignored workspaceだけに保持し、実story / episode / Evidence ID、本文、path、digestはcommitしていない。保留候補の自動確定、既存canonical値の変更・rollback、relation統合、総順序化、EVENT外拡張、public projectionは行っていない。
+
 ```powershell
 uv run pytest tests/scripts/test_apply_canonical_timeline_promotion.py
 ```

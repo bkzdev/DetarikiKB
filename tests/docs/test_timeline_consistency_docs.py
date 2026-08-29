@@ -548,8 +548,8 @@ def test_first_delegated_timeline_batch_is_recorded_anonymously():
     ):
         assert required in promotion
 
-    assert "合計20関係を反映済み" in milestones
-    assert "6回の小規模batch運用を実証済み" in milestones
+    assert "合計23関係を反映済み" in milestones
+    assert "7回の小規模batch運用を実証済み" in milestones
 
 
 def test_second_delegated_timeline_batch_is_recorded_anonymously():
@@ -582,8 +582,8 @@ def test_second_delegated_timeline_batch_is_recorded_anonymously():
     ):
         assert required in promotion
 
-    assert "合計20関係を反映済み" in milestones
-    assert "6回の小規模batch運用を実証済み" in milestones
+    assert "合計23関係を反映済み" in milestones
+    assert "7回の小規模batch運用を実証済み" in milestones
 
 
 def test_third_delegated_timeline_batch_is_recorded_anonymously():
@@ -614,8 +614,8 @@ def test_third_delegated_timeline_batch_is_recorded_anonymously():
     ):
         assert required in promotion
 
-    assert "合計20関係を反映済み" in milestones
-    assert "6回の小規模batch運用を実証済み" in milestones
+    assert "合計23関係を反映済み" in milestones
+    assert "7回の小規模batch運用を実証済み" in milestones
 
 
 def test_fourth_delegated_timeline_batch_is_recorded_anonymously():
@@ -646,8 +646,8 @@ def test_fourth_delegated_timeline_batch_is_recorded_anonymously():
     ):
         assert required in promotion
 
-    assert "合計20関係を反映済み" in milestones
-    assert "6回の小規模batch運用を実証済み" in milestones
+    assert "合計23関係を反映済み" in milestones
+    assert "7回の小規模batch運用を実証済み" in milestones
 
 
 def test_fifth_delegated_timeline_batch_is_recorded_anonymously():
@@ -680,8 +680,8 @@ def test_fifth_delegated_timeline_batch_is_recorded_anonymously():
     ):
         assert required in promotion
 
-    assert "合計20関係を反映済み" in milestones
-    assert "6回の小規模batch運用を実証済み" in milestones
+    assert "合計23関係を反映済み" in milestones
+    assert "7回の小規模batch運用を実証済み" in milestones
 
 
 def test_sixth_delegated_timeline_batch_is_recorded_anonymously():
@@ -714,8 +714,42 @@ def test_sixth_delegated_timeline_batch_is_recorded_anonymously():
     ):
         assert required in promotion
 
-    assert "合計20関係を反映済み" in milestones
-    assert "6回の小規模batch運用を実証済み" in milestones
+    assert "合計23関係を反映済み" in milestones
+    assert "7回の小規模batch運用を実証済み" in milestones
+
+
+def test_seventh_delegated_timeline_batch_is_recorded_anonymously():
+    tasks = _read(TASKS_PATH)
+    promotion = _read(CANONICAL_TIMELINE_PROMOTION_RUNBOOK_PATH)
+    milestones = _read(
+        PROJECT_ROOT / "docs/architecture/01_Project/Project_Milestones.md"
+    )
+
+    for required in (
+        "`codex/canonical-timeline-batch-009`",
+        "46 nodes / 23 edges",
+        "23 distinct story pair",
+        "作業開始時の既存40 nodes / 20 edgesは内容不変",
+        "別候補1組は`needs_more_context`相当としてpacket化せず除外",
+        "schema error 0",
+        "semantic finding 0",
+    ):
+        assert required in tasks
+
+    for required in (
+        "7回目の小規模batch（2026-08-29）",
+        "別候補1組は`needs_more_context`相当",
+        "既存20 story pairとの重複がない",
+        "46 nodes / 23 edges",
+        "23 distinct story pair",
+        "既存40 nodes / 20 edgesは内容不変",
+        "保留候補の自動確定",
+        "public projection",
+    ):
+        assert required in promotion
+
+    assert "合計23関係を反映済み" in milestones
+    assert "7回の小規模batch運用を実証済み" in milestones
 
 
 def test_timeline_and_wiki_docs_link_schema_without_enabling_public_output():
