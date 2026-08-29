@@ -132,6 +132,14 @@ packet、plan、artifact、snapshotはignored workspaceだけに保持し、実s
 
 packet、plan、artifact、snapshotはignored workspaceだけに保持し、実story / episode / Evidence ID、本文、path、digestはcommitしていない。保留候補の自動確定、既存canonical値の変更・rollback、relation統合、総順序化、EVENT外拡張、public projectionは行っていない。
 
+## 9回目の小規模batch（2026-08-29）
+
+以前の身体縮小を原因とする再発、総選挙で登場した固有呼称の衣装の再登場、デビュー公演直前の衣装破損とリーダーへの叱咤の具体的な回想へ進む3組をreviewした。全組で親agentと独立監査agentが`before`を高信頼で支持した。一方、相互の出来事を参照しない、当事者を一意に結べない、参照先が別事件である別候補3組は`needs_more_context`相当として確定せず、packet化・反映から除外した。日付、番号、ファイル名、配列順、story-local `canonicalOrder`は根拠に使用していない。
+
+既存24 story pairとの重複がないことをpacket作成前に確認し、採用3組を別々のv0.2 packet / planとしてschema / semantic / free-text検証、builder一致、dry-run / preflightを通した。digest pin付きlocal update後のfinal artifactは54 nodes / 27 edges、27 distinct story pair、schema error 0、semantic finding 0である。作業開始時の既存48 nodes / 24 edgesは内容不変でhistoryへsnapshotした。
+
+packet、plan、artifact、snapshotはignored workspaceだけに保持し、実story / episode / Evidence ID、本文、path、digestはcommitしていない。保留候補の自動確定、既存canonical値の変更・rollback、relation統合、総順序化、EVENT外拡張、public projectionは行っていない。
+
 ```powershell
 uv run pytest tests/scripts/test_apply_canonical_timeline_promotion.py
 ```
