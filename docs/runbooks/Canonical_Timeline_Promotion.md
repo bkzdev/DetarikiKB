@@ -140,6 +140,14 @@ packet、plan、artifact、snapshotはignored workspaceだけに保持し、実s
 
 packet、plan、artifact、snapshotはignored workspaceだけに保持し、実story / episode / Evidence ID、本文、path、digestはcommitしていない。保留候補の自動確定、既存canonical値の変更・rollback、relation統合、総順序化、EVENT外拡張、public projectionは行っていない。
 
+## 10回目の小規模batch（2026-08-30）
+
+初代アイドルユニットの結成から、その成功を前提とする後継ユニット結成と初代ユニット再始動へ進む2組、前回総選挙の店舗企画を次回企画が具体的に回想する1組、異世界一行の初回来訪時の交流を再来時に具体的に回想する1組、周年記念中の事件を翌周年に明示回想する1組の計5組をreviewした。全組で親agentと独立監査agentが`before`を高信頼で支持した。一方、季節題材と当事者の一部は共通するが相互参照がない別候補1組は`unknown`として確定せず、packet化・反映から除外した。日付、番号、ファイル名、配列順、story-local `canonicalOrder`は根拠に使用していない。
+
+既存27 story pairとの重複がないことをpacket作成前に確認し、採用5組を別々のv0.2 packet / planとしてschema / semantic / free-text検証、builder一致、dry-run / preflightを通した。digest pin付きlocal updateでは共有済みepisode nodeを再利用し、final artifactは60 nodes / 32 edges、32 distinct story pair、schema error 0、semantic finding 0である。作業開始時の既存54 nodes / 27 edgesは内容不変でhistoryへsnapshotした。
+
+packet、plan、artifact、snapshotはignored workspaceだけに保持し、実story / episode / Evidence ID、本文、path、digestはcommitしていない。保留候補の自動確定、既存canonical値の変更・rollback、relation統合、総順序化、EVENT外拡張、public projectionは行っていない。
+
 ```powershell
 uv run pytest tests/scripts/test_apply_canonical_timeline_promotion.py
 ```
