@@ -28,7 +28,7 @@ Raw Scriptを安全に正規化し、根拠・不明情報・内部IDを失わ�
 
 1. 高信頼なstory間関係を親agentと独立監査agentの一致で小規模batch化し、明示接続を持つ範囲で内部coverageを増やす。
 2. 各batchをdry-run / preflight / semantic check後にinternal artifactへ反映し、矛盾0を維持する。
-3. 明示接続候補を一巡した時点で、公開用Timelineの目的・表示粒度・unknown/conflict表現を人間が決定する。
+3. 明示接続候補の初回走査完了を受け、公開用Timelineの目的・表示粒度・unknown/conflict表現をまとめた`Status: Proposed`の判断枠を人間が採択する。
 
 ## 人間確認を求める場面
 
