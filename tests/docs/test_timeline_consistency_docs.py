@@ -23,6 +23,13 @@ DECISION_FRAME_PATH = (
     / "03_Data_Model"
     / "Canonical_Timeline_Scope_Decision.md"
 )
+PUBLIC_PROJECTION_DECISION_PATH = (
+    PROJECT_ROOT
+    / "docs"
+    / "architecture"
+    / "07_Wiki"
+    / "Canonical_Timeline_Public_Projection_Decision.md"
+)
 CANONICAL_TIMELINE_SCHEMA_DOC_PATH = (
     PROJECT_ROOT
     / "docs"
@@ -178,6 +185,63 @@ def test_global_scope_decision_frame_rejects_implicit_global_promotion():
         "canonical Timelineのpromotionまたは公開",
     ):
         assert required in content
+
+
+def test_public_projection_decision_frame_is_proposed_and_fail_closed():
+    content = _read(PUBLIC_PROJECTION_DECISION_PATH)
+    for required in (
+        "Status: Proposed",
+        "Decision date: 未決定",
+        "## P1. 公開目的",
+        "## P2. relationの公開適格性",
+        "## P3. partial orderの表示粒度",
+        "## P4. `unknown` / `conflict`の読者向け表現",
+        "## P5. 表示するsourceとlabel",
+        "## P6. pageとURL",
+        "## P7. publish gateとrollback",
+        "adoption済みknown relationのみ",
+        "relation / connected component表示、総順序化なし",
+        "public-safe aggregate",
+        "内部値露出0",
+        "timelines/index.md",
+        "fail-closed",
+        "実データ公開、ホスティング開始、既存URL変更、個別relationの公開承認を意味しない",
+    ):
+        assert required in content
+    assert "\nStatus: Accepted\n" not in content
+
+
+def test_public_projection_decision_keeps_current_wiki_frozen_until_acceptance():
+    decision = _read(PUBLIC_PROJECTION_DECISION_PATH)
+    timeline_page = _read(TIMELINE_PAGE_PATH)
+    wiki_design = _read(WIKI_OUTPUT_DESIGN_PATH)
+    scope_decision = _read(DECISION_FRAME_PATH)
+    tasks = _read(TASKS_PATH)
+    milestones = _read(
+        PROJECT_ROOT / "docs/architecture/01_Project/Project_Milestones.md"
+    )
+
+    for content in (timeline_page, wiki_design, scope_decision):
+        assert "Canonical_Timeline_Public_Projection_Decision.md" in content
+
+    for content in (timeline_page, wiki_design):
+        assert "Status: Proposed" in content
+    assert "未採択の判断枠" in scope_decision
+
+    for required in (
+        "schema、projector、renderer、URL、公開workflow、実artifactは変更しない",
+        "internal canonical artifactをそのまま公開しない",
+        "Story / Episode / Evidence pageの変更",
+        "hosting、deploy、rollbackの実行",
+    ):
+        assert required in decision
+
+    assert "`codex/canonical-timeline-public-projection-decision-frame`" in tasks
+    assert (
+        "採択前はschema / projector / renderer / URL / "
+        "公開workflow / 実artifactを変更せず" in tasks
+    )
+    assert "`Status: Proposed`の判断枠を人間が採択する" in milestones
 
 
 def test_timeline_docs_link_to_global_scope_decision_frame():

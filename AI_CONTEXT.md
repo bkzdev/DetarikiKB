@@ -111,6 +111,7 @@ Extraction / Merge:
 
 Wiki:
 - `docs/architecture/07_Wiki/Wiki_Output_Design.md`
+- `docs/architecture/07_Wiki/Canonical_Timeline_Public_Projection_Decision.md`（Canonical Timelineの公開目的・適格relation・partial order表示・unknown/conflict・public-safe field・URL・fail-closed gateをまとめた`Status: Proposed`の判断枠。人間採択前はprojector / renderer / 公開を実装しない）
 - `docs/architecture/07_Wiki/Story_Page_Design.md`（Story page中心構造への設計方針。`render_story_page`/`story_page_path`で実装済み、Episode pageは維持。Story pageは表示可能なStory/Episode SummaryとevidenceRefsを表示済み。Episode pageへの限定表示も`episode-page-summary-evidence-linking`で実装済み）
 
 Runbooks:

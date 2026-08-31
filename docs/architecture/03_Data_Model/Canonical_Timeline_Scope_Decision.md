@@ -186,8 +186,8 @@ D6=A  internal-only
    5. ~~**promotion plan projector / semantic validator**~~: 検証済みv0.2 packetの全適格edgeを非実行planへ決定的にdeep copyし、source packet / story pair / expiry / edge 1:1対応を純粋関数で検査する。CLI / file I/O、canonical artifact preflight / write、promotion実行は行わない
    6. ~~**promotion read-only preflight**~~: plan edgeをメモリ内だけで仮canonical化し、既存canonical Timelineへの追加時のcycle / same-time矛盾 / 完全重複をsafe aggregateで検査する。baseline不正はfail-closedとし、artifact write / adoptionは行わない
    7. ~~**promotion executor**~~: 固定ignored workspace内のplan / packetを再検証し、default dry-run、入力・現artifact digest pin、seed no-clobber、update lock / snapshot / atomic replaceでinternal canonical artifactへ反映する。実データ実行は行わない
-5. **small local sample（進行中）**: 2件のconfirmed relationをlocal artifactへ反映済み。高信頼・親/独立監査一致の小規模batchを追加してend-to-end運用を検証する
-6. **public projection decision**: internal artifact完成後、公開目的とpublic-safe要件を別途判断する
+5. ~~**small local sample**~~: 単独sample 2件と15回の小規模batchで40 relationをlocal artifactへ反映し、明示接続候補の初回走査を完了した。曖昧候補は確定せず、schema / semantic finding 0を維持する
+6. **public projection decision**: `../07_Wiki/Canonical_Timeline_Public_Projection_Decision.md`に公開目的とpublic-safe要件の未採択の判断枠を作成済み。人間採択まではschema / projector / renderer / 公開を実装しない
 
 第1段階の運用契約は`docs/runbooks/Cross_Story_Constraint_Inventory.md`を正とする。現行rule-based extractorは通常`relative_order`を生成しない。2026-08-27のユーザー承認によりNormalized Storyをagentが読む小規模候補提示が、2026-08-28のユーザー委任により高信頼・親/独立監査一致時の確認済み記録とinternal local反映が許可された。曖昧・競合候補の確定、公開、および`agents/extractor/`へのLLM provider実装は許可されていない。
 
