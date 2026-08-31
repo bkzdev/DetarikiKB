@@ -172,6 +172,14 @@ packet、plan、artifact、snapshotはignored workspaceだけに保持し、実s
 
 packet、plan、artifact、snapshotはignored workspaceだけに保持し、実story / episode / Evidence ID、本文、path、digestはcommitしていない。保留候補の自動確定、既存canonical値の変更・rollback、relation統合、総順序化、EVENT外拡張、public projectionは行っていない。
 
+## 14回目の小規模batch（2026-08-31）
+
+先行事件で固有名付き第三アイドルユニットのデビュー決定とアイドル就任が明示され、後続事件が同じ固有名を既存複数ユニットの一つとして衣装比較に用いる1組をreviewした。親agentと独立監査agentが`before`を高信頼で支持した。一方、同じ題材名や参加活動だけで直接の相互参照がない別候補3組は`unknown`として確定せず、packet化・反映から除外した。日付、番号、ファイル名、配列順、story-local `canonicalOrder`は根拠に使用していない。
+
+既存37 story pairとの重複がないことをpacket作成前に確認し、採用1組をv0.2 packet / planとしてschema / semantic / free-text検証、builder一致、dry-run / preflightを通した。digest pin付きlocal updateでは後続側の共有済みepisode nodeを再利用し、final artifactは70 nodes / 38 edges、38 distinct story pair、schema error 0、semantic finding 0である。作業開始時の既存69 nodes / 37 edgesは内容不変でhistoryへsnapshotした。
+
+packet、plan、artifact、snapshotはignored workspaceだけに保持し、実story / episode / Evidence ID、本文、path、digestはcommitしていない。保留候補の自動確定、既存canonical値の変更・rollback、relation統合、総順序化、EVENT外拡張、public projectionは行っていない。
+
 ```powershell
 uv run pytest tests/scripts/test_apply_canonical_timeline_promotion.py
 ```
