@@ -187,11 +187,12 @@ def test_global_scope_decision_frame_rejects_implicit_global_promotion():
         assert required in content
 
 
-def test_public_projection_decision_frame_is_proposed_and_fail_closed():
+def test_public_projection_decision_records_accepted_fail_closed_profile():
     content = _read(PUBLIC_PROJECTION_DECISION_PATH)
     for required in (
-        "Status: Proposed",
-        "Decision date: 未決定",
+        "Status: Accepted",
+        "Decision date: 2026-09-01",
+        "2026-09-01のユーザー継続指示",
         "## P1. 公開目的",
         "## P2. relationの公開適格性",
         "## P3. partial orderの表示粒度",
@@ -205,13 +206,15 @@ def test_public_projection_decision_frame_is_proposed_and_fail_closed():
         "内部値露出0",
         "timelines/index.md",
         "fail-closed",
-        "実データ公開、ホスティング開始、既存URL変更、個別relationの公開承認を意味しない",
+        "実データ公開、hosting、deploy、既存URL変更、個別relationの公開承認を意味しない",
+        "# 7. 採択記録",
     ):
         assert required in content
-    assert "\nStatus: Accepted\n" not in content
+    assert content.count("**採択: A。**") == 7
+    assert "\nStatus: Proposed\n" not in content
 
 
-def test_public_projection_decision_keeps_current_wiki_frozen_until_acceptance():
+def test_public_projection_decision_keeps_implementation_and_publish_gates():
     decision = _read(PUBLIC_PROJECTION_DECISION_PATH)
     timeline_page = _read(TIMELINE_PAGE_PATH)
     wiki_design = _read(WIKI_OUTPUT_DESIGN_PATH)
@@ -223,13 +226,10 @@ def test_public_projection_decision_keeps_current_wiki_frozen_until_acceptance()
 
     for content in (timeline_page, wiki_design, scope_decision):
         assert "Canonical_Timeline_Public_Projection_Decision.md" in content
-
-    for content in (timeline_page, wiki_design):
-        assert "Status: Proposed" in content
-    assert "未採択の判断枠" in scope_decision
+        assert "2026-09-01に" in content
 
     for required in (
-        "schema、projector、renderer、URL、公開workflow、実artifactは変更しない",
+        "採択はpublic projectionの設計と合成fixture実装へ進む許可",
         "internal canonical artifactをそのまま公開しない",
         "Story / Episode / Evidence pageの変更",
         "hosting、deploy、rollbackの実行",
@@ -237,11 +237,12 @@ def test_public_projection_decision_keeps_current_wiki_frozen_until_acceptance()
         assert required in decision
 
     assert "`codex/canonical-timeline-public-projection-decision-frame`" in tasks
+    assert "`codex/canonical-timeline-public-projection-decision`" in tasks
     assert (
-        "採択前はschema / projector / renderer / URL / "
-        "公開workflow / 実artifactを変更せず" in tasks
+        "実データ公開・個別relation公開・hosting・deploy・既存URL変更は許可していない"
+        in tasks
     )
-    assert "`Status: Proposed`の判断枠を人間が採択する" in milestones
+    assert "2026-09-01に推奨profileを採択済み" in milestones
 
 
 def test_timeline_docs_link_to_global_scope_decision_frame():
