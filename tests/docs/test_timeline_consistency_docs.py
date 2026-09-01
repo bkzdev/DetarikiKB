@@ -47,6 +47,13 @@ PUBLIC_PROJECTOR_DOC_PATH = (
     / "07_Wiki"
     / "Canonical_Timeline_Public_Projector.md"
 )
+PUBLIC_PREFLIGHT_DOC_PATH = (
+    PROJECT_ROOT
+    / "docs"
+    / "architecture"
+    / "07_Wiki"
+    / "Canonical_Timeline_Public_Preflight.md"
+)
 CANONICAL_TIMELINE_SCHEMA_DOC_PATH = (
     PROJECT_ROOT
     / "docs"
@@ -310,7 +317,8 @@ def test_public_projector_contract_is_implemented_and_keeps_publish_gate_closed(
         "unresolvedRelationSummary: null",
         "internal Story/Episode ID、public ID、label",
         "publish-readyではない",
-        "次PRはread-only preflight",
+        "read-only preflightは",
+        "次PRは合成fixture",
         "実artifactや実mappingは使用しない",
     ):
         assert required in projector
@@ -319,8 +327,40 @@ def test_public_projector_contract_is_implemented_and_keeps_publish_gate_closed(
         assert "Canonical_Timeline_Public_Projector.md" in content
         assert "read-only preflight" in content
 
-    assert "`codex/canonical-timeline-public-projector`" in tasks
+    assert "`codex/canonical-timeline-public-preflight`" in tasks
     assert "publish-ready判定" in tasks
+
+
+def test_public_preflight_contract_is_implemented_and_keeps_candidate_state():
+    preflight = _read(PUBLIC_PREFLIGHT_DOC_PATH)
+    decision = _read(PUBLIC_PROJECTION_DECISION_PATH)
+    schema_doc = _read(PUBLIC_PROJECTION_SCHEMA_DOC_PATH)
+    projector = _read(PUBLIC_PROJECTOR_DOC_PATH)
+    tasks = _read(TASKS_PATH)
+
+    for required in (
+        "Status: Implemented",
+        "agents/extractor/canonical_timeline_public_preflight.py",
+        "canonical_timeline_public_preflight_input_digests",
+        "preflight_canonical_timeline_public_projection",
+        "5入力",
+        "SHA-256",
+        "Public ID Registry",
+        "public label source",
+        "Cross-document完全一致",
+        "Exposure scan",
+        '"publishStatus": "projection_candidate"',
+        "固定ruleと非識別件数",
+        "次PRは合成fixtureだけで`timelines/index.md` renderer",
+        "実artifact、実Registry entry、実mapping、実labelはfixtureに使用しない",
+    ):
+        assert required in preflight
+
+    for content in (decision, schema_doc, projector):
+        assert "Canonical_Timeline_Public_Preflight.md" in content
+
+    assert "`codex/canonical-timeline-public-preflight`" in tasks
+    assert "rendererとlink check" in tasks
 
 
 def test_timeline_docs_link_to_global_scope_decision_frame():

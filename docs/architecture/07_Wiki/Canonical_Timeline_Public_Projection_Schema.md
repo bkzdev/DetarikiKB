@@ -11,7 +11,7 @@ Project: Detariki Knowledge Base (DKB)
 
 `Canonical_Timeline_Public_Projection_Decision.md`で採択したP1〜P7を、公開専用JSON documentのfield allowlistとして固定する。
 
-このschemaはinternal canonical artifactを公開可能と宣言するものではない。公開projectionはinternal documentの縮小コピーではなく、許可fieldだけで新しく構成する。pure projectorとcross-document semantic validatorは`Canonical_Timeline_Public_Projector.md`で実装済みである。preflight、renderer、実データ実行、hosting、deployは後続PRとする。
+このschemaはinternal canonical artifactを公開可能と宣言するものではない。公開projectionはinternal documentの縮小コピーではなく、許可fieldだけで新しく構成する。schema validationだけで公開可能と判定せず、後続gateを必須とする。pure projectorとcross-document semantic validatorは`Canonical_Timeline_Public_Projector.md`、read-only preflightは`Canonical_Timeline_Public_Preflight.md`で実装済みである。renderer、実データ実行、hosting、deployは後続PRとする。
 
 ---
 
@@ -152,7 +152,7 @@ rendererはlabel keyを公開文言へ変換する。projection側に自由記�
 - input document不変
 - failure時に空`projection_candidate`と匿名`blocked` reportを返すfail-closed動作
 
-## 8.3 後続preflightで保証する
+## 8.3 実装済みpreflightで保証する
 
 - input digest pinとinternal / public schema valid
 - Public ID Registryとprivate mappingの完全一致
@@ -197,7 +197,7 @@ rendererはlabel keyを公開文言へ変換する。projection側に自由記�
 
 # 11. 次段階
 
-次PRはread-only preflightを実装し、§8.3のgateを一括して検査する。schema validationだけで公開可能と判定せず、projectorの結果をpublish-readyに変更しない。
+read-only preflightは`Canonical_Timeline_Public_Preflight.md`で§8.3のgateを実装済みである。次PRは合成fixtureだけで`timelines/index.md` rendererとlink checkを実装する。preflight成功だけでprojectionをpublish-readyに変更しない。
 
 ---
 
@@ -205,6 +205,7 @@ rendererはlabel keyを公開文言へ変換する。projection側に自由記�
 
 - `Canonical_Timeline_Public_Projection_Decision.md`
 - `Canonical_Timeline_Public_Projector.md`
+- `Canonical_Timeline_Public_Preflight.md`
 - `../03_Data_Model/Canonical_Timeline_Schema.md`
 - `../06_AI/Public_ID_Registry_Design.md`
 - `Timeline_Page.md`
