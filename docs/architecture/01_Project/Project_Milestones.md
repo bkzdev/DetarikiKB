@@ -17,7 +17,7 @@ Raw Scriptを安全に正規化し、根拠・不明情報・内部IDを失わ�
 | M3 Extraction / Merge / 内部KB | 進行中 | candidateとprovenanceを保持して主要entityを統合できる | Stage A、8種entityの最小merge、Evidence・Summary基盤は実装済み。実corpusの充足は継続 |
 | M4 Canonical curation | 進行中 | ID・profile・story内順序・story間Timelineをreview可能な形で保持できる | EVENT story内順序は完了。story間Timelineは基盤と15回の小規模batch運用を実証済み |
 | M5 Wiki / 閲覧体験 | 進行中 | public-safeなStory/Episode/Character/Evidenceページを一貫生成できる | 基本rendererとlocal previewは実装済み。残entityページ・関係表示・全体目視確認が残る |
-| M6 公開準備 | 進行中 | 公開範囲、ホスティング、更新・rollback、漏えい検査を決定し、限定公開できる | Timelineの公開profile・schema・pure projectorは確定。preflight・renderer・公開workflowが残る |
+| M6 公開準備 | 進行中 | 公開範囲、ホスティング、更新・rollback、漏えい検査を決定し、限定公開できる | Timelineの公開profile・schema・pure projector・read-only preflightは確定。renderer・公開workflowが残る |
 | M7 v1リリースと継続運用 | 未着手 | 再生成手順、品質指標、障害対応、定期更新が運用できる | M2〜M6の完了後にrelease checklistを固定する |
 
 ## 現在地と直近の区切り
@@ -28,7 +28,7 @@ Raw Scriptを安全に正規化し、根拠・不明情報・内部IDを失わ�
 
 1. 高信頼なstory間関係を親agentと独立監査agentの一致で小規模batch化し、明示接続を持つ範囲で内部coverageを増やす。
 2. 各batchをdry-run / preflight / semantic check後にinternal artifactへ反映し、矛盾0を維持する。
-3. ~~明示接続候補の初回走査完了を受け、公開用Timelineの目的・表示粒度・unknown/conflict表現を判断し、public projection schema・pure projector・safe aggregate reportを合成fixtureで固定する。~~ 2026-09-01に完了。次はRegistry / mapping / label / exposureを検査するread-only preflightである。
+3. ~~明示接続候補の初回走査完了を受け、公開用Timelineの目的・表示粒度・unknown/conflict表現を判断し、public projection schema・pure projector・safe aggregate report・read-only preflightを合成fixtureで固定する。~~ 公開profile判断は2026-09-01に完了し、preflightまで2026-09-02に完了。次は`timelines/index.md` rendererとlink checkである。
 
 ## 人間確認を求める場面
 

@@ -6,6 +6,6 @@ global chronologyとcanonical Timelineの初期profileは`../03_Data_Model/Canon
 
 `../03_Data_Model/Canonical_Timeline_Schema.md`と`schemas/canonical_timeline.schema.json`はinternal artifactのデータ契約だけを定義する。v0.1 schema追加はpublic表示を許可せず、本ページのrenderer・source・URLを変更しない。
 
-公開目的・relation適格性・partial order表示・unknown/conflict・public-safe field・page / URL・publish gateは`Canonical_Timeline_Public_Projection_Decision.md`で2026-09-01に採択した。`Canonical_Timeline_Public_Projection_Schema.md`と`Canonical_Timeline_Public_Projector.md`は、公開field allowlist、入力不変・決定的なpure projector、safe aggregate report、`projection_candidate`状態を合成fixtureで固定した。次段階はread-only preflightである。まだ本ページのrenderer・source・URLを変更せず、実データを公開しない。
+公開目的・relation適格性・partial order表示・unknown/conflict・public-safe field・page / URL・publish gateは`Canonical_Timeline_Public_Projection_Decision.md`で2026-09-01に採択した。`Canonical_Timeline_Public_Projection_Schema.md`、`Canonical_Timeline_Public_Projector.md`、`Canonical_Timeline_Public_Preflight.md`は、公開field allowlist、pure projector、safe aggregate report、Registry / label / exposure gate、`projection_candidate`状態を合成fixtureで固定した。次段階は本ページのrendererとlink checkである。まだsource・URLを変更せず、実データを公開しない。
 
 このファイルは個別ページ実装時に、実装済みの内容へ更新する予定のプレースホルダーである。

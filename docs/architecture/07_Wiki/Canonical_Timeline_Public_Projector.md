@@ -11,7 +11,7 @@ Implementation: `agents/extractor/canonical_timeline_public_projection.py`
 
 `Canonical_Timeline_Public_Projection_Schema.md`で固定した公開専用documentを、internal canonical Timelineを変更せず決定的に構成する。
 
-本実装は純粋関数であり、file I/O、schema file読み込み、Public ID Registry照合、CLI、renderer、publish-ready判定を行わない。schema-validなinternal documentと人間確認済みmappingを前提とし、不整合時は空projectionと匿名safe aggregate reportを返してfail-closedにする。
+本実装は純粋関数であり、file I/O、schema file読み込み、Public ID Registry照合、CLI、renderer、publish-ready判定を行わない。schema-validなinternal documentと人間確認済みmappingを前提とし、不整合時は空projectionと匿名safe aggregate reportを返してfail-closedにする。これらの外部照合は`Canonical_Timeline_Public_Preflight.md`で実装済みである。
 
 ---
 
@@ -176,7 +176,7 @@ blocked時のprojectionもschema-validな`projection_candidate`であるが、pu
 
 # 11. 次段階
 
-次PRはread-only preflightを実装する。internal / public schema validation、canonical semantic finding 0、Registry / private mapping完全一致、public label source照合、exposure 0、projector report `clean`、cross-document finding 0を一つのfail-closed gateへ集約する。
+read-only preflightは`Canonical_Timeline_Public_Preflight.md`で実装済みである。次PRは合成fixtureだけで`timelines/index.md` rendererとlink checkを実装する。
 
 ---
 
@@ -184,6 +184,7 @@ blocked時のprojectionもschema-validな`projection_candidate`であるが、pu
 
 - `Canonical_Timeline_Public_Projection_Decision.md`
 - `Canonical_Timeline_Public_Projection_Schema.md`
+- `Canonical_Timeline_Public_Preflight.md`
 - `../03_Data_Model/Canonical_Timeline_Schema.md`
 - `../06_AI/Public_ID_Registry_Design.md`
 - `Timeline_Page.md`
