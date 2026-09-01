@@ -30,6 +30,16 @@ PUBLIC_PROJECTION_DECISION_PATH = (
     / "07_Wiki"
     / "Canonical_Timeline_Public_Projection_Decision.md"
 )
+PUBLIC_PROJECTION_SCHEMA_DOC_PATH = (
+    PROJECT_ROOT
+    / "docs"
+    / "architecture"
+    / "07_Wiki"
+    / "Canonical_Timeline_Public_Projection_Schema.md"
+)
+PUBLIC_PROJECTION_SCHEMA_PATH = (
+    PROJECT_ROOT / "schemas" / "canonical_timeline_public_projection.schema.json"
+)
 CANONICAL_TIMELINE_SCHEMA_DOC_PATH = (
     PROJECT_ROOT
     / "docs"
@@ -227,6 +237,7 @@ def test_public_projection_decision_keeps_implementation_and_publish_gates():
     for content in (timeline_page, wiki_design, scope_decision):
         assert "Canonical_Timeline_Public_Projection_Decision.md" in content
         assert "2026-09-01に" in content
+        assert "Canonical_Timeline_Public_Projection_Schema.md" in content
 
     for required in (
         "採択はpublic projectionの設計と合成fixture実装へ進む許可",
@@ -242,7 +253,35 @@ def test_public_projection_decision_keeps_implementation_and_publish_gates():
         "実データ公開・個別relation公開・hosting・deploy・既存URL変更は許可していない"
         in tasks
     )
-    assert "2026-09-01に推奨profileを採択済み" in milestones
+    assert "2026-09-01に完了" in milestones
+
+
+def test_public_projection_schema_contract_is_linked_and_fail_closed():
+    schema_doc = _read(PUBLIC_PROJECTION_SCHEMA_DOC_PATH)
+    schema = _read(PUBLIC_PROJECTION_SCHEMA_PATH)
+    tasks = _read(TASKS_PATH)
+
+    for required in (
+        "Status: Accepted",
+        "公開projectionはinternal documentの縮小コピーではなく",
+        "`publishStatus` | `projection_candidate`",
+        "`additionalProperties: false`",
+        "public IDはPublic ID Registry",
+        "`unknown` / `conflict`は個別relationとして公開しない",
+        "schema validationだけで公開可能と判定せず",
+        "実データfixture、実artifact、実public ID、実タイトル、本文は使用しない",
+    ):
+        assert required in schema_doc
+
+    for required in (
+        '"publishStatus": { "const": "projection_candidate" }',
+        '"relationState": { "enum": ["before", "after", "same_time"] }',
+        '"additionalProperties": false',
+    ):
+        assert required in schema
+
+    assert "`codex/canonical-timeline-public-projection-schema`" in tasks
+    assert "pure projector / semantic validator / preflight / renderer / CLI" in tasks
 
 
 def test_timeline_docs_link_to_global_scope_decision_frame():
