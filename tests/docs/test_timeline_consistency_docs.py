@@ -40,6 +40,13 @@ PUBLIC_PROJECTION_SCHEMA_DOC_PATH = (
 PUBLIC_PROJECTION_SCHEMA_PATH = (
     PROJECT_ROOT / "schemas" / "canonical_timeline_public_projection.schema.json"
 )
+PUBLIC_PROJECTOR_DOC_PATH = (
+    PROJECT_ROOT
+    / "docs"
+    / "architecture"
+    / "07_Wiki"
+    / "Canonical_Timeline_Public_Projector.md"
+)
 CANONICAL_TIMELINE_SCHEMA_DOC_PATH = (
     PROJECT_ROOT
     / "docs"
@@ -282,6 +289,38 @@ def test_public_projection_schema_contract_is_linked_and_fail_closed():
 
     assert "`codex/canonical-timeline-public-projection-schema`" in tasks
     assert "pure projector / semantic validator / preflight / renderer / CLI" in tasks
+
+
+def test_public_projector_contract_is_implemented_and_keeps_publish_gate_closed():
+    projector = _read(PUBLIC_PROJECTOR_DOC_PATH)
+    decision = _read(PUBLIC_PROJECTION_DECISION_PATH)
+    schema_doc = _read(PUBLIC_PROJECTION_SCHEMA_DOC_PATH)
+    tasks = _read(TASKS_PATH)
+
+    for required in (
+        "Status: Implemented",
+        "agents/extractor/canonical_timeline_public_projection.py",
+        "build_canonical_timeline_public_projection",
+        "validate_canonical_timeline_public_projection_consistency",
+        'adoptionStatus == "canonical"',
+        'reviewStatus == "confirmed"',
+        "ineligibleKnownRelationCount",
+        "internal / public Story対応の競合",
+        "components: []",
+        "unresolvedRelationSummary: null",
+        "internal Story/Episode ID、public ID、label",
+        "publish-readyではない",
+        "次PRはread-only preflight",
+        "実artifactや実mappingは使用しない",
+    ):
+        assert required in projector
+
+    for content in (decision, schema_doc):
+        assert "Canonical_Timeline_Public_Projector.md" in content
+        assert "read-only preflight" in content
+
+    assert "`codex/canonical-timeline-public-projector`" in tasks
+    assert "publish-ready判定" in tasks
 
 
 def test_timeline_docs_link_to_global_scope_decision_frame():
