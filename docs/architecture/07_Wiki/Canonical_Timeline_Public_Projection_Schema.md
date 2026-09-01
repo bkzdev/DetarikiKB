@@ -11,7 +11,7 @@ Project: Detariki Knowledge Base (DKB)
 
 `Canonical_Timeline_Public_Projection_Decision.md`で採択したP1〜P7を、公開専用JSON documentのfield allowlistとして固定する。
 
-このschemaはinternal canonical artifactを公開可能と宣言するものではない。公開projectionはinternal documentの縮小コピーではなく、許可fieldだけで新しく構成する。projector、cross-document semantic validator、preflight、renderer、実データ実行、hosting、deployは後続PRとする。
+このschemaはinternal canonical artifactを公開可能と宣言するものではない。公開projectionはinternal documentの縮小コピーではなく、許可fieldだけで新しく構成する。pure projectorとcross-document semantic validatorは`Canonical_Timeline_Public_Projector.md`で実装済みである。preflight、renderer、実データ実行、hosting、deployは後続PRとする。
 
 ---
 
@@ -142,18 +142,24 @@ rendererはlabel keyを公開文言へ変換する。projection側に自由記�
 - unresolved aggregateの固定scope・非負整数
 - 空projectionの許容
 
-## 8.2 後続projector / validatorで保証する
+## 8.2 実装済みprojector / validatorで保証する
 
-- input digest pinとinternal canonical schema / semantic valid
+- internal canonical semantic finding 0
 - canonical adoption・confirmed review・known relation適格性
-- public ID Registryとの完全一致・一意性・両端completeness
-- node / relation参照、self relation、component partitionの整合
+- public mappingの形式・一意性・両端completeness・Story対応整合
 - connected componentの決定的生成と入力順非依存
+- public documentの決定的構成とsource / mappingへの完全一致
+- input document不変
+- failure時に空`projection_candidate`と匿名`blocked` reportを返すfail-closed動作
+
+## 8.3 後続preflightで保証する
+
+- input digest pinとinternal / public schema valid
+- Public ID Registryとprivate mappingの完全一致
 - public label sourceのallowlist一致
 - 内部ID、本文、path、URL、digest、禁止markerのexposure 0
-- 同じ入力から同じbyte列を生成する決定性
-- input document不変
-- failure時にpublish-readyを返さないfail-closed動作
+- projector report `clean`とcross-document finding 0
+- failure時にpublish-readyを返さないfail-closed gate
 
 ---
 
@@ -180,7 +186,7 @@ rendererはlabel keyを公開文言へ変換する。projection側に自由記�
 # 10. Non-goals
 
 - internal canonical Timeline schemaの変更
-- public projector / semantic validator / CLI / reportの実装
+- preflight / CLIの実装
 - renderer、`timelines/index.md`、Story page、URLの変更
 - Public ID Registryや実manifestの変更
 - 実データartifactを用いたprojection / preview
@@ -191,13 +197,14 @@ rendererはlabel keyを公開文言へ変換する。projection側に自由記�
 
 # 11. 次段階
 
-次PRは、検証済みinternal canonical documentとpublic ID / label mappingを入力にするpure projectorを実装する。schema validationだけで公開可能と判定せず、§8.2のcross-document semantic validatorとsafe aggregate reportを同じ実装境界で扱う。
+次PRはread-only preflightを実装し、§8.3のgateを一括して検査する。schema validationだけで公開可能と判定せず、projectorの結果をpublish-readyに変更しない。
 
 ---
 
 # 12. 関連文書
 
 - `Canonical_Timeline_Public_Projection_Decision.md`
+- `Canonical_Timeline_Public_Projector.md`
 - `../03_Data_Model/Canonical_Timeline_Schema.md`
 - `../06_AI/Public_ID_Registry_Design.md`
 - `Timeline_Page.md`
