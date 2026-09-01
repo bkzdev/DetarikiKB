@@ -4,6 +4,7 @@
 
 完了済みPRの詳細な作業ログ・テスト件数・diff statは `docs/project_history/Completed_PRs_2026-07.md` に移した。ここには重複記載しない。作業を開始・完了・変更するたびに、該当する章を更新すること。
 ## Current Focus
+- `codex/canonical-timeline-public-projection-schema`: 採択済みP1〜P7の第1実装段階として、`schemas/canonical_timeline_public_projection.schema.json` v0.1と`Canonical_Timeline_Public_Projection_Schema.md`を追加し、internal artifactの縮小copyではない公開専用field allowlistを合成fixtureで固定する。rootは`publishStatus: projection_candidate`を固定し、public Story/Episode ID・公開許可済みlabel・known relationの定型label key・unknown/conflictのsafe aggregate以外を`additionalProperties: false`で拒否する。空projectionを有効に保ち、schema-validだけでpublish-readyにしない。pure projector / semantic validator / preflight / renderer / CLI、実ID・実タイトル・実artifactの投入、URL変更、hosting / deployは対象外。次は入力不変・決定的なpure projectorとpublic-safe aggregate report。
 - `codex/canonical-timeline-public-projection-decision`: ユーザーの2026-09-01継続指示により、`Canonical_Timeline_Public_Projection_Decision.md`の推奨P1〜P7を一括採択し、`Status: Accepted`へ更新した（**docs-only decision PR**）。公開目的は確認済み関係を辿る補助導線、適格性はadoption済みknown relationのみ、表示はrelation / connected component単位で総順序化なし、unknown / conflictは個別非公開で制約説明とsafe aggregateのみ、表示fieldはpublic ID・public label・定型relation labelのみ、pageは`timelines/index.md`、publishはfail-closed gateと検証済みrollbackを必須とする。採択はpublic projection schemaと合成fixture実装へ進む許可であり、実データ公開・個別relation公開・hosting・deploy・既存URL変更は許可していない。
 - `codex/canonical-timeline-public-projection-decision-frame`: 明示接続候補の初回走査と15回の小規模batch（40 relation）完了を受け、Canonical Timelineを公開する前に必要な7判断（公開目的、relation適格性、partial order表示粒度、unknown / conflict表現、source / label境界、page / URL、publish gate / rollback）を`Canonical_Timeline_Public_Projection_Decision.md`へ集約した（**docs-only、Status: Proposed**）。推奨初期profileは、確認済み関係を辿る補助導線、adoption済みknown relationのみ、relation / connected component表示、unknown / conflictは個別非公開で制約説明とsafe aggregateのみ、public ID・public label・定型relation labelのみ、`timelines/index.md`単一ページ、fail-closed gateである。採択前はschema / projector / renderer / URL / 公開workflow / 実artifactを変更せず、実公開・hosting・deployを行わない。
 - `codex/canonical-timeline-batch-017`: 既存の単独sample 2件＋小規模batch 14回（70 nodes / 38 edges）に続き、固有名付き第二アイドルユニットのデビューから、同ユニットの歌声を後続事件が既存手段として利用済みの状態、および別の後続事件が同ユニットを歴代アイドルとして過去の歌唱行動とともに回想する2組を15回目の小規模batchとして処理した。Normalized Story本文だけを根拠に親agentと独立監査agentが両組の`before`を高信頼（個別目安0.95〜0.96）で支持した。同一企画期間・周年・題材・人物・一般的活動だけで具体的な出来事を接続できない別候補5組は`unknown`としてpacket化せず保留した。2個のignored v0.2 packet / planはschema / semantic / free-text valid、全planはbuilder出力と完全一致・plan semantic finding 0。PR #248 promotion executorで各plan / packet SHA-256とcurrent artifact digestを固定してdry-run / preflight後に順次local updateした。共有済みsource episode nodeを再利用し、最終結果は72 nodes / 40 edges、40 distinct story pair、schema error 0、semantic finding 0。作業開始時の既存70 nodes / 38 edgesと中間71 nodes / 39 edgesは内容不変でhistoryへ不破棄snapshotし、実ID・本文・path・digestはcommitせず生成物非commitを維持した。既存canonical値の変更・rollback、総順序化、EVENT外、public projectionは行っていない。
@@ -384,7 +385,6 @@
 
 ---
 ## Archive
-
 完了済みPR #1〜#60の詳細な作業履歴（各PRの実装内容・確認結果・あえて実装しなかったこと等）は `docs/project_history/Completed_PRs_2026-07.md` を参照。
 
 ---

@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "0.1",
+  "documentType": "canonical_timeline_public_projection",
+  "visibility": "public",
+  "publishStatus": "projection_candidate",
+  "scope": "event",
+  "purpose": "confirmed_relation_navigation",
+  "coverageNoticeKey": "partial_confirmed_relations_only",
+  "components": [
+    {
+      "componentKey": "component-0001",
+      "nodes": [
+        {
+          "publicStoryId": "PUBLIC_EVENT_ALPHA",
+          "publicEpisodeId": "PUBLIC_EVENT_ALPHA_E01",
+          "storyLabel": "合成イベントA",
+          "episodeLabel": "合成エピソードA"
+        },
+        {
+          "publicStoryId": "PUBLIC_EVENT_BETA",
+          "publicEpisodeId": "PUBLIC_EVENT_BETA_E01",
+          "storyLabel": "合成イベントB",
+          "episodeLabel": "合成エピソードB"
+        }
+      ],
+      "relations": [
+        {
+          "fromPublicEpisodeId": "PUBLIC_EVENT_ALPHA_E01",
+          "toPublicEpisodeId": "PUBLIC_EVENT_BETA_E01",
+          "relationState": "before",
+          "labelKey": "timeline_before"
+        }
+      ]
+    }
+  ],
+  "unresolvedRelationSummary": {
+    "countScope": "canonical_artifact_only",
+    "noticeKey": "unresolved_relations_not_shown",
+    "unknownCount": 2,
+    "conflictCount": 1
+  }
+}
