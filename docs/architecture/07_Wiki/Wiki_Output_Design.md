@@ -268,7 +268,7 @@ Relationship page（独立ページ）は現時点では見送り、Character/Or
 - 表示してはいけないもの: 順序の「確定」表現。`Merged_Knowledge_Design.md` §7.1の通りStage Bでは順序を確定しないため、Wikiページ上も「観測された順序情報の一覧」であることを明示し、確定した年表のように見せない
 - global chronology・canonical Timelineは`../03_Data_Model/Canonical_Timeline_Scope_Decision.md`でEVENT限定partial order・human-confirmed gate・internal-onlyを採択した。同Decision単体はpublic表示を許可せず、story-local `canonicalOrder`をglobal順序へ昇格・表示しない
 - `../03_Data_Model/Canonical_Timeline_Schema.md`のv0.1 schemaはinternal data contractだけであり、Wiki sourceや表示許可を意味しない。実artifactを用いるpublic projection生成・rendererは未実装のままとする
-- 公開目的・適格relation・表示粒度・unknown/conflict・public-safe field・URL・publish gateは`Canonical_Timeline_Public_Projection_Decision.md`で2026-09-01に採択した。`Canonical_Timeline_Public_Projection_Schema.md`、`Canonical_Timeline_Public_Projector.md`、`Canonical_Timeline_Public_Preflight.md`は公開field allowlist、pure projector、safe aggregate report、Registry / label / exposure gate、`projection_candidate`状態を合成fixtureで固定した。次は`timelines/index.md` rendererとlink checkであり、本節のsource、renderer、URLはまだ変更しない
+- 公開目的・適格relation・表示粒度・unknown/conflict・public-safe field・URL・publish gateは`Canonical_Timeline_Public_Projection_Decision.md`で2026-09-01に採択した。`Canonical_Timeline_Public_Projection_Schema.md`、`Canonical_Timeline_Public_Projector.md`、`Canonical_Timeline_Public_Preflight.md`、`Canonical_Timeline_Public_Renderer.md`は公開field allowlist、projector、preflight、`timelines/index.md` renderer、safe link checkを合成fixtureで固定した。次はignored workspace local previewとmanual visual reviewであり、本節の実source接続と既存URLはまだ変更しない
 - テンプレート名（案）: `templates/wiki/timeline.md.j2`
 
 ## 9.12 Unresolved report page

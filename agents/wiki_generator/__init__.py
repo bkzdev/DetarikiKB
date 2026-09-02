@@ -15,8 +15,13 @@ Usage:
     from agents.wiki_generator import build_pages, write_pages
 """
 
+from .canonical_timeline import (
+    render_canonical_timeline_page,
+    validate_canonical_timeline_page_links,
+)
 from .models import build_front_matter
 from .paths import (
+    canonical_timeline_page_path,
     character_page_path,
     episode_page_path,
     evidence_page_path,
@@ -38,6 +43,7 @@ from .renderer import (
 
 __all__ = [
     "build_front_matter",
+    "canonical_timeline_page_path",
     "character_page_path",
     "episode_page_path",
     "evidence_page_path",
@@ -45,6 +51,7 @@ __all__ = [
     "story_page_path",
     "build_pages",
     "render_character_index_page",
+    "render_canonical_timeline_page",
     "render_character_page",
     "render_episode_page",
     "render_evidence_page",
@@ -53,4 +60,5 @@ __all__ = [
     "render_story_page",
     "render_unresolved_report",
     "write_pages",
+    "validate_canonical_timeline_page_links",
 ]

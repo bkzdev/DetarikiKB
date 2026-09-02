@@ -151,7 +151,7 @@ findingは同じruleを集約し、rule名で決定的にsortする。入力配�
 
 # 8. 次段階
 
-次PRは合成fixtureだけで`timelines/index.md` rendererとlink checkを実装する。preflight `clean`をrenderer入力条件とし、renderer自身が公開判定や内部mapping解決を行わない境界を維持する。
+`timelines/index.md` rendererとlink checkは`Canonical_Timeline_Public_Renderer.md`で合成fixture実装済みである。次はignored workspaceだけのlocal previewとmanual visual reviewである。
 
 ---
 
@@ -160,6 +160,7 @@ findingは同じruleを集約し、rule名で決定的にsortする。入力配�
 - `Canonical_Timeline_Public_Projection_Decision.md`
 - `Canonical_Timeline_Public_Projection_Schema.md`
 - `Canonical_Timeline_Public_Projector.md`
+- `Canonical_Timeline_Public_Renderer.md`
 - `../06_AI/Public_ID_Registry_Design.md`
 - `Timeline_Page.md`
 - `Wiki_Output_Design.md`

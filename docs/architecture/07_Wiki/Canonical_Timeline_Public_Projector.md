@@ -176,7 +176,7 @@ blocked時のprojectionもschema-validな`projection_candidate`であるが、pu
 
 # 11. 次段階
 
-read-only preflightは`Canonical_Timeline_Public_Preflight.md`で実装済みである。次PRは合成fixtureだけで`timelines/index.md` rendererとlink checkを実装する。
+read-only preflightは`Canonical_Timeline_Public_Preflight.md`、`timelines/index.md` rendererとlink checkは`Canonical_Timeline_Public_Renderer.md`で実装済みである。次はignored workspaceだけのlocal previewとmanual visual reviewである。
 
 ---
 
@@ -185,6 +185,7 @@ read-only preflightは`Canonical_Timeline_Public_Preflight.md`で実装済みで
 - `Canonical_Timeline_Public_Projection_Decision.md`
 - `Canonical_Timeline_Public_Projection_Schema.md`
 - `Canonical_Timeline_Public_Preflight.md`
+- `Canonical_Timeline_Public_Renderer.md`
 - `../03_Data_Model/Canonical_Timeline_Schema.md`
 - `../06_AI/Public_ID_Registry_Design.md`
 - `Timeline_Page.md`
