@@ -72,7 +72,7 @@ source / targetの主語と比較対象を明示し、canonical relationの方�
 
 ## 3.3 Unknown / conflict
 
-個別relationやreasonは表示せず、`unresolvedRelationSummary`の`unknownCount` / `conflictCount`だけを表示する。空componentも有効で、「表示できる確認済み関係はありません」と明示する。
+個別relationやreasonは表示せず、`unresolvedRelationSummary`の`unknownCount` / `conflictCount`だけを「確認対象データ内の件数」として表示する。公開本文では開発者向けの`artifact`表現を使わない。空componentも有効で、「表示できる確認済み関係はありません」と明示する。
 
 ## 3.4 Label escaping
 
@@ -132,9 +132,11 @@ preflightと同様に、renderer成功も公開承認を意味しない。
 
 ---
 
-# 8. 次段階
+# 8. Local preview結果
 
-次はignored workspaceだけで匿名aggregateを用いたlocal previewを構成し、`mkdocs serve`経由でmanual visual reviewを行う。実データ由来projection、mapping、report、Markdown、HTMLはcommitしない。画面の可読性や表現判断が必要な段階でユーザーへまとめて確認する。
+ignored workspaceだけで匿名合成projectionを用いたlocal previewを構成し、`mkdocs serve`経由でdesktop幅と390px狭幅を確認した。3 relation種別、長い日本語label、Story / Episode link遷移、横overflowなし、内部field・raw拡張子・絶対path・script tag露出0を確認した。公開本文の`artifact`表現だけを一般向けに修正した。詳細は`Canonical_Timeline_Public_Preview.md`を参照する。
+
+次はpublic publishing platform / workflow、deploy gate、rollbackを別decisionで比較・採択する。実データ由来projection、mapping、report、Markdown、HTMLは引き続きcommit・deployしない。
 
 ---
 
@@ -144,6 +146,7 @@ preflightと同様に、renderer成功も公開承認を意味しない。
 - `Canonical_Timeline_Public_Projection_Schema.md`
 - `Canonical_Timeline_Public_Projector.md`
 - `Canonical_Timeline_Public_Preflight.md`
+- `Canonical_Timeline_Public_Preview.md`
 - `Timeline_Page.md`
 - `Wiki_Output_Design.md`
 - `Story_URL_Structure_Decision.md`
