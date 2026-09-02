@@ -54,6 +54,13 @@ PUBLIC_PREFLIGHT_DOC_PATH = (
     / "07_Wiki"
     / "Canonical_Timeline_Public_Preflight.md"
 )
+PUBLIC_RENDERER_DOC_PATH = (
+    PROJECT_ROOT
+    / "docs"
+    / "architecture"
+    / "07_Wiki"
+    / "Canonical_Timeline_Public_Renderer.md"
+)
 CANONICAL_TIMELINE_SCHEMA_DOC_PATH = (
     PROJECT_ROOT
     / "docs"
@@ -318,7 +325,8 @@ def test_public_projector_contract_is_implemented_and_keeps_publish_gate_closed(
         "internal Story/Episode ID、public ID、label",
         "publish-readyではない",
         "read-only preflightは",
-        "次PRは合成fixture",
+        "rendererとlink checkは",
+        "次はignored workspaceだけのlocal preview",
         "実artifactや実mappingは使用しない",
     ):
         assert required in projector
@@ -327,7 +335,7 @@ def test_public_projector_contract_is_implemented_and_keeps_publish_gate_closed(
         assert "Canonical_Timeline_Public_Projector.md" in content
         assert "read-only preflight" in content
 
-    assert "`codex/canonical-timeline-public-preflight`" in tasks
+    assert "`codex/canonical-timeline-public-renderer`" in tasks
     assert "publish-ready判定" in tasks
 
 
@@ -351,7 +359,8 @@ def test_public_preflight_contract_is_implemented_and_keeps_candidate_state():
         "Exposure scan",
         '"publishStatus": "projection_candidate"',
         "固定ruleと非識別件数",
-        "次PRは合成fixtureだけで`timelines/index.md` renderer",
+        "rendererとlink checkは`Canonical_Timeline_Public_Renderer.md`",
+        "次はignored workspaceだけのlocal preview",
         "実artifact、実Registry entry、実mapping、実labelはfixtureに使用しない",
     ):
         assert required in preflight
@@ -359,8 +368,39 @@ def test_public_preflight_contract_is_implemented_and_keeps_candidate_state():
     for content in (decision, schema_doc, projector):
         assert "Canonical_Timeline_Public_Preflight.md" in content
 
-    assert "`codex/canonical-timeline-public-preflight`" in tasks
-    assert "rendererとlink check" in tasks
+    assert "`codex/canonical-timeline-public-renderer`" in tasks
+    assert "local previewとmanual visual review" in tasks
+
+
+def test_public_renderer_contract_is_implemented_without_real_data_integration():
+    renderer = _read(PUBLIC_RENDERER_DOC_PATH)
+    decision = _read(PUBLIC_PROJECTION_DECISION_PATH)
+    schema_doc = _read(PUBLIC_PROJECTION_SCHEMA_DOC_PATH)
+    preflight = _read(PUBLIC_PREFLIGHT_DOC_PATH)
+    tasks = _read(TASKS_PATH)
+
+    for required in (
+        "Status: Implemented",
+        "agents/wiki_generator/canonical_timeline.py",
+        'canonical_timeline_page_path() -> "timelines/index.md"',
+        "render_canonical_timeline_page",
+        "validate_canonical_timeline_page_links",
+        "preflight reportとの完全一致",
+        "全出来事の総順序ではない",
+        "HTML特殊文字をentity化",
+        "Markdown link text",
+        "固定rule/count",
+        "`build_pages()` / `scripts/render_wiki.py`への入力統合",
+        "次はignored workspace",
+        "実artifact、実public ID、実label、実Wiki Markdownは使用・commitしない",
+    ):
+        assert required in renderer
+
+    for content in (decision, schema_doc, preflight):
+        assert "Canonical_Timeline_Public_Renderer.md" in content
+
+    assert "`codex/canonical-timeline-public-renderer`" in tasks
+    assert "publish-ready判定" in tasks
 
 
 def test_timeline_docs_link_to_global_scope_decision_frame():

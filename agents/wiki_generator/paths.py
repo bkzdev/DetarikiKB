@@ -78,6 +78,11 @@ def story_page_path(story_id: str, public_story_id: str | None = None) -> str:
     return f"stories/{resolve_story_path_id(story_id, public_story_id)}.md"
 
 
+def canonical_timeline_page_path() -> str:
+    """公開Canonical Timelineの単一集約ページpathを返す。"""
+    return "timelines/index.md"
+
+
 def episode_page_path(source_document: dict[str, Any]) -> str | None:
     """Episode pageの出力先相対パスを返す。`resolve_episode_path_id`が
     Noneを返す場合 (publicEpisodeId/episodeId/documentIdがいずれも無い)
