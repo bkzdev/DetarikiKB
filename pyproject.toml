@@ -14,7 +14,8 @@ dev = [
     "mkdocs-material>=9.5.0",
     "jsonschema>=4.20.0",
     "referencing>=0.37.0",
-    "pyyaml>=6.0.0"
+    "pyyaml>=6.0.0",
+    "zensical==0.0.57",
 ]
 
 [tool.ruff]

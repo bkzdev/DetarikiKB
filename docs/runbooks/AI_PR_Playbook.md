@@ -107,6 +107,7 @@ uv run python scripts/check_dry_run_inputs.py
 uv run ruff format scripts agents tests --check
 uv run ruff check scripts agents tests
 uv run mkdocs build --strict
+uv run zensical build --strict --clean -f zensical.yml
 ```
 
 加えて、PR作成後は`gh pr checks <PR番号>`（またはウォッチモード）でGitHub Actions CIのPASSを確認する。
@@ -178,7 +179,7 @@ uv run mkdocs build --strict
 - 追加・変更ファイル一覧
 - 実装変更の有無
 - そのPR固有の作業結果サマリー（3〜5行程度）
-- 標準検証結果（pytest / check_invisible_unicode.py / check_dry_run_inputs.py / ruff format --check / ruff check / mkdocs build --strict）
+- 標準検証結果（pytest / check_invisible_unicode.py / check_dry_run_inputs.py / ruff format --check / ruff check / MkDocs strict build / Zensical strict build）
 - GitHub Actions CI結果
 - あえて実装しなかった内容（Non-goals該当分）
 - 次に着手するなら何か（次PR候補）

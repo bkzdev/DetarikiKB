@@ -46,3 +46,6 @@ jobs:
 
       - name: MkDocs build (strict, site_preview only)
         run: uv run mkdocs build --strict --site-dir /tmp/mkdocs_ci_build
+
+      - name: Zensical build (strict, site_preview only)
+        run: uv run zensical build --strict --clean -f zensical.yml

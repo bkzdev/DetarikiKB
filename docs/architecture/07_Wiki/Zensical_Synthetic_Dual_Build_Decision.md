@@ -1,6 +1,6 @@
 # Zensical Synthetic Dual-Build Decision
 
-Version: 0.1
+Version: 0.2
 Status: Accepted
 Decision date: 2026-09-02
 Project: Detariki Knowledge Base (DKB)
@@ -84,6 +84,8 @@ MkDocs baselineはlock済みのMkDocs 1.6.1 / Material 9.7.6を使った。Zensi
 
 次のimplementation PRではZensical 0.0.57をexact pinし、合成buildを標準化する。移行完了までは既存MkDocs / Material buildをbaselineとして残し、両方が通る状態で切替を検証する。Zensical upgradeはversionごとにこの受入観点を再実行する。
 
+2026-09-02に後続実装を完了した。`pyproject.toml` / `uv.lock`でZensical 0.0.57をexact pinし、`zensical.yml`と`Wiki_Dual_Build.md`を追加した。既存CIと標準検証はcommit済み合成`docs/site_preview/`をMkDocs / MaterialとZensicalの両方でstrict buildする。MkDocs baselineは維持し、両generatorの生成HTMLはcommitしない。
+
 このDecisionはgenerator実装へ進む技術判断であり、実public-safe入力のpush、公開範囲、公開URL、production deployを承認しない。`projection_candidate`も維持する。
 
 ---
@@ -99,8 +101,8 @@ MkDocs baselineはlock済みのMkDocs 1.6.1 / Material 9.7.6を使った。Zensi
 
 # 7. Non-goals
 
-- Zensical dependencyの追加、`uv.lock`更新、`mkdocs.yml`変更
-- standard validationやGitHub Actions workflowの切替
+- spike時点で未実施だったZensical dependency追加・`uv.lock`更新・CI dual-build化は後続実装で完了
+- `mkdocs.yml`の削除、MkDocs / Material baselineの廃止
 - GitHub Pages / environment / artifact uploadの設定
 - 実データ、実public-safe入力、実Wiki Markdown / HTMLの生成・commit・push
 - `publish-ready`化、deploy、rollback rehearsal
@@ -113,3 +115,4 @@ MkDocs baselineはlock済みのMkDocs 1.6.1 / Material 9.7.6を使った。Zensi
 - `Canonical_Timeline_Public_Preview.md`
 - `Canonical_Timeline_Public_Renderer.md`
 - `../../runbooks/AI_PR_Playbook.md`
+- `../../runbooks/Wiki_Dual_Build.md`
