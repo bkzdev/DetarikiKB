@@ -38,7 +38,7 @@ public-safeなWiki生成物を将来公開する場合のstatic site generator�
 - [Cloudflare Pages rollback](https://developers.cloudflare.com/pages/configuration/rollbacks/)は成功済みproduction deploymentへの即時rollbackを提供する
 - [Cloudflare Pages overview](https://developers.cloudflare.com/pages/)は新規projectにWorkersを主要platformとして案内している
 - [Material for MkDocsのMkDocs 2.0評価](https://squidfunk.github.io/mkdocs-material/blog/2026/02/18/mkdocs-2.0/)はMaterialとMkDocs 2.0が非互換で、Material 9.7.5以降がMkDocsを`<2`へ制限したことを説明する
-- [Zensical roadmap](https://zensical.org/about/roadmap/)は`mkdocs.yml`とMaterial互換を掲げる一方、現時点ではalphaでfeature parity作業中と明記する
+- [Zensical compatibility](https://zensical.org/compatibility/)は`mkdocs.yml`とMaterial互換を掲げる。0.0.xでAPI変更とfeature parity作業は継続中だが、必要featureが揃うprojectでは利用可能としている
 
 外部serviceの仕様・料金・制限は変更されうるため、実装PR開始時に再確認する。
 
@@ -61,10 +61,10 @@ public-safeなWiki生成物を将来公開する場合のstatic site generator�
 | 候補 | 内容 | 評価 |
 |---|---|---|
 | A | MkDocs 1.6.1 + Material 9.7.xをlock固定 | 現在の表示・test資産を再利用できるが、長期保守期限が不透明 |
-| B | Zensicalへ即移行 | `mkdocs.yml`互換経路があるがalphaで、今回同時採用は変更軸を増やす |
+| B | Zensicalへ段階移行 | `mkdocs.yml`互換経路を使い、exact pinとdual-buildで変更を分離する |
 | C | VitePress / Docusaurus / Astro等へ移行 | 長期候補だがNode toolchain・theme・search・link挙動の再検証が必要 |
 
-**推奨: Aを暫定採用し、公開前にBの合成dual-build spikeを必須化する。** `uv.lock`を必ず使い、MkDocs 2へ自動更新しない。Zensicalで既存合成Wikiをbuildし、page数、link、見出し、検索、desktop / 390px表示、内部値露出検査が同等に通る場合は、公開実装前の別DecisionでA継続かB移行を確定する。CはA/Bが要件を満たさない場合のfallbackとする。
+**初期採択はAとし、公開前にBの合成dual-build spikeを必須化した。** `uv.lock`を必ず使い、MkDocs 2へ自動更新しない。2026-09-02の`Zensical_Synthetic_Dual_Build_Decision.md`でpage数、link、見出し、検索、desktop / 390px表示、内部値露出検査がすべて通ったため、公開実装へ進むgeneratorはB（Zensical 0.0.57 exact pin）へ更新した。移行実装が完了するまではAをbaselineとして維持する。CはA/Bが要件を満たさない場合のfallbackとする。
 
 ## P3. Triggerとenvironment
 
@@ -153,7 +153,7 @@ Decision採択、workflow実装、合成rehearsal、実public-safe入力のpush�
 
 ```text
 P1=A  GitHub Pages custom Actions
-P2=A  MkDocs 1.6.1 + Material 9.7.xを暫定lock、Zensical dual-buildを公開前必須
+P2=B  合成dual-build gate通過後、Zensical 0.0.57 exact pinへ段階移行（完了までMkDocs 1.6.1 + Material 9.7.xをbaseline維持）
 P3=A  build-onlyとmanual production deployを分離
 P4    trusted local projection -> 承認済みpublic input -> hosted build -> protected deploy
 P5    local internal gateとhosted public gateを分離し、source / public input / output digestを固定
@@ -166,22 +166,25 @@ P8    Decision / implementation / rehearsal / publishを別承認
 
 # 6. 採択後の段階案
 
-1. Zensical合成dual-build spikeとgenerator継続判断
-2. public-safe構造化入力の保存schema、push前review metadata、local promotion手順を合成fixtureで固定
-3. deploy前site manifest / exposure scan契約を合成fixtureで実装
-4. build-only GitHub Actions workflowを実装
-5. manual production workflowとenvironment gateを実装
-6. 合成siteでdeploy / rollback rehearsal
-7. 実データpublic projectionをignored workspaceで生成し、人間がpush前確認
-8. 専用public content PRをmerge後、対象revisionと最終表示を確認して初回production deploy
+1. ~~Zensical合成dual-build spikeとgenerator継続判断~~（`Zensical_Synthetic_Dual_Build_Decision.md`でBを採択）
+2. Zensical 0.0.57 exact pinと合成dual-buildを標準化し、MkDocs baselineから段階移行
+3. public-safe構造化入力の保存schema、push前review metadata、local promotion手順を合成fixtureで固定
+4. deploy前site manifest / exposure scan契約を合成fixtureで実装
+5. build-only GitHub Actions workflowを実装
+6. manual production workflowとenvironment gateを実装
+7. 合成siteでdeploy / rollback rehearsal
+8. 実データpublic projectionをignored workspaceで生成し、人間がpush前確認
+9. 専用public content PRをmerge後、対象revisionと最終表示を確認して初回production deploy
 
-各段階は小さいPRに分ける。第6段階までは実データや実公開contentを使わず、第7・第8段階は改めて人間判断を求める。
+各段階は小さいPRに分ける。第7段階までは実データや実公開contentを使わず、第8・第9段階は改めて人間判断を求める。
 
 ---
 
 # 7. 採択記録
 
-2026-09-02のユーザー承認により、推奨P1〜P8を変更なしで一括採択した。次は§6第1段階のZensical合成dual-build spikeへ進む。
+2026-09-02のユーザー承認により、推奨P1〜P8を変更なしで一括採択し、§6第1段階のZensical合成dual-build spikeを次のgateとした。
+
+同日の合成dual-buildでP2の移行gateを通過し、`Zensical_Synthetic_Dual_Build_Decision.md`で公開実装へ進むgeneratorをBへ更新した。これはdependency実装や公開の承認ではない。
 
 採択後もworkflow file、GitHub Pages設定、environment、外部service接続、実contentのpush、deployは各後続gateまで行わない。hosting、generator、production trigger、rollbackのいずれかを変更する場合は、影響をまとめて再判断する。
 

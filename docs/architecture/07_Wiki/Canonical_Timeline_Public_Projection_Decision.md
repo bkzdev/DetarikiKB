@@ -157,7 +157,7 @@ P1〜P7は個別に分割せず、推奨Aを一括採択した。
 6. P6=A: `timelines/index.md`の単一集約ページを使用する
 7. P7=A: fail-closed publish gateと検証済みrollbackを必須とする
 
-この採択により§6の第1〜第5段階を完了し、public projection schema、pure projector、cross-document validator、public-safe aggregate report、read-only preflight、`timelines/index.md` renderer、link checkを合成fixtureで固定し、ignored workspaceのlocal visual reviewも完了した。public publishing workflow、deploy gate、rollback decisionも2026-09-02に採択済みであり、次はZensical合成dual-build spikeである。個別relationの公開、hosting / deploy、既存公開物の変更は、それぞれの後続gateを満たすまで開始しない。
+この採択により§6の第1〜第5段階を完了し、public projection schema、pure projector、cross-document validator、public-safe aggregate report、read-only preflight、`timelines/index.md` renderer、link checkを合成fixtureで固定し、ignored workspaceのlocal visual reviewも完了した。public publishing workflow、deploy gate、rollback decisionとZensical合成dual-buildも2026-09-02に完了し、次はZensical exact pinの段階統合である。個別relationの公開、hosting / deploy、既存公開物の変更は、それぞれの後続gateを満たすまで開始しない。
 
 ---
 
