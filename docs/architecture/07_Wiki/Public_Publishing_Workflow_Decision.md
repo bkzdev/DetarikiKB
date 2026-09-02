@@ -1,15 +1,16 @@
 # Public Publishing Workflow Decision（公開基盤・配備判断枠）
 
 Version: 0.1
-Status: Proposed
+Status: Accepted
 Review date: 2026-09-02
+Decision date: 2026-09-02
 Project: Detariki Knowledge Base (DKB)
 
 ---
 
 # 1. 目的
 
-public-safeなWiki生成物を将来公開する場合のstatic site generator、hosting、trigger、deploy gate、rollbackを一枚に集約する。本Decisionは推奨案を提示するdocs-only判断枠であり、採択、公開設定追加、実データ生成、hosting account接続、deployを行わない。
+public-safeなWiki生成物を将来公開する場合のstatic site generator、hosting、trigger、deploy gate、rollbackを一枚に集約する。2026-09-02のユーザー承認により§5のP1〜P8を一括採択した。採択は§6の合成実装へ進む許可であり、公開設定追加、実データ生成、hosting account接続、deploy、実contentのpushを許可しない。
 
 ---
 
@@ -148,7 +149,7 @@ Decision採択、workflow実装、合成rehearsal、実public-safe入力のpush�
 
 ---
 
-# 5. 推奨初期profile
+# 5. 採択した初期profile
 
 ```text
 P1=A  GitHub Pages custom Actions
@@ -178,9 +179,11 @@ P8    Decision / implementation / rehearsal / publishを別承認
 
 ---
 
-# 7. 採択に必要な確認
+# 7. 採択記録
 
-推奨P1〜P8を一括採択するかを人間が確認する。個別に変更する場合は、hosting、generator、production trigger、rollbackの4項目だけをまとめて再判断する。採択前はworkflow file、GitHub Pages設定、environment、外部service接続を変更しない。
+2026-09-02のユーザー承認により、推奨P1〜P8を変更なしで一括採択した。次は§6第1段階のZensical合成dual-build spikeへ進む。
+
+採択後もworkflow file、GitHub Pages設定、environment、外部service接続、実contentのpush、deployは各後続gateまで行わない。hosting、generator、production trigger、rollbackのいずれかを変更する場合は、影響をまとめて再判断する。
 
 ---
 
