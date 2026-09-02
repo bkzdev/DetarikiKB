@@ -61,6 +61,13 @@ PUBLIC_RENDERER_DOC_PATH = (
     / "07_Wiki"
     / "Canonical_Timeline_Public_Renderer.md"
 )
+PUBLIC_PREVIEW_DOC_PATH = (
+    PROJECT_ROOT
+    / "docs"
+    / "architecture"
+    / "07_Wiki"
+    / "Canonical_Timeline_Public_Preview.md"
+)
 CANONICAL_TIMELINE_SCHEMA_DOC_PATH = (
     PROJECT_ROOT
     / "docs"
@@ -368,6 +375,7 @@ def test_public_preflight_contract_is_implemented_and_keeps_candidate_state():
     for content in (decision, schema_doc, projector):
         assert "Canonical_Timeline_Public_Preflight.md" in content
 
+    assert "`codex/canonical-timeline-public-preview`" in tasks
     assert "`codex/canonical-timeline-public-renderer`" in tasks
     assert "local previewとmanual visual review" in tasks
 
@@ -391,7 +399,7 @@ def test_public_renderer_contract_is_implemented_without_real_data_integration()
         "Markdown link text",
         "固定rule/count",
         "`build_pages()` / `scripts/render_wiki.py`への入力統合",
-        "次はignored workspace",
+        "ignored workspaceだけで",
         "実artifact、実public ID、実label、実Wiki Markdownは使用・commitしない",
     ):
         assert required in renderer
@@ -401,6 +409,33 @@ def test_public_renderer_contract_is_implemented_without_real_data_integration()
 
     assert "`codex/canonical-timeline-public-renderer`" in tasks
     assert "publish-ready判定" in tasks
+
+
+def test_public_preview_records_visual_and_safety_review_without_real_data():
+    preview = _read(PUBLIC_PREVIEW_DOC_PATH)
+    renderer = _read(PUBLIC_RENDERER_DOC_PATH)
+    decision = _read(PUBLIC_PROJECTION_DECISION_PATH)
+    tasks = _read(TASKS_PATH)
+
+    for required in (
+        "Status: Reviewed",
+        "workspace/wiki_preview/",
+        "validate_canonical_timeline_page_links()",
+        "mkdocs build --strict",
+        "desktop幅と390px狭幅",
+        "横overflow",
+        "内部ID、provenanceは表示されない",
+        "確認対象データ内",
+        "実データ公開承認ではなく",
+        "public publishing workflow",
+    ):
+        assert required in preview
+
+    for content in (renderer, decision):
+        assert "Canonical_Timeline_Public_Preview.md" in content
+
+    assert "`codex/canonical-timeline-public-preview`" in tasks
+    assert "生成Markdown / HTMLは非commit" in tasks
 
 
 def test_timeline_docs_link_to_global_scope_decision_frame():

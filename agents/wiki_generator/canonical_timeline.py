@@ -122,7 +122,7 @@ def render_canonical_timeline_page(
             [
                 "## 未解決関係",
                 "",
-                "未解決関係の個別内容は公開せず、対象artifact内の件数だけを示します。",
+                "未解決関係の個別内容は公開せず、確認対象データ内の件数だけを示します。",
                 "",
                 f"- 不明: {summary['unknownCount']}",
                 f"- 競合: {summary['conflictCount']}",

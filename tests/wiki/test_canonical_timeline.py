@@ -94,6 +94,8 @@ def test_renderer_outputs_public_labels_links_relations_and_safe_aggregate() -> 
     )
     assert "- 不明: 2" in page
     assert "- 競合: 1" in page
+    assert "確認対象データ内の件数だけを示します" in page
+    assert "artifact" not in page
     for forbidden in (
         "storyId",
         "episodeId",
