@@ -136,7 +136,7 @@ preflightと同様に、renderer成功も公開承認を意味しない。
 
 ignored workspaceだけで匿名合成projectionを用いたlocal previewを構成し、`mkdocs serve`経由でdesktop幅と390px狭幅を確認した。3 relation種別、長い日本語label、Story / Episode link遷移、横overflowなし、内部field・raw拡張子・絶対path・script tag露出0を確認した。公開本文の`artifact`表現だけを一般向けに修正した。詳細は`Canonical_Timeline_Public_Preview.md`を参照する。
 
-次はpublic publishing platform / workflow、deploy gate、rollbackを別decisionで比較・採択する。実データ由来projection、mapping、report、Markdown、HTMLは引き続きcommit・deployしない。
+public publishing platform / workflow、deploy gate、rollbackの比較・推奨は`Public_Publishing_Workflow_Decision.md`へ集約した。採択前は実装せず、実データ由来projection、mapping、report、Markdown、HTMLも引き続きcommit・deployしない。
 
 ---
 
@@ -147,6 +147,7 @@ ignored workspaceだけで匿名合成projectionを用いたlocal previewを構�
 - `Canonical_Timeline_Public_Projector.md`
 - `Canonical_Timeline_Public_Preflight.md`
 - `Canonical_Timeline_Public_Preview.md`
+- `Public_Publishing_Workflow_Decision.md`
 - `Timeline_Page.md`
 - `Wiki_Output_Design.md`
 - `Story_URL_Structure_Decision.md`

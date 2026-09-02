@@ -54,7 +54,7 @@ Project: Detariki Knowledge Base (DKB)
 
 合成previewの範囲ではrendererの表示・link・狭幅可読性を受入可能と判断する。この結果は実データ公開承認ではなく、`projection_candidate`も維持する。
 
-次は公開platform候補とpublic publishing workflow、fail-closed deploy gate、検証済みrollbackを別decisionで比較・採択する。実データpreviewと公開は、そのdecisionと必要なpublic ID / label入力が揃うまで開始しない。
+公開platform候補とpublic publishing workflow、fail-closed deploy gate、検証済みrollbackの比較・推奨は`Public_Publishing_Workflow_Decision.md`へ集約した。採択前は実装せず、実データpreviewと公開も、そのdecisionと必要なpublic ID / label入力が揃うまで開始しない。
 
 ---
 
@@ -64,5 +64,6 @@ Project: Detariki Knowledge Base (DKB)
 - `Canonical_Timeline_Public_Renderer.md`
 - `Canonical_Timeline_Public_Preflight.md`
 - `Story_URL_Structure_Decision.md`
+- `Public_Publishing_Workflow_Decision.md`
 - `../../runbooks/MkDocs_Local_Preview_Dry_Run.md`
 - `../../runbooks/AI_PR_Playbook.md`
