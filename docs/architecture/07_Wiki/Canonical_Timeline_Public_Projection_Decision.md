@@ -139,7 +139,7 @@ P7=A  fail-closed publish gateと検証済みrollback
 3. ~~public ID completeness、内部値露出、schema / semantic整合を検査するread-only preflightを実装する~~（`Canonical_Timeline_Public_Preflight.md`で完了）
 4. ~~合成fixtureで`timelines/index.md` rendererとlink checkを実装する~~（`Canonical_Timeline_Public_Renderer.md`で完了）
 5. ~~ignored workspaceの匿名aggregateを用いたlocal previewとmanual visual reviewを行う~~（`Canonical_Timeline_Public_Preview.md`で完了）
-6. public publishing workflow、deploy gate、rollbackを別decisionで採択する
+6. public publishing workflow、deploy gate、rollbackの推奨判断枠を別Decisionへ集約し、人間確認後に採択する（`Public_Publishing_Workflow_Decision.md`、Status: Proposed）
 
 各段階は小さいPRに分ける。実artifactや公開生成物は、公開workflowが別途採択されるまでcommit・deployしない。
 
@@ -183,6 +183,7 @@ P1〜P7は個別に分割せず、推奨Aを一括採択した。
 - `Canonical_Timeline_Public_Preflight.md`
 - `Canonical_Timeline_Public_Renderer.md`
 - `Canonical_Timeline_Public_Preview.md`
+- `Public_Publishing_Workflow_Decision.md`
 - `Timeline_Page.md`
 - `Wiki_Output_Design.md`
 - `../06_AI/Public_ID_Registry_Design.md`
