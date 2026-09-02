@@ -445,14 +445,16 @@ def test_public_preview_records_visual_and_safety_review_without_real_data():
     assert "生成Markdown / HTMLは非commit" in tasks
 
 
-def test_public_publishing_decision_frame_is_proposed_and_non_deploying():
+def test_public_publishing_decision_is_accepted_and_non_deploying():
     decision = _read(PUBLIC_PUBLISHING_DECISION_PATH)
     projection_decision = _read(PUBLIC_PROJECTION_DECISION_PATH)
     preview = _read(PUBLIC_PREVIEW_DOC_PATH)
     tasks = _read(TASKS_PATH)
 
     for required in (
-        "Status: Proposed",
+        "Status: Accepted",
+        "Decision date: 2026-09-02",
+        "2026-09-02のユーザー承認",
         "GitHub Pages custom Actions",
         "MkDocs 1.6.1 + Material 9.7.x",
         "Zensical合成dual-build",
@@ -466,7 +468,7 @@ def test_public_publishing_decision_frame_is_proposed_and_non_deploying():
         "logへlabelや本文を列挙しない",
         "既知SHAで手動再実行",
         "rollback rehearsal",
-        "推奨P1〜P8を一括採択",
+        "推奨P1〜P8を変更なしで一括採択",
         "実public projection / Wiki生成物の作成・commit・upload",
         "deploy、rollback、公開URL作成",
     ):
@@ -475,9 +477,10 @@ def test_public_publishing_decision_frame_is_proposed_and_non_deploying():
     for content in (projection_decision, preview):
         assert "Public_Publishing_Workflow_Decision.md" in content
 
+    assert "`codex/public-publishing-workflow-decision`" in tasks
     assert "`codex/public-publishing-workflow-decision-frame`" in tasks
-    assert "docs-only、Status: Proposed" in tasks
-    assert "実装・Pages設定・外部account接続" in tasks
+    assert "Status: Accepted" in tasks
+    assert "workflow・Pages設定・dependency・外部接続" in tasks
 
 
 def test_timeline_docs_link_to_global_scope_decision_frame():

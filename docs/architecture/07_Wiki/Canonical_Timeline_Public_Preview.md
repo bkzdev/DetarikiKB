@@ -54,7 +54,7 @@ Project: Detariki Knowledge Base (DKB)
 
 合成previewの範囲ではrendererの表示・link・狭幅可読性を受入可能と判断する。この結果は実データ公開承認ではなく、`projection_candidate`も維持する。
 
-公開platform候補とpublic publishing workflow、fail-closed deploy gate、検証済みrollbackの比較・推奨は`Public_Publishing_Workflow_Decision.md`へ集約した。採択前は実装せず、実データpreviewと公開も、そのdecisionと必要なpublic ID / label入力が揃うまで開始しない。
+公開platform候補とpublic publishing workflow、fail-closed deploy gate、検証済みrollbackは`Public_Publishing_Workflow_Decision.md`で2026-09-02に採択した。次はZensical合成dual-buildを行う。実データpreviewと公開は、後続gateと必要なpublic ID / label入力が揃うまで開始しない。
 
 ---
 

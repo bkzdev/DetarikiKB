@@ -139,9 +139,9 @@ P7=A  fail-closed publish gateと検証済みrollback
 3. ~~public ID completeness、内部値露出、schema / semantic整合を検査するread-only preflightを実装する~~（`Canonical_Timeline_Public_Preflight.md`で完了）
 4. ~~合成fixtureで`timelines/index.md` rendererとlink checkを実装する~~（`Canonical_Timeline_Public_Renderer.md`で完了）
 5. ~~ignored workspaceの匿名aggregateを用いたlocal previewとmanual visual reviewを行う~~（`Canonical_Timeline_Public_Preview.md`で完了）
-6. public publishing workflow、deploy gate、rollbackの推奨判断枠を別Decisionへ集約し、人間確認後に採択する（`Public_Publishing_Workflow_Decision.md`、Status: Proposed）
+6. ~~public publishing workflow、deploy gate、rollbackの推奨判断枠を別Decisionへ集約し、人間確認後に採択する~~（`Public_Publishing_Workflow_Decision.md`、2026-09-02採択）
 
-各段階は小さいPRに分ける。実artifactや公開生成物は、公開workflowが別途採択されるまでcommit・deployしない。
+各段階は小さいPRに分ける。internal artifact、private mapping、local reportは公開workflow採択後もrepositoryやhosted CIへ渡さず、commit・deployしない。public-safe構造化入力と公開生成物は、後続の実入力push・publish・deploy gateを個別に通過するまでpush・upload・deployしない。
 
 ---
 
@@ -157,7 +157,7 @@ P1〜P7は個別に分割せず、推奨Aを一括採択した。
 6. P6=A: `timelines/index.md`の単一集約ページを使用する
 7. P7=A: fail-closed publish gateと検証済みrollbackを必須とする
 
-この採択により§6の第1〜第5段階を完了し、public projection schema、pure projector、cross-document validator、public-safe aggregate report、read-only preflight、`timelines/index.md` renderer、link checkを合成fixtureで固定し、ignored workspaceのlocal visual reviewも完了した。次は第6段階のpublic publishing workflow、deploy gate、rollback decisionである。個別relationの公開、hosting / deploy、既存公開物の変更は、それぞれの後続gateを満たすまで開始しない。
+この採択により§6の第1〜第5段階を完了し、public projection schema、pure projector、cross-document validator、public-safe aggregate report、read-only preflight、`timelines/index.md` renderer、link checkを合成fixtureで固定し、ignored workspaceのlocal visual reviewも完了した。public publishing workflow、deploy gate、rollback decisionも2026-09-02に採択済みであり、次はZensical合成dual-build spikeである。個別relationの公開、hosting / deploy、既存公開物の変更は、それぞれの後続gateを満たすまで開始しない。
 
 ---
 
