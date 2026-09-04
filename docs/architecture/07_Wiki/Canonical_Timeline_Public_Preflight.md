@@ -149,9 +149,9 @@ findingは同じruleを集約し、rule名で決定的にsortする。入力配�
 
 ---
 
-# 8. 次段階
+# 8. 永続化境界
 
-`timelines/index.md` rendererとlink checkは`Canonical_Timeline_Public_Renderer.md`で合成fixture実装済みである。次はignored workspaceだけのlocal previewとmanual visual reviewである。
+`timelines/index.md` renderer、local visual review、public input envelope / promotionは実装済みである。clean reportと5入力digestは`workspace/public_wiki_inputs/`のpush前reviewに使うが、public inputへは転記しない。`Canonical_Timeline_Public_Input.md`とpromotion runbookを正とする。
 
 ---
 
@@ -161,6 +161,7 @@ findingは同じruleを集約し、rule名で決定的にsortする。入力配�
 - `Canonical_Timeline_Public_Projection_Schema.md`
 - `Canonical_Timeline_Public_Projector.md`
 - `Canonical_Timeline_Public_Renderer.md`
+- `Canonical_Timeline_Public_Input.md`
 - `../06_AI/Public_ID_Registry_Design.md`
 - `Timeline_Page.md`
 - `Wiki_Output_Design.md`

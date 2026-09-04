@@ -1,0 +1,72 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://detariki-kb/schemas/canonical_timeline_public_preflight_record.schema.json",
+  "title": "Canonical Timeline Public Preflight Record",
+  "description": "Canonical Timeline public projection preflightのlocal-only永続record。5入力digestを結果と同一recordへ束縛する。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "documentType",
+    "classification",
+    "commitAllowed",
+    "status",
+    "publishStatus",
+    "inputDigests",
+    "findings"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "0.1" },
+    "documentType": { "const": "canonical_timeline_public_preflight_record" },
+    "classification": { "const": "local_internal" },
+    "commitAllowed": { "const": false },
+    "status": { "enum": ["clean", "blocked"] },
+    "publishStatus": { "const": "projection_candidate" },
+    "inputDigests": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "internalDocument",
+        "projection",
+        "publicEpisodeMapping",
+        "publicIdRegistry",
+        "publicLabelSource"
+      ],
+      "properties": {
+        "internalDocument": { "$ref": "#/definitions/Sha256" },
+        "projection": { "$ref": "#/definitions/Sha256" },
+        "publicEpisodeMapping": { "$ref": "#/definitions/Sha256" },
+        "publicIdRegistry": { "$ref": "#/definitions/Sha256" },
+        "publicLabelSource": { "$ref": "#/definitions/Sha256" }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["rule", "count"],
+        "properties": {
+          "rule": { "type": "string", "minLength": 1 },
+          "count": { "type": "integer", "minimum": 1 }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "status": { "const": "clean" } },
+        "required": ["status"]
+      },
+      "then": { "properties": { "findings": { "maxItems": 0 } } },
+      "else": { "properties": { "findings": { "minItems": 1 } } }
+    }
+  ],
+  "definitions": {
+    "Sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}

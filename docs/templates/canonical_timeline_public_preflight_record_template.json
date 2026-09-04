@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "0.1",
+  "documentType": "canonical_timeline_public_preflight_record",
+  "classification": "local_internal",
+  "commitAllowed": false,
+  "status": "blocked",
+  "publishStatus": "projection_candidate",
+  "inputDigests": {
+    "internalDocument": "0000000000000000000000000000000000000000000000000000000000000000",
+    "projection": "0000000000000000000000000000000000000000000000000000000000000000",
+    "publicEpisodeMapping": "0000000000000000000000000000000000000000000000000000000000000000",
+    "publicIdRegistry": "0000000000000000000000000000000000000000000000000000000000000000",
+    "publicLabelSource": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "findings": [
+    {
+      "rule": "replace_template_values_before_use",
+      "count": 1
+    }
+  ]
+}

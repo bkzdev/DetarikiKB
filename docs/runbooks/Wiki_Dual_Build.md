@@ -66,4 +66,4 @@ commitしないもの:
 
 # 6. 次のgate
 
-dual-build標準化後の次工程は、public-safe構造化入力の保存schema、push前review metadata、local promotion手順を合成fixtureで固定することである。build-only public workflow、Pages設定、production deployへはこの手順だけでは進まない。
+dual-build標準化後のpublic-safe構造化入力schema、push前review metadata、local promotionは`Canonical_Timeline_Public_Input_Promotion.md`で実装済みである。次はdeploy前site manifest / rendered HTML exposure scan契約を合成fixtureで固定する。build-only public workflow、Pages設定、production deployへはこの手順だけでは進まない。

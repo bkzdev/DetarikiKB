@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "0.1",
+  "documentType": "canonical_timeline_public_input_review",
+  "classification": "local_internal",
+  "commitAllowed": false,
+  "decision": "needs_revision",
+  "reviewedAt": "2099-01-01T00:00:00Z",
+  "reviewerType": "human",
+  "projectionSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "preflightStatus": "blocked",
+  "preflightInputDigests": {
+    "internalDocument": "0000000000000000000000000000000000000000000000000000000000000000",
+    "projection": "0000000000000000000000000000000000000000000000000000000000000000",
+    "publicEpisodeMapping": "0000000000000000000000000000000000000000000000000000000000000000",
+    "publicIdRegistry": "0000000000000000000000000000000000000000000000000000000000000000",
+    "publicLabelSource": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "checks": {
+    "projectionSchemaValid": false,
+    "projectionSemanticsReviewed": false,
+    "internalExposureClear": false,
+    "visualReviewCompleted": false
+  }
+}

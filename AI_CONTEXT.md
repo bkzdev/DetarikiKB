@@ -116,9 +116,10 @@ Wiki:
 - `docs/architecture/07_Wiki/Canonical_Timeline_Public_Projector.md`（schema-validなinternal documentと人間確認済みmappingから、adoption済みconfirmed known relationだけをconnected componentへ入力不変・決定的に投影する純粋関数。mapping / baseline不整合は空`projection_candidate`と内部IDを含まない`blocked` reportへfail-closedする。cross-document validatorも合成fixtureで実装済み）
 - `docs/architecture/07_Wiki/Canonical_Timeline_Public_Preflight.md`（5入力digest pin、internal / projection / Registry schema、projector、Registry / private mapping、public label source、cross-document完全一致、internal value / marker exposureを固定rule/countだけで集約するread-only gate。成功時も`projection_candidate`を維持する。実データ投入、公開判定は未実施）
 - `docs/architecture/07_Wiki/Canonical_Timeline_Public_Preview.md`（ignored workspaceの匿名合成projectionをMkDocsでdesktop / 390px表示し、3 relation種別、長いlabel、link遷移、横overflowなし、内部値露出0を確認した記録。生成Markdown / HTMLは非commitで、実データ公開・deployは未実施）
-- `docs/architecture/07_Wiki/Public_Publishing_Workflow_Decision.md`（2026-09-02採択。GitHub Pages custom Actions、trusted localとhosted public gateの分離、manual production、public PR previewなし、既知正常SHA再配備を固定する。P2の合成dual-build gateとZensical 0.0.57 exact pin / CI dual-build標準化は完了。公開workflow・外部接続・実content push・実データ公開・deployは未実施）
+- `docs/architecture/07_Wiki/Public_Publishing_Workflow_Decision.md`（2026-09-02採択。GitHub Pages custom Actions、trusted localとhosted public gateの分離、manual production、public PR previewなし、既知正常SHA再配備を固定する。P2のZensical移行と、Canonical Timelineのpublic input schema / push前review / local promotion実装まで完了。公開workflow・実content push・deployは未実施）
 - `docs/architecture/07_Wiki/Zensical_Synthetic_Dual_Build_Decision.md`（MkDocs 1.6.1 / Material 9.7.6とZensical 0.0.57で匿名合成Wiki 24 pageをstrict buildし、25 HTML route・119見出し・118 search entryの一致、link / exposure、desktop / 390px表示を確認した。採択後、Zensical 0.0.57 exact pin、`zensical.yml`、CI / 標準検証のdual-build化まで実装済み）
 - `docs/architecture/07_Wiki/Canonical_Timeline_Public_Renderer.md`（preflight完全cleanだけを受け付け、公開labelと固定relation文言から`timelines/index.md`を決定的に生成する純粋renderer。HTML / Markdown escape、Story / Episode link、unknown/conflict aggregate、link / target欠落を匿名件数で検査するsafe link checkerを合成fixtureで実装済み。`build_pages()` / CLI統合、実データpreview、公開判定は未実施）
+- `docs/architecture/07_Wiki/Canonical_Timeline_Public_Input.md`（既存public projectionをpayloadとする`approved_for_build` envelope、非commitのpush前review record、canonical JSON SHA-256 pin、clean preflight、既定dry-run / no-clobber / atomic createのlocal promotionを合成fixtureで実装済み。payloadは`projection_candidate`を維持し、実input昇格・publish-ready・公開・deployは未実施）
 - `docs/architecture/07_Wiki/Story_Page_Design.md`（Story page中心構造への設計方針。`render_story_page`/`story_page_path`で実装済み、Episode pageは維持。Story pageは表示可能なStory/Episode SummaryとevidenceRefsを表示済み。Episode pageへの限定表示も`episode-page-summary-evidence-linking`で実装済み）
 
 Runbooks:
@@ -129,6 +130,7 @@ Runbooks:
 - `docs/runbooks/Canonical_Timeline_Promotion.md`（固定ignored workspace内のpromotion plan / packetを、SHA-256 pin、seed no-clobber、update lock / snapshot / atomic replaceでinternal canonical artifactへ反映するdefault dry-run executor運用。ユーザー承認済みの初回小規模sampleで2 nodes / 1 edgeのlocal seedと再検証まで完了。実行は毎回明示承認が必要で、自動promotion・rollback・history cleanup・public表示は行わない）
 - `docs/runbooks/MkDocs_Local_Preview_Dry_Run.md`
 - `docs/runbooks/Wiki_Dual_Build.md`（Zensical 0.0.57 exact pinとMkDocs / Material baselineを使う合成dual-buildの標準コマンド、CI、生成物非commit境界、version更新時の再検証gate）
+- `docs/runbooks/Canonical_Timeline_Public_Input_Promotion.md`（固定ignored workspaceのprojection / review / preflightをdigestで束縛し、review承認後だけ固定public inputへ新規作成する手順。既定dry-run、no-clobber、実行直前再検査）
 - `docs/runbooks/Story_Title_Subtitle_Import.md`
 - `docs/runbooks/Character_Dictionary_Review.md`
 - `docs/runbooks/Evidence_Index_Generation_Dry_Run.md`（`scripts/build_evidence_index_candidates.py`によるEvidence Index候補生成dry-run手順）
