@@ -373,8 +373,8 @@ def test_public_preflight_contract_is_implemented_and_keeps_candidate_state():
         "Exposure scan",
         '"publishStatus": "projection_candidate"',
         "固定ruleと非識別件数",
-        "rendererとlink checkは`Canonical_Timeline_Public_Renderer.md`",
-        "次はignored workspaceだけのlocal preview",
+        "renderer、local visual review、public input envelope / promotionは実装済み",
+        "workspace/public_wiki_inputs/",
         "実artifact、実Registry entry、実mapping、実labelはfixtureに使用しない",
     ):
         assert required in preflight

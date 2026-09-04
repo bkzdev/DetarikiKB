@@ -47,6 +47,7 @@ generated/wiki/
 # docs/templates/配下の合成テンプレートとは別物としてignoreする。
 workspace/review_packets/
 workspace/canonical_timeline/
+workspace/public_wiki_inputs/
 workspace/local_inputs/
 character_confirmed_batch_*.yaml
 character_dictionary_review_batch_*.yaml

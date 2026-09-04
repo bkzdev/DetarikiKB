@@ -1,0 +1,100 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://detariki-kb/schemas/canonical_timeline_public_input_review.schema.json",
+  "title": "Canonical Timeline Public Input Review",
+  "description": "Canonical Timeline public projectionのpush前review record。real recordはignored workspace限定で、public inputへは安全なreview summaryだけを転記する。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "documentType",
+    "classification",
+    "commitAllowed",
+    "decision",
+    "reviewedAt",
+    "reviewerType",
+    "projectionSha256",
+    "preflightStatus",
+    "preflightInputDigests",
+    "checks"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "0.1" },
+    "documentType": { "const": "canonical_timeline_public_input_review" },
+    "classification": { "const": "local_internal" },
+    "commitAllowed": { "const": false },
+    "decision": {
+      "enum": ["approved_for_build", "needs_revision", "rejected"]
+    },
+    "reviewedAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|[+-]\\d{2}:\\d{2})$"
+    },
+    "reviewerType": { "const": "human" },
+    "projectionSha256": { "$ref": "#/definitions/Sha256" },
+    "preflightStatus": { "enum": ["clean", "blocked"] },
+    "preflightInputDigests": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "internalDocument",
+        "projection",
+        "publicEpisodeMapping",
+        "publicIdRegistry",
+        "publicLabelSource"
+      ],
+      "properties": {
+        "internalDocument": { "$ref": "#/definitions/Sha256" },
+        "projection": { "$ref": "#/definitions/Sha256" },
+        "publicEpisodeMapping": { "$ref": "#/definitions/Sha256" },
+        "publicIdRegistry": { "$ref": "#/definitions/Sha256" },
+        "publicLabelSource": { "$ref": "#/definitions/Sha256" }
+      }
+    },
+    "checks": { "$ref": "#/definitions/ReviewChecks" }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "decision": { "const": "approved_for_build" } },
+        "required": ["decision"]
+      },
+      "then": {
+        "properties": {
+          "preflightStatus": { "const": "clean" },
+          "checks": {
+            "properties": {
+              "projectionSchemaValid": { "const": true },
+              "projectionSemanticsReviewed": { "const": true },
+              "internalExposureClear": { "const": true },
+              "visualReviewCompleted": { "const": true }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "Sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "ReviewChecks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "projectionSchemaValid",
+        "projectionSemanticsReviewed",
+        "internalExposureClear",
+        "visualReviewCompleted"
+      ],
+      "properties": {
+        "projectionSchemaValid": { "type": "boolean" },
+        "projectionSemanticsReviewed": { "type": "boolean" },
+        "internalExposureClear": { "type": "boolean" },
+        "visualReviewCompleted": { "type": "boolean" }
+      }
+    }
+  }
+}

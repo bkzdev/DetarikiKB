@@ -195,9 +195,9 @@ rendererはlabel keyを公開文言へ変換する。projection側に自由記�
 
 ---
 
-# 11. 次段階
+# 11. Public input境界
 
-read-only preflightは`Canonical_Timeline_Public_Preflight.md`、`timelines/index.md` rendererとlink checkは`Canonical_Timeline_Public_Renderer.md`で実装済みである。次はignored workspaceだけのlocal previewとmanual visual reviewである。preflight / renderer成功だけでprojectionをpublish-readyに変更しない。
+read-only preflight、renderer / link check、local preview、push前reviewとpublic input promotionは実装済みである。`Canonical_Timeline_Public_Input.md`のenvelopeへ昇格した後もpayloadは`projection_candidate`を維持し、preflight / renderer / promotion成功だけでpublish-readyに変更しない。
 
 ---
 
@@ -207,6 +207,7 @@ read-only preflightは`Canonical_Timeline_Public_Preflight.md`、`timelines/inde
 - `Canonical_Timeline_Public_Projector.md`
 - `Canonical_Timeline_Public_Preflight.md`
 - `Canonical_Timeline_Public_Renderer.md`
+- `Canonical_Timeline_Public_Input.md`
 - `../03_Data_Model/Canonical_Timeline_Schema.md`
 - `../06_AI/Public_ID_Registry_Design.md`
 - `Timeline_Page.md`

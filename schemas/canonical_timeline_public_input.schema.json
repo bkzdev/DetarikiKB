@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://detariki-kb/schemas/canonical_timeline_public_input.schema.json",
+  "title": "Canonical Timeline Public Input",
+  "description": "Hosted buildへ渡せる、push前review済みCanonical Timeline public projectionのpublic-safe envelope。publish-readyやdeploy承認を表さない。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "documentType",
+    "visibility",
+    "buildStatus",
+    "contentType",
+    "payloadSha256",
+    "pushReview",
+    "projection"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "0.1" },
+    "documentType": { "const": "canonical_timeline_public_input" },
+    "visibility": { "const": "public" },
+    "buildStatus": { "const": "approved_for_build" },
+    "contentType": { "const": "canonical_timeline_public_projection" },
+    "payloadSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "pushReview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["decision", "reviewedAt", "reviewerType", "checks"],
+      "properties": {
+        "decision": { "const": "approved_for_build" },
+        "reviewedAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|[+-]\\d{2}:\\d{2})$"
+        },
+        "reviewerType": { "const": "human" },
+        "checks": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "projectionSchemaValid",
+            "projectionSemanticsReviewed",
+            "internalExposureClear",
+            "visualReviewCompleted"
+          ],
+          "properties": {
+            "projectionSchemaValid": { "const": true },
+            "projectionSemanticsReviewed": { "const": true },
+            "internalExposureClear": { "const": true },
+            "visualReviewCompleted": { "const": true }
+          }
+        }
+      }
+    },
+    "projection": {
+      "$ref": "https://detariki-kb/schemas/canonical_timeline_public_projection.schema.json"
+    }
+  }
+}

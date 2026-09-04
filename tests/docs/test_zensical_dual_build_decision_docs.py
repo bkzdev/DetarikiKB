@@ -82,5 +82,9 @@ def test_handoff_docs_record_zensical_selection_and_next_step() -> None:
     assert "Zensical_Synthetic_Dual_Build_Decision.md" in context
     assert "`codex/zensical-exact-pin-dual-build`" in tasks
     assert "`codex/zensical-synthetic-dual-build-spike`" in tasks
-    assert "次はpublic-safe構造化入力の保存schema" in tasks
-    assert "Zensical exact pin / dual-buildを統合済み" in milestones
+    assert "`codex/zensical-exact-pin-dual-build`" in tasks
+    assert "次はdeploy前site manifest / rendered HTML exposure scan" in tasks
+    assert (
+        "Zensical dual-buildとCanonical Timeline public input契約を実装済み"
+        in milestones
+    )
