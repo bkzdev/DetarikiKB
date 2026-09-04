@@ -17,6 +17,7 @@ from agents.wiki_generator.public_site_manifest import (
     PublicSiteError,
     build_public_site_manifest,
     validate_public_site_manifest,
+    validate_public_site_manifest_pair,
 )
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
@@ -132,10 +133,33 @@ def test_clean_site_builds_deterministic_public_manifest(tmp_path) -> None:
     )
 
 
+def test_dual_build_manifest_pair_requires_shared_inputs_and_routes(tmp_path) -> None:
+    root = _site(tmp_path / "site")
+    mkdocs = _build(root, generator_name="mkdocs-material", generator_version="9.7.6")
+    zensical = _build(root)
+    assert validate_public_site_manifest_pair(mkdocs, zensical) == ()
+
+    changed_input = json.loads(json.dumps(zensical))
+    changed_input["publicInputSha256"] = "0" * 64
+    assert validate_public_site_manifest_pair(mkdocs, changed_input) == (
+        "public-site-manifest-pair-input-mismatch",
+    )
+
+    other_root = _site(tmp_path / "other-site")
+    (other_root / "extra.html").write_text("公開", encoding="utf-8")
+    other = _build(other_root)
+    assert validate_public_site_manifest_pair(mkdocs, other) == (
+        "public-site-manifest-pair-route-mismatch",
+    )
+
+
 @pytest.mark.parametrize(
     "marker",
     (
         "storyId",
+        "story_id",
+        "source-file",
+        "commit_allowed",
         "candidateId",
         "local_internal",
         "@ChTalk12",
@@ -198,22 +222,46 @@ def test_search_data_is_scanned_but_unselected_binary_asset_is_not(tmp_path) -> 
     assert validate_public_site_manifest(_build(root)) == ()
 
 
-@pytest.mark.parametrize("relative", ("metadata.json", "assets/label.svg"))
+@pytest.mark.parametrize(
+    "relative", ("metadata.json", "assets/label.svg", "assets/LICENSE")
+)
 def test_all_browser_readable_text_assets_are_scanned(tmp_path, relative) -> None:
     root = _site(tmp_path / "site")
     target = root / relative
     target.parent.mkdir(parents=True, exist_ok=True)
-    content = (
-        '{"label": "storyId"}' if target.suffix == ".json" else "<text>storyId</text>"
-    )
+    content = '{"label": "storyId"}' if target.suffix == ".json" else "storyId"
     target.write_text(content, encoding="utf-8")
     with pytest.raises(PublicSiteError, match="rendered-exposure-blocked"):
         _build(root)
 
 
+def test_vendor_source_map_is_digested_without_marker_false_positive(tmp_path) -> None:
+    root = _site(tmp_path / "site")
+    source_map = root / "assets" / "bundle.js.map"
+    source_map.write_text(
+        '{"version": 3, "sources": ["file:///vendor/source.js"]}',
+        encoding="utf-8",
+    )
+    manifest = _build(root)
+    record = next(
+        item for item in manifest["output"]["files"] if item["path"].endswith(".map")
+    )
+    assert record["scanProfile"] == "binary-asset"
+
+
 def test_json_unicode_escape_cannot_hide_marker(tmp_path) -> None:
     root = _site(tmp_path / "site")
     (root / "metadata.json").write_text(r'{"label": "story\u0049d"}', encoding="utf-8")
+    with pytest.raises(PublicSiteError, match="rendered-exposure-blocked"):
+        _build(root)
+
+
+@pytest.mark.parametrize("marker", ("story_id", "source-file", "commit_allowed"))
+def test_json_identifier_separator_cannot_hide_marker(tmp_path, marker) -> None:
+    root = _site(tmp_path / "site")
+    (root / "metadata.json").write_text(
+        json.dumps({marker: "synthetic"}), encoding="utf-8"
+    )
     with pytest.raises(PublicSiteError, match="rendered-exposure-blocked"):
         _build(root)
 

@@ -18,7 +18,7 @@ _CLEAN_PREFLIGHT = {
     "publishStatus": "projection_candidate",
     "findings": [],
 }
-_MARKDOWN_LINK_TARGET = re.compile(r"\]\(([^)\s]+)\)")
+_MARKDOWN_LINK_TARGET = re.compile(r"(?<!\\)\]\(([^)\s]+)\)")
 
 
 def _escape_link_text(value: str) -> str:

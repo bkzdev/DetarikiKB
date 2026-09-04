@@ -24,7 +24,8 @@ _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 _MANIFEST_SCHEMA = _PROJECT_ROOT / "schemas" / "public_site_manifest.schema.json"
 _SCAN_POLICY_VERSION = "0.1"
 _MAX_SITE_BYTES = 1_000_000_000
-_PUBLIC_DATA_SUFFIXES = {".json", ".map", ".svg", ".txt", ".webmanifest", ".xml"}
+_PUBLIC_DATA_SUFFIXES = {".json", ".svg", ".txt", ".webmanifest", ".xml"}
+_PUBLIC_DATA_NAMES = {"LICENSE"}
 _MEDIA_TYPES = {
     ".css": "text/css",
     ".gz": "application/gzip",
@@ -150,7 +151,7 @@ def _normalized_variants(
         variants.extend((" ".join(parser.parts), "".join(parser.parts)))
     if profile == "public-data" and relative is not None:
         suffix = Path(relative).suffix.lower()
-        if suffix in {".json", ".map", ".webmanifest"}:
+        if suffix in {".json", ".webmanifest"}:
             try:
                 parsed = json.loads(decoded)
             except json.JSONDecodeError as exc:
@@ -161,13 +162,12 @@ def _normalized_variants(
         for _iteration in range(2):
             value = html.unescape(unquote(value))
         canonical = unicodedata.normalize("NFKC", value).replace("\\", "/").lower()
-        normalized.append(
-            "".join(
-                character
-                for character in canonical
-                if unicodedata.category(character) != "Cf"
-            )
+        visible = "".join(
+            character
+            for character in canonical
+            if unicodedata.category(character) != "Cf"
         )
+        normalized.extend((visible, re.sub(r"[_-]", "", visible)))
     return tuple(normalized)
 
 
@@ -185,7 +185,8 @@ def _exposure_findings(
 def _scan_profile(relative: str) -> str:
     if Path(relative).suffix.lower() == ".html":
         return "html"
-    if Path(relative).suffix.lower() in _PUBLIC_DATA_SUFFIXES:
+    path = Path(relative)
+    if path.suffix.lower() in _PUBLIC_DATA_SUFFIXES or path.name in _PUBLIC_DATA_NAMES:
         return "public-data"
     return "binary-asset"
 
@@ -197,6 +198,13 @@ def _route(relative: str) -> str:
     if folded.endswith("/index.html"):
         return f"/{relative[: -len('index.html')]}"
     return f"/{relative}"
+
+
+def _media_type(relative: str) -> str | None:
+    path = Path(relative)
+    if path.name in _PUBLIC_DATA_NAMES:
+        return "text/plain"
+    return _MEDIA_TYPES.get(path.suffix.lower())
 
 
 def _site_paths(site_root: Path) -> list[Path]:
@@ -236,8 +244,8 @@ def _site_file_record(
         return None
     if not stat.S_ISREG(info.st_mode):
         raise PublicSiteError("site-tree-unsafe-entry")
-    suffix = path.suffix.lower()
-    if suffix not in _MEDIA_TYPES:
+    media_type = _media_type(relative)
+    if media_type is None:
         raise PublicSiteError("site-file-type-unsupported")
     payload = _read_stable_file(path)
     profile = _scan_profile(relative)
@@ -247,10 +255,10 @@ def _site_file_record(
         "path": relative,
         "sha256": _sha256(payload),
         "sizeBytes": len(payload),
-        "mediaType": _MEDIA_TYPES[suffix],
+        "mediaType": media_type,
         "scanProfile": profile,
     }
-    return record, _route(relative) if suffix == ".html" else None
+    return record, _route(relative) if path.suffix.lower() == ".html" else None
 
 
 def _walk_site(site_root: Path) -> tuple[list[dict[str, Any]], list[str], int, int]:
@@ -283,10 +291,10 @@ def _manifest_validator() -> Draft7Validator:
 
 
 def _file_classification_is_valid(item: dict[str, Any]) -> bool:
-    suffix = Path(item["path"]).suffix.lower()
+    media_type = _media_type(item["path"])
     return (
-        suffix in _MEDIA_TYPES
-        and item["mediaType"] == _MEDIA_TYPES[suffix]
+        media_type is not None
+        and item["mediaType"] == media_type
         and item["scanProfile"] == _scan_profile(item["path"])
     )
 
@@ -334,6 +342,27 @@ def validate_public_site_manifest(manifest: dict[str, Any]) -> tuple[str, ...]:
         return ("public-site-manifest-invalid",)
     if error := _manifest_inventory_error(manifest["output"]):
         return (error,)
+    return ()
+
+
+def validate_public_site_manifest_pair(
+    mkdocs_manifest: dict[str, Any], zensical_manifest: dict[str, Any]
+) -> tuple[str, ...]:
+    """Dual-build manifest間で一致必須のpublic契約を検証する。"""
+    if validate_public_site_manifest(mkdocs_manifest) or validate_public_site_manifest(
+        zensical_manifest
+    ):
+        return ("public-site-manifest-pair-invalid",)
+    if (
+        mkdocs_manifest["generator"]["name"] != "mkdocs-material"
+        or zensical_manifest["generator"]["name"] != "zensical"
+    ):
+        return ("public-site-manifest-pair-generator-invalid",)
+    for field in ("sourceRevision", "lockSha256", "publicInputSha256"):
+        if mkdocs_manifest[field] != zensical_manifest[field]:
+            return ("public-site-manifest-pair-input-mismatch",)
+    if mkdocs_manifest["output"]["routes"] != zensical_manifest["output"]["routes"]:
+        return ("public-site-manifest-pair-route-mismatch",)
     return ()
 
 
@@ -403,4 +432,5 @@ __all__ = [
     "build_public_site_manifest",
     "canonical_json_bytes",
     "validate_public_site_manifest",
+    "validate_public_site_manifest_pair",
 ]

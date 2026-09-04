@@ -68,6 +68,6 @@ commitしないもの:
 
 dual-build標準化後のpublic-safe構造化入力schema、push前review metadata、local promotionは`Canonical_Timeline_Public_Input_Promotion.md`で実装済みである。deploy前site manifest / rendered HTML exposure scanは`Public_Site_Manifest_Exposure_Scan.md`で契約化した。
 
-後続build-only workflowではMkDocs / Zensicalの出力を別々の一時directoryへ生成し、同じ`check_public_site_manifest.py`を各siteへ適用する。theme asset差があるためtree digestの完全一致は要求せず、共通route set、exposure 0、public input / lock digest一致を要求する。manifestはsite tree外のCI一時directoryへdetached出力し、通常PRではartifact uploadしない。
+`Public_Build_Only.md`と`.github/workflows/public-build.yml`はMkDocs / Zensicalの出力を別々の一時directoryへ生成し、同じ`check_public_site_manifest.py`を各siteへ適用する。theme asset差があるためtree digestの完全一致は要求せず、共通route set、exposure 0、public input / lock digest一致を要求する。manifestはsite tree外のCI一時directoryへdetached出力し、通常PRではartifact uploadしない。
 
-次はbuild-only public workflowへの統合である。Pages設定、artifact upload、production deployへはこの手順だけでは進まない。
+build-only public workflowへの統合は匿名合成input限定で完了した。次は分離したmanual production workflow / environment gateであり、Pages artifact upload、production deploy、rollback rehearsalはさらに後のgateまで行わない。

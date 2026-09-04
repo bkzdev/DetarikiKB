@@ -1,0 +1,79 @@
+name: Public Build (Synthetic, No Deploy)
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  public-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install locked dependencies
+        run: uv sync --locked
+
+      - name: Prepare committed synthetic public input
+        shell: bash
+        run: |
+          public_build_root="$RUNNER_TEMP/dkb-public-build"
+          uv run python scripts/prepare_public_build.py \
+            --public-input tests/fixtures/canonical_timeline_public_input/approved_synthetic_input.json \
+            --output-root "$public_build_root"
+          echo "PUBLIC_BUILD_ROOT=$public_build_root" >> "$GITHUB_ENV"
+
+      - name: Build public source with MkDocs
+        run: uv run mkdocs build --strict --config-file "$PUBLIC_BUILD_ROOT/mkdocs-public.yml"
+
+      - name: Build public source with Zensical
+        run: uv run zensical build --strict --clean -f "$PUBLIC_BUILD_ROOT/zensical-public.yml"
+
+      - name: Scan both public sites and write detached manifests
+        shell: bash
+        run: |
+          source_sha="$(git rev-parse HEAD)"
+          mkdocs_version="$(uv run python -c 'from importlib.metadata import version; print(version("mkdocs-material"))')"
+          zensical_version="$(uv run python -c 'from importlib.metadata import version; print(version("zensical"))')"
+          public_input="tests/fixtures/canonical_timeline_public_input/approved_synthetic_input.json"
+          uv run python scripts/check_public_site_manifest.py \
+            --site-dir "$PUBLIC_BUILD_ROOT/site-mkdocs" \
+            --public-input "$public_input" \
+            --source-sha "$source_sha" \
+            --lock-file uv.lock \
+            --generator-name mkdocs-material \
+            --generator-version "$mkdocs_version" \
+            --config "$PUBLIC_BUILD_ROOT/mkdocs-public.yml" \
+            --manifest-output "$PUBLIC_BUILD_ROOT/manifests/mkdocs.json" \
+            --write-manifest
+          uv run python scripts/check_public_site_manifest.py \
+            --site-dir "$PUBLIC_BUILD_ROOT/site-zensical" \
+            --public-input "$public_input" \
+            --source-sha "$source_sha" \
+            --lock-file uv.lock \
+            --generator-name zensical \
+            --generator-version "$zensical_version" \
+            --config "$PUBLIC_BUILD_ROOT/zensical-public.yml" \
+            --manifest-output "$PUBLIC_BUILD_ROOT/manifests/zensical.json" \
+            --write-manifest
+
+      - name: Compare dual-build public manifests
+        run: >-
+          uv run python scripts/compare_public_site_manifests.py
+          --mkdocs-manifest "$PUBLIC_BUILD_ROOT/manifests/mkdocs.json"
+          --zensical-manifest "$PUBLIC_BUILD_ROOT/manifests/zensical.json"

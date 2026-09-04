@@ -53,10 +53,10 @@ scan profileは次の3種である。
 | profile | 対象 | 処理 |
 |---|---|---|
 | `html` | 全`.html` | raw source、可視text、comment、属性値、タグ間を連結したtextをscan |
-| `public-data` | JSON / source map、SVG、text、XML、web manifest（`search/search_index.json` / sitemapを含む） | UTF-8全文をscan |
-| `binary-asset` | theme JS / CSS、font、画像、gzip等 | bytes / path / typeをmanifest化し、固定marker全文scanはしない |
+| `public-data` | JSON、SVG、text、XML、web manifest、拡張子なし`LICENSE`（`search/search_index.json` / sitemapを含む） | UTF-8全文をscan |
+| `binary-asset` | theme JS / CSS / source map、font、画像、gzip等 | bytes / path / typeをmanifest化し、固定marker全文scanはしない |
 
-文字列はHTML entityとURL encodingを2回decodeし、Unicode NFKC、slash、lowercaseを正規化し、Unicode format characterを除く。これによりentity、percent encode、全角化、ゼロ幅文字、`sto<span>ryId</span>`のようなnode分割による単純な回避を拒否する。
+文字列はHTML entityとURL encodingを2回decodeし、Unicode NFKC、slash、lowercaseを正規化し、Unicode format characterを除く。さらにidentifier比較用variantでは`_` / `-`を除去する。これによりentity、percent encode、全角化、ゼロ幅文字、snake_case / kebab-case、`sto<span>ryId</span>`のようなnode分割による単純な回避を拒否する。
 
 JSON / source map / web manifestはraw UTF-8に加えてJSON parse後のkey / valueもscanし、`\uXXXX` escapeによる回避を拒否する。不正JSONは`public-data-json-invalid`でblockingにする。全site相対file pathも同じmarker ruleでscanするため、内部field名やlocal pathをfile path / HTML routeへ移してmanifestに露出させることはできない。
 
@@ -106,4 +106,4 @@ detached manifestをCIの一時directoryへ新規作成する場合だけ、`--m
 - MkDocs / Zensicalのtheme asset / HTML bytes完全一致
 - internal artifact、private mapping、local preflightをhosted buildへ渡すこと
 
-次は本契約をcommit済み合成input / siteだけを扱うbuild-only workflowへ統合する。
+本契約のcommit済み合成input / siteだけを扱うbuild-only workflow統合は`../../runbooks/Public_Build_Only.md`で実装した。次は分離したmanual production workflow / environment gateであり、この段階でも実contentやproduction deployは扱わない。

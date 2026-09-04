@@ -120,7 +120,8 @@ Wiki:
 - `docs/architecture/07_Wiki/Zensical_Synthetic_Dual_Build_Decision.md`（MkDocs 1.6.1 / Material 9.7.6とZensical 0.0.57で匿名合成Wiki 24 pageをstrict buildし、25 HTML route・119見出し・118 search entryの一致、link / exposure、desktop / 390px表示を確認した。採択後、Zensical 0.0.57 exact pin、`zensical.yml`、CI / 標準検証のdual-build化まで実装済み）
 - `docs/architecture/07_Wiki/Canonical_Timeline_Public_Renderer.md`（preflight完全cleanだけを受け付け、公開labelと固定relation文言から`timelines/index.md`を決定的に生成する純粋renderer。HTML / Markdown escape、Story / Episode link、unknown/conflict aggregate、link / target欠落を匿名件数で検査するsafe link checkerを合成fixtureで実装済み。`build_pages()` / CLI統合、実データpreview、公開判定は未実施）
 - `docs/architecture/07_Wiki/Canonical_Timeline_Public_Input.md`（既存public projectionをpayloadとする`approved_for_build` envelope、非commitのpush前review record、canonical JSON SHA-256 pin、clean preflight、既定dry-run / no-clobber / atomic createのlocal promotionを合成fixtureで実装済み。payloadは`projection_candidate`を維持し、実input昇格・publish-ready・公開・deployは未実施）
-- `docs/architecture/07_Wiki/Public_Site_Manifest_Exposure_Scan.md`（生成siteの全file / route / raw digestをdetached manifestへ固定し、HTML source / 可視text / 属性とsearch dataを正規化scanするfail-closed gate。manifestは`deploymentAuthorized: false`固定。合成fixture実装のみで、workflow / upload / deployは未実施）
+- `docs/architecture/07_Wiki/Public_Site_Manifest_Exposure_Scan.md`（生成siteの全file / route / raw digestをdetached manifestへ固定し、HTML source / 可視text / 属性とsearch dataを正規化scanするfail-closed gate。manifestは`deploymentAuthorized: false`固定）
+- `docs/runbooks/Public_Build_Only.md`（commit済み匿名合成public inputだけを使うread-only GitHub Actions dual-build、detached manifest比較、artifact upload / deploy禁止境界）
 - `docs/architecture/07_Wiki/Story_Page_Design.md`（Story page中心構造への設計方針。`render_story_page`/`story_page_path`で実装済み、Episode pageは維持。Story pageは表示可能なStory/Episode SummaryとevidenceRefsを表示済み。Episode pageへの限定表示も`episode-page-summary-evidence-linking`で実装済み）
 
 Runbooks:
