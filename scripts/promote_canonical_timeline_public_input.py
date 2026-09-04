@@ -44,13 +44,14 @@ _NAMES = {
         r"^canonical_timeline_public_preflight_[a-z0-9][a-z0-9_-]{0,63}\.json$"
     ),
 }
+_SECURE_DIR_FD_SUPPORTED = os.name != "nt" and all(
+    function in os.supports_dir_fd
+    for function in (os.open, os.link, os.stat, os.unlink)
+)
 
 
 def _secure_dir_fd_supported() -> bool:
-    return os.name != "nt" and all(
-        function in os.supports_dir_fd
-        for function in (os.open, os.link, os.stat, os.unlink)
-    )
+    return _SECURE_DIR_FD_SUPPORTED
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
