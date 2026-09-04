@@ -4,9 +4,9 @@ MkDocs local preview構成 (mkdocs.yml / docs/site_preview/ /
 docs/runbooks/MkDocs_Local_Preview.md) の軽量な整合性テスト。
 
 実キャラ名・実プロフィール値・実ストーリー本文が紛れ込んでいないこと、
-commit禁止方針が明記されていることを確認する。実際のmkdocsビルドは
-CI (.github/workflows/ci.yml) の `mkdocs build --strict` で確認する
-(このテストファイルではビルド自体は行わない)。
+commit禁止方針が明記されていることを確認する。実際のMkDocs / Zensical
+dual-buildはCI (.github/workflows/ci.yml) で確認する（このテストファイルでは
+ビルド自体は行わない）。
 """
 
 from pathlib import Path
@@ -45,6 +45,7 @@ def test_site_preview_states_no_real_data_commit_policy():
     content = (SITE_PREVIEW_DIR / "index.md").read_text(encoding="utf-8")
     assert "実データ" in content
     assert "commit" in content
+    assert "MkDocs MaterialとZensical" in content
 
 
 def test_site_preview_does_not_contain_real_character_names():

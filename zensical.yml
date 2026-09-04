@@ -1,0 +1,14 @@
+site_name: Detariki Knowledge Base
+site_description: Local preview for generated Detariki Knowledge Base wiki pages.
+docs_dir: docs/site_preview
+site_dir: site_zensical
+
+theme:
+  name: material
+  variant: classic
+
+plugins:
+  - search
+
+nav:
+  - Home: index.md

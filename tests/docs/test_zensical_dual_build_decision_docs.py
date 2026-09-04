@@ -63,8 +63,8 @@ def test_dual_build_decision_keeps_private_and_publish_boundaries() -> None:
         "実public-safe入力のpush",
         "公開URL",
         "production deployを承認しない",
-        "Zensical dependencyの追加",
-        "GitHub Actions workflowの切替",
+        "Zensical dependency追加・`uv.lock`更新・CI dual-build化は後続実装で完了",
+        "MkDocs / Material baselineの廃止",
         "実Wiki Markdown / HTMLの生成・commit・push",
     ):
         assert required in decision
@@ -80,6 +80,7 @@ def test_handoff_docs_record_zensical_selection_and_next_step() -> None:
     assert "P2=B" in publishing
     assert "Zensical 0.0.57 exact pinと合成dual-buildを標準化" in publishing
     assert "Zensical_Synthetic_Dual_Build_Decision.md" in context
+    assert "`codex/zensical-exact-pin-dual-build`" in tasks
     assert "`codex/zensical-synthetic-dual-build-spike`" in tasks
-    assert "次はZensical 0.0.57 exact pinと合成dual-buildの標準化" in tasks
-    assert "Zensical移行方針を採択済み" in milestones
+    assert "次はpublic-safe構造化入力の保存schema" in tasks
+    assert "Zensical exact pin / dual-buildを統合済み" in milestones

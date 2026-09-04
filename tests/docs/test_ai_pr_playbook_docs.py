@@ -105,6 +105,7 @@ def test_playbook_states_standard_verification_commands():
         "ruff format",
         "ruff check",
         "mkdocs build --strict",
+        "zensical build --strict --clean -f zensical.yml",
     ):
         assert cmd in section
     for policy in (

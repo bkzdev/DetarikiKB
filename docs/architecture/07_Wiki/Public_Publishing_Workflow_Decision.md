@@ -167,7 +167,7 @@ P8    Decision / implementation / rehearsal / publishを別承認
 # 6. 採択後の段階案
 
 1. ~~Zensical合成dual-build spikeとgenerator継続判断~~（`Zensical_Synthetic_Dual_Build_Decision.md`でBを採択）
-2. Zensical 0.0.57 exact pinと合成dual-buildを標準化し、MkDocs baselineから段階移行
+2. ~~Zensical 0.0.57 exact pinと合成dual-buildを標準化し、MkDocs baselineから段階移行~~（`Wiki_Dual_Build.md`、`zensical.yml`、既存CI / 標準検証へ統合）
 3. public-safe構造化入力の保存schema、push前review metadata、local promotion手順を合成fixtureで固定
 4. deploy前site manifest / exposure scan契約を合成fixtureで実装
 5. build-only GitHub Actions workflowを実装
@@ -190,7 +190,9 @@ P8    Decision / implementation / rehearsal / publishを別承認
 
 ---
 
-# 8. Non-goals
+# 8. 採択PR時点のNon-goals
+
+以下は本Decisionを採択したdocs-only PRの境界である。後続の段階案を個別に実装することまで禁止するものではない。
 
 - GitHub Pages / Cloudflare / custom domainの設定変更
 - GitHub App導入、Cloudflare account接続、API token作成

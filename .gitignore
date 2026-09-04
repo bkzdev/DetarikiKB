@@ -63,8 +63,9 @@ wiki_member_profiles_batch_*.yaml
 wiki_member_profiles_batch_*.csv
 *.wiki.html
 
-# MkDocs build output (docs/runbooks/MkDocs_Local_Preview.md)
+# Wiki generator build output (MkDocs / Zensical)
 site/
+site_zensical/
 
 # Story manifest candidates
 # (docs/architecture/05_Parser/Story_Manifest_Design.md、
