@@ -1,0 +1,110 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://detariki-kb/schemas/public_site_manifest.schema.json",
+  "title": "Public Site Manifest",
+  "description": "deploy前gateを通過したdetached public site build manifest。deploy承認自体は表さない。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "documentType",
+    "visibility",
+    "artifactStatus",
+    "deploymentAuthorized",
+    "sourceRevision",
+    "lockSha256",
+    "publicInputSha256",
+    "generator",
+    "scanPolicyVersion",
+    "gateResults",
+    "output"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "0.1" },
+    "documentType": { "const": "public_site_manifest" },
+    "visibility": { "const": "public" },
+    "artifactStatus": { "const": "verified_build_candidate" },
+    "deploymentAuthorized": { "const": false },
+    "sourceRevision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "value"],
+      "properties": {
+        "algorithm": { "const": "sha1" },
+        "value": { "type": "string", "pattern": "^[0-9a-f]{40}$" }
+      }
+    },
+    "lockSha256": { "$ref": "#/definitions/Sha256" },
+    "publicInputSha256": { "$ref": "#/definitions/Sha256" },
+    "generator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "configSha256"],
+      "properties": {
+        "name": { "enum": ["mkdocs-material", "zensical"] },
+        "version": { "type": "string", "pattern": "^[0-9A-Za-z][0-9A-Za-z.+_-]{0,39}$" },
+        "configSha256": { "$ref": "#/definitions/Sha256" }
+      }
+    },
+    "scanPolicyVersion": { "const": "0.1" },
+    "gateResults": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["publicInput", "siteTree", "renderedExposure"],
+      "properties": {
+        "publicInput": { "const": "clean" },
+        "siteTree": { "const": "clean" },
+        "renderedExposure": { "const": "clean" }
+      }
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fileCount",
+        "htmlDocumentCount",
+        "scannedDocumentCount",
+        "totalBytes",
+        "treeSha256",
+        "routes",
+        "files",
+        "findings"
+      ],
+      "properties": {
+        "fileCount": { "type": "integer", "minimum": 1 },
+        "htmlDocumentCount": { "type": "integer", "minimum": 1 },
+        "scannedDocumentCount": { "type": "integer", "minimum": 1 },
+        "totalBytes": { "type": "integer", "minimum": 1, "maximum": 1000000000 },
+        "treeSha256": { "$ref": "#/definitions/Sha256" },
+        "routes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "contains": { "const": "/" },
+          "items": { "type": "string", "pattern": "^/.*$" }
+        },
+        "files": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "sha256", "sizeBytes", "mediaType", "scanProfile"],
+            "properties": {
+              "path": { "type": "string", "pattern": "^(?!/)(?!.*(?:^|/)[.][.](?:/|$)).+$" },
+              "sha256": { "$ref": "#/definitions/Sha256" },
+              "sizeBytes": { "type": "integer", "minimum": 0 },
+              "mediaType": { "type": "string", "minLength": 1 },
+              "scanProfile": { "enum": ["html", "public-data", "binary-asset"] }
+            }
+          }
+        },
+        "findings": { "type": "array", "maxItems": 0 }
+      }
+    }
+  },
+  "definitions": {
+    "Sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  }
+}

@@ -96,4 +96,4 @@ commit可能なのはschema、script、合成fixture/test、template、runbook�
 - renderer生成Markdown / HTML / site output
 - reviewer identity / note / source text / provenance / Evidence / internal ID
 
-本実装はrenderer、site manifest、hosted exposure scan、public workflow、Pages artifact、deploy、rollbackを変更しない。
+site manifest / hosted exposure scan契約は後続`Public_Site_Manifest_Exposure_Scan.md`で実装済みである。本実装自体はrenderer、public workflow、Pages artifact、deploy、rollbackを変更しない。
