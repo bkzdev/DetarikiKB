@@ -169,7 +169,7 @@ P8    Decision / implementation / rehearsal / publishを別承認
 1. ~~Zensical合成dual-build spikeとgenerator継続判断~~（`Zensical_Synthetic_Dual_Build_Decision.md`でBを採択）
 2. ~~Zensical 0.0.57 exact pinと合成dual-buildを標準化し、MkDocs baselineから段階移行~~（`Wiki_Dual_Build.md`、`zensical.yml`、既存CI / 標準検証へ統合）
 3. ~~public-safe構造化入力の保存schema、push前review metadata、local promotion手順を合成fixtureで固定~~（`Canonical_Timeline_Public_Input.md`とpromotion runbook / CLIで実装）
-4. deploy前site manifest / exposure scan契約を合成fixtureで実装
+4. ~~deploy前site manifest / exposure scan契約を合成fixtureで実装~~（`Public_Site_Manifest_Exposure_Scan.md`、schema、checker CLIで実装）
 5. build-only GitHub Actions workflowを実装
 6. manual production workflowとenvironment gateを実装
 7. 合成siteでdeploy / rollback rehearsal
