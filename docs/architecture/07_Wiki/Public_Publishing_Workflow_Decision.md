@@ -171,12 +171,12 @@ P8    Decision / implementation / rehearsal / publishを別承認
 3. ~~public-safe構造化入力の保存schema、push前review metadata、local promotion手順を合成fixtureで固定~~（`Canonical_Timeline_Public_Input.md`とpromotion runbook / CLIで実装）
 4. ~~deploy前site manifest / exposure scan契約を合成fixtureで実装~~（`Public_Site_Manifest_Exposure_Scan.md`、schema、checker CLIで実装）
 5. ~~build-only GitHub Actions workflowを実装~~（`Public_Build_Only.md`と`.github/workflows/public-build.yml`で匿名合成input限定・artifact uploadなしとして実装）
-6. manual production workflowとenvironment gateを実装
+6. ~~manual production workflowとenvironment gateを実装~~（`Public_Production_Gate.md`と`.github/workflows/public-production-gate.yml`で、main上の完全SHA・匿名合成input・保護environmentに限定し、artifact upload / deployなしとして実装）
 7. 合成siteでdeploy / rollback rehearsal
 8. 実データpublic projectionをignored workspaceで生成し、人間がpush前確認
 9. 専用public content PRをmerge後、対象revisionと最終表示を確認して初回production deploy
 
-各段階は小さいPRに分ける。第7段階までは実データや実公開contentを使わず、第8・第9段階は改めて人間判断を求める。
+各段階は小さいPRに分ける。第6段階まで完了した。次は第7段階の匿名合成site deploy / rollback rehearsalである。第7段階までは実データや実公開contentを使わず、第8・第9段階は改めて人間判断を求める。
 
 ---
 

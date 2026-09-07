@@ -70,4 +70,4 @@ dual-build標準化後のpublic-safe構造化入力schema、push前review metada
 
 `Public_Build_Only.md`と`.github/workflows/public-build.yml`はMkDocs / Zensicalの出力を別々の一時directoryへ生成し、同じ`check_public_site_manifest.py`を各siteへ適用する。theme asset差があるためtree digestの完全一致は要求せず、共通route set、exposure 0、public input / lock digest一致を要求する。manifestはsite tree外のCI一時directoryへdetached出力し、通常PRではartifact uploadしない。
 
-build-only public workflowへの統合は匿名合成input限定で完了した。次は分離したmanual production workflow / environment gateであり、Pages artifact upload、production deploy、rollback rehearsalはさらに後のgateまで行わない。
+build-only public workflowへの統合と、分離したmanual production workflow / environment gateは匿名合成input限定で完了した。次はPages artifact uploadを伴う匿名合成siteのdeploy / rollback rehearsalであり、実public inputはさらに後のgateまで扱わない。

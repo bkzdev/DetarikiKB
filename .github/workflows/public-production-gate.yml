@@ -1,0 +1,161 @@
+name: Public Production Gate (Synthetic, No Deploy)
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Lowercase 40-character commit SHA already on main
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: public-production
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    outputs:
+      source_sha: ${{ steps.verify-source.outputs.source_sha }}
+    steps:
+      - name: Verify dispatch context
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "status=blocked code=production-dispatch-ref-invalid"
+            exit 1
+          fi
+
+      - name: Checkout trusted main
+        # v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: refs/heads/main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify protected production environment
+        shell: bash
+        run: |
+          environment_json="$RUNNER_TEMP/github-pages-environment.json"
+          policies_json="$RUNNER_TEMP/github-pages-branch-policies.json"
+          api_root="https://api.github.com/repos/${GITHUB_REPOSITORY}/environments/github-pages"
+          if ! curl --fail --silent \
+            --header "Accept: application/vnd.github+json" \
+            --header "X-GitHub-Api-Version: 2026-03-10" \
+            --output "$environment_json" "$api_root"; then
+            echo "status=blocked code=production-environment-unavailable"
+            exit 1
+          fi
+          if ! curl --fail --silent \
+            --header "Accept: application/vnd.github+json" \
+            --header "X-GitHub-Api-Version: 2026-03-10" \
+            --output "$policies_json" "$api_root/deployment-branch-policies"; then
+            echo "status=blocked code=production-environment-branch-policy-unavailable"
+            exit 1
+          fi
+          python scripts/check_public_environment.py \
+            --environment-json "$environment_json" \
+            --branch-policies-json "$policies_json"
+
+      - name: Verify and checkout requested source
+        id: verify-source
+        shell: bash
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          git fetch --quiet --no-tags origin refs/heads/main:refs/remotes/origin/main
+          python scripts/check_public_production_source.py "$SOURCE_SHA"
+          git checkout --quiet --detach "$SOURCE_SHA"
+          checked_out_sha="$(git rev-parse HEAD)"
+          if [[ "$checked_out_sha" != "$SOURCE_SHA" ]]; then
+            echo "status=blocked code=production-source-checkout-mismatch"
+            exit 1
+          fi
+          echo "source_sha=$checked_out_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Install uv
+        # v5
+        uses: astral-sh/setup-uv@e58605a9b6da7c637471fab8847a5e5a6b8df081
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        # v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+
+      - name: Install locked dependencies
+        run: uv sync --locked
+
+      - name: Prepare committed synthetic public input
+        shell: bash
+        run: |
+          public_build_root="$RUNNER_TEMP/dkb-production-gate"
+          uv run python scripts/prepare_public_build.py \
+            --public-input tests/fixtures/canonical_timeline_public_input/approved_synthetic_input.json \
+            --output-root "$public_build_root"
+          echo "PUBLIC_BUILD_ROOT=$public_build_root" >> "$GITHUB_ENV"
+
+      - name: Build public source with MkDocs
+        run: uv run mkdocs build --strict --config-file "$PUBLIC_BUILD_ROOT/mkdocs-public.yml"
+
+      - name: Build public source with Zensical
+        run: uv run zensical build --strict --clean -f "$PUBLIC_BUILD_ROOT/zensical-public.yml"
+
+      - name: Scan both public sites and write detached manifests
+        shell: bash
+        env:
+          SOURCE_SHA: ${{ steps.verify-source.outputs.source_sha }}
+        run: |
+          mkdocs_version="$(uv run python -c 'from importlib.metadata import version; print(version("mkdocs-material"))')"
+          zensical_version="$(uv run python -c 'from importlib.metadata import version; print(version("zensical"))')"
+          public_input="tests/fixtures/canonical_timeline_public_input/approved_synthetic_input.json"
+          uv run python scripts/check_public_site_manifest.py \
+            --site-dir "$PUBLIC_BUILD_ROOT/site-mkdocs" \
+            --public-input "$public_input" \
+            --source-sha "$SOURCE_SHA" \
+            --lock-file uv.lock \
+            --generator-name mkdocs-material \
+            --generator-version "$mkdocs_version" \
+            --config "$PUBLIC_BUILD_ROOT/mkdocs-public.yml" \
+            --manifest-output "$PUBLIC_BUILD_ROOT/manifests/mkdocs.json" \
+            --write-manifest
+          uv run python scripts/check_public_site_manifest.py \
+            --site-dir "$PUBLIC_BUILD_ROOT/site-zensical" \
+            --public-input "$public_input" \
+            --source-sha "$SOURCE_SHA" \
+            --lock-file uv.lock \
+            --generator-name zensical \
+            --generator-version "$zensical_version" \
+            --config "$PUBLIC_BUILD_ROOT/zensical-public.yml" \
+            --manifest-output "$PUBLIC_BUILD_ROOT/manifests/zensical.json" \
+            --write-manifest
+
+      - name: Compare dual-build public manifests
+        run: >-
+          uv run python scripts/compare_public_site_manifests.py
+          --mkdocs-manifest "$PUBLIC_BUILD_ROOT/manifests/mkdocs.json"
+          --zensical-manifest "$PUBLIC_BUILD_ROOT/manifests/zensical.json"
+
+  production-gate:
+    needs: preflight
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+    steps:
+      - name: Record approved synthetic gate
+        shell: bash
+        env:
+          SOURCE_SHA: ${{ needs.preflight.outputs.source_sha }}
+          REQUESTED_SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          if [[ "$SOURCE_SHA" != "$REQUESTED_SOURCE_SHA" ]]; then
+            echo "status=blocked code=production-source-output-mismatch"
+            exit 1
+          fi
+          echo "status=environment_gate_passed deployment_authorized=false"

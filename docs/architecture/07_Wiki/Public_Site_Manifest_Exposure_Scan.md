@@ -106,4 +106,4 @@ detached manifestをCIの一時directoryへ新規作成する場合だけ、`--m
 - MkDocs / Zensicalのtheme asset / HTML bytes完全一致
 - internal artifact、private mapping、local preflightをhosted buildへ渡すこと
 
-本契約のcommit済み合成input / siteだけを扱うbuild-only workflow統合は`../../runbooks/Public_Build_Only.md`で実装した。次は分離したmanual production workflow / environment gateであり、この段階でも実contentやproduction deployは扱わない。
+本契約のcommit済み合成input / siteだけを扱うbuild-only workflow統合は`../../runbooks/Public_Build_Only.md`で実装した。分離したmanual production workflow / environment gateも`../../runbooks/Public_Production_Gate.md`で、実contentやproduction deployなしとして実装した。次は匿名合成siteのdeploy / rollback rehearsalである。
