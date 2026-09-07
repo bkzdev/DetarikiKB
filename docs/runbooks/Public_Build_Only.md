@@ -66,4 +66,4 @@ JS / CSS / source map等のvendor assetは既存site manifest方針どおり全�
 
 # 6. 次工程
 
-次はmanual production workflowとGitHub Pages environment gateを、build-only workflowから分離したPRで実装する。その段階でも合成siteだけを使い、artifact upload / deployの実行とrollback rehearsalはさらに別gateとして扱う。
+manual production workflowとGitHub Pages environment gateは`Public_Production_Gate.md`で、build-only workflowから分離し、匿名合成site・artifact upload / deployなしとして実装した。次は別PRで匿名合成siteのdeploy / rollback rehearsalを扱う。
