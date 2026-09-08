@@ -12,10 +12,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="public environment protection gate")
     parser.add_argument("--environment-json", required=True, type=Path)
     parser.add_argument("--branch-policies-json", required=True, type=Path)
+    parser.add_argument("--expected-reviewer", required=True)
     return parser.parse_args(argv)
 
 
-def _check_protection(environment: object) -> str | None:
+def _check_protection(environment: object, expected_reviewer: str) -> str | None:
+    if (
+        not isinstance(expected_reviewer, str)
+        or not expected_reviewer
+        or expected_reviewer.strip() != expected_reviewer
+    ):
+        return "production-environment-reviewers-invalid"
     if not isinstance(environment, dict) or environment.get("name") != "github-pages":
         return "production-environment-invalid"
     rules = environment.get("protection_rules")
@@ -29,10 +36,18 @@ def _check_protection(environment: object) -> str | None:
     if len(reviewer_rules) != 1:
         return "production-environment-reviewers-invalid"
     reviewer_rule = reviewer_rules[0]
-    if reviewer_rule.get("prevent_self_review") is not True:
-        return "production-environment-self-review-enabled"
+    if reviewer_rule.get("prevent_self_review") is not False:
+        return "production-environment-self-review-mode-invalid"
     reviewers = reviewer_rule.get("reviewers")
-    if not isinstance(reviewers, list) or not reviewers:
+    if not isinstance(reviewers, list) or len(reviewers) != 1:
+        return "production-environment-reviewers-invalid"
+    reviewer = reviewers[0]
+    if (
+        not isinstance(reviewer, dict)
+        or reviewer.get("type") != "User"
+        or not isinstance(reviewer.get("reviewer"), dict)
+        or reviewer["reviewer"].get("login") != expected_reviewer
+    ):
         return "production-environment-reviewers-invalid"
     if environment.get("can_admins_bypass") is not False:
         return "production-environment-admin-bypass-enabled"
@@ -47,6 +62,11 @@ def _check_protection(environment: object) -> str | None:
 def _check_branch_policy(branch_policies: object) -> str | None:
     if not isinstance(branch_policies, dict):
         return "production-environment-branch-policy-invalid"
+    total_count = branch_policies.get("total_count")
+    if not isinstance(total_count, int) or isinstance(total_count, bool):
+        return "production-environment-branch-policy-invalid"
+    if total_count != 1:
+        return "production-environment-branch-policy-invalid"
     policies = branch_policies.get("branch_policies")
     if not isinstance(policies, list) or len(policies) != 1:
         return "production-environment-branch-policy-invalid"
@@ -58,10 +78,14 @@ def _check_branch_policy(branch_policies: object) -> str | None:
     return None
 
 
-def check_environment(environment: object, branch_policies: object) -> str | None:
+def check_environment(
+    environment: object, branch_policies: object, expected_reviewer: str
+) -> str | None:
     """Return an anonymous blocking code, or ``None`` for the fixed policy."""
 
-    return _check_protection(environment) or _check_branch_policy(branch_policies)
+    return _check_protection(environment, expected_reviewer) or _check_branch_policy(
+        branch_policies
+    )
 
 
 def _read_json(path: Path) -> object:
@@ -77,7 +101,7 @@ def main(argv: list[str] | None = None) -> int:
     except (OSError, UnicodeError, json.JSONDecodeError):
         print("status=blocked code=production-environment-snapshot-invalid")
         return 1
-    code = check_environment(environment, branch_policies)
+    code = check_environment(environment, branch_policies, arguments.expected_reviewer)
     if code is not None:
         print(f"status=blocked code={code}")
         return 1

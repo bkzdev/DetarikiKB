@@ -12,8 +12,10 @@ def _environment() -> dict:
         "protection_rules": [
             {
                 "type": "required_reviewers",
-                "prevent_self_review": True,
-                "reviewers": [{"type": "User", "reviewer": {"id": 1}}],
+                "prevent_self_review": False,
+                "reviewers": [
+                    {"type": "User", "reviewer": {"id": 1, "login": "owner"}}
+                ],
             },
             {"type": "branch_policy"},
         ],
@@ -25,11 +27,11 @@ def _environment() -> dict:
 
 
 def _branch_policies() -> dict:
-    return {"total_count": 1, "branch_policies": [{"name": "main", "type": "branch"}]}
+    return {"total_count": 1, "branch_policies": [{"name": "main"}]}
 
 
 def test_check_environment_accepts_fixed_protected_configuration() -> None:
-    assert check_environment(_environment(), _branch_policies()) is None
+    assert check_environment(_environment(), _branch_policies(), "owner") is None
 
 
 def test_check_environment_rejects_missing_or_weak_protection() -> None:
@@ -40,8 +42,8 @@ def test_check_environment_rejects_missing_or_weak_protection() -> None:
             lambda env: env.update(protection_rules=[]),
         ),
         (
-            "production-environment-self-review-enabled",
-            lambda env: env["protection_rules"][0].update(prevent_self_review=False),
+            "production-environment-self-review-mode-invalid",
+            lambda env: env["protection_rules"][0].update(prevent_self_review=True),
         ),
         (
             "production-environment-reviewers-invalid",
@@ -59,18 +61,50 @@ def test_check_environment_rejects_missing_or_weak_protection() -> None:
     for expected, mutate in mutations:
         environment = _environment()
         mutate(environment)
-        assert check_environment(environment, _branch_policies()) == expected
+        assert check_environment(environment, _branch_policies(), "owner") == expected
+
+
+def test_check_environment_rejects_wrong_or_multiple_solo_reviewers() -> None:
+    wrong = _environment()
+    wrong["protection_rules"][0]["reviewers"][0]["reviewer"]["login"] = "other"
+    assert (
+        check_environment(wrong, _branch_policies(), "owner")
+        == "production-environment-reviewers-invalid"
+    )
+
+    multiple = _environment()
+    multiple["protection_rules"][0]["reviewers"].append(
+        {"type": "User", "reviewer": {"id": 2, "login": "other"}}
+    )
+    assert (
+        check_environment(multiple, _branch_policies(), "owner")
+        == "production-environment-reviewers-invalid"
+    )
+
+    missing_login = _environment()
+    del missing_login["protection_rules"][0]["reviewers"][0]["reviewer"]["login"]
+    assert (
+        check_environment(missing_login, _branch_policies(), None)  # type: ignore[arg-type]
+        == "production-environment-reviewers-invalid"
+    )
 
 
 def test_check_environment_rejects_nonexclusive_main_branch_policy() -> None:
     for policies in (
+        {"total_count": 0, "branch_policies": []},
+        {"total_count": 2, "branch_policies": [{"name": "main"}]},
+        {"total_count": 1, "branch_policies": []},
+        {"total_count": 1, "branch_policies": [{"name": "main"}, {"name": "x"}]},
         {"branch_policies": []},
-        {"branch_policies": [{"name": "main"}, {"name": "release/*"}]},
-        {"branch_policies": [{"name": "release/*"}]},
-        {"branch_policies": [{"name": "main", "type": "tag"}]},
+        {
+            "total_count": 2,
+            "branch_policies": [{"name": "main"}, {"name": "release/*"}],
+        },
+        {"total_count": 1, "branch_policies": [{"name": "release/*"}]},
+        {"total_count": 1, "branch_policies": [{"name": "main", "type": "tag"}]},
     ):
         assert (
-            check_environment(_environment(), policies)
+            check_environment(_environment(), policies, "owner")
             == "production-environment-branch-policy-invalid"
         )
 
@@ -87,6 +121,8 @@ def test_main_reads_snapshots_without_exposing_them(tmp_path, capsys) -> None:
                 str(environment_path),
                 "--branch-policies-json",
                 str(policies_path),
+                "--expected-reviewer",
+                "owner",
             ]
         )
         == 0
@@ -104,6 +140,8 @@ def test_main_rejects_invalid_snapshot_anonymously(tmp_path, capsys) -> None:
                 str(invalid),
                 "--branch-policies-json",
                 str(invalid),
+                "--expected-reviewer",
+                "owner",
             ]
         )
         == 1
