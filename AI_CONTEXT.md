@@ -122,7 +122,7 @@ Wiki:
 - `docs/architecture/07_Wiki/Canonical_Timeline_Public_Input.md`（既存public projectionをpayloadとする`approved_for_build` envelope、非commitのpush前review record、canonical JSON SHA-256 pin、clean preflight、既定dry-run / no-clobber / atomic createのlocal promotionを合成fixtureで実装済み。payloadは`projection_candidate`を維持し、実input昇格・publish-ready・公開・deployは未実施）
 - `docs/architecture/07_Wiki/Public_Site_Manifest_Exposure_Scan.md`（生成siteの全file / route / raw digestをdetached manifestへ固定し、HTML source / 可視text / 属性とsearch dataを正規化scanするfail-closed gate。manifestは`deploymentAuthorized: false`固定）
 - `docs/runbooks/Public_Build_Only.md`（commit済み匿名合成public inputだけを使うread-only GitHub Actions dual-build、detached manifest比較、artifact upload / deploy禁止境界）
-- `docs/runbooks/Public_Production_Gate.md`（main上の完全SHAと匿名合成inputだけを再検証し、保護`github-pages` environmentの承認境界を通すmanual workflow。Pages権限・artifact upload・deployなし。初回dispatch前のenvironment保護設定は人間確認が必要）
+- `docs/runbooks/Public_Production_Gate.md`（main上の完全SHAと匿名合成inputだけを再検証し、保護`github-pages` environmentの承認境界を通すmanual workflow。権限者がowner 1名のため2026-09-08にsolo運用を採択し、owner本人をrequired reviewerとしてself-reviewを許可する一方、admin bypass禁止・main限定を維持する。Pages権限・artifact upload・deployなし。初回dispatch前のenvironment保護設定は人間確認が必要）
 - `docs/architecture/07_Wiki/Story_Page_Design.md`（Story page中心構造への設計方針。`render_story_page`/`story_page_path`で実装済み、Episode pageは維持。Story pageは表示可能なStory/Episode SummaryとevidenceRefsを表示済み。Episode pageへの限定表示も`episode-page-summary-evidence-linking`で実装済み）
 
 Runbooks:

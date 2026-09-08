@@ -75,6 +75,8 @@ public-safeなWiki生成物を将来公開する場合のstatic site generator�
 
 **推奨: A。** 初期段階でmergeを公開承認の代用にしない。deploy jobは`github-pages` environmentを使用し、実装時に利用可能ならrequired reviewerと`main` revision制約を設定する。fork PR、任意branch、未指定SHAからproduction artifactを作らない。
 
+2026-09-08時点でrepository権限者がowner 1名だけであることを確認し、ユーザー判断によりsolo運用を採択した。required reviewerはowner本人1名、self-reviewは許可するが、administrator bypassは禁止する。別reviewerが存在しない状態でself-reviewを禁止して承認不能にするより、dispatchとenvironment承認を同じ人間の別操作として維持する。`main`限定、完全SHA、合成input、fail-closed preflightは変更しない。
+
 ## P4. Build / deploy分離
 
 **推奨:** internal情報を扱うtrusted local preparationと、commit済みpublic-safe入力だけを扱うhosted workflowを分離する。

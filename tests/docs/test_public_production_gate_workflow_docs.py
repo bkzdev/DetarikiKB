@@ -47,6 +47,7 @@ def test_workflow_is_manual_protected_synthetic_gate_without_deploy() -> None:
     }
     environment_check = steps[2]["run"]
     assert "check_public_environment.py" in environment_check
+    assert '--expected-reviewer "$GITHUB_REPOSITORY_OWNER"' in environment_check
     verify_source = steps[3]["run"]
     assert "check_public_production_source.py" in verify_source
     assert verify_source.index(
@@ -109,6 +110,8 @@ def test_runbook_and_handoff_fix_manual_non_deploy_boundary() -> None:
         "自己申告は承認根拠にしない",
         "administrator bypass禁止",
         "custom branch policyが`main`だけ",
+        "solo運用",
+        "self-reviewを許可",
         "小文字40桁",
         "origin/main",
         "contents: read",

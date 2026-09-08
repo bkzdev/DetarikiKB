@@ -14,13 +14,15 @@ Updated: 2026-09-08
 
 workflowを一度でもdispatchする前に、repository管理者がGitHubのSettings > Environmentsで`github-pages` environmentを明示的に作成し、次を確認する。未設定のenvironmentをjobから参照すると意図した保護なしで作成され得る。
 
-- required reviewerを1名以上設定する
+- required reviewerはrepository ownerの`bkzdev`だけを設定する
 - deployment branch / tag ruleを`main`に限定する
-- 利用可能ならself-reviewを禁止し、administrator bypassも禁止する
+- solo運用のためself-reviewを許可し、administrator bypassは禁止する
 - environment secret / variableは登録しない
 - GitHub PagesのSourceはまだGitHub Actionsへ切り替えない（第7段階で扱う）
 
-reviewerの選定とrepository設定変更はこのPRの自動化範囲外である。設定画面の現在値を人間が確認するまでworkflowを実行しない。preflightはGitHubのread-only REST APIからenvironment snapshotとbranch policyを取得し、required reviewerが1名以上、self-review禁止、administrator bypass禁止、custom branch policyが`main`だけ、という状態を匿名codeで再検証する。API取得または設定検証に失敗した場合はenvironment jobを開始しない。dispatch者の自己申告は承認根拠にしない。
+2026-09-08のユーザー判断により、権限者がowner 1名だけの現状では別reviewer必須にすると承認経路が成立しないため、solo運用としてowner自身のreviewを許可する。これは承認省略ではなく、workflow dispatch後に同じ人間がenvironment画面で承認する運用である。administrator bypass、`main`限定、完全SHA、匿名合成input、全preflight gateは緩和しない。
+
+reviewerの選定とrepository設定変更はこのPRの自動化範囲外である。設定画面の現在値を人間が確認するまでworkflowを実行しない。preflightはGitHubのread-only REST APIからenvironment snapshotとbranch policyを取得し、required reviewerがrepository owner 1名だけ、self-review許可、administrator bypass禁止、custom branch policyが`main`だけ、という状態を匿名codeで再検証する。API取得または設定検証に失敗した場合はenvironment jobを開始しない。dispatch者の自己申告は承認根拠にしない。
 
 # 3. Source revision gate
 

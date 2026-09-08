@@ -59,7 +59,8 @@ jobs:
           fi
           python scripts/check_public_environment.py \
             --environment-json "$environment_json" \
-            --branch-policies-json "$policies_json"
+            --branch-policies-json "$policies_json" \
+            --expected-reviewer "$GITHUB_REPOSITORY_OWNER"
 
       - name: Verify and checkout requested source
         id: verify-source
