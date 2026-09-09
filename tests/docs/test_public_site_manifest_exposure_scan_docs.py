@@ -39,7 +39,7 @@ def test_design_fixes_manifest_exposure_and_authorization_boundaries() -> None:
         assert required in design
 
 
-def test_handoff_points_to_build_only_workflow() -> None:
+def test_handoff_points_to_synthetic_pages_rollback_rehearsal() -> None:
     tasks = _read(PROJECT_ROOT / "TASKS.md")
     context = _read(PROJECT_ROOT / "AI_CONTEXT.md")
     publishing = _read(
@@ -55,9 +55,9 @@ def test_handoff_points_to_build_only_workflow() -> None:
     dual_build = _read(PROJECT_ROOT / "docs" / "runbooks" / "Wiki_Dual_Build.md")
 
     assert "`codex/public-site-manifest-exposure-scan`" in tasks
-    assert "次はcommit済み合成inputだけを扱うbuild-only public workflow" in tasks
+    assert "`codex/synthetic-pages-deploy-rehearsal`" in tasks
     assert "Public_Site_Manifest_Exposure_Scan.md" in context
     assert "~~deploy前site manifest / exposure scan契約" in publishing
-    assert "次はbuild-only workflow" in milestones
+    assert "A→B→A rollback rehearsal" in milestones
     assert "同じ`check_public_site_manifest.py`を各siteへ適用" in dual_build
-    assert "artifact uploadしない" in dual_build
+    assert "Pages artifact upload / protected deploy" in dual_build

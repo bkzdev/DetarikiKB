@@ -71,4 +71,5 @@ def test_runbook_and_handoff_fix_build_only_boundary() -> None:
     ):
         assert required in runbook
     assert "`codex/public-build-only-workflow`" in tasks
-    assert "次はmanual production workflow" in tasks
+    assert "`codex/synthetic-pages-deploy-rehearsal`" in tasks
+    assert "A→B→A" in tasks
