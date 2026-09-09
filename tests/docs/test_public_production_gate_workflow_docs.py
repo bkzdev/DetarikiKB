@@ -62,13 +62,6 @@ def test_workflow_is_manual_protected_synthetic_pages_deploy() -> None:
     upload = next(
         step for step in steps if step["name"] == "Upload verified Zensical site"
     )
-    pages_preflight = next(
-        step
-        for step in steps
-        if step["name"] == "Verify GitHub Pages settings before artifact upload"
-    )
-    assert steps.index(pages_preflight) < steps.index(upload)
-    assert "Authorization: Bearer" not in pages_preflight["run"]
     assert upload["uses"] == (
         "actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9"
     )
@@ -106,6 +99,7 @@ def test_workflow_is_manual_protected_synthetic_pages_deploy() -> None:
     assert '.build_type == "workflow"' in pages_config["run"]
     assert ".cname == null" in pages_config["run"]
     assert '(.html_url | rtrimstr("/")) == $expected_url' in pages_config["run"]
+    assert "Authorization: Bearer $GH_TOKEN" in pages_config["run"]
 
     for required in (
         "refs/heads/main",

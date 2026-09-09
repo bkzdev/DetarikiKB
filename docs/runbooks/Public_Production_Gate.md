@@ -48,12 +48,11 @@ preflight jobは`tests/fixtures/canonical_timeline_public_input/approved_synthet
 2. generator別detached manifest / exposure scan
 3. manifest pair比較
 4. source revisionとrollback digest要否・値の照合
-5. public Pages REST APIでSource、custom domain、既定URLをread-only確認
-6. 検証済みZensical siteだけを1日保持の`github-pages` artifactとしてupload
+5. 検証済みZensical siteだけを1日保持の`github-pages` artifactとしてupload
 
 MkDocs siteはdual-build比較用でありuploadしない。detached manifestもsite treeやPages artifactへ含めない。代わりに、公開して差し支えないsource SHA、Zensical manifest SHA-256、Zensical tree SHA-256、gate結果をGitHub Actions job summaryへdeployment recordとして保存する。internal input digest、private path、mappingは記録しない。
 
-workflow全体の既定権限は`contents: read`だけである。preflightではpublic resourceとして認証なしでPages設定を取得し、artifact upload前にSourceがGitHub Actions（`build_type: workflow`）、custom domain未設定、URLがrepository既定のHTTPS URLであることを固定codeで検証する。`deploy` jobだけが`contents: read`、`pages: write`、`id-token: write`を持ち、`github-pages` environmentの人間承認後に同じ設定を認証付きで再検証してから`actions/deploy-pages`を実行する。API取得・設定・deploy actionが返すURLの不一致は公開を開始または成功扱いにせず停止する。完了後のjob summaryには同じdigest、検証済みPage URL、source SHA、成功状態を記録する。
+workflow全体の既定権限は`contents: read`だけである。`deploy` jobだけが`contents: read`、`pages: write`、`id-token: write`を持つ。`github-pages` environmentの人間承認後、GitHub Pages REST APIから設定を認証付きでread-only取得し、SourceがGitHub Actions（`build_type: workflow`）、custom domain未設定、URLがrepository既定のHTTPS URLであることを固定codeで検証してから`actions/deploy-pages`を実行する。API取得・設定・deploy actionが返すURLの不一致は公開を開始または成功扱いにせず停止する。設定確認をpreflightへ置くにはPages権限をdeploy承認前へ広げる必要があるため、匿名合成artifactのupload後・保護environment内のdeploy直前に限定する。完了後のjob summaryには同じdigest、検証済みPage URL、source SHA、成功状態を記録する。
 
 # 5. 通常dispatch
 
