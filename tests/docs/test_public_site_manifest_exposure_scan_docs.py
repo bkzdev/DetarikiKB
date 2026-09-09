@@ -39,7 +39,7 @@ def test_design_fixes_manifest_exposure_and_authorization_boundaries() -> None:
         assert required in design
 
 
-def test_handoff_points_to_synthetic_pages_rollback_rehearsal() -> None:
+def test_handoff_records_rehearsal_and_points_to_prepush_review() -> None:
     tasks = _read(PROJECT_ROOT / "TASKS.md")
     context = _read(PROJECT_ROOT / "AI_CONTEXT.md")
     publishing = _read(
@@ -54,10 +54,9 @@ def test_handoff_points_to_synthetic_pages_rollback_rehearsal() -> None:
     )
     dual_build = _read(PROJECT_ROOT / "docs" / "runbooks" / "Wiki_Dual_Build.md")
 
-    assert "`codex/public-site-manifest-exposure-scan`" in tasks
-    assert "`codex/synthetic-pages-deploy-rehearsal`" in tasks
+    assert "`codex/public-projection-prepush-review`" in tasks
     assert "Public_Site_Manifest_Exposure_Scan.md" in context
     assert "~~deploy前site manifest / exposure scan契約" in publishing
-    assert "A→B→A rollback rehearsal" in milestones
+    assert "A→B→A rollback rehearsalまで完了" in milestones
     assert "同じ`check_public_site_manifest.py`を各siteへ適用" in dual_build
     assert "Pages artifact upload / protected deploy" in dual_build

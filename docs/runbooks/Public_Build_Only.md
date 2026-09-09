@@ -66,4 +66,4 @@ JS / CSS / source map等のvendor assetは既存site manifest方針どおり全�
 
 # 6. 次工程
 
-manual production workflowとGitHub Pages environment gateは`Public_Production_Gate.md`でbuild-only workflowから分離した。production workflowには匿名合成Zensical site限定のartifact upload / protected deploy / rollback digest gateを追加済みであり、次はA→B→Aの実deploy / rollback rehearsalを行う。
+manual production workflowとGitHub Pages environment gateは`Public_Production_Gate.md`でbuild-only workflowから分離した。production workflowには匿名合成Zensical site限定のartifact upload / protected deploy / rollback digest gateを追加し、A→B→Aの実deploy / rollback rehearsalも完了した。次は実データpublic projectionのpush前人間レビューである。

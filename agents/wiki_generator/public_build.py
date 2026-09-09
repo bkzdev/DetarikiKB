@@ -193,8 +193,8 @@ def build_public_source_files(public_input: dict[str, Any]) -> dict[str, bytes]:
         raise PublicBuildError("public-build-link-validation-failed")
     files["timelines/index.md"] = timeline.encode("utf-8")
     files["index.md"] = (
-        "# 合成公開ビルド B\n\n"
-        "公開用ビルド経路とrollbackを検証する合成変更版Bです。\n\n"
+        "# 合成公開ビルド\n\n"
+        "公開用ビルド経路を検証する合成ページです。\n\n"
         "[Canonical Timeline](timelines/index.md)\n"
     ).encode("utf-8")
     return dict(sorted(files.items(), key=lambda item: item[0].encode("utf-8")))
