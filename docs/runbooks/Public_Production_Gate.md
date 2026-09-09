@@ -1,14 +1,16 @@
 # Public Production Environment Gate
 
-Version: 0.1
-Status: Implemented
-Updated: 2026-09-08
+Version: 0.2
+Status: Implemented (rehearsal pending)
+Updated: 2026-09-09
 
 ---
 
 # 1. 目的
 
-`.github/workflows/public-production-gate.yml`は、手動指定した`main`上のrevisionについて、commit済み匿名合成public inputのdual-build / exposure gateを再実行し、保護された`github-pages` environmentの承認待ちを通す。本段階はproduction workflowの承認境界だけを固定するもので、artifact upload、GitHub Pages設定変更、site deploy、公開URL生成は行わない。
+`.github/workflows/public-production-gate.yml`は、手動指定した`main`上のrevisionについて、commit済み匿名合成public inputのdual-build / exposure gateを再実行し、検証済みZensical siteだけをGitHub Pagesへ配備する。production deployは保護された`github-pages` environmentの人間承認後にだけ実行する。
+
+本段階は匿名合成siteによるdeploy / rollback rehearsal専用である。実public input、`knowledge/public/`、実データ由来のMarkdown / HTML、private mappingを参照・upload・deployせず、`publish-ready`判定も行わない。
 
 # 2. 初回dispatch前の人間設定
 
@@ -18,39 +20,67 @@ workflowを一度でもdispatchする前に、repository管理者がGitHubのSet
 - deployment branch / tag ruleを`main`に限定する
 - solo運用のためself-reviewを許可し、administrator bypassは禁止する
 - environment secret / variableは登録しない
-- GitHub PagesのSourceはまだGitHub Actionsへ切り替えない（第7段階で扱う）
+- workflowがdefault branchへmergeされた後、GitHub PagesのSourceをGitHub Actionsへ設定する
+- custom domainは設定しない
 
 2026-09-08のユーザー判断により、権限者がowner 1名だけの現状では別reviewer必須にすると承認経路が成立しないため、solo運用としてowner自身のreviewを許可する。これは承認省略ではなく、workflow dispatch後に同じ人間がenvironment画面で承認する運用である。administrator bypass、`main`限定、完全SHA、匿名合成input、全preflight gateは緩和しない。
 
-reviewerの選定とrepository設定変更はこのPRの自動化範囲外である。設定画面の現在値を人間が確認するまでworkflowを実行しない。preflightはGitHubのread-only REST APIからenvironment snapshotとbranch policyを取得し、required reviewerがrepository owner 1名だけ、self-review許可、administrator bypass禁止、custom branch policyが`main`だけ、という状態を匿名codeで再検証する。API取得または設定検証に失敗した場合はenvironment jobを開始しない。dispatch者の自己申告は承認根拠にしない。
+preflightはGitHubのread-only REST APIからenvironment snapshotとbranch policyを取得し、required reviewerがrepository owner 1名だけ、self-review許可、administrator bypass禁止、custom branch policyが`main`だけ、という状態を匿名codeで再検証する。API取得または設定検証に失敗した場合はartifactをuploadせず、environment jobを開始しない。dispatch者の自己申告は承認根拠にしない。
 
-# 3. Source revision gate
+# 3. Source revisionとrollback digest gate
 
-inputの`source_sha`は小文字40桁の完全SHAだけを受け付ける。workflowは任意入力をcheckoutする前にtrusted `main`を取得し、`scripts/check_public_production_source.py`で次をfail-closedに検証してからdetached checkoutする。
+必須inputの`source_sha`は小文字40桁の完全SHAだけを受け付ける。workflowは任意入力をcheckoutする前にtrusted `main`を取得し、`scripts/check_public_production_source.py`で次をfail-closedに検証してからdetached checkoutする。
 
 1. `origin/main`がcommitとして解決できる
 2. 指定SHAがcommitとして存在する
 3. 指定SHAが`origin/main`のancestorである
 4. checkout後の`HEAD`が指定SHAと完全一致する
 
+任意inputの`expected_tree_sha256`は、小文字64桁のZensical site tree SHA-256である。指定SHAがpreflight時点の`origin/main`先端と一致する通常deployでは空欄にできるが、過去SHAの再配備では必須とする。したがって初回Aと変更版Bでは空欄にし、Aへのrollback時は初回Aのjob summaryに記録された値を指定する。過去SHAでの省略、形式不正、再生成したtree digestとの不一致は、artifact uploadより前に`production-rollback-digest-required`、`production-expected-digest-invalid`、`production-output-digest-mismatch`のいずれかで停止する。
+
 CLIとworkflow固有の診断は固定の匿名status / error codeだけを出し、入力SHAやpathを診断へ展開しない。Git commandもquiet modeで実行する。checkout actionは完全修飾`refs/heads/main`、full history、`persist-credentials: false`とし、外部actionは検証時のcommit SHAへ固定する。
 
-# 4. 合成buildとenvironment gate
+# 4. 合成build、artifact、deployment record
 
-preflight jobは`tests/fixtures/canonical_timeline_public_input/approved_synthetic_input.json`だけを`$RUNNER_TEMP/dkb-production-gate`へ展開し、MkDocs / Zensical strict build、generator別detached manifest / exposure scan、manifest pair比較を実行する。実public input、`knowledge/public/`、実site、secretは参照しない。
+preflight jobは`tests/fixtures/canonical_timeline_public_input/approved_synthetic_input.json`だけを`$RUNNER_TEMP/dkb-production-gate`へ展開し、次を順に実行する。
 
-preflight通過後の`production-gate` jobだけが`github-pages` environmentを参照する。承認後にsource SHAの引継ぎを再確認し、`deployment_authorized=false`を記録して終了する。workflow全体の権限は`contents: read`だけであり、Pages / OIDC書込権限、artifact upload、configure / deploy action、environment URLを持たない。このjobの成功は公開承認や`publish-ready`判定ではない。
+1. MkDocs / Zensical strict build
+2. generator別detached manifest / exposure scan
+3. manifest pair比較
+4. source revisionとrollback digest要否・値の照合
+5. public Pages REST APIでSource、custom domain、既定URLをread-only確認
+6. 検証済みZensical siteだけを1日保持の`github-pages` artifactとしてupload
 
-# 5. 設定後のrehearsal手順
+MkDocs siteはdual-build比較用でありuploadしない。detached manifestもsite treeやPages artifactへ含めない。代わりに、公開して差し支えないsource SHA、Zensical manifest SHA-256、Zensical tree SHA-256、gate結果をGitHub Actions job summaryへdeployment recordとして保存する。internal input digest、private path、mappingは記録しない。
 
-本workflowがdefault branchへmergeされ、§2の人間確認が完了した後にだけ、`main`上の既知revisionを完全SHAで指定する。
+workflow全体の既定権限は`contents: read`だけである。preflightではpublic resourceとして認証なしでPages設定を取得し、artifact upload前にSourceがGitHub Actions（`build_type: workflow`）、custom domain未設定、URLがrepository既定のHTTPS URLであることを固定codeで検証する。`deploy` jobだけが`contents: read`、`pages: write`、`id-token: write`を持ち、`github-pages` environmentの人間承認後に同じ設定を認証付きで再検証してから`actions/deploy-pages`を実行する。API取得・設定・deploy actionが返すURLの不一致は公開を開始または成功扱いにせず停止する。完了後のjob summaryには同じdigest、検証済みPage URL、source SHA、成功状態を記録する。
+
+# 5. 通常dispatch
+
+GitHub PagesのSourceがGitHub Actionsであり、§2のenvironment設定が完了していることを確認してから、`main`上の既知revisionを指定する。
 
 ```powershell
 gh workflow run public-production-gate.yml --ref main -f source_sha=<40文字のmain上SHA>
 ```
 
-期待結果は、preflightの全gate通過、`production-gate`のreview待ち、承認後の`deployment_authorized=false`である。一時site / manifestはrunner temp内だけに生成されるが、永続artifact、upload、deploy、公開URLは生成されない。
+期待結果は、preflightの全gate通過、`deploy` jobのreview待ち、人間承認後のPages deploy成功である。未承認のまま放置したrun、preflight失敗run、deploy失敗runから次のproduction deployを開始しない。
 
-# 6. 次工程
+# 6. A→B→A rollback rehearsal
 
-次は別PRで、匿名合成siteだけを対象にPages artifact upload / deployと既知正常SHAへのrollback rehearsalを実装する。その前に§2のenvironment保護とGitHub Pages Source変更の影響を人間が画面で確認する。実public inputのpushと実データdeployはさらに後の独立gateとする。
+rollback rehearsalは同じworkflowを3回独立して実行する。1 run内で3回deployして承認を共有すると通常のrollback経路を検証できないため採用しない。
+
+1. **A**: workflow実装を含む既知正常SHAをdispatchし、environmentで承認する。成功後にPage URL、表示マーカー、job summaryのZensical tree SHA-256を記録する。
+2. **B**: 匿名合成fixtureの目視可能な表示マーカーだけを変更した後続SHAを、別runとしてdispatch・承認する。同じURLでBの表示とAとは異なるtree SHA-256を確認する。
+3. **Aへrollback**: Aの`source_sha`と、手順1で記録した`expected_tree_sha256`を指定して別runをdispatch・承認する。同じURLでAの表示へ戻り、tree SHA-256が手順1と一致することを確認する。
+
+```powershell
+gh workflow run public-production-gate.yml --ref main `
+  -f source_sha=<Aの40文字SHA> `
+  -f expected_tree_sha256=<Aの64文字tree SHA-256>
+```
+
+各runは直前runのdeploy完了と表示確認後に開始する。各deployが独立したenvironment承認とGitHub deployment履歴を持つことで、実障害時に使う「既知正常SHAを全gateから再生成して再配備する」経路そのものを検証する。失敗時は新規deployを停止し、現在のdeployment、失敗revision、workflow run、artifact、履歴を自動削除しない。hosting切替や強制rollbackも行わない。
+
+# 7. 次工程
+
+A→B→A rehearsalと表示確認を完了した後、実データpublic projectionをignored workspaceで生成し、人間が公開対象、label、最終表示をpush前に確認する。実public inputの専用PRと初回実content deployはさらに後の独立gateであり、匿名合成rehearsalの成功だけでは開始しない。

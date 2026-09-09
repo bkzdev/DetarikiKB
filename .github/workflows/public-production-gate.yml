@@ -1,4 +1,4 @@
-name: Public Production Gate (Synthetic, No Deploy)
+name: Public Production Deploy (Synthetic)
 
 on:
   workflow_dispatch:
@@ -6,6 +6,11 @@ on:
       source_sha:
         description: Lowercase 40-character commit SHA already on main
         required: true
+        type: string
+      expected_tree_sha256:
+        description: Optional lowercase Zensical tree SHA-256 required for rollback
+        required: false
+        default: ""
         type: string
 
 permissions:
@@ -20,6 +25,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       source_sha: ${{ steps.verify-source.outputs.source_sha }}
+      manifest_sha256: ${{ steps.deployment-record.outputs.manifest_sha256 }}
+      tree_sha256: ${{ steps.deployment-record.outputs.tree_sha256 }}
     steps:
       - name: Verify dispatch context
         shell: bash
@@ -143,13 +150,97 @@ jobs:
           --mkdocs-manifest "$PUBLIC_BUILD_ROOT/manifests/mkdocs.json"
           --zensical-manifest "$PUBLIC_BUILD_ROOT/manifests/zensical.json"
 
-  production-gate:
+      - name: Verify rollback expectation and record deployment metadata
+        id: deployment-record
+        shell: bash
+        env:
+          EXPECTED_TREE_SHA256: ${{ inputs.expected_tree_sha256 }}
+          SOURCE_SHA: ${{ steps.verify-source.outputs.source_sha }}
+        run: |
+          manifest="$PUBLIC_BUILD_ROOT/manifests/zensical.json"
+          manifest_sha256="$(sha256sum "$manifest" | cut -d ' ' -f 1)"
+          tree_sha256="$(jq -er '.output.treeSha256' "$manifest")"
+          manifest_source_sha="$(jq -er '.sourceRevision.value' "$manifest")"
+          trusted_main_sha="$(git rev-parse refs/remotes/origin/main)"
+          if [[ ! "$manifest_sha256" =~ ^[0-9a-f]{64}$ ]] || \
+             [[ ! "$tree_sha256" =~ ^[0-9a-f]{64}$ ]]; then
+            echo "status=blocked code=production-deployment-digest-invalid"
+            exit 1
+          fi
+          if [[ "$manifest_source_sha" != "$SOURCE_SHA" ]]; then
+            echo "status=blocked code=production-manifest-source-mismatch"
+            exit 1
+          fi
+          if [[ "$SOURCE_SHA" != "$trusted_main_sha" ]] && \
+             [[ -z "$EXPECTED_TREE_SHA256" ]]; then
+            echo "status=blocked code=production-rollback-digest-required"
+            exit 1
+          fi
+          if [[ -n "$EXPECTED_TREE_SHA256" ]]; then
+            if [[ ! "$EXPECTED_TREE_SHA256" =~ ^[0-9a-f]{64}$ ]]; then
+              echo "status=blocked code=production-expected-digest-invalid"
+              exit 1
+            fi
+            if [[ "$tree_sha256" != "$EXPECTED_TREE_SHA256" ]]; then
+              echo "status=blocked code=production-output-digest-mismatch"
+              exit 1
+            fi
+          fi
+          echo "manifest_sha256=$manifest_sha256" >> "$GITHUB_OUTPUT"
+          echo "tree_sha256=$tree_sha256" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Verified synthetic Pages candidate"
+            echo
+            echo "| Field | Value |"
+            echo "| --- | --- |"
+            echo "| Source revision | \`$SOURCE_SHA\` |"
+            echo "| Zensical manifest SHA-256 | \`$manifest_sha256\` |"
+            echo "| Zensical tree SHA-256 | \`$tree_sha256\` |"
+            echo "| Gate result | \`clean\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify GitHub Pages settings before artifact upload
+        shell: bash
+        run: |
+          pages_json="$RUNNER_TEMP/github-pages-site.json"
+          repository_name="${GITHUB_REPOSITORY#*/}"
+          expected_url="https://${GITHUB_REPOSITORY_OWNER}.github.io/${repository_name}"
+          if ! curl --fail --silent \
+            --header "Accept: application/vnd.github+json" \
+            --header "X-GitHub-Api-Version: 2026-03-10" \
+            --output "$pages_json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pages"; then
+            echo "status=blocked code=production-pages-settings-unavailable"
+            exit 1
+          fi
+          if ! jq -e --arg expected_url "$expected_url" \
+            '.build_type == "workflow" and .cname == null and
+             (.html_url | rtrimstr("/")) == $expected_url' \
+            "$pages_json" > /dev/null; then
+            echo "status=blocked code=production-pages-settings-invalid"
+            exit 1
+          fi
+
+      - name: Upload verified Zensical site
+        # v5
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9
+        with:
+          name: github-pages
+          path: ${{ env.PUBLIC_BUILD_ROOT }}/site-zensical
+          retention-days: 1
+
+  deploy:
     needs: preflight
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Record approved synthetic gate
+      - name: Verify approved source handoff
         shell: bash
         env:
           SOURCE_SHA: ${{ needs.preflight.outputs.source_sha }}
@@ -159,4 +250,63 @@ jobs:
             echo "status=blocked code=production-source-output-mismatch"
             exit 1
           fi
-          echo "status=environment_gate_passed deployment_authorized=false"
+          echo "status=environment_gate_passed deployment_authorized=true"
+
+      - name: Verify GitHub Pages settings
+        id: pages-config
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pages_json="$RUNNER_TEMP/github-pages-site.json"
+          repository_name="${GITHUB_REPOSITORY#*/}"
+          expected_url="https://${GITHUB_REPOSITORY_OWNER}.github.io/${repository_name}"
+          if ! curl --fail --silent \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header "X-GitHub-Api-Version: 2026-03-10" \
+            --output "$pages_json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pages"; then
+            echo "status=blocked code=production-pages-settings-unavailable"
+            exit 1
+          fi
+          if ! jq -e --arg expected_url "$expected_url" \
+            '.build_type == "workflow" and .cname == null and
+             (.html_url | rtrimstr("/")) == $expected_url' \
+            "$pages_json" > /dev/null; then
+            echo "status=blocked code=production-pages-settings-invalid"
+            exit 1
+          fi
+          echo "page_url=$expected_url/" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy verified synthetic site
+        id: deployment
+        # v5
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346
+        with:
+          artifact_name: github-pages
+
+      - name: Record completed deployment
+        shell: bash
+        env:
+          EXPECTED_PAGE_URL: ${{ steps.pages-config.outputs.page_url }}
+          MANIFEST_SHA256: ${{ needs.preflight.outputs.manifest_sha256 }}
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+          SOURCE_SHA: ${{ needs.preflight.outputs.source_sha }}
+          TREE_SHA256: ${{ needs.preflight.outputs.tree_sha256 }}
+        run: |
+          if [[ "${PAGE_URL%/}" != "${EXPECTED_PAGE_URL%/}" ]]; then
+            echo "status=blocked code=production-page-url-mismatch"
+            exit 1
+          fi
+          {
+            echo "### Completed synthetic Pages deployment"
+            echo
+            echo "| Field | Value |"
+            echo "| --- | --- |"
+            echo "| Source revision | \`$SOURCE_SHA\` |"
+            echo "| Zensical manifest SHA-256 | \`$MANIFEST_SHA256\` |"
+            echo "| Zensical tree SHA-256 | \`$TREE_SHA256\` |"
+            echo "| Page URL | $PAGE_URL |"
+            echo "| Deployment | \`success\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
