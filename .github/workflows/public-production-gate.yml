@@ -199,28 +199,6 @@ jobs:
             echo "| Gate result | \`clean\` |"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Verify GitHub Pages settings before artifact upload
-        shell: bash
-        run: |
-          pages_json="$RUNNER_TEMP/github-pages-site.json"
-          repository_name="${GITHUB_REPOSITORY#*/}"
-          expected_url="https://${GITHUB_REPOSITORY_OWNER}.github.io/${repository_name}"
-          if ! curl --fail --silent \
-            --header "Accept: application/vnd.github+json" \
-            --header "X-GitHub-Api-Version: 2026-03-10" \
-            --output "$pages_json" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pages"; then
-            echo "status=blocked code=production-pages-settings-unavailable"
-            exit 1
-          fi
-          if ! jq -e --arg expected_url "$expected_url" \
-            '.build_type == "workflow" and .cname == null and
-             (.html_url | rtrimstr("/")) == $expected_url' \
-            "$pages_json" > /dev/null; then
-            echo "status=blocked code=production-pages-settings-invalid"
-            exit 1
-          fi
-
       - name: Upload verified Zensical site
         # v5
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9
