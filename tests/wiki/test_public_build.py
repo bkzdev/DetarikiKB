@@ -51,6 +51,8 @@ def test_build_source_is_deterministic_complete_and_input_immutable() -> None:
         "timelines/index.md",
     }
     assert b"../stories/PUBLIC_EVENT_ALPHA.md" in first["timelines/index.md"]
+    assert first["index.md"].decode("utf-8").startswith("# 合成公開ビルド B\n")
+    assert "合成変更版B" in first["index.md"].decode("utf-8")
 
 
 @pytest.mark.parametrize(
