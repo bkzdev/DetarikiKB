@@ -1,7 +1,7 @@
 # Public Production Environment Gate
 
-Version: 0.2
-Status: Implemented (rehearsal pending)
+Version: 0.3
+Status: Implemented and rehearsed
 Updated: 2026-09-09
 
 ---
@@ -82,4 +82,20 @@ gh workflow run public-production-gate.yml --ref main `
 
 # 7. 次工程
 
-A→B→A rehearsalと表示確認を完了した後、実データpublic projectionをignored workspaceで生成し、人間が公開対象、label、最終表示をpush前に確認する。実public inputの専用PRと初回実content deployはさらに後の独立gateであり、匿名合成rehearsalの成功だけでは開始しない。
+A→B→A rehearsalと表示確認を完了した。次は実データpublic projectionをignored workspaceで生成し、人間が公開対象、label、最終表示をpush前に確認する。実public inputの専用PRと初回実content deployはさらに後の独立gateであり、匿名合成rehearsalの成功だけでは開始しない。
+
+# 8. 実施記録
+
+2026-09-09に、同じproduction workflowと同じPage URLを使う3つの独立runでA→B→A rehearsalを完了した。各runは`github-pages` environmentで個別に承認し、preflight、artifact upload、Pages設定検査、deployをすべて通過した。
+
+| 段階 | Source SHA | Zensical tree SHA-256 | Workflow run | 表示確認 |
+|---|---|---|---|---|
+| A | `af1e0aab6e249b3f7f942fb10d64719d40bfafdc` | `c3d191356516f67d81c0b5efadbd3870e48059eeb0dfc5a5fea02f09cd9fa662` | [34304395322](https://github.com/bkzdev/DetarikiKB/actions/runs/34304395322) | `合成公開ビルド` |
+| B | `014c42d88ac9352b29eb216a73c16c19cbb17f8e` | `01b2d948b2cff8b018839e0810f2f52255a451e20838edc2906f7b2551936577` | [34322601680](https://github.com/bkzdev/DetarikiKB/actions/runs/34322601680) | `合成公開ビルド B` |
+| Aへrollback | `af1e0aab6e249b3f7f942fb10d64719d40bfafdc` | `c3d191356516f67d81c0b5efadbd3870e48059eeb0dfc5a5fea02f09cd9fa662` | [34323175235](https://github.com/bkzdev/DetarikiKB/actions/runs/34323175235) | `合成公開ビルド`へ復帰 |
+
+Aとrollback後Aのtree digestは一致し、Bだけが異なる。公開URLは3回とも`https://bkzdev.github.io/DetarikiKB/`で、rollback後に元の見出しと説明文、およびCanonical Timelineへの導線を目視確認した。AとBのartifactを再取得してそれぞれ18 file・7 routeを確認し、漏えい検査対象外のfileやrouteは検出されなかった。rollback後Aはpreflightが再生成したtree digestを既知のA digestと照合してからdeployした。
+
+初回実行前の設定検査を承認前に行おうとしたrun [34303547281](https://github.com/bkzdev/DetarikiKB/actions/runs/34303547281) は、権限境界によりPages APIが404となってpreflightで停止し、deployしなかった。この結果を受けてPR #283でPages設定検査を承認後のprotected deploy jobへ移し、以後の3 runを成功させた。失敗runとdeployment履歴は削除していない。
+
+Bの目視マーカーはrehearsal専用だったため、完了後に生成コードを通常のA表示へ戻した。live siteは先にAの既知正常SHAへrollback済みであり、このcleanup自体は追加deployを要求しない。

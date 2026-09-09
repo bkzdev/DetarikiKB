@@ -60,7 +60,7 @@ def test_runbook_is_dry_run_by_default_and_fail_closed() -> None:
         assert required in runbook
 
 
-def test_handoff_points_to_site_manifest_without_real_input() -> None:
+def test_handoff_points_to_prepush_review_without_real_input() -> None:
     tasks = _read(PROJECT_ROOT / "TASKS.md")
     context = _read(PROJECT_ROOT / "AI_CONTEXT.md")
     publishing = _read(
@@ -74,12 +74,11 @@ def test_handoff_points_to_site_manifest_without_real_input() -> None:
         PROJECT_ROOT / "docs" / "architecture" / "01_Project" / "Project_Milestones.md"
     )
 
-    assert "`codex/canonical-timeline-public-input-promotion`" in tasks
-    assert "次はdeploy前site manifest / rendered HTML exposure scan" in tasks
+    assert "`codex/public-projection-prepush-review`" in tasks
     assert "Canonical_Timeline_Public_Input.md" in context
     assert "Canonical_Timeline_Public_Input_Promotion.md" in context
     assert "~~public-safe構造化入力の保存schema" in publishing
-    assert "次はsite manifest / HTML漏えい検査" in milestones
+    assert "実データpublic projectionをignored workspaceで生成" in milestones
 
     target_dir = PROJECT_ROOT / "knowledge" / "public" / "timelines"
     assert sorted(path.name for path in target_dir.iterdir()) == [".gitkeep"]

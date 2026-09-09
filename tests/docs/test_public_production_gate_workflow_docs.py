@@ -8,6 +8,10 @@ PROJECT_ROOT = Path(__file__).parent.parent.parent
 WORKFLOW = PROJECT_ROOT / ".github" / "workflows" / "public-production-gate.yml"
 RUNBOOK = PROJECT_ROOT / "docs" / "runbooks" / "Public_Production_Gate.md"
 TASKS = PROJECT_ROOT / "TASKS.md"
+AI_CONTEXT = PROJECT_ROOT / "AI_CONTEXT.md"
+MILESTONES = (
+    PROJECT_ROOT / "docs" / "architecture" / "01_Project" / "Project_Milestones.md"
+)
 
 
 def _read(path: Path) -> str:
@@ -147,6 +151,8 @@ def test_workflow_is_manual_protected_synthetic_pages_deploy() -> None:
 def test_runbook_and_handoff_fix_synthetic_deploy_and_rollback_boundary() -> None:
     runbook = _read(RUNBOOK)
     tasks = _read(TASKS)
+    context = _read(AI_CONTEXT)
+    milestones = _read(MILESTONES)
     for required in (
         "Status: Implemented",
         ".github/workflows/public-production-gate.yml",
@@ -166,5 +172,10 @@ def test_runbook_and_handoff_fix_synthetic_deploy_and_rollback_boundary() -> Non
         "rollback rehearsal",
     ):
         assert required in runbook
-    assert "`codex/synthetic-pages-deploy-rehearsal`" in tasks
+    assert "`codex/public-projection-prepush-review`" in tasks
     assert "A→B→A" in tasks
+    assert "34323175235" in runbook
+    assert "Status: Implemented and rehearsed" in runbook
+    for handoff in (tasks, context, milestones):
+        assert "実データpublic projectionをignored workspaceで生成" in handoff
+        assert "push前" in handoff
