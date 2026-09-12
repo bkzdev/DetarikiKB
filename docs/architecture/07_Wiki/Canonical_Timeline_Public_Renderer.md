@@ -136,7 +136,7 @@ preflightと同様に、renderer成功も公開承認を意味しない。
 
 ignored workspaceだけで匿名合成projectionを用いたlocal previewを構成し、`mkdocs serve`経由でdesktop幅と390px狭幅を確認した。3 relation種別、長い日本語label、Story / Episode link遷移、横overflowなし、内部field・raw拡張子・絶対path・script tag露出0を確認した。公開本文の`artifact`表現だけを一般向けに修正した。詳細は`Canonical_Timeline_Public_Preview.md`を参照する。
 
-public publishing platform / workflowは`Public_Publishing_Workflow_Decision.md`で採択し、Zensical dual-build / exact pinとpublic-safe入力schema / push前review / local promotionまで実装した。次はsite manifest / rendered HTML exposure scanである。実データ由来projection、mapping、report、Markdown、HTMLは引き続きcommit・deployしない。
+public publishing platform / workflowは`Public_Publishing_Workflow_Decision.md`で採択し、Zensical dual-build / exact pin、public-safe入力schema、site manifest / rendered HTML exposure scanまで実装した。実データ72 episode / 40 confirmed relationのignored workspace renderでもlink欠落・内部値露出0を確認し、承認済みpublic-safe構造化入力だけを初回昇格した。private mapping、review / preflight report、生成Markdown / HTMLは引き続きcommit・deployしない。workflow入力切替とproduction deployは別gateとする。
 
 ---
 

@@ -83,5 +83,5 @@ def test_handoff_docs_record_zensical_selection_and_next_step() -> None:
     assert "`codex/zensical-exact-pin-dual-build`" in tasks
     assert "`codex/zensical-synthetic-dual-build-spike`" in tasks
     assert "`codex/zensical-exact-pin-dual-build`" in tasks
-    assert "`codex/public-projection-prepush-review`" in tasks
-    assert "A→B→A rollback rehearsalまで完了" in milestones
+    assert "`codex/canonical-timeline-real-public-input`" in tasks
+    assert "A→B→A rollback rehearsal" in milestones

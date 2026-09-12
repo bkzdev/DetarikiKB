@@ -54,7 +54,7 @@ Project: Detariki Knowledge Base (DKB)
 
 合成previewの範囲ではrendererの表示・link・狭幅可読性を受入可能と判断する。この結果は実データ公開承認ではなく、`projection_candidate`も維持する。
 
-公開platformとpublic publishing workflowは`Public_Publishing_Workflow_Decision.md`で採択し、Zensical dual-build / exact pinとpublic-safe入力schema / push前review / local promotionまで実装した。次はsite manifest / rendered HTML exposure scanである。実データpreviewと公開は、後続gateと必要なpublic ID / label入力が揃うまで開始しない。
+公開platformとpublic publishing workflowは`Public_Publishing_Workflow_Decision.md`で採択し、Zensical dual-build / exact pin、public-safe入力schema、site manifest / rendered HTML exposure scanを実装した。2026-09-09には実データ72 episode / 40 confirmed relationもignored workspaceでpreviewし、Timeline・Story / Episode導線、内部値露出0を人間確認した。2026-09-13に承認済みpublic-safe構造化入力を初回昇格したが、`projection_candidate`は維持する。次はworkflow入力切替であり、production deployと公開URLの最終確認は別gateとする。
 
 ---
 

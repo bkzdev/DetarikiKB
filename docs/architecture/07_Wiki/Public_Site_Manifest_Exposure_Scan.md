@@ -95,15 +95,17 @@ detached manifestをCIの一時directoryへ新規作成する場合だけ、`--m
 
 # 6. 公開境界とNon-goals
 
-このPRは合成site treeだけで契約を実装する。`site/`、`site_zensical/`、実HTML、実manifest、実public inputをcommit / uploadしない。
+初期実装PRは合成site treeだけで契約を実装した。`site/`、`site_zensical/`、実HTML、実manifestは引き続きcommit / uploadしない。
 
 対象外:
 
 - build-only GitHub Actions workflowへの統合
 - Pages artifact upload、environment、permission、production deploy
 - rollback rehearsal、既知正常SHA再配備
-- 実public input昇格、`publish-ready`化、公開URL作成
+- 初期実装PRでの実public input昇格、`publish-ready`化、公開URL作成
 - MkDocs / Zensicalのtheme asset / HTML bytes完全一致
 - internal artifact、private mapping、local preflightをhosted buildへ渡すこと
 
-本契約のcommit済み合成input / siteだけを扱うbuild-only workflow統合は`../../runbooks/Public_Build_Only.md`で実装した。分離したmanual production workflow / environment gateと、検証済みZensical siteだけのPages artifact upload / protected deploy / rollback digest gateも`../../runbooks/Public_Production_Gate.md`で実装し、匿名合成siteのA→B→A rollback rehearsalまで完了した。次は実データpublic projectionのpush前人間レビューである。
+本契約のcommit済み合成input / siteだけを扱うbuild-only workflow統合は`../../runbooks/Public_Build_Only.md`で実装した。分離したmanual production workflow / environment gateと、検証済みZensical siteだけのPages artifact upload / protected deploy / rollback digest gateも`../../runbooks/Public_Production_Gate.md`で実装し、匿名合成siteのA→B→A rollback rehearsalまで完了した。実データpublic projectionのpush前人間レビューと初回public input昇格も完了したため、次はworkflow入力切替PRで実input由来siteへ本scanを適用する。
+
+2026-09-13の初回実public input昇格時には、repository外の一時directoryで公式public buildを実行した。MkDocs / Zensicalはいずれも139 HTML routeを生成し、route set一致、exposure finding 0、detached manifest比較cleanを確認した。manifestと生成siteはcommitしていない。入力は`projection_candidate`のままであり、workflow入力切替とproduction deployは未実施である。

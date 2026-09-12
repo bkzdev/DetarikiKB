@@ -1,0 +1,932 @@
+{
+  "buildStatus": "approved_for_build",
+  "contentType": "canonical_timeline_public_projection",
+  "documentType": "canonical_timeline_public_input",
+  "payloadSha256": "33e9e842bb19f162a985f77ba1c7a93cdbeb58546d55cebf6bd1621d60b84676",
+  "projection": {
+    "components": [
+      {
+        "componentKey": "component-0001",
+        "nodes": [
+          {
+            "episodeLabel": "イベント 012 / エピソード 1",
+            "publicEpisodeId": "EVENT_012_E01",
+            "publicStoryId": "EVENT_012",
+            "storyLabel": "イベント 012"
+          },
+          {
+            "episodeLabel": "イベント 034 / エピソード 1",
+            "publicEpisodeId": "EVENT_034_E01",
+            "publicStoryId": "EVENT_034",
+            "storyLabel": "イベント 034"
+          },
+          {
+            "episodeLabel": "イベント 035 / エピソード 1",
+            "publicEpisodeId": "EVENT_035_E01",
+            "publicStoryId": "EVENT_035",
+            "storyLabel": "イベント 035"
+          }
+        ],
+        "relations": [
+          {
+            "fromPublicEpisodeId": "EVENT_012_E01",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_034_E01"
+          },
+          {
+            "fromPublicEpisodeId": "EVENT_034_E01",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_035_E01"
+          }
+        ]
+      },
+      {
+        "componentKey": "component-0002",
+        "nodes": [
+          {
+            "episodeLabel": "イベント 018 / エピソード 3",
+            "publicEpisodeId": "EVENT_018_E03",
+            "publicStoryId": "EVENT_018",
+            "storyLabel": "イベント 018"
+          },
+          {
+            "episodeLabel": "イベント 019 / エピソード 1",
+            "publicEpisodeId": "EVENT_019_E01",
+            "publicStoryId": "EVENT_019",
+            "storyLabel": "イベント 019"
+          }
+        ],
+        "relations": [
+          {
+            "fromPublicEpisodeId": "EVENT_018_E03",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_019_E01"
+          }
+        ]
+      },
+      {
+        "componentKey": "component-0003",
+        "nodes": [
+          {
+            "episodeLabel": "イベント 019 / エピソード 3",
+            "publicEpisodeId": "EVENT_019_E03",
+            "publicStoryId": "EVENT_019",
+            "storyLabel": "イベント 019"
+          },
+          {
+            "episodeLabel": "イベント 020 / エピソード 1",
+            "publicEpisodeId": "EVENT_020_E01",
+            "publicStoryId": "EVENT_020",
+            "storyLabel": "イベント 020"
+          }
+        ],
+        "relations": [
+          {
+            "fromPublicEpisodeId": "EVENT_019_E03",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_020_E01"
+          }
+        ]
+      },
+      {
+        "componentKey": "component-0004",
+        "nodes": [
+          {
+            "episodeLabel": "イベント 042-210609 / エピソード 4",
+            "publicEpisodeId": "EVENT_042_210609_E04",
+            "publicStoryId": "EVENT_042_210609",
+            "storyLabel": "イベント 042-210609"
+          },
+          {
+            "episodeLabel": "イベント 043-210623 / エピソード 1",
+            "publicEpisodeId": "EVENT_043_210623_E01",
+            "publicStoryId": "EVENT_043_210623",
+            "storyLabel": "イベント 043-210623"
+          }
+        ],
+        "relations": [
+          {
+            "fromPublicEpisodeId": "EVENT_042_210609_E04",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_043_210623_E01"
+          }
+        ]
+      },
+      {
+        "componentKey": "component-0005",
+        "nodes": [
+          {
+            "episodeLabel": "イベント 048-210901 / エピソード 4",
+            "publicEpisodeId": "EVENT_048_210901_E04",
+            "publicStoryId": "EVENT_048_210901",
+            "storyLabel": "イベント 048-210901"
+          },
+          {
+            "episodeLabel": "イベント 049-210915 / エピソード 1",
+            "publicEpisodeId": "EVENT_049_210915_E01",
+            "publicStoryId": "EVENT_049_210915",
+            "storyLabel": "イベント 049-210915"
+          }
+        ],
+        "relations": [
+          {
+            "fromPublicEpisodeId": "EVENT_048_210901_E04",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_049_210915_E01"
+          }
+        ]
+      },
+      {
+        "componentKey": "component-0006",
+        "nodes": [
+          {
+            "episodeLabel": "イベント 052-211027 / エピソード 4",
+            "publicEpisodeId": "EVENT_052_211027_E04",
+            "publicStoryId": "EVENT_052_211027",
+            "storyLabel": "イベント 052-211027"
+          },
+          {
+            "episodeLabel": "イベント 060-220216 / エピソード 1",
+            "publicEpisodeId": "EVENT_060_220216_E01",
+            "publicStoryId": "EVENT_060_220216",
+            "storyLabel": "イベント 060-220216"
+          }
+        ],
+        "relations": [
+          {
+            "fromPublicEpisodeId": "EVENT_052_211027_E04",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_060_220216_E01"
+          }
+        ]
+      },
+      {
+        "componentKey": "component-0007",
+        "nodes": [
+          {
+            "episodeLabel": "イベント 053-211114 / エピソード 4",
+            "publicEpisodeId": "EVENT_053_211114_E04",
+            "publicStoryId": "EVENT_053_211114",
+            "storyLabel": "イベント 053-211114"
+          },
+          {
+            "episodeLabel": "イベント 054-211124 / エピソード 1",
+            "publicEpisodeId": "EVENT_054_211124_E01",
+            "publicStoryId": "EVENT_054_211124",
+            "storyLabel": "イベント 054-211124"
+          }
+        ],
+        "relations": [
+          {
+            "fromPublicEpisodeId": "EVENT_053_211114_E04",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_054_211124_E01"
+          }
+        ]
+      },
+      {
+        "componentKey": "component-0008",
+        "nodes": [
+          {
+            "episodeLabel": "イベント 061-220302 / エピソード 1",
+            "publicEpisodeId": "EVENT_061_220302_E01",
+            "publicStoryId": "EVENT_061_220302",
+            "storyLabel": "イベント 061-220302"
+          },
+          {
+            "episodeLabel": "イベント 062-220316 / エピソード 1",
+            "publicEpisodeId": "EVENT_062_220316_E01",
+            "publicStoryId": "EVENT_062_220316",
+            "storyLabel": "イベント 062-220316"
+          }
+        ],
+        "relations": [
+          {
+            "fromPublicEpisodeId": "EVENT_061_220302_E01",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_062_220316_E01"
+          }
+        ]
+      },
+      {
+        "componentKey": "component-0009",
+        "nodes": [
+          {
+            "episodeLabel": "イベント 064-220413 / エピソード 4",
+            "publicEpisodeId": "EVENT_064_220413_E04",
+            "publicStoryId": "EVENT_064_220413",
+            "storyLabel": "イベント 064-220413"
+          },
+          {
+            "episodeLabel": "イベント 079-221207 / エピソード 1",
+            "publicEpisodeId": "EVENT_079_221207_E01",
+            "publicStoryId": "EVENT_079_221207",
+            "storyLabel": "イベント 079-221207"
+          }
+        ],
+        "relations": [
+          {
+            "fromPublicEpisodeId": "EVENT_064_220413_E04",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_079_221207_E01"
+          }
+        ]
+      },
+      {
+        "componentKey": "component-0010",
+        "nodes": [
+          {
+            "episodeLabel": "イベント 075-221012 / エピソード 4",
+            "publicEpisodeId": "EVENT_075_221012_E04",
+            "publicStoryId": "EVENT_075_221012",
+            "storyLabel": "イベント 075-221012"
+          },
+          {
+            "episodeLabel": "イベント 098-230830 / エピソード 1",
+            "publicEpisodeId": "EVENT_098_230830_E01",
+            "publicStoryId": "EVENT_098_230830",
+            "storyLabel": "イベント 098-230830"
+          }
+        ],
+        "relations": [
+          {
+            "fromPublicEpisodeId": "EVENT_075_221012_E04",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_098_230830_E01"
+          }
+        ]
+      },
+      {
+        "componentKey": "component-0011",
+        "nodes": [
+          {
+            "episodeLabel": "イベント 077-221109 / エピソード 4",
+            "publicEpisodeId": "EVENT_077_221109_E04",
+            "publicStoryId": "EVENT_077_221109",
+            "storyLabel": "イベント 077-221109"
+          },
+          {
+            "episodeLabel": "イベント 078-221123 / エピソード 2",
+            "publicEpisodeId": "EVENT_078_221123_E02",
+            "publicStoryId": "EVENT_078_221123",
+            "storyLabel": "イベント 078-221123"
+          },
+          {
+            "episodeLabel": "イベント 103-231112 / エピソード 1",
+            "publicEpisodeId": "EVENT_103_231112_E01",
+            "publicStoryId": "EVENT_103_231112",
+            "storyLabel": "イベント 103-231112"
+          }
+        ],
+        "relations": [
+          {
+            "fromPublicEpisodeId": "EVENT_077_221109_E04",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_078_221123_E02"
+          },
+          {
+            "fromPublicEpisodeId": "EVENT_078_221123_E02",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_103_231112_E01"
+          }
+        ]
+      },
+      {
+        "componentKey": "component-0012",
+        "nodes": [
+          {
+            "episodeLabel": "イベント 084-230215 / エピソード 2",
+            "publicEpisodeId": "EVENT_084_230215_E02",
+            "publicStoryId": "EVENT_084_230215",
+            "storyLabel": "イベント 084-230215"
+          },
+          {
+            "episodeLabel": "イベント 094-230706 / エピソード 1",
+            "publicEpisodeId": "EVENT_094_230706_E01",
+            "publicStoryId": "EVENT_094_230706",
+            "storyLabel": "イベント 094-230706"
+          }
+        ],
+        "relations": [
+          {
+            "fromPublicEpisodeId": "EVENT_084_230215_E02",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_094_230706_E01"
+          }
+        ]
+      },
+      {
+        "componentKey": "component-0013",
+        "nodes": [
+          {
+            "episodeLabel": "イベント 086-230315 / エピソード 2",
+            "publicEpisodeId": "EVENT_086_230315_E02",
+            "publicStoryId": "EVENT_086_230315",
+            "storyLabel": "イベント 086-230315"
+          },
+          {
+            "episodeLabel": "イベント 087-230329 / エピソード 1",
+            "publicEpisodeId": "EVENT_087_230329_E01",
+            "publicStoryId": "EVENT_087_230329",
+            "storyLabel": "イベント 087-230329"
+          }
+        ],
+        "relations": [
+          {
+            "fromPublicEpisodeId": "EVENT_086_230315_E02",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_087_230329_E01"
+          }
+        ]
+      },
+      {
+        "componentKey": "component-0014",
+        "nodes": [
+          {
+            "episodeLabel": "イベント 089-230426 / エピソード 1",
+            "publicEpisodeId": "EVENT_089_230426_E01",
+            "publicStoryId": "EVENT_089_230426",
+            "storyLabel": "イベント 089-230426"
+          },
+          {
+            "episodeLabel": "イベント 099-230913 / エピソード 1",
+            "publicEpisodeId": "EVENT_099_230913_E01",
+            "publicStoryId": "EVENT_099_230913",
+            "storyLabel": "イベント 099-230913"
+          }
+        ],
+        "relations": [
+          {
+            "fromPublicEpisodeId": "EVENT_089_230426_E01",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_099_230913_E01"
+          }
+        ]
+      },
+      {
+        "componentKey": "component-0015",
+        "nodes": [
+          {
+            "episodeLabel": "イベント 090-230514 / エピソード 3",
+            "publicEpisodeId": "EVENT_090_230514_E03",
+            "publicStoryId": "EVENT_090_230514",
+            "storyLabel": "イベント 090-230514"
+          },
+          {
+            "episodeLabel": "イベント 113-240430-ADD / エピソード 3",
+            "publicEpisodeId": "EVENT_113_240430_ADD_E03",
+            "publicStoryId": "EVENT_113_240430_ADD",
+            "storyLabel": "イベント 113-240430-ADD"
+          },
+          {
+            "episodeLabel": "イベント 118-240627 / エピソード 2",
+            "publicEpisodeId": "EVENT_118_240627_E02",
+            "publicStoryId": "EVENT_118_240627",
+            "storyLabel": "イベント 118-240627"
+          },
+          {
+            "episodeLabel": "イベント 144-250724 / エピソード 2",
+            "publicEpisodeId": "EVENT_144_250724_E02",
+            "publicStoryId": "EVENT_144_250724",
+            "storyLabel": "イベント 144-250724"
+          }
+        ],
+        "relations": [
+          {
+            "fromPublicEpisodeId": "EVENT_090_230514_E03",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_113_240430_ADD_E03"
+          },
+          {
+            "fromPublicEpisodeId": "EVENT_090_230514_E03",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_118_240627_E02"
+          },
+          {
+            "fromPublicEpisodeId": "EVENT_113_240430_ADD_E03",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_144_250724_E02"
+          }
+        ]
+      },
+      {
+        "componentKey": "component-0016",
+        "nodes": [
+          {
+            "episodeLabel": "イベント 091-230524 / エピソード 4",
+            "publicEpisodeId": "EVENT_091_230524_E04",
+            "publicStoryId": "EVENT_091_230524",
+            "storyLabel": "イベント 091-230524"
+          },
+          {
+            "episodeLabel": "イベント 093-230621 / エピソード 1",
+            "publicEpisodeId": "EVENT_093_230621_E01",
+            "publicStoryId": "EVENT_093_230621",
+            "storyLabel": "イベント 093-230621"
+          }
+        ],
+        "relations": [
+          {
+            "fromPublicEpisodeId": "EVENT_091_230524_E04",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_093_230621_E01"
+          }
+        ]
+      },
+      {
+        "componentKey": "component-0017",
+        "nodes": [
+          {
+            "episodeLabel": "イベント 094-230706 / エピソード 3",
+            "publicEpisodeId": "EVENT_094_230706_E03",
+            "publicStoryId": "EVENT_094_230706",
+            "storyLabel": "イベント 094-230706"
+          },
+          {
+            "episodeLabel": "イベント 095-230720 / エピソード 1",
+            "publicEpisodeId": "EVENT_095_230720_E01",
+            "publicStoryId": "EVENT_095_230720",
+            "storyLabel": "イベント 095-230720"
+          }
+        ],
+        "relations": [
+          {
+            "fromPublicEpisodeId": "EVENT_094_230706_E03",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_095_230720_E01"
+          }
+        ]
+      },
+      {
+        "componentKey": "component-0018",
+        "nodes": [
+          {
+            "episodeLabel": "イベント 096-230802 / エピソード 1",
+            "publicEpisodeId": "EVENT_096_230802_E01",
+            "publicStoryId": "EVENT_096_230802",
+            "storyLabel": "イベント 096-230802"
+          },
+          {
+            "episodeLabel": "イベント 097-230816 / エピソード 1",
+            "publicEpisodeId": "EVENT_097_230816_E01",
+            "publicStoryId": "EVENT_097_230816",
+            "storyLabel": "イベント 097-230816"
+          }
+        ],
+        "relations": [
+          {
+            "fromPublicEpisodeId": "EVENT_096_230802_E01",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_097_230816_E01"
+          }
+        ]
+      },
+      {
+        "componentKey": "component-0019",
+        "nodes": [
+          {
+            "episodeLabel": "イベント 102-231025 / エピソード 4",
+            "publicEpisodeId": "EVENT_102_231025_E04",
+            "publicStoryId": "EVENT_102_231025",
+            "storyLabel": "イベント 102-231025"
+          },
+          {
+            "episodeLabel": "イベント 132-250205 / エピソード 1",
+            "publicEpisodeId": "EVENT_132_250205_E01",
+            "publicStoryId": "EVENT_132_250205",
+            "storyLabel": "イベント 132-250205"
+          }
+        ],
+        "relations": [
+          {
+            "fromPublicEpisodeId": "EVENT_102_231025_E04",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_132_250205_E01"
+          }
+        ]
+      },
+      {
+        "componentKey": "component-0020",
+        "nodes": [
+          {
+            "episodeLabel": "イベント 104-231207 / エピソード 4",
+            "publicEpisodeId": "EVENT_104_231207_E04",
+            "publicStoryId": "EVENT_104_231207",
+            "storyLabel": "イベント 104-231207"
+          },
+          {
+            "episodeLabel": "イベント 127-241128 / エピソード 1",
+            "publicEpisodeId": "EVENT_127_241128_E01",
+            "publicStoryId": "EVENT_127_241128",
+            "storyLabel": "イベント 127-241128"
+          }
+        ],
+        "relations": [
+          {
+            "fromPublicEpisodeId": "EVENT_104_231207_E04",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_127_241128_E01"
+          }
+        ]
+      },
+      {
+        "componentKey": "component-0021",
+        "nodes": [
+          {
+            "episodeLabel": "イベント 111-240313 / エピソード 1",
+            "publicEpisodeId": "EVENT_111_240313_E01",
+            "publicStoryId": "EVENT_111_240313",
+            "storyLabel": "イベント 111-240313"
+          },
+          {
+            "episodeLabel": "イベント 112-240328 / エピソード 1",
+            "publicEpisodeId": "EVENT_112_240328_E01",
+            "publicStoryId": "EVENT_112_240328",
+            "storyLabel": "イベント 112-240328"
+          },
+          {
+            "episodeLabel": "イベント 135-250320 / エピソード 1",
+            "publicEpisodeId": "EVENT_135_250320_E01",
+            "publicStoryId": "EVENT_135_250320",
+            "storyLabel": "イベント 135-250320"
+          }
+        ],
+        "relations": [
+          {
+            "fromPublicEpisodeId": "EVENT_111_240313_E01",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_112_240328_E01"
+          },
+          {
+            "fromPublicEpisodeId": "EVENT_111_240313_E01",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_135_250320_E01"
+          }
+        ]
+      },
+      {
+        "componentKey": "component-0022",
+        "nodes": [
+          {
+            "episodeLabel": "イベント 113-240410 / エピソード 5",
+            "publicEpisodeId": "EVENT_113_240410_E05",
+            "publicStoryId": "EVENT_113_240410",
+            "storyLabel": "イベント 113-240410"
+          },
+          {
+            "episodeLabel": "イベント 124-241017 / エピソード 1",
+            "publicEpisodeId": "EVENT_124_241017_E01",
+            "publicStoryId": "EVENT_124_241017",
+            "storyLabel": "イベント 124-241017"
+          }
+        ],
+        "relations": [
+          {
+            "fromPublicEpisodeId": "EVENT_113_240410_E05",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_124_241017_E01"
+          }
+        ]
+      },
+      {
+        "componentKey": "component-0023",
+        "nodes": [
+          {
+            "episodeLabel": "イベント 113-240430-ADD / エピソード 4",
+            "publicEpisodeId": "EVENT_113_240430_ADD_E04",
+            "publicStoryId": "EVENT_113_240430_ADD",
+            "storyLabel": "イベント 113-240430-ADD"
+          },
+          {
+            "episodeLabel": "イベント 122-240904 / エピソード 4",
+            "publicEpisodeId": "EVENT_122_240904_E04",
+            "publicStoryId": "EVENT_122_240904",
+            "storyLabel": "イベント 122-240904"
+          },
+          {
+            "episodeLabel": "イベント 126-241110 / エピソード 3",
+            "publicEpisodeId": "EVENT_126_241110_E03",
+            "publicStoryId": "EVENT_126_241110",
+            "storyLabel": "イベント 126-241110"
+          },
+          {
+            "episodeLabel": "イベント 126-241110 / エピソード 4",
+            "publicEpisodeId": "EVENT_126_241110_E04",
+            "publicStoryId": "EVENT_126_241110",
+            "storyLabel": "イベント 126-241110"
+          },
+          {
+            "episodeLabel": "イベント 138-250429 / エピソード 1",
+            "publicEpisodeId": "EVENT_138_250429_E01",
+            "publicStoryId": "EVENT_138_250429",
+            "storyLabel": "イベント 138-250429"
+          }
+        ],
+        "relations": [
+          {
+            "fromPublicEpisodeId": "EVENT_113_240430_ADD_E04",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_122_240904_E04"
+          },
+          {
+            "fromPublicEpisodeId": "EVENT_113_240430_ADD_E04",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_126_241110_E03"
+          },
+          {
+            "fromPublicEpisodeId": "EVENT_113_240430_ADD_E04",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_138_250429_E01"
+          },
+          {
+            "fromPublicEpisodeId": "EVENT_126_241110_E04",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_138_250429_E01"
+          }
+        ]
+      },
+      {
+        "componentKey": "component-0024",
+        "nodes": [
+          {
+            "episodeLabel": "イベント 114-240508 / エピソード 4",
+            "publicEpisodeId": "EVENT_114_240508_E04",
+            "publicStoryId": "EVENT_114_240508",
+            "storyLabel": "イベント 114-240508"
+          },
+          {
+            "episodeLabel": "イベント 115-240516 / エピソード 1",
+            "publicEpisodeId": "EVENT_115_240516_E01",
+            "publicStoryId": "EVENT_115_240516",
+            "storyLabel": "イベント 115-240516"
+          }
+        ],
+        "relations": [
+          {
+            "fromPublicEpisodeId": "EVENT_114_240508_E04",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_115_240516_E01"
+          }
+        ]
+      },
+      {
+        "componentKey": "component-0025",
+        "nodes": [
+          {
+            "episodeLabel": "イベント 118-240627 / エピソード 1",
+            "publicEpisodeId": "EVENT_118_240627_E01",
+            "publicStoryId": "EVENT_118_240627",
+            "storyLabel": "イベント 118-240627"
+          },
+          {
+            "episodeLabel": "イベント 164-260425 / エピソード 1",
+            "publicEpisodeId": "EVENT_164_260425_E01",
+            "publicStoryId": "EVENT_164_260425",
+            "storyLabel": "イベント 164-260425"
+          }
+        ],
+        "relations": [
+          {
+            "fromPublicEpisodeId": "EVENT_118_240627_E01",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_164_260425_E01"
+          }
+        ]
+      },
+      {
+        "componentKey": "component-0026",
+        "nodes": [
+          {
+            "episodeLabel": "イベント 123-241002-ADD / エピソード 4",
+            "publicEpisodeId": "EVENT_123_241002_ADD_E04",
+            "publicStoryId": "EVENT_123_241002_ADD",
+            "storyLabel": "イベント 123-241002-ADD"
+          },
+          {
+            "episodeLabel": "イベント 137-250416 / エピソード 1",
+            "publicEpisodeId": "EVENT_137_250416_E01",
+            "publicStoryId": "EVENT_137_250416",
+            "storyLabel": "イベント 137-250416"
+          }
+        ],
+        "relations": [
+          {
+            "fromPublicEpisodeId": "EVENT_123_241002_ADD_E04",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_137_250416_E01"
+          }
+        ]
+      },
+      {
+        "componentKey": "component-0027",
+        "nodes": [
+          {
+            "episodeLabel": "イベント 135-250320 / エピソード 2",
+            "publicEpisodeId": "EVENT_135_250320_E02",
+            "publicStoryId": "EVENT_135_250320",
+            "storyLabel": "イベント 135-250320"
+          },
+          {
+            "episodeLabel": "イベント 153-251120 / エピソード 1",
+            "publicEpisodeId": "EVENT_153_251120_E01",
+            "publicStoryId": "EVENT_153_251120",
+            "storyLabel": "イベント 153-251120"
+          }
+        ],
+        "relations": [
+          {
+            "fromPublicEpisodeId": "EVENT_135_250320_E02",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_153_251120_E01"
+          }
+        ]
+      },
+      {
+        "componentKey": "component-0028",
+        "nodes": [
+          {
+            "episodeLabel": "イベント 135-250320 / エピソード 4",
+            "publicEpisodeId": "EVENT_135_250320_E04",
+            "publicStoryId": "EVENT_135_250320",
+            "storyLabel": "イベント 135-250320"
+          },
+          {
+            "episodeLabel": "イベント 136-250403 / エピソード 2",
+            "publicEpisodeId": "EVENT_136_250403_E02",
+            "publicStoryId": "EVENT_136_250403",
+            "storyLabel": "イベント 136-250403"
+          }
+        ],
+        "relations": [
+          {
+            "fromPublicEpisodeId": "EVENT_135_250320_E04",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_136_250403_E02"
+          }
+        ]
+      },
+      {
+        "componentKey": "component-0029",
+        "nodes": [
+          {
+            "episodeLabel": "イベント 138-250429 / エピソード 3",
+            "publicEpisodeId": "EVENT_138_250429_E03",
+            "publicStoryId": "EVENT_138_250429",
+            "storyLabel": "イベント 138-250429"
+          },
+          {
+            "episodeLabel": "イベント 159-260211 / エピソード 1",
+            "publicEpisodeId": "EVENT_159_260211_E01",
+            "publicStoryId": "EVENT_159_260211",
+            "storyLabel": "イベント 159-260211"
+          }
+        ],
+        "relations": [
+          {
+            "fromPublicEpisodeId": "EVENT_138_250429_E03",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_159_260211_E01"
+          }
+        ]
+      },
+      {
+        "componentKey": "component-0030",
+        "nodes": [
+          {
+            "episodeLabel": "イベント 145-250807 / エピソード 4",
+            "publicEpisodeId": "EVENT_145_250807_E04",
+            "publicStoryId": "EVENT_145_250807",
+            "storyLabel": "イベント 145-250807"
+          },
+          {
+            "episodeLabel": "イベント 161-260312 / エピソード 1",
+            "publicEpisodeId": "EVENT_161_260312_E01",
+            "publicStoryId": "EVENT_161_260312",
+            "storyLabel": "イベント 161-260312"
+          }
+        ],
+        "relations": [
+          {
+            "fromPublicEpisodeId": "EVENT_145_250807_E04",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_161_260312_E01"
+          }
+        ]
+      },
+      {
+        "componentKey": "component-0031",
+        "nodes": [
+          {
+            "episodeLabel": "イベント 151-251022 / エピソード 4",
+            "publicEpisodeId": "EVENT_151_251022_E04",
+            "publicStoryId": "EVENT_151_251022",
+            "storyLabel": "イベント 151-251022"
+          },
+          {
+            "episodeLabel": "イベント 160-260225 / エピソード 4",
+            "publicEpisodeId": "EVENT_160_260225_E04",
+            "publicStoryId": "EVENT_160_260225",
+            "storyLabel": "イベント 160-260225"
+          }
+        ],
+        "relations": [
+          {
+            "fromPublicEpisodeId": "EVENT_151_251022_E04",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_160_260225_E04"
+          }
+        ]
+      },
+      {
+        "componentKey": "component-0032",
+        "nodes": [
+          {
+            "episodeLabel": "イベント 162-260328 / エピソード 4",
+            "publicEpisodeId": "EVENT_162_260328_E04",
+            "publicStoryId": "EVENT_162_260328",
+            "storyLabel": "イベント 162-260328"
+          },
+          {
+            "episodeLabel": "イベント 163-260328 / エピソード 1",
+            "publicEpisodeId": "EVENT_163_260328_E01",
+            "publicStoryId": "EVENT_163_260328",
+            "storyLabel": "イベント 163-260328"
+          }
+        ],
+        "relations": [
+          {
+            "fromPublicEpisodeId": "EVENT_162_260328_E04",
+            "labelKey": "timeline_before",
+            "relationState": "before",
+            "toPublicEpisodeId": "EVENT_163_260328_E01"
+          }
+        ]
+      }
+    ],
+    "coverageNoticeKey": "partial_confirmed_relations_only",
+    "documentType": "canonical_timeline_public_projection",
+    "publishStatus": "projection_candidate",
+    "purpose": "confirmed_relation_navigation",
+    "schemaVersion": "0.1",
+    "scope": "event",
+    "unresolvedRelationSummary": {
+      "conflictCount": 0,
+      "countScope": "canonical_artifact_only",
+      "noticeKey": "unresolved_relations_not_shown",
+      "unknownCount": 0
+    },
+    "visibility": "public"
+  },
+  "pushReview": {
+    "checks": {
+      "internalExposureClear": true,
+      "projectionSchemaValid": true,
+      "projectionSemanticsReviewed": true,
+      "visualReviewCompleted": true
+    },
+    "decision": "approved_for_build",
+    "reviewedAt": "2026-09-09T12:23:47Z",
+    "reviewerType": "human"
+  },
+  "schemaVersion": "0.1",
+  "visibility": "public"
+}

@@ -19,7 +19,7 @@ public-safeなWiki生成物を将来公開する場合のstatic site generator�
 - repositoryはGitHub上のpublic repositoryで、`main`へのpushとPRで既存GitHub Actions CIが動く
 - rendererはportableなMarkdownを生成し、theme固有syntaxへ深く依存しない
 - local previewはMkDocs 1.6.1 / Material for MkDocs 9.7.6で成功している
-- Canonical Timelineは`projection_candidate`のままで、実データ公開承認を得ていない
+- Canonical Timelineは`projection_candidate`を維持し、人間確認済みpublic-safe構造化入力のpushだけが承認済みである。`publish-ready`化とproduction deployは未承認である
 - PR buildからpublic deployへ直結させず、公開操作は人間判断を必要とする
 - 実artifact、private mapping、実データ由来生成物をrepositoryや通常のCI artifactへ混入させない
 - public repositoryではbranch push自体が外部公開になるため、実public-safe入力も人間確認前にpushしない
@@ -175,10 +175,11 @@ P8    Decision / implementation / rehearsal / publishを別承認
 5. ~~build-only GitHub Actions workflowを実装~~（`Public_Build_Only.md`と`.github/workflows/public-build.yml`で匿名合成input限定・artifact uploadなしとして実装）
 6. ~~manual production workflowとenvironment gateを実装~~（`Public_Production_Gate.md`と`.github/workflows/public-production-gate.yml`で、main上の完全SHA・匿名合成input・保護environmentに限定し、artifact upload / deployなしとして実装）
 7. ~~合成siteでdeploy / rollback rehearsal~~（production workflowのartifact upload / protected deploy / rollback digest gateを実装し、A→B→Aの実rehearsalと表示確認を完了）
-8. 実データpublic projectionをignored workspaceで生成し、人間がpush前確認
-9. 専用public content PRをmerge後、対象revisionと最終表示を確認して初回production deploy
+8. ~~実データpublic projectionをignored workspaceで生成し、人間がpush前確認~~（72 episode / 40 confirmed relationの表示・露出確認とpush承認を完了）
+9. 承認済みpublic-safe構造化入力だけを専用public content PRでmerge
+10. 別PRでbuild / production workflowを実入力へ切り替え、対象revisionと最終表示を確認して初回production deploy
 
-各段階は小さいPRに分ける。第7段階まで完了した。次は第8段階として実データpublic projectionをignored workspaceで生成し、commitやpushの前に公開対象とlabel、最終表示を人間が確認する。第9段階の実content deployも独立した人間判断を求める。
+各段階は小さいPRに分ける。第8段階まで完了し、本PRは第9段階の専用public content PRである。第10段階のworkflow入力切替と実content deployは本PRへ含めず、production deploy直前に対象revision、公開URL、最終表示の独立した人間判断を求める。
 
 ---
 
