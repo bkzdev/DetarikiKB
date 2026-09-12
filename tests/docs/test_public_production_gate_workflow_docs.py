@@ -172,10 +172,13 @@ def test_runbook_and_handoff_fix_synthetic_deploy_and_rollback_boundary() -> Non
         "rollback rehearsal",
     ):
         assert required in runbook
-    assert "`codex/public-projection-prepush-review`" in tasks
-    assert "A→B→A" in tasks
+    assert "`codex/canonical-timeline-real-public-input`" in tasks
+    assert "production workflowの実入力切替" in tasks
     assert "34323175235" in runbook
     assert "Status: Implemented and rehearsed" in runbook
-    for handoff in (tasks, context, milestones):
-        assert "実データpublic projectionをignored workspaceで生成" in handoff
+    assert "実データpublic projectionをignored workspaceで生成" in tasks
+    assert "実データpublic projectionのpush前review" in milestones
+    assert "72 episode / 40 confirmed relation" in context
+    assert "公開範囲と中立label" in tasks
+    for handoff in (context, milestones):
         assert "push前" in handoff

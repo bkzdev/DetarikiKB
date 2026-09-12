@@ -32,6 +32,13 @@ PREFLIGHT_TEMPLATE_PATH = (
     / "templates"
     / "canonical_timeline_public_preflight_record_template.json"
 )
+REAL_INPUT_PATH = (
+    PROJECT_ROOT
+    / "knowledge"
+    / "public"
+    / "timelines"
+    / "canonical_timeline_public_input.json"
+)
 
 
 def _load(path: Path) -> dict:
@@ -129,6 +136,19 @@ def test_approved_review_and_public_input_are_valid() -> None:
         == []
     )
     assert _errors("canonical_timeline_public_input.schema.json", _public_input()) == []
+
+
+def test_committed_real_public_input_is_valid_and_digest_bound() -> None:
+    document = _load(REAL_INPUT_PATH)
+    projection = document["projection"]
+    assert _errors("canonical_timeline_public_input.schema.json", document) == []
+    assert document["payloadSha256"] == _digest(projection)
+    assert document["buildStatus"] == "approved_for_build"
+    assert projection["publishStatus"] == "projection_candidate"
+    assert sum(len(component["nodes"]) for component in projection["components"]) == 72
+    assert (
+        sum(len(component["relations"]) for component in projection["components"]) == 40
+    )
 
 
 def test_preflight_record_binds_five_digests_and_clean_findings() -> None:

@@ -60,7 +60,10 @@ commitしないもの:
 - `site/` / `site_zensical/`の生成HTML
 - `workspace/wiki_preview/`配下のpreviewと一時config
 - 実データ由来Markdown / HTML
-- internal artifact、private mapping、実public-safe入力
+- internal artifact、private mapping、review / preflight record
+- 人間のpush前レビューと専用promotion gateを通していない実public-safe入力
+
+完全preflight、人間レビュー、専用promotion gateをすべて通したpublic-safe構造化入力だけは、専用public content PRで固定保存先へcommitできる。生成Markdown / HTML、private mapping、review / preflight recordは引き続きcommitしない。workflow入力切替とproduction deployも別PR / 別gateとする。
 
 ---
 
@@ -70,4 +73,4 @@ dual-build標準化後のpublic-safe構造化入力schema、push前review metada
 
 `Public_Build_Only.md`と`.github/workflows/public-build.yml`はMkDocs / Zensicalの出力を別々の一時directoryへ生成し、同じ`check_public_site_manifest.py`を各siteへ適用する。theme asset差があるためtree digestの完全一致は要求せず、共通route set、exposure 0、public input / lock digest一致を要求する。manifestはsite tree外のCI一時directoryへdetached出力し、通常PRではartifact uploadしない。
 
-build-only public workflowへの統合と、分離したmanual production workflow / environment gate、検証済みZensical siteだけのPages artifact upload / protected deployは匿名合成input限定で実装し、A→B→Aの実deploy / rollback rehearsalも完了した。次は実データpublic projectionのpush前人間レビューであり、それまでは実public inputを扱わない。
+build-only public workflowへの統合と、分離したmanual production workflow / environment gate、検証済みZensical siteだけのPages artifact upload / protected deployは匿名合成input限定で実装し、A→B→Aの実deploy / rollback rehearsalも完了した。実データpublic projectionのpush前人間レビューと初回public input昇格も完了した。次は別PRで両workflowの入力をcommit済み実inputへ切り替え、同じdual-build / exposure gateを再実行する。

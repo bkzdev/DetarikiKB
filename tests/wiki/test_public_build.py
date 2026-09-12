@@ -23,10 +23,21 @@ INPUT_PATH = (
     / "canonical_timeline_public_input"
     / "approved_synthetic_input.json"
 )
+REAL_INPUT_PATH = (
+    PROJECT_ROOT
+    / "knowledge"
+    / "public"
+    / "timelines"
+    / "canonical_timeline_public_input.json"
+)
 
 
 def _input() -> dict:
     return json.loads(INPUT_PATH.read_text(encoding="utf-8"))
+
+
+def _real_input() -> dict:
+    return json.loads(REAL_INPUT_PATH.read_text(encoding="utf-8"))
 
 
 def _refresh_digest(document: dict) -> None:
@@ -54,6 +65,15 @@ def test_build_source_is_deterministic_complete_and_input_immutable() -> None:
     index = first["index.md"].decode("utf-8")
     assert index.startswith("# 合成公開ビルド\n")
     assert "合成変更版B" not in index
+
+
+def test_real_public_input_passes_semantics_and_builds_timeline() -> None:
+    document = _real_input()
+    projection = document["projection"]
+
+    assert validate_public_build_projection(projection) == ()
+    source_files = build_public_source_files(document)
+    assert "timelines/index.md" in source_files
 
 
 @pytest.mark.parametrize(
