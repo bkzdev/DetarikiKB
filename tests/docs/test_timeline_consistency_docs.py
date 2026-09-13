@@ -288,7 +288,7 @@ def test_public_projection_decision_keeps_implementation_and_publish_gates():
         "実データ公開・個別relation公開・hosting・deploy・既存URL変更は許可していない"
         in tasks
     )
-    assert "公開profileの採択からprotected Pages deploy" in milestones
+    assert "公開profileの採択、protected Pages gate" in milestones
 
 
 def test_public_projection_schema_contract_is_linked_and_fail_closed():
@@ -349,7 +349,7 @@ def test_public_projector_contract_is_implemented_and_keeps_publish_gate_closed(
         assert "Canonical_Timeline_Public_Projector.md" in content
         assert "read-only preflight" in content
 
-    assert "`codex/public-projection-prepush-review`" in tasks
+    assert "`codex/canonical-timeline-real-public-input`" in tasks
     assert "`publish-ready`化" in tasks
 
 
@@ -382,12 +382,12 @@ def test_public_preflight_contract_is_implemented_and_keeps_candidate_state():
     for content in (decision, schema_doc, projector):
         assert "Canonical_Timeline_Public_Preflight.md" in content
 
-    assert "`codex/public-projection-prepush-review`" in tasks
+    assert "`codex/canonical-timeline-real-public-input`" in tasks
     assert "ignored workspace" in tasks
-    assert "push前に人間が確認" in tasks
+    assert "5入力digest preflight" in tasks
 
 
-def test_public_renderer_contract_is_implemented_without_real_data_integration():
+def test_public_renderer_contract_is_implemented_with_reviewed_public_input():
     renderer = _read(PUBLIC_RENDERER_DOC_PATH)
     decision = _read(PUBLIC_PROJECTION_DECISION_PATH)
     schema_doc = _read(PUBLIC_PROJECTION_SCHEMA_DOC_PATH)
@@ -414,11 +414,11 @@ def test_public_renderer_contract_is_implemented_without_real_data_integration()
     for content in (decision, schema_doc, preflight):
         assert "Canonical_Timeline_Public_Renderer.md" in content
 
-    assert "`codex/public-projection-prepush-review`" in tasks
+    assert "`codex/canonical-timeline-real-public-input`" in tasks
     assert "`publish-ready`化" in tasks
 
 
-def test_public_preview_records_visual_and_safety_review_without_real_data():
+def test_public_preview_records_real_data_visual_and_safety_review():
     preview = _read(PUBLIC_PREVIEW_DOC_PATH)
     renderer = _read(PUBLIC_RENDERER_DOC_PATH)
     decision = _read(PUBLIC_PROJECTION_DECISION_PATH)
@@ -441,8 +441,8 @@ def test_public_preview_records_visual_and_safety_review_without_real_data():
     for content in (renderer, decision):
         assert "Canonical_Timeline_Public_Preview.md" in content
 
-    assert "`codex/public-projection-prepush-review`" in tasks
-    assert "確認前の実input commit" in tasks
+    assert "`codex/canonical-timeline-real-public-input`" in tasks
+    assert "公開範囲と中立label" in tasks
 
 
 def test_public_publishing_decision_is_accepted_and_non_deploying():
@@ -477,8 +477,8 @@ def test_public_publishing_decision_is_accepted_and_non_deploying():
     for content in (projection_decision, preview):
         assert "Public_Publishing_Workflow_Decision.md" in content
 
-    assert "`codex/public-projection-prepush-review`" in tasks
-    assert "専用public content PRと初回実content deployは別gate" in tasks
+    assert "`codex/canonical-timeline-real-public-input`" in tasks
+    assert "初回実content deployは次の独立gate" in tasks
 
 
 def test_timeline_docs_link_to_global_scope_decision_frame():

@@ -33,7 +33,7 @@ def test_design_records_public_envelope_without_publish_approval() -> None:
         "payloadSha256",
         "reviewer名、自由記述、internal input digest",
         "publish-ready",
-        "実入力も合成入力も正式保存先へ昇格しない",
+        "初回実入力を固定保存先へ昇格",
         "site manifest",
         "deploy",
     ):
@@ -60,7 +60,7 @@ def test_runbook_is_dry_run_by_default_and_fail_closed() -> None:
         assert required in runbook
 
 
-def test_handoff_points_to_prepush_review_without_real_input() -> None:
+def test_handoff_records_reviewed_real_input_and_next_workflow_gate() -> None:
     tasks = _read(PROJECT_ROOT / "TASKS.md")
     context = _read(PROJECT_ROOT / "AI_CONTEXT.md")
     publishing = _read(
@@ -74,11 +74,14 @@ def test_handoff_points_to_prepush_review_without_real_input() -> None:
         PROJECT_ROOT / "docs" / "architecture" / "01_Project" / "Project_Milestones.md"
     )
 
-    assert "`codex/public-projection-prepush-review`" in tasks
+    assert "`codex/canonical-timeline-real-public-input`" in tasks
     assert "Canonical_Timeline_Public_Input.md" in context
     assert "Canonical_Timeline_Public_Input_Promotion.md" in context
     assert "~~public-safe構造化入力の保存schema" in publishing
-    assert "実データpublic projectionをignored workspaceで生成" in milestones
+    assert "初回public input昇格" in milestones
 
     target_dir = PROJECT_ROOT / "knowledge" / "public" / "timelines"
-    assert sorted(path.name for path in target_dir.iterdir()) == [".gitkeep"]
+    assert sorted(path.name for path in target_dir.iterdir()) == [
+        ".gitkeep",
+        "canonical_timeline_public_input.json",
+    ]

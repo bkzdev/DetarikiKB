@@ -70,5 +70,5 @@ def test_runbook_and_handoff_fix_build_only_boundary() -> None:
         "manual production workflow",
     ):
         assert required in runbook
-    assert "`codex/public-projection-prepush-review`" in tasks
-    assert "A→B→A" in tasks
+    assert "`codex/canonical-timeline-real-public-input`" in tasks
+    assert "72 episode / 40 confirmed relation" in tasks

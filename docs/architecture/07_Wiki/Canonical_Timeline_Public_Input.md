@@ -1,8 +1,8 @@
 # Canonical Timeline Public Input
 
-Version: 0.1
+Version: 0.2
 Status: Implemented
-Updated: 2026-09-04
+Updated: 2026-09-13
 
 ---
 
@@ -23,7 +23,7 @@ trusted localで生成・検査・人間確認したCanonical Timeline public pr
 - payload schema: `schemas/canonical_timeline_public_projection.schema.json`
 - real candidate / review / preflight: `workspace/public_wiki_inputs/`（ignore・非commit）
 
-このPRでは保存先directoryの`.gitkeep`だけを追加し、実入力も合成入力も正式保存先へ昇格しない。合成データはtestsとdocs templateだけで検証する。
+初期実装PRでは保存先directoryの`.gitkeep`だけを追加し、合成データはtestsとdocs templateだけで検証した。2026-09-13に、別の専用PRで人間確認済みの初回実入力を固定保存先へ昇格した。private mapping、real review / preflight record、生成Markdown / HTMLは引き続きworkspace限定・非commitとする。
 
 ---
 
@@ -97,3 +97,9 @@ commit可能なのはschema、script、合成fixture/test、template、runbook�
 - reviewer identity / note / source text / provenance / Evidence / internal ID
 
 site manifest / hosted exposure scan契約は後続`Public_Site_Manifest_Exposure_Scan.md`で実装済みである。本実装自体はrenderer、public workflow、Pages artifact、deploy、rollbackを変更しない。
+
+# 7. 初回実入力の昇格記録
+
+2026-09-09に、72 episode / 40 confirmed relationの実projectionについて、公開範囲、中立なpublic label、TimelineとStory / Episode導線をローカル画面で人間確認した。5入力digest付きpreflight、内部値露出scan、link検査、Zensical build、独立agent監査はすべてcleanだった。
+
+2026-09-13に同一projection digestをWindows nativeとWSL/Linuxの両方でdry-runし、Linuxのdirectory descriptor相対no-follow / no-clobber gateから`knowledge/public/timelines/canonical_timeline_public_input.json`を初回作成した。public envelopeは`approved_for_build`だが、payloadは`projection_candidate`のままである。この昇格はproduction workflowの入力切替、`publish-ready`判定、artifact upload、Pages deployを許可しない。

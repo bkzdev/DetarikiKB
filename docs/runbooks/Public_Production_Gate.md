@@ -1,8 +1,8 @@
 # Public Production Environment Gate
 
-Version: 0.3
+Version: 0.4
 Status: Implemented and rehearsed
-Updated: 2026-09-09
+Updated: 2026-09-13
 
 ---
 
@@ -82,7 +82,7 @@ gh workflow run public-production-gate.yml --ref main `
 
 # 7. 次工程
 
-A→B→A rehearsalと表示確認を完了した。次は実データpublic projectionをignored workspaceで生成し、人間が公開対象、label、最終表示をpush前に確認する。実public inputの専用PRと初回実content deployはさらに後の独立gateであり、匿名合成rehearsalの成功だけでは開始しない。
+A→B→A rehearsalと表示確認に続き、実データpublic projectionのignored workspace生成、push前人間レビュー、専用public inputへの初回昇格まで完了した。次は別PRでbuild-only / production workflowの入力を匿名合成fixtureからcommit済み実public inputへ切り替え、同じdual-build・site manifest・exposure gateを通す。初回実content deployは、その切替PRがmainへmergeされた後に独立したenvironment承認で行う。現行workflowはこの変更がmergeされるまで匿名合成専用であり、実inputを自動取得・配備しない。
 
 # 8. 実施記録
 

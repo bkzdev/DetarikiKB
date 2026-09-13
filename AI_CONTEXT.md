@@ -64,6 +64,8 @@ raw DEC配置とDKB正規ID体系（storyId/episodeId）は`story_manifest.yaml`
 ### 3.11 実データ・生成物をcommitしない（横断ルール）
 以下はどのPRでも一貫してcommit対象外: 実`.dec`、実データ由来`story_manifest.yaml`、実Normalized Story JSON、実extraction/merged collection、実Wiki Markdown、raw HTML、実candidate YAML/CSV、`workspace/`配下の生成物、`.env`、APIキー。`.gitignore`で網羅済み。
 
+狭い例外として、内部値を含まないことを完全preflightと人間のpush前レビューで確認し、専用promotion gateを通したpublic-safe構造化入力だけは、専用public content PRで固定保存先へcommitできる。private mapping、review / preflight record、内部artifact、生成Markdown / HTMLはこの例外に含めない。workflow入力切替とproduction deployはpublic content PRから分離する。
+
 ### 3.12 コンテンツスコープ方針（要約）
 `data/raw/`配下のコンテンツは、軸(A)内部KB対象か・軸(B)公開対象か、の2軸で独立に判断する（two-tier方針）。`character`カテゴリのH_scene系（演出コンテンツ）は、ユーザー決定（2026-07-15）により**軸(A)内部KB対象・軸(B)公開対象外（恒久除外）**と確定した。実パース対象はH_sceneN本体・`H_scene_s`（約589件）に加え、本体の部分集合になっていない例外変種（最大144件、ユーザー決定(b)・2026-07-15、パース時に動的判定）とし、純粋な部分集合だった変種と`_VR`全件はパース対象外のままとする。詳細・open questions（純コマンド演出ファイルの扱い・5〜6桁キャラID帯）は`docs/architecture/01_Project/03_Scope.md`を参照。`character`/`character_date`カテゴリのstoryId体系（ローマ字characterId方式、新設カテゴリ`CHAR_HS`）・例外変種の別episode取り込み方式・`@SpineTalk`分類決定は`docs/architecture/05_Parser/Character_Story_ID_Manifest_Design.md`を参照（2026-07-16決定、実装は同文書§9のPR B〜Eで行う）。
 
@@ -112,17 +114,17 @@ Extraction / Merge:
 Wiki:
 - `docs/architecture/07_Wiki/Wiki_Output_Design.md`
 - `docs/architecture/07_Wiki/Canonical_Timeline_Public_Projection_Decision.md`（2026-09-01採択。Canonical Timelineは確認済み関係を辿る補助導線とし、adoption済みknown relationだけをrelation / connected component単位で`timelines/index.md`へ投影する。unknown/conflictは個別非公開、public ID・定型labelだけを許容し、fail-closed gateとrollbackを必須とする。採択はprojection設計・合成fixture実装までの許可で、実データ公開・hosting・deployは未許可）
-- `docs/architecture/07_Wiki/Canonical_Timeline_Public_Projection_Schema.md`（採択済みprofileの公開専用v0.1 field allowlist契約。public Story/Episode ID、公開許可済みlabel、known relationの定型label key、unknown/conflictのsafe aggregate以外を構造的に拒否し、`publishStatus: projection_candidate`を固定する。schema / projector / preflight / rendererの合成fixture実装とignored workspaceのlocal visual reviewは完了し、実データpreview・公開は未実施）
+- `docs/architecture/07_Wiki/Canonical_Timeline_Public_Projection_Schema.md`（採択済みprofileの公開専用v0.1 field allowlist契約。public Story/Episode ID、公開許可済みlabel、known relationの定型label key、unknown/conflictのsafe aggregate以外を構造的に拒否し、`publishStatus: projection_candidate`を固定する。schema / projector / preflight / rendererの合成fixture実装に加え、72 episode / 40 confirmed relationの実データpreviewとpush前reviewを完了した）
 - `docs/architecture/07_Wiki/Canonical_Timeline_Public_Projector.md`（schema-validなinternal documentと人間確認済みmappingから、adoption済みconfirmed known relationだけをconnected componentへ入力不変・決定的に投影する純粋関数。mapping / baseline不整合は空`projection_candidate`と内部IDを含まない`blocked` reportへfail-closedする。cross-document validatorも合成fixtureで実装済み）
-- `docs/architecture/07_Wiki/Canonical_Timeline_Public_Preflight.md`（5入力digest pin、internal / projection / Registry schema、projector、Registry / private mapping、public label source、cross-document完全一致、internal value / marker exposureを固定rule/countだけで集約するread-only gate。成功時も`projection_candidate`を維持する。実データ投入、公開判定は未実施）
-- `docs/architecture/07_Wiki/Canonical_Timeline_Public_Preview.md`（ignored workspaceの匿名合成projectionをMkDocsでdesktop / 390px表示し、3 relation種別、長いlabel、link遷移、横overflowなし、内部値露出0を確認した記録。生成Markdown / HTMLは非commitで、実データ公開・deployは未実施）
-- `docs/architecture/07_Wiki/Public_Publishing_Workflow_Decision.md`（2026-09-02採択。GitHub Pages custom Actions、trusted localとhosted public gateの分離、manual production、public PR previewなし、既知正常SHA再配備を固定する。Zensical移行、public input、site exposure、合成build-only、protected Pages deploy、匿名合成siteのA→B→A rollback rehearsalまで完了。実content push・deployは未実施）
+- `docs/architecture/07_Wiki/Canonical_Timeline_Public_Preflight.md`（5入力digest pin、internal / projection / Registry schema、projector、Registry / private mapping、public label source、cross-document完全一致、internal value / marker exposureを固定rule/countだけで集約するread-only gate。実データ72 episode / 40 relationへ適用してcleanを確認し、成功後も`projection_candidate`を維持した）
+- `docs/architecture/07_Wiki/Canonical_Timeline_Public_Preview.md`（ignored workspaceの匿名合成projectionでdesktop / 390px表示を検証した契約。2026-09-09には実データprojectionもZensicalでlocal buildし、Timeline・Story/Episode導線、内部値露出0を人間確認した。生成Markdown / HTMLは非commitで、deployは未実施）
+- `docs/architecture/07_Wiki/Public_Publishing_Workflow_Decision.md`（2026-09-02採択。GitHub Pages custom Actions、trusted localとhosted public gateの分離、manual production、public PR previewなし、既知正常SHA再配備を固定する。Zensical移行、public input、site exposure、合成build-only、protected Pages deploy、匿名合成siteのA→B→A rollback rehearsalに続き、初回実public inputのpush前reviewと専用PRまで到達した。production workflowの実入力切替と実content deployは未実施）
 - `docs/architecture/07_Wiki/Zensical_Synthetic_Dual_Build_Decision.md`（MkDocs 1.6.1 / Material 9.7.6とZensical 0.0.57で匿名合成Wiki 24 pageをstrict buildし、25 HTML route・119見出し・118 search entryの一致、link / exposure、desktop / 390px表示を確認した。採択後、Zensical 0.0.57 exact pin、`zensical.yml`、CI / 標準検証のdual-build化まで実装済み）
-- `docs/architecture/07_Wiki/Canonical_Timeline_Public_Renderer.md`（preflight完全cleanだけを受け付け、公開labelと固定relation文言から`timelines/index.md`を決定的に生成する純粋renderer。HTML / Markdown escape、Story / Episode link、unknown/conflict aggregate、link / target欠落を匿名件数で検査するsafe link checkerを合成fixtureで実装済み。`build_pages()` / CLI統合、実データpreview、公開判定は未実施）
-- `docs/architecture/07_Wiki/Canonical_Timeline_Public_Input.md`（既存public projectionをpayloadとする`approved_for_build` envelope、非commitのpush前review record、canonical JSON SHA-256 pin、clean preflight、既定dry-run / no-clobber / atomic createのlocal promotionを合成fixtureで実装済み。payloadは`projection_candidate`を維持し、実input昇格・publish-ready・公開・deployは未実施）
+- `docs/architecture/07_Wiki/Canonical_Timeline_Public_Renderer.md`（preflight完全cleanだけを受け付け、公開labelと固定relation文言から`timelines/index.md`を決定的に生成する純粋renderer。HTML / Markdown escape、Story / Episode link、unknown/conflict aggregate、link / target欠落を匿名件数で検査し、実データpreviewでもlink欠落・内部値露出0を確認した）
+- `docs/architecture/07_Wiki/Canonical_Timeline_Public_Input.md`（既存public projectionをpayloadとする`approved_for_build` envelope、非commitのpush前review record、canonical JSON SHA-256 pin、clean preflight、既定dry-run / no-clobber / atomic createのlocal promotion契約。2026-09-13に人間承認済み実projectionを`knowledge/public/timelines/canonical_timeline_public_input.json`へ初回昇格した。payloadは`projection_candidate`を維持し、publish-ready・workflow切替・deployは未実施）
 - `docs/architecture/07_Wiki/Public_Site_Manifest_Exposure_Scan.md`（生成siteの全file / route / raw digestをdetached manifestへ固定し、HTML source / 可視text / 属性とsearch dataを正規化scanするfail-closed gate。manifestは`deploymentAuthorized: false`固定）
 - `docs/runbooks/Public_Build_Only.md`（commit済み匿名合成public inputだけを使うread-only GitHub Actions dual-build、detached manifest比較、artifact upload / deploy禁止境界）
-- `docs/runbooks/Public_Production_Gate.md`（main上の完全SHAと匿名合成inputだけを再検証し、保護`github-pages` environmentの承認後に検証済みZensical siteだけをPagesへ配備するmanual workflow。owner本人のself-reviewを許可するsolo運用でもadmin bypass禁止・main限定を維持し、過去SHAは既知tree digestを必須とする。2026-09-09に同一URLでA→B→A rollback rehearsalを完了。次は実データpublic projectionをignored workspaceで生成し、push前に人間レビュー）
+- `docs/runbooks/Public_Production_Gate.md`（main上の完全SHAと匿名合成inputだけを再検証し、保護`github-pages` environmentの承認後に検証済みZensical siteだけをPagesへ配備するmanual workflow。owner本人のself-reviewを許可するsolo運用でもadmin bypass禁止・main限定を維持し、過去SHAは既知tree digestを必須とする。2026-09-09に同一URLでA→B→A rollback rehearsal、同月に実projectionのpush前reviewと初回input昇格を完了。次は別PRでbuild / production workflowを実入力へ安全に切り替える）
 - `docs/architecture/07_Wiki/Story_Page_Design.md`（Story page中心構造への設計方針。`render_story_page`/`story_page_path`で実装済み、Episode pageは維持。Story pageは表示可能なStory/Episode SummaryとevidenceRefsを表示済み。Episode pageへの限定表示も`episode-page-summary-evidence-linking`で実装済み）
 
 Runbooks:
@@ -153,7 +155,7 @@ Runbooks:
 次に TASKS.md の Current Focus / Next を確認してください。
 関連する docs/architecture/ の設計書（上記リンク参照）を確認してください。
 既存の reference/parser/story_parse_reference.py は直接改造せず、仕様確認用として参照してください。
-実装後は tests/ に pytest を追加し、合成fixtureで検証してください（実データはcommitしない）。
+実装後は tests/ に pytest を追加し、原則として合成fixtureで検証してください。実データと生成物は§3.11の禁止境界に従い、承認済みpublic-safe構造化入力だけを狭い例外とします。
 ```
 
 PRワークフロー・commit禁止リスト・標準検証コマンド・恒常Non-goals・最終報告様式は`docs/runbooks/AI_PR_Playbook.md`に集約されている。個別PRの指示プロンプトはこのPlaybookを前提とし、そのPR固有の情報（目的・参照docs・作業内容・固有のNon-goals追加分）のみを記載すればよい。

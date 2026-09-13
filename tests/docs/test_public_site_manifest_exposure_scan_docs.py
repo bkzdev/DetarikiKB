@@ -33,13 +33,13 @@ def test_design_fixes_manifest_exposure_and_authorization_boundaries() -> None:
         "JSON parse後のkey / valueもscan",
         "全site相対file pathも同じmarker ruleでscan",
         "検出値、file path、HTML断片はlogへ出さない",
-        "実HTML、実manifest、実public inputをcommit / uploadしない",
+        "実HTML、実manifestは引き続きcommit / uploadしない",
         "build-only GitHub Actions workflowへの統合",
     ):
         assert required in design
 
 
-def test_handoff_records_rehearsal_and_points_to_prepush_review() -> None:
+def test_handoff_records_real_input_promotion_and_next_workflow_gate() -> None:
     tasks = _read(PROJECT_ROOT / "TASKS.md")
     context = _read(PROJECT_ROOT / "AI_CONTEXT.md")
     publishing = _read(
@@ -54,9 +54,9 @@ def test_handoff_records_rehearsal_and_points_to_prepush_review() -> None:
     )
     dual_build = _read(PROJECT_ROOT / "docs" / "runbooks" / "Wiki_Dual_Build.md")
 
-    assert "`codex/public-projection-prepush-review`" in tasks
+    assert "`codex/canonical-timeline-real-public-input`" in tasks
     assert "Public_Site_Manifest_Exposure_Scan.md" in context
     assert "~~deploy前site manifest / exposure scan契約" in publishing
-    assert "A→B→A rollback rehearsalまで完了" in milestones
+    assert "A→B→A rollback rehearsal" in milestones
     assert "同じ`check_public_site_manifest.py`を各siteへ適用" in dual_build
     assert "Pages artifact upload / protected deploy" in dual_build
