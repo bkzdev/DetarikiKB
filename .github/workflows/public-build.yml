@@ -1,4 +1,4 @@
-name: Public Build (Synthetic, No Deploy)
+name: Public Build (Reviewed Input, No Deploy)
 
 on:
   pull_request:
@@ -29,12 +29,12 @@ jobs:
       - name: Install locked dependencies
         run: uv sync --locked
 
-      - name: Prepare committed synthetic public input
+      - name: Prepare committed reviewed public input
         shell: bash
         run: |
           public_build_root="$RUNNER_TEMP/dkb-public-build"
           uv run python scripts/prepare_public_build.py \
-            --public-input tests/fixtures/canonical_timeline_public_input/approved_synthetic_input.json \
+            --public-input knowledge/public/timelines/canonical_timeline_public_input.json \
             --output-root "$public_build_root"
           echo "PUBLIC_BUILD_ROOT=$public_build_root" >> "$GITHUB_ENV"
 
@@ -50,7 +50,7 @@ jobs:
           source_sha="$(git rev-parse HEAD)"
           mkdocs_version="$(uv run python -c 'from importlib.metadata import version; print(version("mkdocs-material"))')"
           zensical_version="$(uv run python -c 'from importlib.metadata import version; print(version("zensical"))')"
-          public_input="tests/fixtures/canonical_timeline_public_input/approved_synthetic_input.json"
+          public_input="knowledge/public/timelines/canonical_timeline_public_input.json"
           uv run python scripts/check_public_site_manifest.py \
             --site-dir "$PUBLIC_BUILD_ROOT/site-mkdocs" \
             --public-input "$public_input" \

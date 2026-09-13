@@ -178,13 +178,13 @@ def build_public_source_files(public_input: dict[str, Any]) -> dict[str, bytes]:
         files[f"stories/{story_id}.md"] = _stub_page(
             node["storyLabel"],
             "story",
-            "確認済み関係に含まれる合成公開ストーリーです。",
+            "確認済み関係に含まれる公開ストーリーです。",
         ).encode("utf-8")
     for node in sorted(nodes, key=lambda item: item["publicEpisodeId"]):
         files[f"stories/{node['publicEpisodeId']}.md"] = _stub_page(
             node["episodeLabel"],
             "episode",
-            "確認済み関係に含まれる合成公開エピソードです。",
+            "確認済み関係に含まれる公開エピソードです。",
         ).encode("utf-8")
 
     available = set(files)
@@ -193,8 +193,8 @@ def build_public_source_files(public_input: dict[str, Any]) -> dict[str, bytes]:
         raise PublicBuildError("public-build-link-validation-failed")
     files["timelines/index.md"] = timeline.encode("utf-8")
     files["index.md"] = (
-        "# 合成公開ビルド\n\n"
-        "公開用ビルド経路を検証する合成ページです。\n\n"
+        "# Detariki Knowledge Base\n\n"
+        "公開対象として確認済みの情報を掲載しています。\n\n"
         "[Canonical Timeline](timelines/index.md)\n"
     ).encode("utf-8")
     return dict(sorted(files.items(), key=lambda item: item[0].encode("utf-8")))

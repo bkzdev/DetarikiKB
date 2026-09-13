@@ -1,4 +1,4 @@
-"""合成public build-only workflow / runbookの契約テスト。"""
+"""Reviewed public input build-only workflow / runbookの契約テスト。"""
 
 from pathlib import Path
 
@@ -14,7 +14,7 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def test_workflow_is_read_only_synthetic_build_without_upload_or_deploy() -> None:
+def test_workflow_is_read_only_reviewed_build_without_upload_or_deploy() -> None:
     text = _read(WORKFLOW)
     workflow = yaml.load(text, Loader=yaml.BaseLoader)
     assert set(workflow["on"]) == {"pull_request", "push"}
@@ -22,13 +22,17 @@ def test_workflow_is_read_only_synthetic_build_without_upload_or_deploy() -> Non
     assert workflow["permissions"] == {"contents": "read"}
     assert set(workflow["jobs"]) == {"public-build"}
     assert workflow["jobs"]["public-build"]["runs-on"] == "ubuntu-latest"
+    assert (
+        text.count("knowledge/public/timelines/canonical_timeline_public_input.json")
+        == 2
+    )
 
     for required in (
         "actions/checkout@v4",
         "astral-sh/setup-uv@v5",
         "actions/setup-python@v5",
         "uv sync --locked",
-        "approved_synthetic_input.json",
+        "knowledge/public/timelines/canonical_timeline_public_input.json",
         "$RUNNER_TEMP/dkb-public-build",
         "prepare_public_build.py",
         "mkdocs build --strict",
@@ -51,7 +55,7 @@ def test_workflow_is_read_only_synthetic_build_without_upload_or_deploy() -> Non
         "pages: write",
         "id-token: write",
         "environment:",
-        "knowledge/public/",
+        "approved_synthetic_input.json",
     ):
         assert forbidden not in text
 
@@ -62,7 +66,7 @@ def test_runbook_and_handoff_fix_build_only_boundary() -> None:
     for required in (
         "Status: Implemented",
         ".github/workflows/public-build.yml",
-        "commit済みの匿名合成public inputだけ",
+        "commit済みのレビュー済みpublic inputだけ",
         "contents: read",
         "public-only semantic gate",
         "detached manifest",
@@ -70,5 +74,5 @@ def test_runbook_and_handoff_fix_build_only_boundary() -> None:
         "manual production workflow",
     ):
         assert required in runbook
-    assert "`codex/canonical-timeline-real-public-input`" in tasks
-    assert "72 episode / 40 confirmed relation" in tasks
+    assert "`codex/canonical-timeline-real-workflow-switch`" in tasks
+    assert "実入力由来site" in tasks

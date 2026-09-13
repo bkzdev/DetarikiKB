@@ -1,6 +1,6 @@
 # Public Production Environment Gate
 
-Version: 0.4
+Version: 0.5
 Status: Implemented and rehearsed
 Updated: 2026-09-13
 
@@ -8,9 +8,9 @@ Updated: 2026-09-13
 
 # 1. 目的
 
-`.github/workflows/public-production-gate.yml`は、手動指定した`main`上のrevisionについて、commit済み匿名合成public inputのdual-build / exposure gateを再実行し、検証済みZensical siteだけをGitHub Pagesへ配備する。production deployは保護された`github-pages` environmentの人間承認後にだけ実行する。
+`.github/workflows/public-production-gate.yml`は、手動指定した`main`上のrevisionについて、commit済みのレビュー済みpublic inputのdual-build / exposure gateを再実行し、検証済みZensical siteだけをGitHub Pagesへ配備する。production deployは保護された`github-pages` environmentの人間承認後にだけ実行する。
 
-本段階は匿名合成siteによるdeploy / rollback rehearsal専用である。実public input、`knowledge/public/`、実データ由来のMarkdown / HTML、private mappingを参照・upload・deployせず、`publish-ready`判定も行わない。
+hosted workflowが読む実データ由来入力は`knowledge/public/timelines/canonical_timeline_public_input.json`だけである。private mapping、local review / preflight、internal artifactを参照・uploadせず、入力の`projection_candidate`を自動的に`publish-ready`へ変更しない。
 
 # 2. 初回dispatch前の人間設定
 
@@ -23,7 +23,7 @@ workflowを一度でもdispatchする前に、repository管理者がGitHubのSet
 - workflowがdefault branchへmergeされた後、GitHub PagesのSourceをGitHub Actionsへ設定する
 - custom domainは設定しない
 
-2026-09-08のユーザー判断により、権限者がowner 1名だけの現状では別reviewer必須にすると承認経路が成立しないため、solo運用としてowner自身のreviewを許可する。これは承認省略ではなく、workflow dispatch後に同じ人間がenvironment画面で承認する運用である。administrator bypass、`main`限定、完全SHA、匿名合成input、全preflight gateは緩和しない。
+2026-09-08のユーザー判断により、権限者がowner 1名だけの現状では別reviewer必須にすると承認経路が成立しないため、solo運用としてowner自身のreviewを許可する。これは承認省略ではなく、workflow dispatch後に同じ人間がenvironment画面で承認する運用である。administrator bypass、`main`限定、完全SHA、レビュー済みinput、全preflight gateは緩和しない。
 
 preflightはGitHubのread-only REST APIからenvironment snapshotとbranch policyを取得し、required reviewerがrepository owner 1名だけ、self-review許可、administrator bypass禁止、custom branch policyが`main`だけ、という状態を匿名codeで再検証する。API取得または設定検証に失敗した場合はartifactをuploadせず、environment jobを開始しない。dispatch者の自己申告は承認根拠にしない。
 
@@ -40,9 +40,11 @@ preflightはGitHubのread-only REST APIからenvironment snapshotとbranch polic
 
 CLIとworkflow固有の診断は固定の匿名status / error codeだけを出し、入力SHAやpathを診断へ展開しない。Git commandもquiet modeで実行する。checkout actionは完全修飾`refs/heads/main`、full history、`persist-credentials: false`とし、外部actionは検証時のcommit SHAへ固定する。
 
-# 4. 合成build、artifact、deployment record
+# 4. Public input選択、build、artifact、deployment record
 
-preflight jobは`tests/fixtures/canonical_timeline_public_input/approved_synthetic_input.json`だけを`$RUNNER_TEMP/dkb-production-gate`へ展開し、次を順に実行する。
+preflight jobはrequested revisionをcheckoutする前に、trusted main上の`scripts/select_public_production_input.py`でGit treeを検査する。対象revisionに`knowledge/public/timelines/canonical_timeline_public_input.json`がblobとして存在する場合、それだけをcheckout後に`$RUNNER_TEMP/dkb-production-gate`へ展開する。`origin/main`先端でこの実入力が欠けている場合は`production-public-input-unavailable`で停止し、合成fixtureへ暗黙fallbackしない。
+
+実入力導入commit `bb37a6274e79f504e5ddc3e240e2c4420196ca70`より前に公開した既知正常SHAへ戻す場合だけ、指定SHAが同commitのancestorであることと`expected_tree_sha256`を必須にした上で、`tests/fixtures/canonical_timeline_public_input/approved_synthetic_input.json`を`legacy-synthetic-rollback`として選べる。この互換経路は現在公開中の合成版Aを、初回実content deployが成功するまで復旧先として維持するためのものである。実入力導入commit以後のrevisionでは、実入力が欠けていれば必ず停止し、合成fixtureへfallbackしない。
 
 1. MkDocs / Zensical strict build
 2. generator別detached manifest / exposure scan
@@ -62,7 +64,7 @@ GitHub PagesのSourceがGitHub Actionsであり、§2のenvironment設定が完�
 gh workflow run public-production-gate.yml --ref main -f source_sha=<40文字のmain上SHA>
 ```
 
-期待結果は、preflightの全gate通過、`deploy` jobのreview待ち、人間承認後のPages deploy成功である。未承認のまま放置したrun、preflight失敗run、deploy失敗runから次のproduction deployを開始しない。
+期待結果は、preflightの全gate通過、job summaryのinput profileが`reviewed-public-input`であること、`deploy` jobのreview待ち、人間承認後のPages deploy成功である。未承認のまま放置したrun、preflight失敗run、deploy失敗runから次のproduction deployを開始しない。
 
 # 6. A→B→A rollback rehearsal
 
@@ -82,7 +84,7 @@ gh workflow run public-production-gate.yml --ref main `
 
 # 7. 次工程
 
-A→B→A rehearsalと表示確認に続き、実データpublic projectionのignored workspace生成、push前人間レビュー、専用public inputへの初回昇格まで完了した。次は別PRでbuild-only / production workflowの入力を匿名合成fixtureからcommit済み実public inputへ切り替え、同じdual-build・site manifest・exposure gateを通す。初回実content deployは、その切替PRがmainへmergeされた後に独立したenvironment承認で行う。現行workflowはこの変更がmergeされるまで匿名合成専用であり、実inputを自動取得・配備しない。
+A→B→A rehearsalと表示確認に続き、実データpublic projectionのignored workspace生成、push前人間レビュー、専用public inputへの初回昇格、build-only / production workflowの実入力切替まで完了した。次は切替PRのCIと対象revisionを確認し、初回実content deployを独立したenvironment承認で行う。公開後はその成功revisionとtree SHA-256を新しい既知正常rollback先として記録する。
 
 # 8. 実施記録
 

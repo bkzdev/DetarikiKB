@@ -1,22 +1,22 @@
 # Public Build-Only Workflow
 
-Version: 0.1
+Version: 0.2
 Status: Implemented
-Updated: 2026-09-04
+Updated: 2026-09-13
 
 ---
 
 # 1. 目的
 
-`.github/workflows/public-build.yml`は、commit済みの匿名合成public inputだけからpublic-only Markdownを生成し、MkDocs / Zensicalのdual-buildとdetached site manifest / exposure gateを検証する。PRと`main` pushの回帰検査であり、artifact upload、Pages設定、production deploy、公開承認を行わない。
+`.github/workflows/public-build.yml`は、commit済みのレビュー済みpublic inputだけからpublic-only Markdownを生成し、MkDocs / Zensicalのdual-buildとdetached site manifest / exposure gateを検証する。PRと`main` pushの回帰検査であり、artifact upload、Pages設定、production deploy、公開承認を行わない。
 
 # 2. 固定入力と一時出力
 
-入力は`tests/fixtures/canonical_timeline_public_input/approved_synthetic_input.json`へ固定する。このfixtureはschema-validな`approved_for_build` envelopeだが、匿名合成データだけを含み、実public inputや実データの公開承認を表さない。
+入力は`knowledge/public/timelines/canonical_timeline_public_input.json`へ固定する。このファイルはpush前reviewとlocal promotionを通過した`approved_for_build` envelopeである。private mapping、review / preflight record、internal artifactはhosted workflowへ渡さない。
 
 `scripts/prepare_public_build.py`はenvelope schema / payload digestとpublic-only semantic gateを検証し、`$RUNNER_TEMP/dkb-public-build`配下へ次を生成する。
 
-- public-only Markdown source（landing、Canonical Timeline、合成Story / Episode stub）
+- public-only Markdown source（landing、Canonical Timeline、Story / Episode stub）
 - 一時MkDocs / Zensical config
 - generator別site directory
 - detached manifest用directory
@@ -43,10 +43,10 @@ findingは固定の匿名codeだけで返す。public labelはstub headingへ書
 workflowは`pull_request`と`main` pushで動き、権限は`contents: read`だけとする。
 
 1. `uv sync --locked`
-2. 合成public inputから一時source / configを準備
+2. レビュー済みpublic inputから一時source / configを準備
 3. MkDocs strict build
 4. Zensical strict build
-5. checked-out 40桁commit SHA、`uv.lock`、合成input、実configを束縛して両siteをscan
+5. checked-out 40桁commit SHA、`uv.lock`、レビュー済みinput、実configを束縛して両siteをscan
 6. site外の一時directoryへ各detached manifestをno-clobber作成
 7. `scripts/compare_public_site_manifests.py`でsource revision、lock / input digest、HTML route setの一致を確認
 
@@ -58,7 +58,7 @@ theme asset差があるためgenerator間のtree digestやconfig digest一致は
 - `pull_request_target`や`workflow_dispatch`を使わない
 - `actions/upload-artifact`、Pages artifact、deploy actionを使わない
 - environment、secret、OIDC、`pages: write`、`id-token: write`を使わない
-- `knowledge/public/`の正式保存先や実public inputを読み込まない
+- `knowledge/public/timelines/canonical_timeline_public_input.json`以外の実artifactを読み込まない
 - site、manifest、生成Markdown / HTMLをcommitまたは外部公開しない
 - `publish-ready`へ変更しない
 
@@ -66,4 +66,4 @@ JS / CSS / source map等のvendor assetは既存site manifest方針どおり全�
 
 # 6. 次工程
 
-manual production workflowとGitHub Pages environment gateは`Public_Production_Gate.md`でbuild-only workflowから分離した。production workflowには匿名合成Zensical site限定のartifact upload / protected deploy / rollback digest gateを追加し、A→B→Aの実deploy / rollback rehearsalも完了した。実データpublic projectionのpush前人間レビューと初回public input昇格も完了したため、次は別PRで両workflowをcommit済み実inputへ切り替える。
+manual production workflowとGitHub Pages environment gateは`Public_Production_Gate.md`でbuild-only workflowから分離した。匿名合成siteによるA→B→A rollback rehearsalと実データpublic projectionのpush前review・初回input昇格を完了し、本workflowもcommit済み実inputへ切り替えた。次は切替revisionのhosted build結果を確認し、初回実content deployを独立したenvironment承認で実施する。

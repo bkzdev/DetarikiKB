@@ -1,4 +1,4 @@
-name: Public Production Deploy (Synthetic)
+name: Public Production Deploy (Reviewed Input)
 
 on:
   workflow_dispatch:
@@ -69,7 +69,7 @@ jobs:
             --branch-policies-json "$policies_json" \
             --expected-reviewer "$GITHUB_REPOSITORY_OWNER"
 
-      - name: Verify and checkout requested source
+      - name: Verify requested source
         id: verify-source
         shell: bash
         env:
@@ -77,13 +77,33 @@ jobs:
         run: |
           git fetch --quiet --no-tags origin refs/heads/main:refs/remotes/origin/main
           python scripts/check_public_production_source.py "$SOURCE_SHA"
+          echo "source_sha=$SOURCE_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Select reviewed public input
+        shell: bash
+        env:
+          EXPECTED_TREE_SHA256: ${{ inputs.expected_tree_sha256 }}
+          SOURCE_SHA: ${{ steps.verify-source.outputs.source_sha }}
+        run: |
+          selection_json="$(python scripts/select_public_production_input.py \
+            --source-sha "$SOURCE_SHA" \
+            --expected-tree-sha256 "$EXPECTED_TREE_SHA256")"
+          public_input="$(jq -er '.path' <<< "$selection_json")"
+          input_profile="$(jq -er '.profile' <<< "$selection_json")"
+          echo "PUBLIC_INPUT_PATH=$public_input" >> "$GITHUB_ENV"
+          echo "PUBLIC_INPUT_PROFILE=$input_profile" >> "$GITHUB_ENV"
+
+      - name: Checkout requested source
+        shell: bash
+        env:
+          SOURCE_SHA: ${{ steps.verify-source.outputs.source_sha }}
+        run: |
           git checkout --quiet --detach "$SOURCE_SHA"
           checked_out_sha="$(git rev-parse HEAD)"
           if [[ "$checked_out_sha" != "$SOURCE_SHA" ]]; then
             echo "status=blocked code=production-source-checkout-mismatch"
             exit 1
           fi
-          echo "source_sha=$checked_out_sha" >> "$GITHUB_OUTPUT"
 
       - name: Install uv
         # v5
@@ -100,12 +120,12 @@ jobs:
       - name: Install locked dependencies
         run: uv sync --locked
 
-      - name: Prepare committed synthetic public input
+      - name: Prepare selected public input
         shell: bash
         run: |
           public_build_root="$RUNNER_TEMP/dkb-production-gate"
           uv run python scripts/prepare_public_build.py \
-            --public-input tests/fixtures/canonical_timeline_public_input/approved_synthetic_input.json \
+            --public-input "$PUBLIC_INPUT_PATH" \
             --output-root "$public_build_root"
           echo "PUBLIC_BUILD_ROOT=$public_build_root" >> "$GITHUB_ENV"
 
@@ -122,10 +142,9 @@ jobs:
         run: |
           mkdocs_version="$(uv run python -c 'from importlib.metadata import version; print(version("mkdocs-material"))')"
           zensical_version="$(uv run python -c 'from importlib.metadata import version; print(version("zensical"))')"
-          public_input="tests/fixtures/canonical_timeline_public_input/approved_synthetic_input.json"
           uv run python scripts/check_public_site_manifest.py \
             --site-dir "$PUBLIC_BUILD_ROOT/site-mkdocs" \
-            --public-input "$public_input" \
+            --public-input "$PUBLIC_INPUT_PATH" \
             --source-sha "$SOURCE_SHA" \
             --lock-file uv.lock \
             --generator-name mkdocs-material \
@@ -135,7 +154,7 @@ jobs:
             --write-manifest
           uv run python scripts/check_public_site_manifest.py \
             --site-dir "$PUBLIC_BUILD_ROOT/site-zensical" \
-            --public-input "$public_input" \
+            --public-input "$PUBLIC_INPUT_PATH" \
             --source-sha "$SOURCE_SHA" \
             --lock-file uv.lock \
             --generator-name zensical \
@@ -189,11 +208,12 @@ jobs:
           echo "manifest_sha256=$manifest_sha256" >> "$GITHUB_OUTPUT"
           echo "tree_sha256=$tree_sha256" >> "$GITHUB_OUTPUT"
           {
-            echo "### Verified synthetic Pages candidate"
+            echo "### Verified public Pages candidate"
             echo
             echo "| Field | Value |"
             echo "| --- | --- |"
             echo "| Source revision | \`$SOURCE_SHA\` |"
+            echo "| Input profile | \`$PUBLIC_INPUT_PROFILE\` |"
             echo "| Zensical manifest SHA-256 | \`$manifest_sha256\` |"
             echo "| Zensical tree SHA-256 | \`$tree_sha256\` |"
             echo "| Gate result | \`clean\` |"
@@ -257,7 +277,7 @@ jobs:
           fi
           echo "page_url=$expected_url/" >> "$GITHUB_OUTPUT"
 
-      - name: Deploy verified synthetic site
+      - name: Deploy verified public site
         id: deployment
         # v5
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346
@@ -278,7 +298,7 @@ jobs:
             exit 1
           fi
           {
-            echo "### Completed synthetic Pages deployment"
+            echo "### Completed public Pages deployment"
             echo
             echo "| Field | Value |"
             echo "| --- | --- |"

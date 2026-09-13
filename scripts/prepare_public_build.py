@@ -69,7 +69,7 @@ def _read_regular(path: Path) -> bytes:
 def _config(site_dir: str, *, zensical: bool) -> bytes:
     config: dict = {
         "site_name": "Detariki Knowledge Base",
-        "site_description": "Synthetic public build verification.",
+        "site_description": "Reviewed public knowledge build.",
         "docs_dir": "source",
         "site_dir": site_dir,
         "theme": {"name": "material"},
