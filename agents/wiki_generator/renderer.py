@@ -4,17 +4,18 @@ merged knowledge collection (schemas/merged_knowledge_collection.schema.json)
 から、最小限のWiki Markdownを生成する。
 
 docs/architecture/07_Wiki/Wiki_Output_Design.md のPhase 1のうち、
-Top page / Story index / Characters index / Episode page (簡易) /
-Character page / Unresolved report page のみを実装する
-(Location/Organization/Item/Lore/Event page、Relationship section、
+Top page / Story index / Characters index / Locations index / Episode page (簡易) /
+Character page / Location page / Unresolved report page を実装する
+(Organization/Item/Lore/Event page、Relationship section、
 Timeline page、AI analysis pageはNon-goals。将来のPRで拡張する)。
 
 **重要な制約**:
 - 元セリフ全文は一切出力しない。evidenceRefsはevidenceId/episodeId/
   sceneId/blockIdの参照情報のみを表示する (Wiki_Output_Design.md §4)。
-- canonicalIdが確定し status: mergedのentityのみ個別ページを生成する。
-  それ以外 (canonicalId未確定、status: unresolved/conflict/deprecated)
-  は個別ページを生成せず、reports/unresolved.mdへ集約する (§5)。
+- canonicalIdが確定し statusがmerged / conflictのentityのみ個別ページを生成する。
+  conflictは警告を表示する。それ以外 (canonicalId未確定、status:
+  unresolved/deprecated) は個別ページを生成せず、reports/unresolved.mdへ集約する
+  (§5)。
 - テンプレートエンジン (Jinja2等) の依存追加はまだ行わない。将来の
   差し替えを見据え、ページ種別ごとに独立した関数へ分割してある
   (Wiki_Output_Design.md §12.2)。
@@ -48,6 +49,7 @@ from .paths import (
     episode_page_path,
     evidence_page_path,
     is_page_eligible,
+    location_page_path,
     story_page_path,
 )
 from .story_summaries import (
@@ -108,6 +110,18 @@ def _render_conflicts_section(entity: dict[str, Any]) -> list[str]:
         )
     lines.append("")
     return lines
+
+
+def _render_entity_status_warning(entity: dict[str, Any]) -> list[str]:
+    """status: conflictの個別ページに明示的な警告を表示する。"""
+    if entity.get("status") != "conflict":
+        return []
+    return [
+        '!!! warning "未解決の矛盾があります"',
+        "    この項目には未解決の矛盾が記録されています。"
+        "詳細はConflictsを確認してください。",
+        "",
+    ]
 
 
 def _render_aliases_section(entity: dict[str, Any]) -> list[str]:
@@ -404,6 +418,7 @@ def render_character_page(
     )
 
     lines = [front_matter, f"# {display_name}", ""]
+    lines.extend(_render_entity_status_warning(entity))
 
     lines.append("## Summary")
     lines.append("")
@@ -425,6 +440,104 @@ def render_character_page(
     lines.extend(_render_source_candidates_section(entity))
     lines.extend(_render_conflicts_section(entity))
 
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def _location_episode_ids(entity: dict[str, Any]) -> list[str]:
+    """Locationに関係するepisode IDを、本文を参照せず決定的に集約する。"""
+    episode_ids: set[str] = set()
+    for ref in entity.get("evidenceRefs") or []:
+        episode_id = ref.get("episodeId")
+        if episode_id:
+            episode_ids.add(episode_id)
+    for candidate in entity.get("sourceCandidates") or []:
+        episode_id = candidate.get("episodeId")
+        if episode_id:
+            episode_ids.add(episode_id)
+    episode_ids.update((entity.get("extractionRunRefs") or {}).keys())
+    return sorted(episode_ids)
+
+
+def _render_location_episodes_section(
+    entity: dict[str, Any], source_documents: list[dict[str, Any]]
+) -> list[str]:
+    """Locationの登場Episodeを表示する。sourceDocumentが無いIDも捨てない。"""
+    source_by_episode_id = {
+        document.get("episodeId"): document
+        for document in source_documents
+        if document.get("episodeId")
+    }
+    lines = ["## Appearing Episodes", ""]
+    episode_ids = _location_episode_ids(entity)
+    if not episode_ids:
+        lines.extend(["登場エピソードは記録されていません。", ""])
+        return lines
+
+    for episode_id in episode_ids:
+        source_document = source_by_episode_id.get(episode_id)
+        if source_document is None:
+            lines.append(f"- `{episode_id}`")
+            continue
+        path = episode_page_path(source_document)
+        title = _escape_markdown_table_text(_get_episode_display_title(source_document))
+        if path is None:
+            lines.append(f"- {title}（`{episode_id}`）")
+        else:
+            lines.append(f"- [{title}](../{path})（`{episode_id}`）")
+    lines.append("")
+    return lines
+
+
+def render_location_page(
+    entity: dict[str, Any],
+    source_documents: list[dict[str, Any]] | None = None,
+) -> str:
+    """Location pageを生成する (Wiki_Output_Design.md §9.5)。"""
+    display_name = (
+        entity.get("displayName") or entity.get("canonicalId") or entity.get("id", "")
+    )
+    source_types = entity.get("sourceTypes") or []
+    front_matter = build_front_matter(
+        {
+            "title": display_name,
+            "entity_type": "location",
+            "entity_id": entity.get("id"),
+            "canonical_id": entity.get("canonicalId"),
+            "status": entity.get("status"),
+            "confidence": entity.get("confidence"),
+            "source_types": ", ".join(source_types) if source_types else None,
+            "generated_from": GENERATED_FROM,
+        }
+    )
+    source_types_display = (
+        ", ".join(source_types) if source_types else "情報源区分は記録されていません。"
+    )
+    lines = [
+        front_matter,
+        f"# {display_name}",
+        "",
+    ]
+    lines.extend(_render_entity_status_warning(entity))
+    lines.extend(
+        [
+            "## Summary",
+            "",
+            "| 項目 | 値 |",
+            "|---|---|",
+            f"| Entity ID | {entity.get('id', '')} |",
+            f"| Canonical ID | {entity.get('canonicalId', '')} |",
+            f"| Status | {entity.get('status', '')} |",
+            f"| Confidence | {entity.get('confidence', '')} |",
+            f"| Source types | {source_types_display} |",
+            f"| Scene refs | {len(entity.get('sceneRefs') or [])} |",
+            "",
+        ]
+    )
+    lines.extend(_render_aliases_section(entity))
+    lines.extend(_render_location_episodes_section(entity, source_documents or []))
+    lines.extend(_render_evidence_section(entity))
+    lines.extend(_render_source_candidates_section(entity))
+    lines.extend(_render_conflicts_section(entity))
     return "\n".join(lines).rstrip() + "\n"
 
 
@@ -484,7 +597,13 @@ def _render_entity_type_sections(collection: dict[str, Any]) -> tuple[list[str],
     total_unresolved = 0
     for entity_key in MERGED_ENTITY_KEYS:
         unresolved = [
-            e for e in (entities.get(entity_key) or []) if not is_page_eligible(e)
+            e
+            for e in (entities.get(entity_key) or [])
+            if not is_page_eligible(e)
+            or (
+                e.get("status") == "conflict"
+                and entity_key not in {"characters", "locations"}
+            )
         ]
         if not unresolved:
             continue
@@ -779,6 +898,7 @@ def render_index_page(collection: dict[str, Any]) -> str:
     lines.append("")
     lines.append("- [Story index](stories/index.md)")
     lines.append("- [Characters](characters/index.md)")
+    lines.append("- [Locations](locations/index.md)")
     lines.append("- [Unresolved report](reports/unresolved.md)")
     lines.append("")
 
@@ -984,6 +1104,7 @@ def render_character_index_page(
     for entity in eligible:
         canonical_id = entity.get("canonicalId")
         display_name = entity.get("displayName") or canonical_id
+        display_name = _escape_markdown_table_text(display_name)
         page_path = character_page_path(entity)
         # characters/index.md自身がcharacters/配下にあるため、
         # character_page_pathが返す"characters/{canonicalId}.md"を
@@ -999,6 +1120,50 @@ def render_character_index_page(
         lines.append(f"| {name_link} | {profile_label} | `{canonical_id}` |")
     lines.append("")
 
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def render_location_index_page(locations: list[dict[str, Any]]) -> str:
+    """Locations index page (locations/index.md) を生成する。"""
+    eligible = sorted(
+        (location for location in locations if is_page_eligible(location)),
+        key=lambda location: location.get("canonicalId") or "",
+    )
+    front_matter = build_front_matter(
+        {"title": "Locations", "generated_from": GENERATED_FROM}
+    )
+    lines = [
+        front_matter,
+        "# 場所一覧",
+        "",
+        "## Overview",
+        "",
+        "| 項目 | 値 |",
+        "|---|---:|",
+        f"| Location pages | {len(eligible)} |",
+        "",
+        "未解決の場所は[Unresolved report](../reports/unresolved.md)"
+        "を参照してください。",
+        "",
+        "## Location List",
+        "",
+    ]
+    if not eligible:
+        lines.extend(["登録されているLocation pageはありません。", ""])
+        return "\n".join(lines).rstrip() + "\n"
+
+    lines.extend(["| Location | Scenes | ID |", "|---|---:|---|"])
+    for entity in eligible:
+        canonical_id = entity.get("canonicalId")
+        display_name = entity.get("displayName") or canonical_id
+        display_name = _escape_markdown_table_text(display_name)
+        path = location_page_path(entity)
+        filename = path.rsplit("/", 1)[-1] if path else None
+        name = f"[{display_name}]({filename})" if filename else display_name
+        lines.append(
+            f"| {name} | {len(entity.get('sceneRefs') or [])} | `{canonical_id}` |"
+        )
+    lines.append("")
     return "\n".join(lines).rstrip() + "\n"
 
 
@@ -1784,12 +1949,14 @@ def build_pages(
     Evidence pageを生成せず、evidenceRefsはID表示のまま）。
     """
     characters = collection.get("entities", {}).get("characters", []) or []
+    locations = collection.get("entities", {}).get("locations", []) or []
     pages: dict[str, str] = {
         "index.md": render_index_page(collection),
         "stories/index.md": render_story_index_page(collection),
         "characters/index.md": render_character_index_page(
             characters, character_profiles
         ),
+        "locations/index.md": render_location_index_page(locations),
         "reports/unresolved.md": render_unresolved_report(collection),
     }
 
@@ -1821,6 +1988,11 @@ def build_pages(
         path = character_page_path(entity)
         if path is not None:
             pages[path] = render_character_page(entity, character_profiles)
+
+    for entity in locations:
+        path = location_page_path(entity)
+        if path is not None:
+            pages[path] = render_location_page(entity, source_documents)
 
     if evidence_index_lookup is not None:
         for story_id, entries in evidence_index_lookup.by_story_id.items():
