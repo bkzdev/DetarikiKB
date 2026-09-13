@@ -478,7 +478,7 @@ def test_public_publishing_decision_is_accepted_and_non_deploying():
         assert "Public_Publishing_Workflow_Decision.md" in content
 
     assert "`codex/canonical-timeline-real-public-input`" in tasks
-    assert "初回実content deployは次の独立gate" in tasks
+    assert "初回実content deployを完了" in tasks
 
 
 def test_timeline_docs_link_to_global_scope_decision_frame():

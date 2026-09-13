@@ -66,4 +66,4 @@ JS / CSS / source map等のvendor assetは既存site manifest方針どおり全�
 
 # 6. 次工程
 
-manual production workflowとGitHub Pages environment gateは`Public_Production_Gate.md`でbuild-only workflowから分離した。匿名合成siteによるA→B→A rollback rehearsalと実データpublic projectionのpush前review・初回input昇格を完了し、本workflowもcommit済み実inputへ切り替えた。次は切替revisionのhosted build結果を確認し、初回実content deployを独立したenvironment承認で実施する。
+manual production workflowとGitHub Pages environment gateは`Public_Production_Gate.md`でbuild-only workflowから分離した。匿名合成siteによるA→B→A rollback rehearsal、実データpublic projectionのpush前review・初回input昇格、本workflowのcommit済み実inputへの切替、切替revisionのhosted build、独立environment承認による初回実content deployと公開表示確認まで完了した。通常rollbackの既知正常revisionとtree digestはproduction runbookを正とする。
