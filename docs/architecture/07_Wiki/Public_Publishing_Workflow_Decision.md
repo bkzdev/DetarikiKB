@@ -75,7 +75,7 @@ public-safeなWiki生成物を将来公開する場合のstatic site generator�
 
 **推奨: A。** 初期段階でmergeを公開承認の代用にしない。deploy jobは`github-pages` environmentを使用し、実装時に利用可能ならrequired reviewerと`main` revision制約を設定する。fork PR、任意branch、未指定SHAからproduction artifactを作らない。
 
-2026-09-08時点でrepository権限者がowner 1名だけであることを確認し、ユーザー判断によりsolo運用を採択した。required reviewerはowner本人1名、self-reviewは許可するが、administrator bypassは禁止する。別reviewerが存在しない状態でself-reviewを禁止して承認不能にするより、dispatchとenvironment承認を同じ人間の別操作として維持する。`main`限定、完全SHA、合成input、fail-closed preflightは変更しない。
+2026-09-08時点でrepository権限者がowner 1名だけであることを確認し、ユーザー判断によりsolo運用を採択した。required reviewerはowner本人1名、self-reviewは許可するが、administrator bypassは禁止する。別reviewerが存在しない状態でself-reviewを禁止して承認不能にするより、dispatchとenvironment承認を同じ人間の別操作として維持する。`main`限定、完全SHA、レビュー済みpublic input、fail-closed preflightは変更しない。
 
 ## P4. Build / deploy分離
 
@@ -131,7 +131,7 @@ deployment manifestは公開siteへ含める情報とGitHub deployment recordを
 
 ## P6. PR preview
 
-**推奨: 初期版ではpublic PR previewを生成しない。** forkや未採択contentから生成物を外部公開する経路を作らない。通常PRでは合成fixtureだけを使うbuild-only検証に限定する。人間がpush前承認した専用public content PRだけはcommit済みpublic-safe入力を検査するが、site artifactをupload・deployせず、logへlabelや本文を列挙しない。
+**推奨: 初期版ではpublic PR previewを生成しない。** forkや未採択contentから生成物を外部公開する経路を作らない。build-only workflowはcommit済みのレビュー済みpublic inputを検査するが、site artifactをupload・deployせず、logへlabelや本文を列挙しない。新しい実contentは人間がpush前承認した専用public content PRでのみ更新する。
 
 ## P7. Rollback
 
@@ -176,10 +176,10 @@ P8    Decision / implementation / rehearsal / publishを別承認
 6. ~~manual production workflowとenvironment gateを実装~~（`Public_Production_Gate.md`と`.github/workflows/public-production-gate.yml`で、main上の完全SHA・匿名合成input・保護environmentに限定し、artifact upload / deployなしとして実装）
 7. ~~合成siteでdeploy / rollback rehearsal~~（production workflowのartifact upload / protected deploy / rollback digest gateを実装し、A→B→Aの実rehearsalと表示確認を完了）
 8. ~~実データpublic projectionをignored workspaceで生成し、人間がpush前確認~~（72 episode / 40 confirmed relationの表示・露出確認とpush承認を完了）
-9. 承認済みpublic-safe構造化入力だけを専用public content PRでmerge
-10. 別PRでbuild / production workflowを実入力へ切り替え、対象revisionと最終表示を確認して初回production deploy
+9. ~~承認済みpublic-safe構造化入力だけを専用public content PRでmerge~~（`knowledge/public/timelines/canonical_timeline_public_input.json`へ初回昇格）
+10. build / production workflowを実入力へ切り替え、対象revisionと最終表示を確認して初回production deploy（workflow切替まで完了、deployは独立承認待ち）
 
-各段階は小さいPRに分ける。第8段階まで完了し、本PRは第9段階の専用public content PRである。第10段階のworkflow入力切替と実content deployは本PRへ含めず、production deploy直前に対象revision、公開URL、最終表示の独立した人間判断を求める。
+各段階は小さいPRに分ける。第9段階まで完了し、本PRは第10段階のworkflow入力切替である。実content deployは本PRへ含めず、merge後に対象revision、公開URL、最終表示の独立した人間判断を求める。切替前に公開済みの合成版Aは、既知tree digest付きの`legacy-synthetic-rollback`として初回実content deploy成功まで再生成可能に保つ。
 
 ---
 

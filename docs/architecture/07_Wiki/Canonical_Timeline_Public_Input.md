@@ -102,4 +102,4 @@ site manifest / hosted exposure scan契約は後続`Public_Site_Manifest_Exposur
 
 2026-09-09に、72 episode / 40 confirmed relationの実projectionについて、公開範囲、中立なpublic label、TimelineとStory / Episode導線をローカル画面で人間確認した。5入力digest付きpreflight、内部値露出scan、link検査、Zensical build、独立agent監査はすべてcleanだった。
 
-2026-09-13に同一projection digestをWindows nativeとWSL/Linuxの両方でdry-runし、Linuxのdirectory descriptor相対no-follow / no-clobber gateから`knowledge/public/timelines/canonical_timeline_public_input.json`を初回作成した。public envelopeは`approved_for_build`だが、payloadは`projection_candidate`のままである。この昇格はproduction workflowの入力切替、`publish-ready`判定、artifact upload、Pages deployを許可しない。
+2026-09-13に同一projection digestをWindows nativeとWSL/Linuxの両方でdry-runし、Linuxのdirectory descriptor相対no-follow / no-clobber gateから`knowledge/public/timelines/canonical_timeline_public_input.json`を初回作成した。その後の独立PRでbuild-only / production workflowの入力を本ファイルへ切り替えた。public envelopeは`approved_for_build`、payloadは`projection_candidate`のままであり、production deployは保護environmentの独立承認を引き続き必要とする。

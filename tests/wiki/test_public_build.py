@@ -63,7 +63,8 @@ def test_build_source_is_deterministic_complete_and_input_immutable() -> None:
     }
     assert b"../stories/PUBLIC_EVENT_ALPHA.md" in first["timelines/index.md"]
     index = first["index.md"].decode("utf-8")
-    assert index.startswith("# 合成公開ビルド\n")
+    assert index.startswith("# Detariki Knowledge Base\n")
+    assert "公開対象として確認済みの情報" in index
     assert "合成変更版B" not in index
 
 

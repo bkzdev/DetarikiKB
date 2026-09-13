@@ -6,6 +6,7 @@ import yaml
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 WORKFLOW = PROJECT_ROOT / ".github" / "workflows" / "public-production-gate.yml"
+INPUT_SELECTOR = PROJECT_ROOT / "scripts" / "select_public_production_input.py"
 RUNBOOK = PROJECT_ROOT / "docs" / "runbooks" / "Public_Production_Gate.md"
 TASKS = PROJECT_ROOT / "TASKS.md"
 AI_CONTEXT = PROJECT_ROOT / "AI_CONTEXT.md"
@@ -18,7 +19,7 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def test_workflow_is_manual_protected_synthetic_pages_deploy() -> None:
+def test_workflow_is_manual_protected_reviewed_pages_deploy() -> None:
     text = _read(WORKFLOW)
     workflow = yaml.load(text, Loader=yaml.BaseLoader)
     assert set(workflow["on"]) == {"workflow_dispatch"}
@@ -40,11 +41,13 @@ def test_workflow_is_manual_protected_synthetic_pages_deploy() -> None:
     assert set(workflow["jobs"]) == {"preflight", "deploy"}
     preflight = workflow["jobs"]["preflight"]
     steps = preflight["steps"]
-    assert [step["name"] for step in steps[:4]] == [
+    assert [step["name"] for step in steps[:6]] == [
         "Verify dispatch context",
         "Checkout trusted main",
         "Verify protected production environment",
-        "Verify and checkout requested source",
+        "Verify requested source",
+        "Select reviewed public input",
+        "Checkout requested source",
     ]
     checkout = steps[1]
     assert checkout["uses"] == (
@@ -60,9 +63,14 @@ def test_workflow_is_manual_protected_synthetic_pages_deploy() -> None:
     assert '--expected-reviewer "$GITHUB_REPOSITORY_OWNER"' in environment_check
     verify_source = steps[3]["run"]
     assert "check_public_production_source.py" in verify_source
-    assert verify_source.index(
-        "check_public_production_source.py"
-    ) < verify_source.index("git checkout --quiet --detach")
+    assert "git checkout --quiet --detach" not in verify_source
+    select_input = steps[4]["run"]
+    assert "select_public_production_input.py" in select_input
+    assert "jq -er '.path'" in select_input
+    assert "jq -er '.profile'" in select_input
+    checkout_source = steps[5]["run"]
+    assert "git checkout --quiet --detach" in checkout_source
+    assert "production-source-checkout-mismatch" in checkout_source
     upload = next(
         step for step in steps if step["name"] == "Upload verified Zensical site"
     )
@@ -88,7 +96,7 @@ def test_workflow_is_manual_protected_synthetic_pages_deploy() -> None:
     deployment = next(
         step
         for step in deploy["steps"]
-        if step["name"] == "Deploy verified synthetic site"
+        if step["name"] == "Deploy verified public site"
     )
     assert deployment["uses"] == (
         "actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346"
@@ -111,6 +119,7 @@ def test_workflow_is_manual_protected_synthetic_pages_deploy() -> None:
         "production-environment-unavailable",
         "deployment-branch-policies",
         "check_public_production_source.py",
+        "select_public_production_input.py",
         "git fetch --quiet --no-tags origin refs/heads/main:refs/remotes/origin/main",
         "git checkout --quiet --detach",
         "persist-credentials: false",
@@ -119,7 +128,6 @@ def test_workflow_is_manual_protected_synthetic_pages_deploy() -> None:
         "actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
         "astral-sh/setup-uv@e58605a9b6da7c637471fab8847a5e5a6b8df081",
         "actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
-        "approved_synthetic_input.json",
         "$RUNNER_TEMP/dkb-production-gate",
         "prepare_public_build.py",
         "mkdocs build --strict",
@@ -128,7 +136,7 @@ def test_workflow_is_manual_protected_synthetic_pages_deploy() -> None:
         "compare_public_site_manifests.py",
         "production-rollback-digest-required",
         "production-output-digest-mismatch",
-        "Verified synthetic Pages candidate",
+        "Verified public Pages candidate",
         "actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9",
         "actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346",
         "production-pages-settings-invalid",
@@ -141,14 +149,29 @@ def test_workflow_is_manual_protected_synthetic_pages_deploy() -> None:
         "pull_request:",
         "pull_request_target",
         "push:",
-        "knowledge/public/",
         "site-mkdocs\n          retention-days",
         "preview: true",
     ):
         assert forbidden not in text
 
 
-def test_runbook_and_handoff_fix_synthetic_deploy_and_rollback_boundary() -> None:
+def test_input_selector_pins_reviewed_and_legacy_boundaries() -> None:
+    selector = _read(INPUT_SELECTOR)
+    for required in (
+        "bb37a6274e79f504e5ddc3e240e2c4420196ca70",
+        "knowledge/public/timelines/canonical_timeline_public_input.json",
+        "approved_synthetic_input.json",
+        "reviewed-public-input",
+        "legacy-synthetic-rollback",
+        "production-public-input-boundary-unavailable",
+        "production-public-input-unavailable",
+        "merge-base",
+        "--is-ancestor",
+    ):
+        assert required in selector
+
+
+def test_runbook_and_handoff_fix_reviewed_deploy_and_rollback_boundary() -> None:
     runbook = _read(RUNBOOK)
     tasks = _read(TASKS)
     context = _read(AI_CONTEXT)
@@ -170,15 +193,16 @@ def test_runbook_and_handoff_fix_synthetic_deploy_and_rollback_boundary() -> Non
         "A→B→A",
         "deployment record",
         "rollback rehearsal",
+        "legacy-synthetic-rollback",
     ):
         assert required in runbook
-    assert "`codex/canonical-timeline-real-public-input`" in tasks
-    assert "production workflowの実入力切替" in tasks
+    assert "`codex/canonical-timeline-real-workflow-switch`" in tasks
+    assert "実入力導入commit" in tasks
     assert "34323175235" in runbook
     assert "Status: Implemented and rehearsed" in runbook
-    assert "実データpublic projectionをignored workspaceで生成" in tasks
+    assert "初回実content deploy" in tasks
     assert "実データpublic projectionのpush前review" in milestones
     assert "72 episode / 40 confirmed relation" in context
-    assert "公開範囲と中立label" in tasks
+    assert "レビュー済みpublic input" in context
     for handoff in (context, milestones):
         assert "push前" in handoff
