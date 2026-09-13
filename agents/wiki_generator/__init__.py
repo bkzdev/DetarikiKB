@@ -6,8 +6,8 @@ merged knowledge collection (schemas/merged_knowledge_collection.schema.json)
 
 docs/architecture/07_Wiki/Wiki_Output_Design.md のPhase 1のうち、
 Top page / Story index / Episode page (簡易) / Character page / Location page /
-Unresolved report pageを実装するrenderer。
-Organization/Item/Lore/Event page、Relationship section、Timeline page、
+Item page / Unresolved report pageを実装するrenderer。
+Organization/Lore/Event page、Relationship section、Timeline page、
 AI analysis pageは未実装。
 テンプレートエンジン (Jinja2等) の依存追加はまだ行っていない。
 
@@ -26,6 +26,7 @@ from .paths import (
     episode_page_path,
     evidence_page_path,
     is_page_eligible,
+    item_page_path,
     location_page_path,
     story_page_path,
 )
@@ -36,6 +37,8 @@ from .renderer import (
     render_episode_page,
     render_evidence_page,
     render_index_page,
+    render_item_index_page,
+    render_item_page,
     render_location_index_page,
     render_location_page,
     render_story_index_page,
@@ -51,6 +54,7 @@ __all__ = [
     "episode_page_path",
     "evidence_page_path",
     "is_page_eligible",
+    "item_page_path",
     "location_page_path",
     "story_page_path",
     "build_pages",
@@ -60,6 +64,8 @@ __all__ = [
     "render_episode_page",
     "render_evidence_page",
     "render_index_page",
+    "render_item_index_page",
+    "render_item_page",
     "render_location_index_page",
     "render_location_page",
     "render_story_index_page",

@@ -255,6 +255,22 @@ Relationship表示、実データ投入は本実装の対象外とする。
 - 表示: `displayName`、`aliases`、登場エピソード
 - テンプレート名（案）: `templates/wiki/item.md.j2`
 
+**実装状況（`codex/wiki-item-page`）**: `render_item_page`と`item_page_path`を
+追加し、`canonicalId`確定かつ`status: merged|conflict`で§6の防御条件を満たす
+Itemだけを`items/{canonicalId}.md`へ生成する。Summary、Aliases、登場Episode、
+Evidence、Source Candidates、ConflictsをLocation pageと同じ安全な要約形式で
+表示する。登場Episodeの3参照元・決定的な重複排除・public Episode URL優先・
+未知ID不破棄はLocation pageと共通helperを使う。`items/index.md`は生成対象だけを
+canonical ID順で掲載し、Top pageから導線を設ける。canonical IDを持つ
+`status: conflict`はページ冒頭にwarningを表示する。Episode page側の
+Related Items、Item固有属性・画像、他entity page、実データ投入は対象外とする。
+`displayName` / `aliases`は改行・制御文字を単一行へ正規化し、Markdown / HTMLの
+構造記号をescapeする。front matterの文字列はJSON互換のYAML scalarとして出力し、
+改行やquoteを構造へ展開しない。この防御はCharacter / Locationにも共通適用する。
+Episode IDはHTML-safeなinline codeとして表示し、解決したEpisode IDが許可形式に
+一致する場合だけページを生成してリンクする。不正なIDは出力pathに使わず、Item pageには
+リンクなしの表示名とEpisode IDを保持する。
+
 ## 9.8 Lore page
 
 - source: `entities.lore`
@@ -384,10 +400,12 @@ site_src/
     index.md
     {canonicalId}.md
   locations/
+    index.md
     {canonicalId}.md
   organizations/
     {canonicalId}.md
   items/
+    index.md
     {canonicalId}.md
   lore/
     {canonicalId}.md
