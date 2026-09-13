@@ -10,6 +10,7 @@ CHAR_TEST_RAIN等の架空ID・架空名) のみを使う。実データ由来�
 from __future__ import annotations
 
 import json
+from copy import deepcopy
 from pathlib import Path
 
 import pytest
@@ -27,11 +28,14 @@ from agents.wiki_generator import (
     episode_page_path,
     evidence_page_path,
     is_page_eligible,
+    location_page_path,
     render_character_index_page,
     render_character_page,
     render_episode_page,
     render_evidence_page,
     render_index_page,
+    render_location_index_page,
+    render_location_page,
     render_story_index_page,
     render_story_page,
     render_unresolved_report,
@@ -97,6 +101,49 @@ def character_profiles_index() -> dict:
     return build_character_profile_index(profiles)
 
 
+@pytest.fixture
+def resolved_location(synthetic_collection) -> dict:
+    """Location page用の合成entity。実データは含まない。"""
+    unresolved = synthetic_collection["entities"]["locations"][0]
+    location = deepcopy(unresolved)
+    location.update(
+        {
+            "id": "LOC_TEST_PLAZA",
+            "canonicalId": "LOC_TEST_PLAZA",
+            "status": "merged",
+            "displayName": "Test Plaza",
+            "aliases": ["Synthetic Square"],
+            "sourceTypes": ["script", "manual"],
+            "confidence": 0.95,
+            "sceneRefs": ["EP_TEST_001_SC001", "EP_TEST_002_SC001"],
+            "extractionRunRefs": {
+                "EP_TEST_001": "RUN_TEST_001",
+                "EP_TEST_MISSING": "RUN_TEST_MISSING",
+            },
+        }
+    )
+    location["evidenceRefs"] = [
+        {
+            "evidenceId": "EV_TEST_LOCATION_001",
+            "episodeId": "EP_TEST_001",
+            "sceneId": "EP_TEST_001_SC001",
+            "blockId": "EP_TEST_001_DLG0001",
+            "textExcerpt": "SYNTHETIC RAW TEXT MUST NOT APPEAR",
+        }
+    ]
+    location["sourceCandidates"] = [
+        {
+            "candidateId": "LOC_CAND_TEST_001",
+            "candidateType": "location",
+            "episodeId": "EP_TEST_002",
+            "evidenceIds": ["EV_TEST_LOCATION_002"],
+            "sourceDocumentId": "EP_TEST_002",
+            "raw": "SYNTHETIC RAW PAYLOAD MUST NOT APPEAR",
+        }
+    ]
+    return location
+
+
 # ----------------------------------------------------------------
 # build_front_matter
 # ----------------------------------------------------------------
@@ -159,6 +206,41 @@ def test_character_page_path_uses_canonical_id(resolved_character):
 
 def test_character_page_path_none_for_unresolved(unresolved_character):
     assert character_page_path(unresolved_character) is None
+
+
+def test_location_page_path_uses_canonical_id(resolved_location):
+    assert location_page_path(resolved_location) == "locations/LOC_TEST_PLAZA.md"
+
+
+def test_location_page_path_none_for_unresolved(synthetic_collection):
+    unresolved = synthetic_collection["entities"]["locations"][0]
+    assert location_page_path(unresolved) is None
+
+
+def test_location_page_path_includes_conflict_with_canonical_id(resolved_location):
+    conflict = deepcopy(resolved_location)
+    conflict["status"] = "conflict"
+    assert location_page_path(conflict) == "locations/LOC_TEST_PLAZA.md"
+
+
+def test_page_eligibility_rejects_conflict_without_canonical_id(resolved_location):
+    conflict = deepcopy(resolved_location)
+    conflict.update({"status": "conflict", "canonicalId": None})
+    assert is_page_eligible(conflict) is False
+
+
+def test_page_eligibility_rejects_low_confidence_entity(resolved_location):
+    location = deepcopy(resolved_location)
+    location["confidence"] = 0.39
+    assert is_page_eligible(location) is False
+    assert location_page_path(location) is None
+
+
+def test_page_eligibility_rejects_entity_without_evidence(resolved_location):
+    location = deepcopy(resolved_location)
+    location["evidenceRefs"] = []
+    assert is_page_eligible(location) is False
+    assert location_page_path(location) is None
 
 
 def test_episode_page_path_uses_episode_id():
@@ -663,6 +745,190 @@ def test_build_pages_characters_index_page_count_matches_generated_pages(
     ]
     assert "| Character pages | 2 |" in pages["characters/index.md"]
     assert len(generated_character_pages) == 2
+
+
+# ----------------------------------------------------------------
+# render_location_page / render_location_index_page
+# ----------------------------------------------------------------
+
+
+def test_render_location_page_has_summary_and_aliases(
+    synthetic_collection, resolved_location
+):
+    page = render_location_page(
+        resolved_location, synthetic_collection["sourceDocuments"]
+    )
+    assert 'entity_type: "location"' in page
+    assert 'canonical_id: "LOC_TEST_PLAZA"' in page
+    assert "# Test Plaza" in page
+    assert "| Scene refs | 2 |" in page
+    assert "- Synthetic Square" in page
+
+
+def test_render_location_page_links_known_episodes_and_keeps_unknown_id(
+    synthetic_collection, resolved_location
+):
+    page = render_location_page(
+        resolved_location, synthetic_collection["sourceDocuments"]
+    )
+    assert "[" in page and "](../stories/EP_TEST_001.md)" in page
+    assert "](../stories/EP_TEST_002.md)" in page
+    assert page.count("`EP_TEST_001`") == 1
+    assert "- `EP_TEST_MISSING`" in page
+
+
+def test_render_location_page_prefers_public_episode_path(
+    synthetic_collection, resolved_location
+):
+    location = deepcopy(resolved_location)
+    location["evidenceRefs"][0]["episodeId"] = "EP_TEST_PUBLIC_001"
+    location["sourceCandidates"] = []
+    location["extractionRunRefs"] = {}
+    page = render_location_page(location, synthetic_collection["sourceDocuments"])
+    assert "](../stories/PUBLIC_TEST_STORY_001_E01.md)" in page
+
+
+def test_render_location_page_without_episode_refs_shows_empty_message(
+    resolved_location,
+):
+    location = deepcopy(resolved_location)
+    location["evidenceRefs"] = []
+    location["sourceCandidates"] = []
+    location["extractionRunRefs"] = {}
+    page = render_location_page(location)
+    assert "登場エピソードは記録されていません。" in page
+
+
+def test_render_location_page_episode_order_is_deterministic(resolved_location):
+    first = deepcopy(resolved_location)
+    first["evidenceRefs"] = [
+        {"evidenceId": "EV_B", "episodeId": "EP_TEST_002"},
+        {"evidenceId": "EV_A", "episodeId": "EP_TEST_001"},
+    ]
+    first["sourceCandidates"] = [{"candidateId": "C_A", "episodeId": "EP_TEST_001"}]
+    first["extractionRunRefs"] = {"EP_TEST_003": {}, "EP_TEST_002": {}}
+    second = deepcopy(first)
+    second["evidenceRefs"].reverse()
+    second["extractionRunRefs"] = {"EP_TEST_002": {}, "EP_TEST_003": {}}
+
+    first_page = render_location_page(first)
+    second_page = render_location_page(second)
+    first_section = first_page.split("## Appearing Episodes\n", 1)[1].split(
+        "## Evidence", 1
+    )[0]
+    second_section = second_page.split("## Appearing Episodes\n", 1)[1].split(
+        "## Evidence", 1
+    )[0]
+    assert first_section == second_section
+    assert first_section.index("EP_TEST_001") < first_section.index("EP_TEST_002")
+    assert first_section.index("EP_TEST_002") < first_section.index("EP_TEST_003")
+
+
+def test_render_location_page_conflict_shows_warning(resolved_location):
+    conflict = deepcopy(resolved_location)
+    conflict["status"] = "conflict"
+    page = render_location_page(conflict)
+    assert '!!! warning "未解決の矛盾があります"' in page
+
+
+def test_render_location_page_does_not_include_raw_payload(
+    synthetic_collection, resolved_location
+):
+    page = render_location_page(
+        resolved_location, synthetic_collection["sourceDocuments"]
+    )
+    assert "SYNTHETIC RAW TEXT MUST NOT APPEAR" not in page
+    assert "SYNTHETIC RAW PAYLOAD MUST NOT APPEAR" not in page
+
+
+def test_render_location_index_is_sorted_and_excludes_unresolved(resolved_location):
+    later = deepcopy(resolved_location)
+    later.update(
+        {
+            "id": "LOC_TEST_ZOO",
+            "canonicalId": "LOC_TEST_ZOO",
+            "displayName": "Test Zoo",
+            "sceneRefs": [],
+        }
+    )
+    unresolved = deepcopy(resolved_location)
+    unresolved.update(
+        {
+            "id": "UNRESOLVED_LOC_TEST_HIDDEN",
+            "canonicalId": None,
+            "status": "unresolved",
+            "displayName": "Hidden Place",
+        }
+    )
+    page = render_location_index_page([later, unresolved, resolved_location])
+    assert "| Location pages | 2 |" in page
+    assert "[Test Plaza](LOC_TEST_PLAZA.md)" in page
+    assert page.index("Test Plaza") < page.index("Test Zoo")
+    assert "Hidden Place" not in page
+    assert "[Unresolved report](../reports/unresolved.md)" in page
+
+
+def test_render_location_index_escapes_markdown_name(resolved_location):
+    location = deepcopy(resolved_location)
+    location["displayName"] = "Test | [Plaza]"
+    page = render_location_index_page([location])
+    assert r"[Test \| \[Plaza\]](LOC_TEST_PLAZA.md)" in page
+
+
+def test_conflict_location_is_generated_and_not_in_unresolved_report(
+    synthetic_collection, resolved_location
+):
+    collection = deepcopy(synthetic_collection)
+    conflict = deepcopy(resolved_location)
+    conflict.update(
+        {
+            "id": "LOC_TEST_CONFLICT",
+            "canonicalId": "LOC_TEST_CONFLICT",
+            "displayName": "Test Conflict Location",
+            "status": "conflict",
+        }
+    )
+    collection["entities"]["locations"].append(conflict)
+    pages = build_pages(collection)
+    assert "locations/LOC_TEST_CONFLICT.md" in pages
+    assert "Test Conflict Location" in pages["locations/index.md"]
+    assert "Test Conflict Location" not in pages["reports/unresolved.md"]
+
+
+def test_conflict_for_unimplemented_entity_type_stays_in_unresolved_report(
+    synthetic_collection, resolved_location
+):
+    collection = deepcopy(synthetic_collection)
+    organization = deepcopy(resolved_location)
+    organization.update(
+        {
+            "id": "ORG_TEST_CONFLICT",
+            "type": "organization",
+            "canonicalId": "ORG_TEST_CONFLICT",
+            "displayName": "Test Conflict Organization",
+            "status": "conflict",
+        }
+    )
+    organization.pop("sceneRefs", None)
+    collection["entities"]["organizations"].append(organization)
+    report = render_unresolved_report(collection)
+    assert "Test Conflict Organization" in report
+    assert "ORG_TEST_CONFLICT" in report
+
+
+def test_render_index_page_links_to_locations_index(synthetic_collection):
+    page = render_index_page(synthetic_collection)
+    assert "[Locations](locations/index.md)" in page
+
+
+def test_build_pages_generates_location_pages(synthetic_collection, resolved_location):
+    collection = deepcopy(synthetic_collection)
+    collection["entities"]["locations"].append(resolved_location)
+    pages = build_pages(collection)
+    assert "locations/index.md" in pages
+    assert "locations/LOC_TEST_PLAZA.md" in pages
+    assert "locations/UNRESOLVED_LOC_TEST_0001.md" not in pages
+    assert "| Location pages | 1 |" in pages["locations/index.md"]
 
 
 # ----------------------------------------------------------------
@@ -1330,6 +1596,7 @@ def _story_related_character(
         "canonicalId": canonical_id,
         "displayName": display_name,
         "status": "merged" if canonical_id else "unresolved",
+        "confidence": 0.9,
         "evidenceRefs": [{"episodeId": episode_id} for episode_id in episode_ids],
         "sourceCandidates": [],
         "extractionRunRefs": {},
@@ -1615,6 +1882,7 @@ def test_build_pages_generates_expected_paths(synthetic_collection):
     assert "stories/EP_TEST_001.md" in pages
     assert "stories/EP_TEST_002.md" in pages
     assert "characters/index.md" in pages
+    assert "locations/index.md" in pages
     assert "characters/CHAR_TEST_RAIN.md" in pages
     assert "characters/CHAR_TEST_CONFLICT.md" in pages
     assert "reports/unresolved.md" in pages
@@ -1691,6 +1959,7 @@ def test_build_pages_does_not_crash_on_empty_source_documents(minimal_collection
     assert "index.md" in pages
     assert "stories/index.md" in pages
     assert "characters/index.md" in pages
+    assert "locations/index.md" in pages
     assert "reports/unresolved.md" in pages
     # sourceDocumentsが空なのでepisode pageは1件も生成されない
     assert not any(

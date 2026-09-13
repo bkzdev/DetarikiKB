@@ -16,18 +16,18 @@ Raw Scriptを安全に正規化し、根拠・不明情報・内部IDを失わ�
 | M2 Parser / Normalized Story | ほぼ完了 | 主要カテゴリを再現可能に正規化し、unknownを不破棄で診断できる | 主経路は実装済み。残る互換性差分と長尾commandを小さく解消中 |
 | M3 Extraction / Merge / 内部KB | 進行中 | candidateとprovenanceを保持して主要entityを統合できる | Stage A、8種entityの最小merge、Evidence・Summary基盤は実装済み。実corpusの充足は継続 |
 | M4 Canonical curation | 進行中 | ID・profile・story内順序・story間Timelineをreview可能な形で保持できる | EVENT story内順序は完了。story間Timelineは基盤と15回の小規模batch運用を実証済み |
-| M5 Wiki / 閲覧体験 | 進行中 | public-safeなStory/Episode/Character/Evidenceページを一貫生成できる | 基本rendererとlocal previewは実装済み。残entityページ・関係表示・全体目視確認が残る |
+| M5 Wiki / 閲覧体験 | 進行中 | public-safeなStory/Episode/Character/Evidenceページを一貫生成できる | 基本rendererとLocation page / indexは実装済み。残entityページ・関係表示・全体目視確認が残る |
 | M6 公開準備 | 完了 | 公開範囲、ホスティング、更新・rollback、漏えい検査を決定し、限定公開できる | 実データpublic inputの初回配備、desktop / 390px表示、既知正常rollback digestまで確認済み |
 | M7 v1リリースと継続運用 | 未着手 | 再生成手順、品質指標、障害対応、定期更新が運用できる | checklist草案は先行可能。v1判定はM2〜M5の完了確認後に行う |
 
 ## 現在地と直近の区切り
 
-現在の主対象はM4である。Canonical Timelineのschema、semantic check、review packet、promotion plan、安全なlocal executorは完成している。実データでは単独sample 2件と小規模batch 15回、合計40関係を反映済みで、弱い候補を保留し、既存pair重複を除外しながら複数関係を矛盾なく更新できることを確認した。
+現在の主対象はM5へ移っている。M4ではCanonical Timelineのschema、semantic check、review packet、promotion plan、安全なlocal executorを完成させ、実データへ合計40関係を反映済みである。M5ではPhase 1のStory / Episode / Character / Evidenceに続き、Phase 2の最初の単位としてLocation page / indexとTop page導線を実装した。
 
 次の切りのよい到達点は次の3つである。
 
-1. 高信頼なstory間関係を親agentと独立監査agentの一致で小規模batch化し、明示接続を持つ範囲で内部coverageを増やす。
-2. 各batchをdry-run / preflight / semantic check後にinternal artifactへ反映し、矛盾0を維持する。
+1. Location page / indexを合成fixture、strict build、独立監査で確定し、M5 Phase 2の共通実装パターンにする。
+2. Organization / Item / Lore / Event pageを依存関係と表示仕様に沿って小さなPRへ分け、Relationship表示はtaxonomy判断後に進める。
 3. ~~明示接続候補の初回走査完了を受け、公開用Timelineの目的・表示粒度・unknown/conflict表現を判断し、public projection schema・projector・preflight・rendererを合成fixtureで固定する。~~ 公開profileの採択、protected Pages gate、匿名合成siteのA→B→A rollback rehearsal、実データpublic projectionのpush前review・初回public input昇格・workflow実入力切替・初回実content deployを完了した。公開表示と新しい既知正常rollback digestも確認済みで、M6を完了とする。
 
 ## 人間確認を求める場面

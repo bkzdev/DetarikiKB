@@ -27,7 +27,7 @@ Raw Script (.dec)
   → Wiki Generation (agents/wiki_generator/) / Knowledge Graph
 ```
 
-現在の状態: Parser Phase 1・Extraction Stage A・Merge Stage B（8種entity最小merge）・Wiki renderer Phase 1・MkDocs local previewまで実装済み。詳細な完了履歴は `docs/project_history/Completed_PRs_2026-07.md` を参照。直近の作業内容は `TASKS.md` を参照。
+現在の状態: Parser Phase 1・Extraction Stage A・Merge Stage B（8種entity最小merge）・Wiki renderer Phase 1に加えてPhase 2のLocation page / index・MkDocs local previewまで実装済み。詳細な完了履歴は `docs/project_history/Completed_PRs_2026-07.md` を参照。直近の作業内容は `TASKS.md` を参照。
 
 ## 3. 最重要方針
 
