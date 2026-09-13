@@ -12,6 +12,7 @@ canonicalId確定済みのconflictは個別ページを生成する
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 # このentityが個別ページを生成してよい (= canonicalIdが確定し、statusが
@@ -19,6 +20,7 @@ from typing import Any
 # この判定は全entity種別で共通に使える (Wiki_Output_Design.md §5・§6)。
 STATUS_MERGED = "merged"
 STATUS_CONFLICT = "conflict"
+_SAFE_EPISODE_PATH_ID = re.compile(r"^[A-Z][A-Z0-9_-]*$")
 
 
 def is_page_eligible(entity: dict[str, Any]) -> bool:
@@ -55,6 +57,15 @@ def location_page_path(entity: dict[str, Any]) -> str | None:
     if not is_page_eligible(entity):
         return None
     return f"locations/{entity['canonicalId']}.md"
+
+
+def item_page_path(entity: dict[str, Any]) -> str | None:
+    """Item pageの出力先相対パスを返す。個別ページを生成すべきで
+    なければNoneを返す。
+    """
+    if not is_page_eligible(entity):
+        return None
+    return f"items/{entity['canonicalId']}.md"
 
 
 def resolve_episode_path_id(source_document: dict[str, Any]) -> str | None:
@@ -115,7 +126,9 @@ def episode_page_path(source_document: dict[str, Any]) -> str | None:
     を返す (feature/story-manifest-public-id-renderer-switch)。
     """
     episode_path_id = resolve_episode_path_id(source_document)
-    if not episode_path_id:
+    if not isinstance(episode_path_id, str) or not _SAFE_EPISODE_PATH_ID.fullmatch(
+        episode_path_id
+    ):
         return None
     return f"stories/{episode_path_id}.md"
 

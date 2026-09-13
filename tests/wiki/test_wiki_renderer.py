@@ -28,12 +28,15 @@ from agents.wiki_generator import (
     episode_page_path,
     evidence_page_path,
     is_page_eligible,
+    item_page_path,
     location_page_path,
     render_character_index_page,
     render_character_page,
     render_episode_page,
     render_evidence_page,
     render_index_page,
+    render_item_index_page,
+    render_item_page,
     render_location_index_page,
     render_location_page,
     render_story_index_page,
@@ -144,6 +147,25 @@ def resolved_location(synthetic_collection) -> dict:
     return location
 
 
+@pytest.fixture
+def resolved_item(resolved_location) -> dict:
+    """Item page用の合成entity。実データは含まない。"""
+    item = deepcopy(resolved_location)
+    item.update(
+        {
+            "id": "ITEM_TEST_COMPASS",
+            "type": "item",
+            "canonicalId": "ITEM_TEST_COMPASS",
+            "displayName": "Test Compass",
+            "aliases": ["Synthetic Navigator"],
+        }
+    )
+    item.pop("sceneRefs", None)
+    item["sourceCandidates"][0]["candidateId"] = "ITEM_CAND_TEST_001"
+    item["sourceCandidates"][0]["candidateType"] = "item_candidate"
+    return item
+
+
 # ----------------------------------------------------------------
 # build_front_matter
 # ----------------------------------------------------------------
@@ -178,6 +200,17 @@ def test_build_front_matter_escapes_double_quotes():
         {"title": 'Test "Quoted" Name', "generated_from": "merged_knowledge_collection"}
     )
     assert '\\"Quoted\\"' in front_matter
+
+
+def test_build_front_matter_escapes_newlines_as_single_yaml_scalar():
+    front_matter = build_front_matter(
+        {
+            "title": "Safe\n# injected heading",
+            "generated_from": "merged_knowledge_collection",
+        }
+    )
+    assert 'title: "Safe\\n# injected heading"' in front_matter
+    assert "\n# injected heading" not in front_matter
 
 
 # ----------------------------------------------------------------
@@ -243,6 +276,16 @@ def test_page_eligibility_rejects_entity_without_evidence(resolved_location):
     assert location_page_path(location) is None
 
 
+def test_item_page_path_uses_canonical_id(resolved_item):
+    assert item_page_path(resolved_item) == "items/ITEM_TEST_COMPASS.md"
+
+
+def test_item_page_path_none_for_unresolved(resolved_item):
+    item = deepcopy(resolved_item)
+    item.update({"canonicalId": None, "status": "unresolved"})
+    assert item_page_path(item) is None
+
+
 def test_episode_page_path_uses_episode_id():
     source_document = {"episodeId": "EP_TEST_001", "documentId": "EP_TEST_001"}
     assert episode_page_path(source_document) == "stories/EP_TEST_001.md"
@@ -283,6 +326,14 @@ def test_episode_page_path_strips_whitespace_around_public_episode_id():
         "publicEpisodeId": "  PUBLIC_TEST_002_E01  ",
     }
     assert episode_page_path(source_document) == "stories/PUBLIC_TEST_002_E01.md"
+
+
+def test_episode_page_path_rejects_unsafe_public_episode_id():
+    source_document = {
+        "episodeId": "EP_TEST_SAFE_FALLBACK",
+        "publicEpisodeId": "../outside",
+    }
+    assert episode_page_path(source_document) is None
 
 
 # ----------------------------------------------------------------
@@ -773,8 +824,8 @@ def test_render_location_page_links_known_episodes_and_keeps_unknown_id(
     )
     assert "[" in page and "](../stories/EP_TEST_001.md)" in page
     assert "](../stories/EP_TEST_002.md)" in page
-    assert page.count("`EP_TEST_001`") == 1
-    assert "- `EP_TEST_MISSING`" in page
+    assert page.count("<code>EP_TEST_001</code>") == 1
+    assert "- <code>EP_TEST_MISSING</code>" in page
 
 
 def test_render_location_page_prefers_public_episode_path(
@@ -926,9 +977,180 @@ def test_build_pages_generates_location_pages(synthetic_collection, resolved_loc
     collection["entities"]["locations"].append(resolved_location)
     pages = build_pages(collection)
     assert "locations/index.md" in pages
+    assert "items/index.md" in pages
     assert "locations/LOC_TEST_PLAZA.md" in pages
     assert "locations/UNRESOLVED_LOC_TEST_0001.md" not in pages
     assert "| Location pages | 1 |" in pages["locations/index.md"]
+
+
+# ----------------------------------------------------------------
+# render_item_page / render_item_index_page
+# ----------------------------------------------------------------
+
+
+def test_render_item_page_has_summary_aliases_and_episodes(
+    synthetic_collection, resolved_item
+):
+    page = render_item_page(resolved_item, synthetic_collection["sourceDocuments"])
+    assert 'entity_type: "item"' in page
+    assert 'canonical_id: "ITEM_TEST_COMPASS"' in page
+    assert "# Test Compass" in page
+    assert "- Synthetic Navigator" in page
+    assert "](../stories/EP_TEST_001.md)" in page
+    assert "](../stories/EP_TEST_002.md)" in page
+    assert "- <code>EP_TEST_MISSING</code>" in page
+    assert "Scene refs" not in page
+
+
+def test_render_item_page_prefers_public_episode_path(
+    synthetic_collection, resolved_item
+):
+    item = deepcopy(resolved_item)
+    item["evidenceRefs"][0]["episodeId"] = "EP_TEST_PUBLIC_001"
+    item["sourceCandidates"] = []
+    item["extractionRunRefs"] = {}
+    page = render_item_page(item, synthetic_collection["sourceDocuments"])
+    assert "](../stories/PUBLIC_TEST_STORY_001_E01.md)" in page
+
+
+def test_render_item_page_safely_keeps_untrusted_unknown_episode_id(resolved_item):
+    item = deepcopy(resolved_item)
+    item["evidenceRefs"] = []
+    item["sourceCandidates"] = []
+    item["extractionRunRefs"] = {"EP_SAFE`\n## injected <script>": {}}
+    page = render_item_page(item)
+    assert "\n## injected" not in page
+    assert "<script>" not in page
+    assert "<code>EP_SAFE` ## injected &lt;script&gt;</code>" in page
+
+
+def test_render_item_page_does_not_link_unsafe_episode_path(resolved_item):
+    item = deepcopy(resolved_item)
+    item["evidenceRefs"] = [{"evidenceId": "EV-1", "episodeId": "EP_TEST_UNSAFE"}]
+    item["sourceCandidates"] = []
+    item["extractionRunRefs"] = {}
+    source_documents = [
+        {
+            "episodeId": "EP_TEST_UNSAFE",
+            "publicEpisodeId": "BAD)\n## injected",
+            "displayTitle": "Unsafe Link Target",
+        }
+    ]
+    page = render_item_page(item, source_documents)
+    assert "\n## injected" not in page
+    assert "../stories/BAD" not in page
+    assert "Unsafe Link Target" in page
+    assert "<code>EP_TEST_UNSAFE</code>" in page
+
+
+def test_render_item_page_conflict_shows_warning(resolved_item):
+    item = deepcopy(resolved_item)
+    item["status"] = "conflict"
+    page = render_item_page(item)
+    assert '!!! warning "未解決の矛盾があります"' in page
+
+
+def test_render_item_page_does_not_include_raw_payload(resolved_item):
+    page = render_item_page(resolved_item)
+    assert "SYNTHETIC RAW TEXT MUST NOT APPEAR" not in page
+    assert "SYNTHETIC RAW PAYLOAD MUST NOT APPEAR" not in page
+
+
+def test_render_item_page_escapes_untrusted_display_text(resolved_item):
+    item = deepcopy(resolved_item)
+    item["displayName"] = "Safe\n# injected <script> [name]"
+    item["aliases"] = ["Alias\n## injected <b> `code`"]
+    page = render_item_page(item)
+    body = page.split("---", 2)[2]
+    assert "\n# injected" not in body
+    assert "\n## injected" not in body
+    assert "<script>" not in body
+    assert "<b>" not in body
+    assert "&lt;script&gt;" in body
+    assert "&lt;b&gt;" in body
+
+
+def test_render_item_page_escapes_reference_and_conflict_summaries(resolved_item):
+    item = deepcopy(resolved_item)
+    item["evidenceRefs"][0]["evidenceId"] = "EV_SAFE\n## evidence injected <i>"
+    item["sourceCandidates"][0].update(
+        {
+            "candidateId": "CAND_SAFE\n## candidate injected <b>",
+            "sourceDocumentId": "DOC_SAFE\n## document injected",
+        }
+    )
+    item["conflicts"] = [
+        {
+            "conflictType": "type\n## conflict injected <script>",
+            "field": "field\n## field injected",
+            "severity": "warning",
+            "resolutionStatus": "unresolved",
+        }
+    ]
+    page = render_item_page(item)
+    assert "\n## evidence injected" not in page
+    assert "\n## candidate injected" not in page
+    assert "\n## document injected" not in page
+    assert "\n## conflict injected" not in page
+    assert "\n## field injected" not in page
+    assert "<i>" not in page
+    assert "<b>" not in page
+    assert "<script>" not in page
+    assert "&lt;i&gt;" in page
+    assert "&lt;b&gt;" in page
+    assert "&lt;script&gt;" in page
+
+
+def test_render_item_index_is_sorted_escaped_and_excludes_unresolved(resolved_item):
+    later = deepcopy(resolved_item)
+    later.update(
+        {
+            "id": "ITEM_TEST_ZETA",
+            "canonicalId": "ITEM_TEST_ZETA",
+            "displayName": "Test | [Zeta]",
+        }
+    )
+    unresolved = deepcopy(resolved_item)
+    unresolved.update(
+        {
+            "id": "UNRESOLVED_ITEM_TEST_HIDDEN",
+            "canonicalId": None,
+            "status": "unresolved",
+            "displayName": "Hidden Item",
+        }
+    )
+    page = render_item_index_page([later, unresolved, resolved_item])
+    assert "| Item pages | 2 |" in page
+    assert "[Test Compass](ITEM_TEST_COMPASS.md)" in page
+    assert r"[Test \| \[Zeta\]](ITEM_TEST_ZETA.md)" in page
+    assert page.index("Test Compass") < page.index(r"Test \| \[Zeta\]")
+    assert "Hidden Item" not in page
+    assert "[Unresolved report](../reports/unresolved.md)" in page
+
+
+def test_render_index_page_links_to_items_index(synthetic_collection):
+    page = render_index_page(synthetic_collection)
+    assert "[Items](items/index.md)" in page
+
+
+def test_build_pages_generates_item_pages(synthetic_collection, resolved_item):
+    collection = deepcopy(synthetic_collection)
+    conflict = deepcopy(resolved_item)
+    conflict.update(
+        {
+            "id": "ITEM_TEST_CONFLICT",
+            "canonicalId": "ITEM_TEST_CONFLICT",
+            "displayName": "Test Conflict Item",
+            "status": "conflict",
+        }
+    )
+    collection["entities"]["items"].extend([resolved_item, conflict])
+    pages = build_pages(collection)
+    assert "items/index.md" in pages
+    assert "items/ITEM_TEST_COMPASS.md" in pages
+    assert "items/ITEM_TEST_CONFLICT.md" in pages
+    assert "Test Conflict Item" not in pages["reports/unresolved.md"]
+    assert "| Item pages | 2 |" in pages["items/index.md"]
 
 
 # ----------------------------------------------------------------
@@ -1883,6 +2105,7 @@ def test_build_pages_generates_expected_paths(synthetic_collection):
     assert "stories/EP_TEST_002.md" in pages
     assert "characters/index.md" in pages
     assert "locations/index.md" in pages
+    assert "items/index.md" in pages
     assert "characters/CHAR_TEST_RAIN.md" in pages
     assert "characters/CHAR_TEST_CONFLICT.md" in pages
     assert "reports/unresolved.md" in pages
@@ -1915,6 +2138,29 @@ def test_write_pages_creates_files_under_tmp_path(synthetic_collection, tmp_path
         encoding="utf-8"
     )
     assert "Test Character Rain" in character_page
+
+
+def test_build_and_write_pages_skip_unsafe_episode_output_path(
+    synthetic_collection, resolved_item, tmp_path
+):
+    collection = deepcopy(synthetic_collection)
+    source_document = collection["sourceDocuments"][0]
+    source_document["publicEpisodeId"] = "../outside"
+    item = deepcopy(resolved_item)
+    item["evidenceRefs"] = [
+        {"evidenceId": "EV-UNSAFE-PATH", "episodeId": source_document["episodeId"]}
+    ]
+    item["sourceCandidates"] = []
+    item["extractionRunRefs"] = {}
+    collection["entities"]["items"] = [item]
+
+    pages = build_pages(collection)
+    assert "stories/../outside.md" not in pages
+    assert "../stories/../outside.md" not in pages["items/ITEM_TEST_COMPASS.md"]
+    assert "<code>EP_TEST_001</code>" in pages["items/ITEM_TEST_COMPASS.md"]
+
+    write_pages(pages, tmp_path)
+    assert not (tmp_path.parent / "outside.md").exists()
 
 
 def test_write_pages_clean_removes_existing_output(synthetic_collection, tmp_path):

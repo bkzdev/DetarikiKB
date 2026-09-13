@@ -9,6 +9,7 @@ docs/architecture/07_Wiki/Wiki_Output_Design.md §10 (front matter方針)
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 # merged knowledge collection の entities 配下キー
@@ -65,13 +66,10 @@ _FRONT_MATTER_KEY_ORDER = (
 def _escape_yaml_double_quoted(value: str) -> str:
     """YAMLのダブルクォート文字列として安全にエスケープする。
 
-    displayName等は通常の日本語・英語の人名・用語のみを想定するため、
-    バックスラッシュ・ダブルクォートの最小限エスケープのみ行う
-    (scripts/compare_character_dictionaries.pyの_quoted_yaml_stringと
-    同じ方針)。
+    JSONの文字列literalはYAML 1.2のdouble-quoted scalarとしても有効で、
+    quote/backslashに加えて改行・tab・制御文字も単一scalar内へ安全に保持できる。
     """
-    escaped = value.replace("\\", "\\\\").replace('"', '\\"')
-    return f'"{escaped}"'
+    return json.dumps(value, ensure_ascii=False)
 
 
 def build_front_matter(fields: dict[str, Any]) -> str:
