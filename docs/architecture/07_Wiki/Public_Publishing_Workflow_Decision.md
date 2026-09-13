@@ -19,7 +19,7 @@ public-safeなWiki生成物を将来公開する場合のstatic site generator�
 - repositoryはGitHub上のpublic repositoryで、`main`へのpushとPRで既存GitHub Actions CIが動く
 - rendererはportableなMarkdownを生成し、theme固有syntaxへ深く依存しない
 - local previewはMkDocs 1.6.1 / Material for MkDocs 9.7.6で成功している
-- Canonical Timelineは`projection_candidate`を維持し、人間確認済みpublic-safe構造化入力のpushだけが承認済みである。`publish-ready`化とproduction deployは未承認である
+- Canonical Timelineは`projection_candidate`を維持し、人間確認済みpublic-safe構造化入力だけをproduction gateから配備する。`publish-ready`への自動変更は行わない
 - PR buildからpublic deployへ直結させず、公開操作は人間判断を必要とする
 - 実artifact、private mapping、実データ由来生成物をrepositoryや通常のCI artifactへ混入させない
 - public repositoryではbranch push自体が外部公開になるため、実public-safe入力も人間確認前にpushしない
@@ -177,9 +177,9 @@ P8    Decision / implementation / rehearsal / publishを別承認
 7. ~~合成siteでdeploy / rollback rehearsal~~（production workflowのartifact upload / protected deploy / rollback digest gateを実装し、A→B→Aの実rehearsalと表示確認を完了）
 8. ~~実データpublic projectionをignored workspaceで生成し、人間がpush前確認~~（72 episode / 40 confirmed relationの表示・露出確認とpush承認を完了）
 9. ~~承認済みpublic-safe構造化入力だけを専用public content PRでmerge~~（`knowledge/public/timelines/canonical_timeline_public_input.json`へ初回昇格）
-10. build / production workflowを実入力へ切り替え、対象revisionと最終表示を確認して初回production deploy（workflow切替まで完了、deployは独立承認待ち）
+10. ~~build / production workflowを実入力へ切り替え、対象revisionと最終表示を確認して初回production deploy~~（独立environment承認、deploy、公開表示確認まで完了）
 
-各段階は小さいPRに分ける。第9段階まで完了し、本PRは第10段階のworkflow入力切替である。実content deployは本PRへ含めず、merge後に対象revision、公開URL、最終表示の独立した人間判断を求める。切替前に公開済みの合成版Aは、既知tree digest付きの`legacy-synthetic-rollback`として初回実content deploy成功まで再生成可能に保つ。
+各段階は小さいPRに分け、第10段階まで完了した。2026-09-13にsource `110241915d187a52ad51f55a5badc358aadcc989`を独立承認して初回実content deployを行い、公開URLと最終表示を確認した。通常rollbackの既知正常先は同revisionとtree SHA-256 `eebbd70af0916ec5d7c0108757cd0092ce9b55d1a8a797018d6d11aa26f11c74`である。切替前の合成版Aも、実入力導入前の過去revisionを検証する`legacy-synthetic-rollback`互換として維持する。
 
 ---
 

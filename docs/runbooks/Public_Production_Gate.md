@@ -1,7 +1,7 @@
 # Public Production Environment Gate
 
-Version: 0.5
-Status: Implemented and rehearsed
+Version: 0.6
+Status: Implemented, rehearsed, and live
 Updated: 2026-09-13
 
 ---
@@ -44,7 +44,7 @@ CLIとworkflow固有の診断は固定の匿名status / error codeだけを出�
 
 preflight jobはrequested revisionをcheckoutする前に、trusted main上の`scripts/select_public_production_input.py`でGit treeを検査する。対象revisionに`knowledge/public/timelines/canonical_timeline_public_input.json`がblobとして存在する場合、それだけをcheckout後に`$RUNNER_TEMP/dkb-production-gate`へ展開する。`origin/main`先端でこの実入力が欠けている場合は`production-public-input-unavailable`で停止し、合成fixtureへ暗黙fallbackしない。
 
-実入力導入commit `bb37a6274e79f504e5ddc3e240e2c4420196ca70`より前に公開した既知正常SHAへ戻す場合だけ、指定SHAが同commitのancestorであることと`expected_tree_sha256`を必須にした上で、`tests/fixtures/canonical_timeline_public_input/approved_synthetic_input.json`を`legacy-synthetic-rollback`として選べる。この互換経路は現在公開中の合成版Aを、初回実content deployが成功するまで復旧先として維持するためのものである。実入力導入commit以後のrevisionでは、実入力が欠けていれば必ず停止し、合成fixtureへfallbackしない。
+実入力導入commit `bb37a6274e79f504e5ddc3e240e2c4420196ca70`より前に公開した既知正常SHAへ戻す場合だけ、指定SHAが同commitのancestorであることと`expected_tree_sha256`を必須にした上で、`tests/fixtures/canonical_timeline_public_input/approved_synthetic_input.json`を`legacy-synthetic-rollback`として選べる。この互換経路は実入力導入前のdeploymentを再現するために維持するが、通常の復旧先には初回実content deployの既知正常revisionを使う。実入力導入commit以後のrevisionでは、実入力が欠けていれば必ず停止し、合成fixtureへfallbackしない。
 
 1. MkDocs / Zensical strict build
 2. generator別detached manifest / exposure scan
@@ -84,7 +84,7 @@ gh workflow run public-production-gate.yml --ref main `
 
 # 7. 次工程
 
-A→B→A rehearsalと表示確認に続き、実データpublic projectionのignored workspace生成、push前人間レビュー、専用public inputへの初回昇格、build-only / production workflowの実入力切替まで完了した。次は切替PRのCIと対象revisionを確認し、初回実content deployを独立したenvironment承認で行う。公開後はその成功revisionとtree SHA-256を新しい既知正常rollback先として記録する。
+A→B→A rehearsalと表示確認、実データpublic projectionのignored workspace生成、push前人間レビュー、専用public inputへの初回昇格、build-only / production workflowの実入力切替、初回実content deployまで完了した。以後の通常rollbackは§8の実データrevisionとtree SHA-256を使い、同じ全gateを通して再配備する。本手順のM7 release checklistへの組み込みは草案整理を先行できるが、v1判定はM2〜M5の残件完了後に行う。
 
 # 8. 実施記録
 
@@ -101,3 +101,16 @@ Aとrollback後Aのtree digestは一致し、Bだけが異なる。公開URLは3
 初回実行前の設定検査を承認前に行おうとしたrun [34303547281](https://github.com/bkzdev/DetarikiKB/actions/runs/34303547281) は、権限境界によりPages APIが404となってpreflightで停止し、deployしなかった。この結果を受けてPR #283でPages設定検査を承認後のprotected deploy jobへ移し、以後の3 runを成功させた。失敗runとdeployment履歴は削除していない。
 
 Bの目視マーカーはrehearsal専用だったため、完了後に生成コードを通常のA表示へ戻した。live siteは先にAの既知正常SHAへrollback済みであり、このcleanup自体は追加deployを要求しない。
+
+## 初回実content deploy（2026-09-13）
+
+| 項目 | 値 |
+|---|---|
+| Source SHA | `110241915d187a52ad51f55a5badc358aadcc989` |
+| Input profile | `reviewed-public-input` |
+| Zensical manifest SHA-256 | `b87ecfe1fd3157257ab25267c6069b96cd820a75d6d019475c145d3b72cba053` |
+| Zensical tree SHA-256 | `eebbd70af0916ec5d7c0108757cd0092ce9b55d1a8a797018d6d11aa26f11c74` |
+| Workflow run | [34742291497](https://github.com/bkzdev/DetarikiKB/actions/runs/34742291497) |
+| Public URL | <https://bkzdev.github.io/DetarikiKB/> |
+
+preflightと保護environment内のdeployはすべて成功した。公開後にlanding、Canonical Timeline、代表Episodeを確認し、72 episode / 40 confirmed relationの導線、公開用の中立文言、unknown / conflict aggregate 0 / 0、desktop / 390px表示、390pxでの横overflow 0、browser warning / error 0を確認した。合成検証用文言は公開ページに残っていない。本revisionを通常rollbackの新しい既知正常先とする。

@@ -199,7 +199,9 @@ def test_runbook_and_handoff_fix_reviewed_deploy_and_rollback_boundary() -> None
     assert "`codex/canonical-timeline-real-workflow-switch`" in tasks
     assert "実入力導入commit" in tasks
     assert "34323175235" in runbook
-    assert "Status: Implemented and rehearsed" in runbook
+    assert "34742291497" in runbook
+    assert "eebbd70af0916ec5d7c0108757cd0092ce9b55d1a8a797018d6d11aa26f11c74" in runbook
+    assert "Status: Implemented, rehearsed, and live" in runbook
     assert "初回実content deploy" in tasks
     assert "実データpublic projectionのpush前review" in milestones
     assert "72 episode / 40 confirmed relation" in context
