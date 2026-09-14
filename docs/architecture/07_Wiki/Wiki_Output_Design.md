@@ -278,6 +278,16 @@ Episode IDはHTML-safeなinline codeとして表示し、解決したEpisode ID�
 - 注意: Loreは「同じ語が別概念を指すリスクが最も高い」種別（`Merged_Knowledge_Design.md` §5.5）。ページ上でも、複数の意味が疑われるentity（`conflicts`が`merge_suggestion`を含む場合）はwarningを強めに出す
 - テンプレート名（案）: `templates/wiki/lore.md.j2`
 
+**実装状況（`codex/wiki-lore-page`）**: merged後の用語表記を`displayName`と
+`aliases`で表し、§6の防御条件を満たすLoreだけを`lore/{canonicalId}.md`へ
+生成する。Summary、Aliases、登場Episode、Evidence、Source Candidates、Conflictsは
+Location / Itemと同じ安全な要約形式を使う。`conflicts`に`merge_suggestion`が1件でも
+あれば、entity statusや個別conflictの解決状態とは独立して、同名の別概念候補が
+記録されていることと現在の判断状態をConflictsで確認すべきことをページ冒頭へ強く警告する。
+`lore/index.md`は生成対象だけをcanonical ID順で掲載し、Top pageから導線を設ける。
+canonical ID割当、同名候補の統合・他種別への再分類、Episode側Related Lore、実データ投入は
+対象外とする。
+
 ## 9.9 Event page
 
 - source: `entities.events`
@@ -408,6 +418,7 @@ site_src/
     index.md
     {canonicalId}.md
   lore/
+    index.md
     {canonicalId}.md
   events/
     {canonicalId}.md
@@ -497,6 +508,11 @@ templates/wiki/unresolved_report.md.j2
 | Timeline | `timelines/index.md`（単一集約ファイル、`Merged_Knowledge_Design.md` §7が「エンティティ統合しない」方針のため個別ページを持たない） | |
 
 `canonicalId`自体が`Identifier_Specification.md`の規則で安定運用される前提（`Canonical_ID_Policy.md` §2「一度確定したら原則変更しない」）に、Wiki URLの安定性を委ねる。
+
+**出力path防御（`codex/wiki-lore-page`）**: entity pageを生成可能と判定する際は、
+`canonicalId`がschemaと同じ`^[A-Z][A-Z0-9_-]+$`に一致することも必須とする。
+一致しないentityは個別ページ化せずUnresolved reportへ保持する。`write_pages`も全出力pathを
+書込み前に解決し、output root外を指すpathが1件でもあれば何も書かず失敗する。
 
 **関連（`feature/story-id-policy-real-sample-review`で追加）**: Story/EpisodeのURL（`stories/{episodeId}.md`）は、EVENTカテゴリの場合raw配置由来の長い`episodeId`（`EVT_{sourceKey}_E{episode}`）をそのまま使うため、公開Wiki化前に見直す余地がある。実データサンプルを踏まえたレビューは`docs/architecture/05_Parser/Story_ID_Policy_Review.md`を参照（本PRではURL/file pathは変更していない）。
 

@@ -30,6 +30,7 @@ from agents.wiki_generator import (
     is_page_eligible,
     item_page_path,
     location_page_path,
+    lore_page_path,
     render_character_index_page,
     render_character_page,
     render_episode_page,
@@ -39,6 +40,8 @@ from agents.wiki_generator import (
     render_item_page,
     render_location_index_page,
     render_location_page,
+    render_lore_index_page,
+    render_lore_page,
     render_story_index_page,
     render_story_page,
     render_unresolved_report,
@@ -166,6 +169,25 @@ def resolved_item(resolved_location) -> dict:
     return item
 
 
+@pytest.fixture
+def resolved_lore(resolved_item) -> dict:
+    """Lore page用の合成entity。実データは含まない。"""
+    lore = deepcopy(resolved_item)
+    lore.update(
+        {
+            "id": "LORE_TEST_AETHER",
+            "type": "lore",
+            "canonicalId": "LORE_TEST_AETHER",
+            "displayName": "Test Aether",
+            "aliases": ["Synthetic Essence"],
+        }
+    )
+    lore["sourceCandidates"][0]["candidateId"] = "LORE_CAND_TEST_001"
+    lore["sourceCandidates"][0]["candidateType"] = "lore_candidate"
+    lore["conflicts"] = []
+    return lore
+
+
 # ----------------------------------------------------------------
 # build_front_matter
 # ----------------------------------------------------------------
@@ -284,6 +306,23 @@ def test_item_page_path_none_for_unresolved(resolved_item):
     item = deepcopy(resolved_item)
     item.update({"canonicalId": None, "status": "unresolved"})
     assert item_page_path(item) is None
+
+
+def test_lore_page_path_uses_canonical_id(resolved_lore):
+    assert lore_page_path(resolved_lore) == "lore/LORE_TEST_AETHER.md"
+
+
+def test_lore_page_path_none_for_unresolved(resolved_lore):
+    lore = deepcopy(resolved_lore)
+    lore.update({"canonicalId": None, "status": "unresolved"})
+    assert lore_page_path(lore) is None
+
+
+def test_lore_page_path_rejects_unsafe_canonical_id(resolved_lore):
+    lore = deepcopy(resolved_lore)
+    lore["canonicalId"] = "../../outside"
+    assert is_page_eligible(lore) is False
+    assert lore_page_path(lore) is None
 
 
 def test_episode_page_path_uses_episode_id():
@@ -978,6 +1017,7 @@ def test_build_pages_generates_location_pages(synthetic_collection, resolved_loc
     pages = build_pages(collection)
     assert "locations/index.md" in pages
     assert "items/index.md" in pages
+    assert "lore/index.md" in pages
     assert "locations/LOC_TEST_PLAZA.md" in pages
     assert "locations/UNRESOLVED_LOC_TEST_0001.md" not in pages
     assert "| Location pages | 1 |" in pages["locations/index.md"]
@@ -1151,6 +1191,154 @@ def test_build_pages_generates_item_pages(synthetic_collection, resolved_item):
     assert "items/ITEM_TEST_CONFLICT.md" in pages
     assert "Test Conflict Item" not in pages["reports/unresolved.md"]
     assert "| Item pages | 2 |" in pages["items/index.md"]
+
+
+# ----------------------------------------------------------------
+# render_lore_page / render_lore_index_page
+# ----------------------------------------------------------------
+
+
+def test_render_lore_page_has_term_aliases_and_episodes(
+    synthetic_collection, resolved_lore
+):
+    page = render_lore_page(resolved_lore, synthetic_collection["sourceDocuments"])
+    assert 'entity_type: "lore"' in page
+    assert 'canonical_id: "LORE_TEST_AETHER"' in page
+    assert "# Test Aether" in page
+    assert "- Synthetic Essence" in page
+    assert "](../stories/EP_TEST_001.md)" in page
+    assert "](../stories/EP_TEST_002.md)" in page
+    assert "- <code>EP_TEST_MISSING</code>" in page
+
+
+def test_render_lore_page_shows_strong_merge_suggestion_warning(resolved_lore):
+    lore = deepcopy(resolved_lore)
+    lore["conflicts"] = [
+        {
+            "conflictType": "merge_suggestion",
+            "severity": "info",
+            "resolutionStatus": "unresolved",
+        }
+    ]
+    page = render_lore_page(lore)
+    assert page.count('!!! danger "同名の別概念候補が記録されています"') == 1
+    assert "現在の判断状態はConflictsを確認してください" in page
+
+
+def test_render_lore_page_merge_suggestion_warning_is_accurate_when_resolved(
+    resolved_lore,
+):
+    lore = deepcopy(resolved_lore)
+    lore["conflicts"] = [
+        {
+            "conflictType": "merge_suggestion",
+            "severity": "info",
+            "resolutionStatus": "manual_resolved",
+        }
+    ]
+    page = render_lore_page(lore)
+    assert '!!! danger "同名の別概念候補が記録されています"' in page
+    assert "統合判断は確定していません" not in page
+    assert "manual_resolved" in page
+
+
+def test_render_lore_page_does_not_strengthen_other_conflicts(resolved_lore):
+    lore = deepcopy(resolved_lore)
+    lore["status"] = "conflict"
+    lore["conflicts"] = [
+        {
+            "conflictType": "field_value_conflict",
+            "severity": "warning",
+            "resolutionStatus": "unresolved",
+        }
+    ]
+    page = render_lore_page(lore)
+    assert '!!! danger "同名の別概念候補が記録されています"' not in page
+    assert '!!! warning "未解決の矛盾があります"' in page
+
+
+def test_render_lore_page_does_not_include_raw_payload(resolved_lore):
+    page = render_lore_page(resolved_lore)
+    assert "SYNTHETIC RAW TEXT MUST NOT APPEAR" not in page
+    assert "SYNTHETIC RAW PAYLOAD MUST NOT APPEAR" not in page
+
+
+def test_render_lore_index_is_sorted_escaped_and_excludes_unresolved(resolved_lore):
+    later = deepcopy(resolved_lore)
+    later.update(
+        {
+            "id": "LORE_TEST_ZETA",
+            "canonicalId": "LORE_TEST_ZETA",
+            "displayName": "Test | [Zeta]",
+        }
+    )
+    unresolved = deepcopy(resolved_lore)
+    unresolved.update(
+        {
+            "id": "UNRESOLVED_LORE_TEST_HIDDEN",
+            "canonicalId": None,
+            "status": "unresolved",
+            "displayName": "Hidden Lore",
+        }
+    )
+    page = render_lore_index_page([later, unresolved, resolved_lore])
+    assert "| Lore pages | 2 |" in page
+    assert "[Test Aether](LORE_TEST_AETHER.md)" in page
+    assert r"[Test \| \[Zeta\]](LORE_TEST_ZETA.md)" in page
+    assert page.index("Test Aether") < page.index(r"Test \| \[Zeta\]")
+    assert "Hidden Lore" not in page
+    assert "[Unresolved report](../reports/unresolved.md)" in page
+
+
+def test_render_index_page_links_to_lore_index(synthetic_collection):
+    page = render_index_page(synthetic_collection)
+    assert "[Lore](lore/index.md)" in page
+
+
+def test_build_pages_generates_lore_pages(synthetic_collection, resolved_lore):
+    collection = deepcopy(synthetic_collection)
+    conflict = deepcopy(resolved_lore)
+    conflict.update(
+        {
+            "id": "LORE_TEST_CONFLICT",
+            "canonicalId": "LORE_TEST_CONFLICT",
+            "displayName": "Test Conflict Lore",
+            "status": "conflict",
+            "conflicts": [
+                {
+                    "conflictType": "merge_suggestion",
+                    "severity": "warning",
+                    "resolutionStatus": "unresolved",
+                }
+            ],
+        }
+    )
+    collection["entities"]["lore"].extend([resolved_lore, conflict])
+    pages = build_pages(collection)
+    assert "lore/index.md" in pages
+    assert "lore/LORE_TEST_AETHER.md" in pages
+    assert "lore/LORE_TEST_CONFLICT.md" in pages
+    assert "Test Conflict Lore" not in pages["reports/unresolved.md"]
+    assert "| Lore pages | 2 |" in pages["lore/index.md"]
+
+
+def test_build_pages_keeps_unsafe_lore_id_in_unresolved_report(
+    synthetic_collection, resolved_lore
+):
+    collection = deepcopy(synthetic_collection)
+    lore = deepcopy(resolved_lore)
+    lore.update(
+        {
+            "id": "LORE_TEST_UNSAFE",
+            "canonicalId": "../../outside",
+            "displayName": "Unsafe Lore ID",
+        }
+    )
+    collection["entities"]["lore"].append(lore)
+
+    pages = build_pages(collection)
+    assert "lore/../../outside.md" not in pages
+    assert "Unsafe Lore ID" in pages["reports/unresolved.md"]
 
 
 # ----------------------------------------------------------------
@@ -2106,6 +2294,7 @@ def test_build_pages_generates_expected_paths(synthetic_collection):
     assert "characters/index.md" in pages
     assert "locations/index.md" in pages
     assert "items/index.md" in pages
+    assert "lore/index.md" in pages
     assert "characters/CHAR_TEST_RAIN.md" in pages
     assert "characters/CHAR_TEST_CONFLICT.md" in pages
     assert "reports/unresolved.md" in pages
@@ -2161,6 +2350,20 @@ def test_build_and_write_pages_skip_unsafe_episode_output_path(
 
     write_pages(pages, tmp_path)
     assert not (tmp_path.parent / "outside.md").exists()
+
+
+def test_write_pages_rejects_output_path_outside_root_before_writing(tmp_path):
+    output_dir = tmp_path / "site"
+    pages = {
+        "index.md": "safe",
+        "lore/../../outside.md": "unsafe",
+    }
+
+    with pytest.raises(ValueError, match="output path must stay under output_dir"):
+        write_pages(pages, output_dir)
+
+    assert not (output_dir / "index.md").exists()
+    assert not (tmp_path / "outside.md").exists()
 
 
 def test_write_pages_clean_removes_existing_output(synthetic_collection, tmp_path):

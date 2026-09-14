@@ -20,6 +20,7 @@ from typing import Any
 # この判定は全entity種別で共通に使える (Wiki_Output_Design.md §5・§6)。
 STATUS_MERGED = "merged"
 STATUS_CONFLICT = "conflict"
+_SAFE_CANONICAL_ID = re.compile(r"^[A-Z][A-Z0-9_-]+$")
 _SAFE_EPISODE_PATH_ID = re.compile(r"^[A-Z][A-Z0-9_-]*$")
 
 
@@ -32,7 +33,8 @@ def is_page_eligible(entity: dict[str, Any]) -> bool:
     """
     confidence = entity.get("confidence")
     return (
-        bool(entity.get("canonicalId"))
+        isinstance(entity.get("canonicalId"), str)
+        and _SAFE_CANONICAL_ID.fullmatch(entity["canonicalId"]) is not None
         and entity.get("status") in {STATUS_MERGED, STATUS_CONFLICT}
         and isinstance(confidence, (int, float))
         and not isinstance(confidence, bool)
@@ -66,6 +68,15 @@ def item_page_path(entity: dict[str, Any]) -> str | None:
     if not is_page_eligible(entity):
         return None
     return f"items/{entity['canonicalId']}.md"
+
+
+def lore_page_path(entity: dict[str, Any]) -> str | None:
+    """Lore pageの出力先相対パスを返す。個別ページを生成すべきで
+    なければNoneを返す。
+    """
+    if not is_page_eligible(entity):
+        return None
+    return f"lore/{entity['canonicalId']}.md"
 
 
 def resolve_episode_path_id(source_document: dict[str, Any]) -> str | None:
