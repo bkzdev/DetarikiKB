@@ -26,6 +26,7 @@ from agents.wiki_generator import (
     build_pages,
     character_page_path,
     episode_page_path,
+    event_page_path,
     evidence_page_path,
     is_page_eligible,
     item_page_path,
@@ -34,6 +35,8 @@ from agents.wiki_generator import (
     render_character_index_page,
     render_character_page,
     render_episode_page,
+    render_event_index_page,
+    render_event_page,
     render_evidence_page,
     render_index_page,
     render_item_index_page,
@@ -188,6 +191,27 @@ def resolved_lore(resolved_item) -> dict:
     return lore
 
 
+@pytest.fixture
+def resolved_event(resolved_item) -> dict:
+    """Event page用の合成entity。実データは含まない。"""
+    event = deepcopy(resolved_item)
+    event.update(
+        {
+            "id": "EVENT_TEST_LAUNCH",
+            "type": "event",
+            "canonicalId": "EVENT_TEST_LAUNCH",
+            "displayName": "Test Launch",
+            "aliases": ["Synthetic Opening"],
+            "participantEntityIds": ["CHAR_TEST_RAIN"],
+            "locationEntityIds": ["LOC_TEST_PLAZA"],
+        }
+    )
+    event["sourceCandidates"][0]["candidateId"] = "EVENT_CAND_TEST_001"
+    event["sourceCandidates"][0]["candidateType"] = "event_candidate"
+    event["conflicts"] = []
+    return event
+
+
 # ----------------------------------------------------------------
 # build_front_matter
 # ----------------------------------------------------------------
@@ -323,6 +347,16 @@ def test_lore_page_path_rejects_unsafe_canonical_id(resolved_lore):
     lore["canonicalId"] = "../../outside"
     assert is_page_eligible(lore) is False
     assert lore_page_path(lore) is None
+
+
+def test_event_page_path_uses_canonical_id(resolved_event):
+    assert event_page_path(resolved_event) == "events/EVENT_TEST_LAUNCH.md"
+
+
+def test_event_page_path_none_for_unresolved(resolved_event):
+    event = deepcopy(resolved_event)
+    event.update({"canonicalId": None, "status": "unresolved"})
+    assert event_page_path(event) is None
 
 
 def test_episode_page_path_uses_episode_id():
@@ -1018,6 +1052,7 @@ def test_build_pages_generates_location_pages(synthetic_collection, resolved_loc
     assert "locations/index.md" in pages
     assert "items/index.md" in pages
     assert "lore/index.md" in pages
+    assert "events/index.md" in pages
     assert "locations/LOC_TEST_PLAZA.md" in pages
     assert "locations/UNRESOLVED_LOC_TEST_0001.md" not in pages
     assert "| Location pages | 1 |" in pages["locations/index.md"]
@@ -1339,6 +1374,156 @@ def test_build_pages_keeps_unsafe_lore_id_in_unresolved_report(
     pages = build_pages(collection)
     assert "lore/../../outside.md" not in pages
     assert "Unsafe Lore ID" in pages["reports/unresolved.md"]
+
+
+# ----------------------------------------------------------------
+# render_event_page / render_event_index_page
+# ----------------------------------------------------------------
+
+
+def test_render_event_page_links_participants_locations_and_episodes(
+    synthetic_collection, resolved_character, resolved_location, resolved_event
+):
+    page = render_event_page(
+        resolved_event,
+        synthetic_collection["sourceDocuments"],
+        [resolved_character],
+        [resolved_location],
+    )
+    assert 'entity_type: "event"' in page
+    assert 'canonical_id: "EVENT_TEST_LAUNCH"' in page
+    assert "# Test Launch" in page
+    assert "- Synthetic Opening" in page
+    assert "[Test Character Rain](../characters/CHAR_TEST_RAIN.md)" in page
+    assert "[Test Plaza](../locations/LOC_TEST_PLAZA.md)" in page
+    assert "](../stories/EP_TEST_001.md)" in page
+    assert "- <code>EP_TEST_MISSING</code>" in page
+
+
+def test_render_event_page_keeps_unknown_wrong_type_and_ineligible_refs(
+    resolved_character,
+    resolved_location,
+    unresolved_character,
+    resolved_event,
+):
+    event = deepcopy(resolved_event)
+    event["participantEntityIds"] = [
+        "CHAR_TEST_RAIN",
+        "CHAR_TEST_RAIN",
+        "LOC_TEST_PLAZA",
+        "CHAR_TEST_UNKNOWN",
+        unresolved_character["id"],
+    ]
+    page = render_event_page(
+        event,
+        characters=[resolved_character, resolved_location, unresolved_character],
+        locations=[resolved_location],
+    )
+    participants = page.split("## Participants", 1)[1].split("## Locations", 1)[0]
+    assert participants.count("../characters/CHAR_TEST_RAIN.md") == 1
+    assert "../locations/LOC_TEST_PLAZA.md" not in participants
+    assert "<code>LOC_TEST_PLAZA</code>（リンクなし）" in participants
+    assert "<code>CHAR_TEST_UNKNOWN</code>（リンクなし）" in participants
+    assert f"<code>{unresolved_character['id']}</code>、リンクなし" in participants
+
+
+def test_render_event_page_does_not_resolve_reference_by_canonical_id_only(
+    resolved_character, resolved_event
+):
+    character = deepcopy(resolved_character)
+    character["id"] = "MERGED_CHAR_TEST_RAIN"
+    event = deepcopy(resolved_event)
+    event["participantEntityIds"] = [character["canonicalId"]]
+
+    page = render_event_page(event, characters=[character])
+    participants = page.split("## Participants", 1)[1].split("## Locations", 1)[0]
+    assert "../characters/CHAR_TEST_RAIN.md" not in participants
+    assert "<code>CHAR_TEST_RAIN</code>（リンクなし）" in participants
+
+
+def test_render_event_page_safely_keeps_untrusted_reference_id(resolved_event):
+    event = deepcopy(resolved_event)
+    event["participantEntityIds"] = ["CHAR_SAFE`\n## injected <script>"]
+    event["locationEntityIds"] = []
+    page = render_event_page(event)
+    assert "\n## injected" not in page
+    assert "<script>" not in page
+    assert "<code>CHAR_SAFE` ## injected &lt;script&gt;</code>" in page
+
+
+def test_render_event_page_conflict_shows_warning(resolved_event):
+    event = deepcopy(resolved_event)
+    event["status"] = "conflict"
+    page = render_event_page(event)
+    assert '!!! warning "未解決の矛盾があります"' in page
+
+
+def test_render_event_page_does_not_include_raw_payload(resolved_event):
+    page = render_event_page(resolved_event)
+    assert "SYNTHETIC RAW TEXT MUST NOT APPEAR" not in page
+    assert "SYNTHETIC RAW PAYLOAD MUST NOT APPEAR" not in page
+
+
+def test_render_event_index_is_sorted_escaped_and_excludes_unresolved(resolved_event):
+    later = deepcopy(resolved_event)
+    later.update(
+        {
+            "id": "EVENT_TEST_ZETA",
+            "canonicalId": "EVENT_TEST_ZETA",
+            "displayName": "Test | [Zeta]",
+            "participantEntityIds": ["CHAR_A", "CHAR_A", "CHAR_B"],
+            "locationEntityIds": ["LOC_A"],
+        }
+    )
+    unresolved = deepcopy(resolved_event)
+    unresolved.update(
+        {
+            "id": "UNRESOLVED_EVENT_TEST_HIDDEN",
+            "canonicalId": None,
+            "status": "unresolved",
+            "displayName": "Hidden Event",
+        }
+    )
+    page = render_event_index_page([later, unresolved, resolved_event])
+    assert "| Event pages | 2 |" in page
+    assert "[Test Launch](EVENT_TEST_LAUNCH.md)" in page
+    assert r"[Test \| \[Zeta\]](EVENT_TEST_ZETA.md)" in page
+    assert "| 2 | 1 | `EVENT_TEST_ZETA` |" in page
+    assert page.index("Test Launch") < page.index(r"Test \| \[Zeta\]")
+    assert "Hidden Event" not in page
+    assert "[Unresolved report](../reports/unresolved.md)" in page
+
+
+def test_render_index_page_links_to_events_index(synthetic_collection):
+    page = render_index_page(synthetic_collection)
+    assert "[Events](events/index.md)" in page
+
+
+def test_build_pages_generates_event_pages(
+    synthetic_collection, resolved_location, resolved_event
+):
+    collection = deepcopy(synthetic_collection)
+    collection["entities"]["locations"].append(resolved_location)
+    conflict = deepcopy(resolved_event)
+    conflict.update(
+        {
+            "id": "EVENT_TEST_CONFLICT",
+            "canonicalId": "EVENT_TEST_CONFLICT",
+            "displayName": "Test Conflict Event",
+            "status": "conflict",
+        }
+    )
+    collection["entities"]["events"].extend([resolved_event, conflict])
+    pages = build_pages(collection)
+    assert "events/index.md" in pages
+    assert "events/EVENT_TEST_LAUNCH.md" in pages
+    assert "events/EVENT_TEST_CONFLICT.md" in pages
+    assert (
+        "[Test Plaza](../locations/LOC_TEST_PLAZA.md)"
+        in pages["events/EVENT_TEST_LAUNCH.md"]
+    )
+    assert "Test Conflict Event" not in pages["reports/unresolved.md"]
+    assert "| Event pages | 2 |" in pages["events/index.md"]
 
 
 # ----------------------------------------------------------------
@@ -2295,6 +2480,7 @@ def test_build_pages_generates_expected_paths(synthetic_collection):
     assert "locations/index.md" in pages
     assert "items/index.md" in pages
     assert "lore/index.md" in pages
+    assert "events/index.md" in pages
     assert "characters/CHAR_TEST_RAIN.md" in pages
     assert "characters/CHAR_TEST_CONFLICT.md" in pages
     assert "reports/unresolved.md" in pages
