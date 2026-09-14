@@ -6,8 +6,9 @@ merged knowledge collection (schemas/merged_knowledge_collection.schema.json)
 
 docs/architecture/07_Wiki/Wiki_Output_Design.md のPhase 1のうち、
 Top page / Story index / Episode page (簡易) / Character page / Location page /
-Item page / Lore page / Event page / Unresolved report pageを実装するrenderer。
-Organization page、Relationship section、Timeline page、
+Item page / Lore page / Event page / Relationship section /
+Unresolved report pageを実装するrenderer。
+Organization page、Timeline page、
 AI analysis pageは未実装。
 テンプレートエンジン (Jinja2等) の依存追加はまだ行っていない。
 
