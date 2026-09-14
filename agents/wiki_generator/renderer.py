@@ -5,12 +5,11 @@ merged knowledge collection (schemas/merged_knowledge_collection.schema.json)
 
 docs/architecture/07_Wiki/Wiki_Output_Design.md のPhase 1のうち、
 Top page / Story index / Characters index / Locations index / Items index /
-Lore index / Events index / Episode page (簡易) / Character page /
-Relationship section / Location page /
-Item page / Lore page / Event page /
+Lore index / Events index / Organizations index / Episode page (簡易) /
+Character page / Relationship section / Location page /
+Organization page / Item page / Lore page / Event page /
 Unresolved report page を実装する
-(Organization page、
-Timeline page、AI analysis pageはNon-goals。将来のPRで拡張する)。
+(Timeline page、AI analysis pageはNon-goals。将来のPRで拡張する)。
 
 **重要な制約**:
 - 元セリフ全文は一切出力しない。evidenceRefsはevidenceId/episodeId/
@@ -58,6 +57,7 @@ from .paths import (
     item_page_path,
     location_page_path,
     lore_page_path,
+    organization_page_path,
     story_page_path,
 )
 from .story_summaries import (
@@ -448,14 +448,21 @@ def _render_basic_profile_section(
 
 
 def _relationship_counterpart_id(
-    entity_id: Any, relationship: dict[str, Any]
+    entity: dict[str, Any], relationship: dict[str, Any]
 ) -> str | None:
-    """主体entityに対するRelationshipの相手側merged entity IDを返す。"""
+    """公開v1の主体側に一致するRelationshipの相手entity IDを返す。"""
+    entity_id = entity.get("id")
     if not isinstance(entity_id, str) or not entity_id:
         return None
-    if relationship.get("sourceEntityId") == entity_id:
+    if (
+        entity.get("type") == "character"
+        and relationship.get("sourceEntityId") == entity_id
+    ):
         counterpart = relationship.get("targetEntityId")
-    elif relationship.get("targetEntityId") == entity_id:
+    elif (
+        entity.get("type") == "organization"
+        and relationship.get("targetEntityId") == entity_id
+    ):
         counterpart = relationship.get("sourceEntityId")
     else:
         return None
@@ -479,6 +486,7 @@ def _is_renderable_public_relationship(relationship: dict[str, Any]) -> bool:
     source_type = relationship.get("sourceType")
     return (
         relationship.get("publicationStatus") == "eligible"
+        and relationship.get("taxonomyState") == "formal_v1"
         and isinstance(normalized_type, str)
         and normalized_type in _RELATIONSHIP_DISPLAY_LABELS
         and isinstance(source_type, str)
@@ -492,6 +500,7 @@ def _is_renderable_public_relationship(relationship: dict[str, Any]) -> bool:
 def _relationship_counterpart_display(
     counterpart_id: str | None,
     entity_lookup: dict[str, dict[str, Any]],
+    path_resolver: EntityPathResolver | None,
 ) -> str:
     """公開可能な相手entityだけを名前で表示し、内部IDは露出しない。"""
     counterpart = entity_lookup.get(counterpart_id or "")
@@ -500,13 +509,16 @@ def _relationship_counterpart_display(
     display_name = counterpart.get("displayName") or counterpart.get("canonicalId")
     if not isinstance(display_name, str) or not display_name.strip():
         return "関連先の個別ページは未公開です"
-    return _escape_markdown_inline_text(display_name)
+    safe_name = _escape_markdown_inline_text(display_name)
+    path = path_resolver(counterpart) if path_resolver is not None else None
+    return f"[{safe_name}](../{path})" if path is not None else safe_name
 
 
 def _render_relationships_section(
     entity: dict[str, Any],
     relationships: list[dict[str, Any]],
     related_entities: list[dict[str, Any]],
+    related_path_resolver: EntityPathResolver | None = None,
 ) -> list[str]:
     """公開適格Relationshipだけをentity page用の要約へ変換する。
 
@@ -514,12 +526,11 @@ def _render_relationships_section(
     confidenceから再推測しない。相手entityがpage eligibleでない場合は
     内部IDや未確認名を出さず、関係の存在だけを不破棄で示す。
     """
-    entity_id = entity.get("id")
     eligible: list[tuple[dict[str, Any], str | None]] = []
     for relationship in relationships:
         if not _is_renderable_public_relationship(relationship):
             continue
-        counterpart_id = _relationship_counterpart_id(entity_id, relationship)
+        counterpart_id = _relationship_counterpart_id(entity, relationship)
         if counterpart_id is not None:
             eligible.append((relationship, counterpart_id))
 
@@ -550,7 +561,9 @@ def _render_relationships_section(
         label = _relationship_display_label(relationship)
         if label is None:  # _is_renderable_public_relationshipによる防御の型補助
             continue
-        counterpart = _relationship_counterpart_display(counterpart_id, entity_lookup)
+        counterpart = _relationship_counterpart_display(
+            counterpart_id, entity_lookup, related_path_resolver
+        )
         lines.append(f"- **{label}**: {counterpart}")
 
         lines.append("  - Direction: source_to_target")
@@ -623,7 +636,12 @@ def render_character_page(
     lines.extend(_render_basic_profile_section(entity, character_profiles))
     lines.extend(_render_aliases_section(entity))
     lines.extend(
-        _render_relationships_section(entity, relationships or [], organizations or [])
+        _render_relationships_section(
+            entity,
+            relationships or [],
+            organizations or [],
+            organization_page_path,
+        )
     )
     lines.extend(_render_evidence_section(entity))
     lines.extend(_render_source_candidates_section(entity))
@@ -788,6 +806,68 @@ def render_location_page(
         ]
     )
     lines.extend(_render_aliases_section(entity))
+    lines.extend(_render_appearing_episodes_section(entity, source_documents or []))
+    lines.extend(_render_evidence_section(entity))
+    lines.extend(_render_source_candidates_section(entity))
+    lines.extend(_render_conflicts_section(entity))
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def render_organization_page(
+    entity: dict[str, Any],
+    source_documents: list[dict[str, Any]] | None = None,
+    relationships: list[dict[str, Any]] | None = None,
+    characters: list[dict[str, Any]] | None = None,
+) -> str:
+    """Organization pageを生成する (Wiki_Output_Design.md §9.6)。"""
+    display_name = (
+        entity.get("displayName") or entity.get("canonicalId") or entity.get("id", "")
+    )
+    source_types = entity.get("sourceTypes") or []
+    front_matter = build_front_matter(
+        {
+            "title": display_name,
+            "entity_type": "organization",
+            "entity_id": entity.get("id"),
+            "canonical_id": entity.get("canonicalId"),
+            "status": entity.get("status"),
+            "confidence": entity.get("confidence"),
+            "source_types": ", ".join(source_types) if source_types else None,
+            "generated_from": GENERATED_FROM,
+        }
+    )
+    source_types_display = (
+        ", ".join(source_types) if source_types else "情報源区分は記録されていません。"
+    )
+    lines = [
+        front_matter,
+        f"# {_escape_markdown_inline_text(display_name)}",
+        "",
+    ]
+    lines.extend(_render_entity_status_warning(entity))
+    lines.extend(
+        [
+            "## Summary",
+            "",
+            "| 項目 | 値 |",
+            "|---|---|",
+            f"| Entity ID | {entity.get('id', '')} |",
+            f"| Canonical ID | {entity.get('canonicalId', '')} |",
+            f"| Status | {entity.get('status', '')} |",
+            f"| Confidence | {entity.get('confidence', '')} |",
+            f"| Source types | {source_types_display} |",
+            "",
+        ]
+    )
+    lines.extend(_render_aliases_section(entity))
+    lines.extend(
+        _render_relationships_section(
+            entity,
+            relationships or [],
+            characters or [],
+            character_page_path,
+        )
+    )
     lines.extend(_render_appearing_episodes_section(entity, source_documents or []))
     lines.extend(_render_evidence_section(entity))
     lines.extend(_render_source_candidates_section(entity))
@@ -1362,6 +1442,7 @@ def render_index_page(collection: dict[str, Any]) -> str:
     lines.append("- [Story index](stories/index.md)")
     lines.append("- [Characters](characters/index.md)")
     lines.append("- [Locations](locations/index.md)")
+    lines.append("- [Organizations](organizations/index.md)")
     lines.append("- [Items](items/index.md)")
     lines.append("- [Lore](lore/index.md)")
     lines.append("- [Events](events/index.md)")
@@ -1629,6 +1710,69 @@ def render_location_index_page(locations: list[dict[str, Any]]) -> str:
         lines.append(
             f"| {name} | {len(entity.get('sceneRefs') or [])} | `{canonical_id}` |"
         )
+    lines.append("")
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def _public_relationship_count(
+    entity: dict[str, Any], relationships: list[dict[str, Any]]
+) -> int:
+    """主体に接続する公開v1 Relationship record数を返す。"""
+    return sum(
+        1
+        for relationship in relationships
+        if _is_renderable_public_relationship(relationship)
+        and _relationship_counterpart_id(entity, relationship) is not None
+    )
+
+
+def render_organization_index_page(
+    organizations: list[dict[str, Any]],
+    relationships: list[dict[str, Any]] | None = None,
+) -> str:
+    """Organizations index page (organizations/index.md) を生成する。"""
+    eligible = sorted(
+        (
+            organization
+            for organization in organizations
+            if is_page_eligible(organization)
+        ),
+        key=lambda organization: organization.get("canonicalId") or "",
+    )
+    public_relationships = relationships or []
+    front_matter = build_front_matter(
+        {"title": "Organizations", "generated_from": GENERATED_FROM}
+    )
+    lines = [
+        front_matter,
+        "# 組織一覧",
+        "",
+        "## Overview",
+        "",
+        "| 項目 | 値 |",
+        "|---|---:|",
+        f"| Organization pages | {len(eligible)} |",
+        "",
+        "未解決の組織は[Unresolved report](../reports/unresolved.md)"
+        "を参照してください。",
+        "",
+        "## Organization List",
+        "",
+    ]
+    if not eligible:
+        lines.extend(["登録されているOrganization pageはありません。", ""])
+        return "\n".join(lines).rstrip() + "\n"
+
+    lines.extend(["| Organization | Relationships | ID |", "|---|---:|---|"])
+    for entity in eligible:
+        canonical_id = entity.get("canonicalId")
+        display_name = entity.get("displayName") or canonical_id
+        safe_name = _escape_markdown_table_text(display_name)
+        path = organization_page_path(entity)
+        filename = path.rsplit("/", 1)[-1] if path else None
+        name = f"[{safe_name}]({filename})" if filename else safe_name
+        relationship_count = _public_relationship_count(entity, public_relationships)
+        lines.append(f"| {name} | {relationship_count} | `{canonical_id}` |")
     lines.append("")
     return "\n".join(lines).rstrip() + "\n"
 
@@ -2577,6 +2721,9 @@ def build_pages(
             characters, character_profiles
         ),
         "locations/index.md": render_location_index_page(locations),
+        "organizations/index.md": render_organization_index_page(
+            organizations, relationships
+        ),
         "items/index.md": render_item_index_page(items),
         "lore/index.md": render_lore_index_page(lore_entities),
         "events/index.md": render_event_index_page(events),
@@ -2619,6 +2766,15 @@ def build_pages(
             locations,
             location_page_path,
             lambda entity: render_location_page(entity, source_documents),
+        )
+    )
+    pages.update(
+        _build_entity_detail_pages(
+            organizations,
+            organization_page_path,
+            lambda entity: render_organization_page(
+                entity, source_documents, relationships, characters
+            ),
         )
     )
     pages.update(
