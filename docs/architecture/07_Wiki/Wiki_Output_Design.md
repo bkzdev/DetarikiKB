@@ -219,7 +219,7 @@ Relationship page（独立ページ）は現時点では見送り、Character/Or
 
 **profileHighlight表示・出典非表示への変更（`feature/wiki-character-profile-display-refinement`で実装完了）**: manual visual reviewでの要望を受け、`profileHighlight`は独立sectionではなく「基本プロフィール」表の「特記事項」行として表示するよう変更した（`_format_profile_highlight`）。表示形式はWiki記載と同じ雰囲気の`【label】value`（例: `【好きなこと】食べ歩き`）とし、labelのみ・valueのみ・両方欠落の場合も「未登録」等へ安全にfallbackする。あわせて、`source`（出典）はCharacter page上から**非表示**にした。`character_profiles.yaml`側の`source`フィールド自体（`sourceType`/`label`/`referenceId`/`notes`）は変更・削除しておらず、schema・loaderも無変更である（表示側でのみ省略）。**このPRでも実プロフィールデータの追加・修正は行っていない**（合成fixtureのみで検証）。
 
-**実装状況（`feature/character-page-renderer-expansion`・`feature/character-profile-renderer-section`で拡張）**: `render_character_page`（`agents/wiki_generator/renderer.py`）は、Summary（Entity ID/Canonical ID/Status/Confidence/Source types）・**基本プロフィール**（上記参照）・Aliases（空なら「別名は登録されていません。」）・Evidence（既存のID参照のみ表示）・Source Candidates（candidateId/candidateType/episodeId/evidenceIds件数/sourceDocumentIdのsummary、元candidateのraw payloadは含めない）・Conflicts（空なら「記録されている矛盾はありません。」、存在する場合はconflictType/field/severity/resolutionStatusを表示）の順でセクションを出力する。front matterには`confidence`/`source_types`を任意フィールドとして追加した。関連Relationship・登場エピソード一覧・manualOverridesApplied表示・AI推定ラベル付けは、Relationship section（Phase 2）・AI analysis page（Phase 3）実装時にあわせて対応する（今回は未実装）。
+**実装状況（`feature/character-page-renderer-expansion`・`feature/character-profile-renderer-section`で拡張）**: `render_character_page`（`agents/wiki_generator/renderer.py`）は、Summary（Entity ID/Canonical ID/Status/Confidence/Source types）・**基本プロフィール**（上記参照）・Aliases（空なら「別名は登録されていません。」）・Relationship（§9.10）・Evidence（既存のID参照のみ表示）・Source Candidates（candidateId/candidateType/episodeId/evidenceIds件数/sourceDocumentIdのsummary、元candidateのraw payloadは含めない）・Conflicts（空なら「記録されている矛盾はありません。」、存在する場合はconflictType/field/severity/resolutionStatusを表示）の順でセクションを出力する。front matterには`confidence`/`source_types`を任意フィールドとして追加した。登場エピソード一覧・manualOverridesApplied表示・AI推定ラベル付けは、後続のWiki拡張・AI analysis page（Phase 3）実装時にあわせて対応する。
 
 **Characters index page（`feature/wiki-character-index-page`で追加）**: manual visual review 001で「Top pageからCharacter pageへの直接導線が無く、Episode pageのRelated Characters経由でしか辿れない」ことが判明したため、`characters/index.md`を新設した。`render_character_index_page(characters, character_profiles=None)`は、`is_page_eligible`がtrue（canonicalId確定 + `status: merged|conflict` + §6の防御条件を充足）のcharacterのみを一覧表示する（生成条件を満たさないcharacterはここには載せず、`reports/unresolved.md`側でのみ確認できるようにする）。Overview（Character pages件数・プロフィール登録あり/なし件数、`Unresolved report`へのリンク案内）とCharacter List表（Character名（リンク付き）・Profile Status（登録あり/未登録）・ID の3列のみ、manual visual review 001で判明した「表が横長すぎる」問題を踏まえ列数を最小限に抑えた）で構成する。profile登録判定は`render_character_page`の基本プロフィールsectionと同じ照合ロジック（`entity.canonicalId == character_profiles`のキー一致）を再利用する。Top pageの「## リンク」セクションに`[Characters](characters/index.md)`を追加し、`build_pages()`が返すページ一覧へ`characters/index.md`を含めるようにした。profileHighlightの表示統合・profile source非表示化・表の可読性改善（列のさらなる整理、モバイル対応）は本PRのスコープ外（それぞれ`feature/wiki-character-profile-display-refinement`・`feature/wiki-renderer-readability-improvements`）。
 
@@ -309,6 +309,17 @@ episode横断統合、逆参照、実データ投入は対象外とする。
 - 表示: `relationshipType`、方向（`direction`）、`temporalNote`（変化があれば）、evidence概要
 - 公開v1では`publicationStatus: eligible`のRelationshipだけを表示する。対象は`member_of`（「所属」）と`affiliated_with`（「関係あり（所属未確定）」）で、Character → Organization・`source_to_target`・`sourceType: script|manual`を満たすものに限る
 - `ai_extracted` / `ai_inferred`、暫定・未知type、endpoint型違反、方向・type conflictは内部reviewに留め、ラベル付きであっても公開しない。rendererは個別条件から公開可否を推測せず`publicationStatus`をfail-closedで参照する
+
+**実装状況（`codex/wiki-relationship-section`）**: Character page内の
+`## Relationships`として実装した。主体のmerged entity IDがsourceまたはtargetに一致し、
+`publicationStatus: eligible`のrecordだけを決定的な順序で表示する。未検証・破損入力への
+defense-in-depthとして公開v1のtype / sourceType / direction / endpoint型allowlistも表示直前に
+照合するが、candidateやconfidenceから適格性を再推測しない。表示項目は公開v1の
+日本語label、相手Organizationの表示名、direction、source区分、evidence件数、任意の
+`temporalNote`に限定する。`review_required`は個別type・相手名・内部IDを含め一切表示しない。
+相手Organizationが個別ページ生成条件を満たさない場合も内部ID・未確認名は出さず、
+「関連先の個別ページは未公開です」と表示する。Organization pageと相互リンクは次PRで
+同じsectionへ接続するため、本実装では未追加とする。
 
 ## 9.11 Timeline page
 

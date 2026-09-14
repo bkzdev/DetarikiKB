@@ -5,10 +5,11 @@ merged knowledge collection (schemas/merged_knowledge_collection.schema.json)
 
 docs/architecture/07_Wiki/Wiki_Output_Design.md のPhase 1のうち、
 Top page / Story index / Characters index / Locations index / Items index /
-Lore index / Events index / Episode page (簡易) / Character page / Location page /
+Lore index / Events index / Episode page (簡易) / Character page /
+Relationship section / Location page /
 Item page / Lore page / Event page /
 Unresolved report page を実装する
-(Organization page、Relationship section、
+(Organization page、
 Timeline page、AI analysis pageはNon-goals。将来のPRで拡張する)。
 
 **重要な制約**:
@@ -68,6 +69,15 @@ from .story_summaries import (
 CharacterProfileIndex = dict[str, CharacterProfile]
 EntityPathResolver = Callable[[dict[str, Any]], str | None]
 EntityPageRenderer = Callable[[dict[str, Any]], str]
+
+_RELATIONSHIP_DISPLAY_LABELS = {
+    "member_of": "所属",
+    "affiliated_with": "関係あり（所属未確定）",
+}
+_RELATIONSHIP_SOURCE_LABELS = {
+    "script": "本文抽出",
+    "manual": "人間確認済み",
+}
 
 
 def _format_evidence_ref(ref: dict[str, Any]) -> str:
@@ -437,9 +447,134 @@ def _render_basic_profile_section(
     return lines
 
 
+def _relationship_counterpart_id(
+    entity_id: Any, relationship: dict[str, Any]
+) -> str | None:
+    """主体entityに対するRelationshipの相手側merged entity IDを返す。"""
+    if not isinstance(entity_id, str) or not entity_id:
+        return None
+    if relationship.get("sourceEntityId") == entity_id:
+        counterpart = relationship.get("targetEntityId")
+    elif relationship.get("targetEntityId") == entity_id:
+        counterpart = relationship.get("sourceEntityId")
+    else:
+        return None
+    return counterpart if isinstance(counterpart, str) and counterpart else None
+
+
+def _relationship_display_label(relationship: dict[str, Any]) -> str | None:
+    normalized_type = relationship.get("normalizedRelationshipType")
+    return _RELATIONSHIP_DISPLAY_LABELS.get(normalized_type)
+
+
+def _is_renderable_public_relationship(relationship: dict[str, Any]) -> bool:
+    """固定された公開v1表示契約に合うeligible recordだけを受け入れる。
+
+    `publicationStatus`はStage Bの判定結果として必須だが、未検証または壊れた
+    collectionで未知値をfallback表示しないため、公開fieldの固定allowlistも
+    defense-in-depthとして確認する。candidateやconfidenceから適格性を再推測は
+    しない。
+    """
+    normalized_type = relationship.get("normalizedRelationshipType")
+    source_type = relationship.get("sourceType")
+    return (
+        relationship.get("publicationStatus") == "eligible"
+        and isinstance(normalized_type, str)
+        and normalized_type in _RELATIONSHIP_DISPLAY_LABELS
+        and isinstance(source_type, str)
+        and source_type in _RELATIONSHIP_SOURCE_LABELS
+        and relationship.get("direction") == "source_to_target"
+        and relationship.get("sourceEntityType") == "character"
+        and relationship.get("targetEntityType") == "organization"
+    )
+
+
+def _relationship_counterpart_display(
+    counterpart_id: str | None,
+    entity_lookup: dict[str, dict[str, Any]],
+) -> str:
+    """公開可能な相手entityだけを名前で表示し、内部IDは露出しない。"""
+    counterpart = entity_lookup.get(counterpart_id or "")
+    if counterpart is None or not is_page_eligible(counterpart):
+        return "関連先の個別ページは未公開です"
+    display_name = counterpart.get("displayName") or counterpart.get("canonicalId")
+    if not isinstance(display_name, str) or not display_name.strip():
+        return "関連先の個別ページは未公開です"
+    return _escape_markdown_inline_text(display_name)
+
+
+def _render_relationships_section(
+    entity: dict[str, Any],
+    relationships: list[dict[str, Any]],
+    related_entities: list[dict[str, Any]],
+) -> list[str]:
+    """公開適格Relationshipだけをentity page用の要約へ変換する。
+
+    公開gateはStage Bの`publicationStatus`を正とし、rendererでは候補や
+    confidenceから再推測しない。相手entityがpage eligibleでない場合は
+    内部IDや未確認名を出さず、関係の存在だけを不破棄で示す。
+    """
+    entity_id = entity.get("id")
+    eligible: list[tuple[dict[str, Any], str | None]] = []
+    for relationship in relationships:
+        if not _is_renderable_public_relationship(relationship):
+            continue
+        counterpart_id = _relationship_counterpart_id(entity_id, relationship)
+        if counterpart_id is not None:
+            eligible.append((relationship, counterpart_id))
+
+    lines = ["## Relationships", ""]
+    if not eligible:
+        lines.extend(["公開可能な関係は記録されていません。", ""])
+        return lines
+
+    entity_lookup = {
+        item["id"]: item
+        for item in related_entities
+        if isinstance(item.get("id"), str) and item.get("id")
+    }
+    eligible.sort(
+        key=lambda item: (
+            str(item[0].get("normalizedRelationshipType") or ""),
+            str(
+                (entity_lookup.get(item[1] or "") or {}).get("canonicalId")
+                or item[1]
+                or ""
+            ),
+            str(item[0].get("sourceType") or ""),
+            str(item[0].get("id") or ""),
+        )
+    )
+
+    for relationship, counterpart_id in eligible:
+        label = _relationship_display_label(relationship)
+        if label is None:  # _is_renderable_public_relationshipによる防御の型補助
+            continue
+        counterpart = _relationship_counterpart_display(counterpart_id, entity_lookup)
+        lines.append(f"- **{label}**: {counterpart}")
+
+        lines.append("  - Direction: source_to_target")
+
+        source_type = str(relationship["sourceType"])
+        source_label = _RELATIONSHIP_SOURCE_LABELS[source_type]
+        lines.append(f"  - Source: {source_label}")
+        lines.append(f"  - Evidence: {len(relationship.get('evidenceRefs') or [])} 件")
+
+        temporal_note = relationship.get("temporalNote")
+        if isinstance(temporal_note, str) and temporal_note.strip():
+            lines.append(
+                "  - Temporal note: "
+                f"{_escape_markdown_inline_text(temporal_note.strip())}"
+            )
+    lines.append("")
+    return lines
+
+
 def render_character_page(
     entity: dict[str, Any],
     character_profiles: CharacterProfileIndex | None = None,
+    relationships: list[dict[str, Any]] | None = None,
+    organizations: list[dict[str, Any]] | None = None,
 ) -> str:
     """Character pageを生成する (Wiki_Output_Design.md §9.4)。
 
@@ -487,6 +622,9 @@ def render_character_page(
 
     lines.extend(_render_basic_profile_section(entity, character_profiles))
     lines.extend(_render_aliases_section(entity))
+    lines.extend(
+        _render_relationships_section(entity, relationships or [], organizations or [])
+    )
     lines.extend(_render_evidence_section(entity))
     lines.extend(_render_source_candidates_section(entity))
     lines.extend(_render_conflicts_section(entity))
@@ -2429,6 +2567,8 @@ def build_pages(
     items = collection.get("entities", {}).get("items", []) or []
     lore_entities = collection.get("entities", {}).get("lore", []) or []
     events = collection.get("entities", {}).get("events", []) or []
+    organizations = collection.get("entities", {}).get("organizations", []) or []
+    relationships = collection.get("entities", {}).get("relationships", []) or []
     source_documents = collection.get("sourceDocuments", []) or []
     pages: dict[str, str] = {
         "index.md": render_index_page(collection),
@@ -2469,7 +2609,9 @@ def build_pages(
         _build_entity_detail_pages(
             characters,
             character_page_path,
-            lambda entity: render_character_page(entity, character_profiles),
+            lambda entity: render_character_page(
+                entity, character_profiles, relationships, organizations
+            ),
         )
     )
     pages.update(

@@ -27,10 +27,10 @@ Raw Scriptを安全に正規化し、根拠・不明情報・内部IDを失わ�
 次の切りのよい到達点は次の3つである。
 
 1. ~~Location / Item / Lore / Event pageと各indexを合成fixture、strict build、独立監査で確定し、M5 Phase 2の共通実装パターンにする。~~ 完了。
-2. ~~Relationship公開v1 taxonomyを確定し、Stage Bのfail-closed gateとreview queueを実装する。~~ 完了。次に、その契約でRelationship sectionを実装し、Organization pageへ接続する。
+2. ~~Relationship公開v1 taxonomyを確定し、Stage Bのfail-closed gateとreview queueを実装する。~~ 完了。Character page側のRelationship sectionも実装済みで、次にOrganization pageへ接続する。
 3. ~~明示接続候補の初回走査完了を受け、公開用Timelineの目的・表示粒度・unknown/conflict表現を判断し、public projection schema・projector・preflight・rendererを合成fixtureで固定する。~~ 公開profileの採択、protected Pages gate、匿名合成siteのA→B→A rollback rehearsal、実データpublic projectionのpush前review・初回public input昇格・workflow実入力切替・初回実content deployを完了した。公開表示と新しい既知正常rollback digestも確認済みで、M6を完了とする。
 
-M5の残り順序は、完了済みのRelationship公開契約を前提に、(a) Relationship section、(b) Organization page / index、(c) 全体目視確認の3段階である。(a)〜(b)は承認済み契約の範囲でagent判断し、(c)の画面確認だけを人間へ依頼する。
+M5の残り順序は、完了済みのRelationship公開契約とCharacter page側sectionを前提に、(a) Organization page / indexへのsection接続、(b) 全体目視確認の2段階である。(a)は承認済み契約の範囲でagent判断し、(b)の画面確認だけを人間へ依頼する。
 
 ## 人間確認を求める場面
 
