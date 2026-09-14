@@ -37,7 +37,7 @@ Raw Script (.dec)
 | 区分 | 由来（`sourceType`） | ページ上の扱い |
 |---|---|---|
 | 公式情報 | `official`（ゲーム公式設定資料等、将来入力） | 「公式情報」セクションにそのまま掲載。confidence表示は不要（公式情報は確度100%として扱う） |
-| 本文抽出（fact） | `script` / `ai_extracted`（Normalized Story JSONから機械的に抽出した情報） | 「抽出情報」セクション。evidenceRefsと合わせて表示し、rule-based抽出であることが分かるようにする |
+| 本文抽出（fact） | `script` / `ai_extracted`（Normalized Story JSONから機械的に抽出した情報） | 通常entityでは「抽出情報」セクションへ表示する。Relationship公開v1だけは安全側の個別契約により`script`のみ公開可、`ai_extracted`はreview対象とする |
 | AI推定（inference） | `ai_inferred`（将来のLLM抽出。「〜らしい」等の推定） | **公式情報・抽出情報とは必ず別セクション、または別ページに分離する。** 見出しに `AI-generated analysis` 等の明示ラベルを付け、confidenceとevidenceRefsを必ず併記する |
 | manual override | `manual`（人間が明示的に確定した値。`confidence: 1.0`） | 通常セクション内に反映してよいが、「人間により確認済み」であることが分かるバッジ・注記を付ける（`manualOverridesApplied`を参照） |
 
@@ -307,7 +307,8 @@ episode横断統合、逆参照、実データ投入は対象外とする。
 
 - source: `entities.relationships`。`sourceEntityId`/`targetEntityId`のいずれかが該当ページの主体と一致するものを抽出
 - 表示: `relationshipType`、方向（`direction`）、`temporalNote`（変化があれば）、evidence概要
-- AI由来情報のラベル付け: `sourceType: ai_inferred`のRelationshipは「AI推定の関係」ラベルを付ける（`Merged_Knowledge_Design.md` §6.4がfact/inferenceを別レコードで保持する設計のため、Wiki側は`sourceType`で振り分けるだけでよい）
+- 公開v1では`publicationStatus: eligible`のRelationshipだけを表示する。対象は`member_of`（「所属」）と`affiliated_with`（「関係あり（所属未確定）」）で、Character → Organization・`source_to_target`・`sourceType: script|manual`を満たすものに限る
+- `ai_extracted` / `ai_inferred`、暫定・未知type、endpoint型違反、方向・type conflictは内部reviewに留め、ラベル付きであっても公開しない。rendererは個別条件から公開可否を推測せず`publicationStatus`をfail-closedで参照する
 
 ## 9.11 Timeline page
 
@@ -325,7 +326,7 @@ episode横断統合、逆参照、実データ投入は対象外とする。
 - 表示: entity種別ごとの件数、代表的なdisplayName（あれば）、`mergedId`（内部参照用、外部リンクにはしない）
 - テンプレート名（案）: `templates/wiki/unresolved_report.md.j2`
 
-**実装状況（`feature/unresolved-report-renderer-refinement`で拡張、`feature/wiki-renderer-readability-improvements`で列数削減）**: `render_unresolved_report`（`agents/wiki_generator/renderer.py`）は、Overview（Total unresolved entities/Total conflicts/Total warnings/Invalid canonical IDs/Duplicate canonical IDs）・entity種別別セクション（8種、`is_page_eligible`で個別ページ対象外と判定されたentityのみ。Display Name/Entity ID/Status/Canonical ID/Refsの5列表）・**Special Speaker Labels**（次段落参照）・Conflict Summary（`report.conflictCounts.bySeverity`/`byType`/`byEntityType`）・Warning Summary（`report.warningCounts`と`report.warnings`の先頭N件）・Canonical ID Summary（`report.canonicalIdSummary`、任意フィールドのため無ければセクション省略）・Relationship Type Summary（`report.relationshipTypeSummary`、`unknownTypes`を見出し付きで一覧表示、自動修正はしない）の順でセクションを出力する。
+**実装状況（`feature/unresolved-report-renderer-refinement`で拡張、`feature/wiki-renderer-readability-improvements`で列数削減）**: `render_unresolved_report`（`agents/wiki_generator/renderer.py`）は、Overview（Total unresolved entities/Total conflicts/Total warnings/Invalid canonical IDs/Duplicate canonical IDs）・entity種別別セクション（8種、`is_page_eligible`で個別ページ対象外と判定されたentityのみ。Display Name/Entity ID/Status/Canonical ID/Refsの5列表）・**Special Speaker Labels**（次段落参照）・Conflict Summary（`report.conflictCounts.bySeverity`/`byType`/`byEntityType`）・Warning Summary（`report.warningCounts`と`report.warnings`の先頭N件）・Canonical ID Summary（`report.canonicalIdSummary`、任意フィールドのため無ければセクション省略）・Relationship Type Summary（`formalV1Types` / `provisionalTypes` / `unrecognizedTypes`と`relationshipReviewRecords`の理由別件数。個別candidate / evidence IDは表示しない）の順でセクションを出力する。
 
 **Special Speaker Labels section（Speaker Label Normalization設計）**: `name`コマンド/`@ChTalkName`由来のspeaker labelのうち`labelType`が`single_speaker`以外のもの（speaker group・modifier付き・generic/ambiguousな表記）は、`entities.characters`ではなく`entities.specialSpeakerLabels`（`docs/architecture/06_AI/Merged_Knowledge_Design.md` §7.5）から取得し、entity種別別セクション（通常のUnresolved Characters）とは別に「Special Speaker Labels」sectionとして一覧表示する。Character merged entityと構造的に分離されているため、通常セクションへの重複表示は発生しない。表はLabel/Type/Inferred（confirmed character dictionaryとの参考照合結果のmatchedNameのみ、characterId/matchStatus自体は表示しない）/Refs（evidence件数/source candidate件数）の4列のみで、自動でconfirmed character解決をしたことを示す表示（`confirmed`という語）は一切出さない。Characters index page・Character page（個別ページ）にはspecial speaker labelは一切現れない。§9.13〜9.15で独立ページとして構想していたConflict/Relationship type/Canonical ID summaryは、今回はこの単一のUnresolved reportページ内のセクションとして統合実装した（独立ページとして分離するかは未確定、Phase 2以降で再検討）。evidenceRefs/sourceCandidatesは件数のみ表示し、元セリフ全文・raw payloadは一切含めない。**Refs列統合**: manual visual review 001で「entity種別別表が横長すぎる」と指摘されたため、Evidence件数とSource Candidates件数の独立2列を「Refs」列（`evidence件数/source candidate件数`形式、例: `1/1`）へ統合した（元の6列表から5列表へ、件数情報自体は失っていない）。運用上重要な情報（Canonical ID等）は引き続き列として残す。
 
@@ -339,7 +340,7 @@ episode横断統合、逆参照、実データ投入は対象外とする。
 ## 9.14 Relationship type report page
 
 - source: `report.relationshipTypeSummary`
-- 表示: `knownTypes`/`unknownTypes`の内訳。taxonomy確定（`docs/architecture/04_Knowledge_Graph/Relationships.md`）前の暫定状況の可視化用
+- 表示: `formalV1Types` / `provisionalTypes` / `unrecognizedTypes`の内訳と、`relationshipReviewRecords`の理由別件数。個別review payloadは内部collectionにだけ保持する
 
 **実装状況**: `feature/unresolved-report-renderer-refinement`で、独立ページではなくUnresolved report内のRelationship Type Summaryセクションとして実装済み（§9.12参照）。
 

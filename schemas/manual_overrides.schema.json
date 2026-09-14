@@ -127,7 +127,7 @@
         },
         "relationshipType": {
           "type": ["string", "null"],
-          "description": "set_relationship_type で設定する関係種別 (taxonomy未確定のため自由文字列)"
+          "description": "set_relationship_type で設定する関係種別 (未知値不破棄と後方互換のため自由文字列)"
         },
         "direction": {
           "$ref": "#/definitions/Direction",

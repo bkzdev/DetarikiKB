@@ -1652,12 +1652,33 @@ def test_render_unresolved_report_canonical_id_summary(synthetic_collection):
 def test_render_unresolved_report_relationship_type_summary_unknown_types(
     synthetic_collection,
 ):
-    """relationshipTypeSummary.unknownTypesは自動修正せず、目立つ見出し
+    """relationshipTypeSummary.unrecognizedTypesは自動修正せず、目立つ見出し
     付きで一覧表示されることを確認する。"""
     report = render_unresolved_report(synthetic_collection)
     assert "## Relationship Type Summary" in report
-    assert "| Unknown Types | 1 |" in report
+    assert "| Unrecognized Types | 1 |" in report
     assert "MYSTERIOUS_BOND_TEST" in report
+
+
+def test_render_unresolved_report_relationship_review_records_are_aggregated(
+    synthetic_collection,
+):
+    synthetic_collection["report"]["relationshipReviewRecords"] = [
+        {
+            "candidateId": "PRIVATE_CANDIDATE_ID",
+            "reasons": ["provisional_type", "non_public_source_type"],
+            "evidenceIds": ["PRIVATE_EVIDENCE_ID"],
+        },
+        {"candidateId": "OTHER_PRIVATE_ID", "reasons": ["provisional_type"]},
+    ]
+
+    report = render_unresolved_report(synthetic_collection)
+
+    assert "| Review Records | 2 |" in report
+    assert "provisional_type（2 件）" in report
+    assert "non_public_source_type（1 件）" in report
+    assert "PRIVATE_CANDIDATE_ID" not in report
+    assert "PRIVATE_EVIDENCE_ID" not in report
 
 
 def test_render_unresolved_report_evidence_shown_as_count_only(synthetic_collection):

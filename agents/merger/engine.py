@@ -145,7 +145,7 @@ def _summarize_relationship_types(
 ) -> dict[str, Any]:
     """merged relationship entity群のfieldValues (relationship.pyが設定した
     originalRelationshipTypes/relationshipTypeNormalization) から、
-    relationshipTypeの既知/未知内訳をreport用に集計する
+    relationshipTypeのformal/provisional/unrecognized内訳をreport用に集計する
     (Merged_Knowledge_Design.md §6.3)。
 
     両端未解決でentity化されなかった候補のrelationshipTypeはここでは
@@ -154,8 +154,9 @@ def _summarize_relationship_types(
     (agents/merger/relationship.pyのUNRESOLVED_ENDPOINT_MARKER等、既存の
     「relationship mergeをskipした」警告とは意味が異なる別集計のため)。
     """
-    known_types: dict[str, int] = {}
-    unknown_types: dict[str, int] = {}
+    formal_v1_types: dict[str, int] = {}
+    provisional_types: dict[str, int] = {}
+    unrecognized_types: dict[str, int] = {}
     normalized_types: dict[str, str] = {}
 
     for entity in entities.get("relationships", []) or []:
@@ -168,8 +169,11 @@ def _summarize_relationship_types(
         if not normalized_value:
             continue
 
-        is_known = bool(normalization.get("isKnown", False))
-        bucket = known_types if is_known else unknown_types
+        taxonomy_state = normalization.get("taxonomyState", "unrecognized")
+        bucket = {
+            "formal_v1": formal_v1_types,
+            "provisional": provisional_types,
+        }.get(taxonomy_state, unrecognized_types)
         bucket[normalized_value] = bucket.get(normalized_value, 0) + 1
 
         originals = (
@@ -182,8 +186,9 @@ def _summarize_relationship_types(
             normalized_types[original] = normalized_value
 
     return {
-        "knownTypes": known_types,
-        "unknownTypes": unknown_types,
+        "formalV1Types": formal_v1_types,
+        "provisionalTypes": provisional_types,
+        "unrecognizedTypes": unrecognized_types,
         "normalizedTypes": normalized_types,
     }
 
@@ -425,7 +430,9 @@ class MergeEngine:
             *entities["events"],
         ]
         relationship_entities, relationship_warnings = build_relationship_entities(
-            valid_entries, known_entities
+            valid_entries,
+            known_entities,
+            review_records=report.relationship_review_records,
         )
         entities["relationships"] = relationship_entities
         report.warnings.extend(relationship_warnings)

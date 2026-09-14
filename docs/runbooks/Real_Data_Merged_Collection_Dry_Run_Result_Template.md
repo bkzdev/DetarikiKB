@@ -32,7 +32,7 @@ Path: `docs/runbooks/Real_Data_Merged_Collection_Dry_Run_Result_Template.md`
 - **Conflict counts**: total 1件（severity: warning 1、type: field_value_conflict 1、entity type: characters 1）
 - **Warning counts**: total 0件
 - **Canonical ID summary**: totalAssigned 0 / duplicateCount 0 / invalidCount 0 / warnings 0件（全件unresolvedのため）
-- **Relationship type summary**: knownTypes 0種 / unknownTypes 0種 / normalizedTypes 0種（relationships自体が0件のため）
+- **Relationship type summary**: formalV1Types 0種 / provisionalTypes 0種 / unrecognizedTypes 0種 / normalizedTypes 0種（relationships自体が0件のため）
 - **Extractor errors**: 0件
 - **Merger errors**: 0件（`report.errors`が空配列であることを確認）
 - **Wiki render handoff result**: 実施した。`scripts/render_wiki.py --validate --clean`をexit code 0で完了、schema検証OK、Markdown 11件生成（`index.md`/`stories/index.md`/`stories/*.md`×8/`reports/unresolved.md`）。`characters/*.md`は0件（全キャラクターがcanonicalId未確定のため、`is_page_eligible`の判定通りで想定通り）
@@ -63,7 +63,7 @@ Path: `docs/runbooks/Real_Data_Merged_Collection_Dry_Run_Result_Template.md`
 - **Conflict counts**: `<total等>`
 - **Warning counts**: `<total等>`
 - **Canonical ID summary**: `<totalAssigned等>`
-- **Relationship type summary**: `<knownTypes/unknownTypes件数>`
+- **Relationship type summary**: `<formalV1Types/provisionalTypes/unrecognizedTypes件数>`
 - **Extractor errors**: `<件数>`
 - **Merger errors**: `<件数>`
 - **Wiki render handoff result**: `<実施した/しなかった、結果>`

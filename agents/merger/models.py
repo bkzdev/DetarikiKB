@@ -135,11 +135,13 @@ class MergeReport:
     input_summaries: list[dict[str, Any]] = field(default_factory=list)
     relationship_type_summary: dict[str, Any] = field(
         default_factory=lambda: {
-            "knownTypes": {},
-            "unknownTypes": {},
+            "formalV1Types": {},
+            "provisionalTypes": {},
+            "unrecognizedTypes": {},
             "normalizedTypes": {},
         }
     )
+    relationship_review_records: list[dict[str, Any]] = field(default_factory=list)
     canonical_id_summary: dict[str, Any] = field(
         default_factory=lambda: {
             "totalAssigned": 0,
@@ -184,12 +186,20 @@ class MergeReport:
             },
             "inputSummaries": [dict(s) for s in self.input_summaries],
             "relationshipTypeSummary": {
-                "knownTypes": dict(self.relationship_type_summary["knownTypes"]),
-                "unknownTypes": dict(self.relationship_type_summary["unknownTypes"]),
+                "formalV1Types": dict(self.relationship_type_summary["formalV1Types"]),
+                "provisionalTypes": dict(
+                    self.relationship_type_summary["provisionalTypes"]
+                ),
+                "unrecognizedTypes": dict(
+                    self.relationship_type_summary["unrecognizedTypes"]
+                ),
                 "normalizedTypes": dict(
                     self.relationship_type_summary["normalizedTypes"]
                 ),
             },
+            "relationshipReviewRecords": [
+                dict(record) for record in self.relationship_review_records
+            ],
             "canonicalIdSummary": {
                 "totalAssigned": self.canonical_id_summary["totalAssigned"],
                 "duplicateCount": self.canonical_id_summary["duplicateCount"],

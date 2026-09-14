@@ -1075,39 +1075,73 @@ def _render_special_speaker_labels_section(collection: dict[str, Any]) -> list[s
     return lines
 
 
+def _relationship_type_buckets(
+    relationship_type_summary: dict[str, Any],
+) -> tuple[dict[str, int], dict[str, int], dict[str, int]]:
+    """新taxonomy stateを返し、旧collectionは対応するbucketへ読み替える。"""
+    formal_types = relationship_type_summary.get("formalV1Types")
+    provisional_types = relationship_type_summary.get("provisionalTypes")
+    unrecognized_types = relationship_type_summary.get("unrecognizedTypes")
+    return (
+        formal_types
+        if formal_types is not None
+        else relationship_type_summary.get("knownTypes") or {},
+        provisional_types if provisional_types is not None else {},
+        unrecognized_types
+        if unrecognized_types is not None
+        else relationship_type_summary.get("unknownTypes") or {},
+    )
+
+
 def _render_relationship_type_summary_section(
     collection: dict[str, Any],
 ) -> list[str]:
     """Relationship type summaryセクションを組み立てる。
 
     report.relationshipTypeSummaryはschema上任意フィールドのため、無い
-    場合はセクション自体を省略する。unknownTypesは自動修正せず、目立つ
-    見出しで一覧表示するのみ (Wiki_Output_Design.md方針)。
+    場合はセクション自体を省略する。taxonomy state別件数とreview recordの
+    理由別件数だけを表示し、candidate IDやEvidence本文は出さない。
     """
     relationship_type_summary = (collection.get("report", {}) or {}).get(
         "relationshipTypeSummary"
     )
     if relationship_type_summary is None:
         return []
-    known_types = relationship_type_summary.get("knownTypes") or {}
-    unknown_types = relationship_type_summary.get("unknownTypes") or {}
+    formal_types, provisional_types, unrecognized_types = _relationship_type_buckets(
+        relationship_type_summary
+    )
     normalized_types = relationship_type_summary.get("normalizedTypes") or {}
+    review_records = (collection.get("report", {}) or {}).get(
+        "relationshipReviewRecords"
+    ) or []
 
     lines = [
         "## Relationship Type Summary",
         "",
         "| Field | Count |",
         "|---|---:|",
-        f"| Known Types | {len(known_types)} |",
-        f"| Unknown Types | {len(unknown_types)} |",
+        f"| Formal v1 Types | {len(formal_types)} |",
+        f"| Provisional Types | {len(provisional_types)} |",
+        f"| Unrecognized Types | {len(unrecognized_types)} |",
         f"| Normalized Types | {len(normalized_types)} |",
+        f"| Review Records | {len(review_records)} |",
         "",
     ]
-    if unknown_types:
-        lines.append("**Unknown Types（未知のrelationshipType。要確認）:**")
+    if unrecognized_types:
+        lines.append("**Unrecognized Types（未知のrelationshipType。要確認）:**")
         lines.append("")
-        for type_name, count in unknown_types.items():
+        for type_name, count in unrecognized_types.items():
             lines.append(f"- {type_name}（{count} 件）")
+        lines.append("")
+    if review_records:
+        reason_counts: dict[str, int] = {}
+        for record in review_records:
+            for reason in record.get("reasons") or []:
+                reason_counts[reason] = reason_counts.get(reason, 0) + 1
+        lines.append("**Review Reasons:**")
+        lines.append("")
+        for reason, count in sorted(reason_counts.items()):
+            lines.append(f"- {reason}（{count} 件）")
         lines.append("")
     return lines
 

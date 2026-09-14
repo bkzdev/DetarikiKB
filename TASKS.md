@@ -4,6 +4,7 @@
 
 完了済みPRの詳細な作業ログ・テスト件数・diff statは `docs/project_history/Completed_PRs_2026-07.md` に移した。ここには重複記載しない。作業を開始・完了・変更するたびに、該当する章を更新すること。
 ## Current Focus
+- `codex/relationship-public-v1-contract`: ユーザー承認済みのRelationship公開v1契約をStage Bへ実装した（**実装PR、合成fixtureのみ**）。公開型を`member_of` / `affiliated_with`、表示名を「所属」/「関係あり（所属未確定）」、方向をCharacter → Organization・`source_to_target`へ固定した。意味aliasは自動変換せず、`sourceType`とdirectionをmerge keyで分離する。`script` / `manual`かつ全gate適合だけを`publicationStatus: eligible`とし、AI由来・暫定/未知型・endpoint/方向/type矛盾は値とprovenanceを`relationshipReviewRecords`へ不破棄保持する。空placeholderだったRelationship設計/schemaを確定し、Unresolved reportでは個別内部IDを出さずtaxonomy / review理由の集計だけを表示する。独立監査はP0/P1指摘0件、標準検証は3526 passed / 8 skippedで完了した。実データRelationship確定、Relationship section / Organization page、Knowledge Graph生成は対象外。後続はこの公開gateを使うRelationship section、その次にOrganization page、最後にM5全体目視確認。
 - `codex/wiki-event-page`: 前段`codex/canonical-timeline-real-public-input` / `codex/canonical-timeline-real-workflow-switch`でignored workspaceの5入力digest preflight、公開範囲と中立label、実入力由来site、実入力導入commit、`publish-ready`化しない境界、初回実content deployを完了し、`codex/wiki-location-page` / `codex/wiki-item-page` / `codex/wiki-lore-page`でM5 Phase 2の共通表示を確立した後、canonical ID確定済みEventの個別ページ、Events index、Top page導線を実装する（**実装PR、合成fixtureのみ**）。`participantEntityIds` / `locationEntityIds`は期待typeの既存entity IDとして解決し、ページ生成条件を満たす場合だけCharacter / Locationへリンクする。未知・型違い・非公開参照は重複を初出順で整理しつつIDを非リンク表示で不破棄保持する。Eventのcanonical ID割当・episode横断統合、逆参照、他entity page、実データ投入は対象外。
 - `codex/canonical-timeline-public-projection-schema`: 採択済みP1〜P7の第1実装段階として、`schemas/canonical_timeline_public_projection.schema.json` v0.1と`Canonical_Timeline_Public_Projection_Schema.md`を追加し、internal artifactの縮小copyではない公開専用field allowlistを合成fixtureで固定する。rootは`publishStatus: projection_candidate`を固定し、public Story/Episode ID・公開許可済みlabel・known relationの定型label key・unknown/conflictのsafe aggregate以外を`additionalProperties: false`で拒否する。空projectionを有効に保ち、schema-validだけでpublish-readyにしない。pure projector / semantic validator / preflight / renderer / CLI、実ID・実タイトル・実artifactの投入、URL変更、hosting / deployは対象外。次は入力不変・決定的なpure projectorとpublic-safe aggregate report。
 - `codex/canonical-timeline-public-projection-decision`: ユーザーの2026-09-01継続指示により、`Canonical_Timeline_Public_Projection_Decision.md`の推奨P1〜P7を一括採択し、`Status: Accepted`へ更新した（**docs-only decision PR**）。公開目的は確認済み関係を辿る補助導線、適格性はadoption済みknown relationのみ、表示はrelation / connected component単位で総順序化なし、unknown / conflictは個別非公開で制約説明とsafe aggregateのみ、表示fieldはpublic ID・public label・定型relation labelのみ、pageは`timelines/index.md`、publishはfail-closed gateと検証済みrollbackを必須とする。採択はpublic projection schemaと合成fixture実装へ進む許可であり、実データ公開・個別relation公開・hosting・deploy・既存URL変更は許可していない。
@@ -271,7 +272,7 @@
 ### Extraction / Merge
 
 - ~~timeline contradiction detectionの第1〜第5段階（relative cycle・same-time縮約・同一episode/field値競合・同一story canonical constraint・canonical review readiness）~~ → 5つの実装PRでprovenance付き検出・監査を実装し、初回実データdry-runも完了。現行corpusはcanonical observation 0件だったため、保存先・伝播契約を`story_manifest.yaml`中心で実装した。残件の最優先は根拠を人間確認できたepisodeへの実値割当とreadiness再実行。その後に総順序判定、canonical Timeline確定、cross-story chronologyを扱う（Current Focus参照）
-- `relationshipType`のtaxonomy本確定（`docs/architecture/04_Knowledge_Graph/Relationships.md`、現在プレースホルダー）
+- ~~`relationshipType`のtaxonomy本確定~~ → 公開v1は`member_of` / `affiliated_with`の2型、Character → Organization・`source_to_target`、`script` / `manual`だけを公開可とする契約を`codex/relationship-public-v1-contract`で確定・実装（Current Focus参照）
 - canonical ID辞書（`knowledge/dictionaries/*.yaml`）本体の実装（現状はpolicy/helper/validationのみ）
 - ~~EventCandidateのparticipant/location解決~~ → `codex/event-participant-location-resolution`で、型別candidate対応表による解決、初出順の和集合、未解決・型違い参照の元値付きwarning保持を実装（Current Focus参照）
 - ~~`entities`配下の`schemas/merged_knowledge.schema.json`への`$ref`接続~~ → `codex/merged-collection-entity-schema-refs`で、通常8配列を型別definitionへ接続し、canonical `$id`をin-memory registryへ登録するoffline cross-file解決を実装。`specialSpeakerLabels`は別契約のため対象外（Current Focus参照）
@@ -387,7 +388,6 @@
 ---
 ## Archive
 完了済みPR #1〜#60の詳細な作業履歴（各PRの実装内容・確認結果・あえて実装しなかったこと等）は `docs/project_history/Completed_PRs_2026-07.md` を参照。
-
 ---
 ## Rules
 - 実スクリプト全文（`.dec`由来の生データ）をcommitしない

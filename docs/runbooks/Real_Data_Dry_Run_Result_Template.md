@@ -60,7 +60,7 @@ Path: `docs/runbooks/Real_Data_Dry_Run_Result_Template.md`
 - `report.unresolvedEntityCounts`: characters=12, locations=2（**candidateCounts / mergedEntityCountsと完全一致 = 生成された全entityが `status: unresolved`**。§3.3参照）
 - `report.conflictCounts`: total=0
 - `report.warningCounts`: total=0
-- `report.relationshipTypeSummary`: knownTypes={}, unknownTypes={}（relationship candidateが0件のため計算対象なし）
+- `report.relationshipTypeSummary`: formalV1Types={}, provisionalTypes={}, unrecognizedTypes={}（relationship candidateが0件のため計算対象なし）
 - `report.canonicalIdSummary`: totalAssigned=0, duplicateCount=0, invalidCount=0
 - `report.manualOverrides`: 未指定のため無し
 - `entities.*` 件数: characters=12, locations=2, organizations/items/lore/events/relationships/timeline=0（`mergedEntityCounts`と一致）

@@ -324,37 +324,36 @@ Relationshipは「両端のエンティティ解決」に依存するため、�
 ## 6.1 merge key
 
 ```text
-(resolved sourceId, resolved targetId, relationshipType)
+(resolved sourceId, resolved targetId, normalized relationshipType, sourceType, direction)
 ```
 
 - `sourceCandidate` / `targetCandidate` はEntity IDまたはcandidate IDを取りうる（`Extraction_Result_Schema.md` §12）。マージ前に§10.2の対応表（candidate ID → merged entity ID）でcanonical IDへ解決する
 - **両端がcanonical IDへ解決できたRelationshipだけを`merged/relationships/`へ昇格させる**（`Extraction_Result_Schema.md` §15のゲート条件を踏襲）
-- 片端でも未解決のものは`merged/_unresolved/relationships.json`に置く。`Extraction_Result_Schema.md` §15は「Stage Aの`relationships`配列内に留め置く」としていたが、本文書で`_unresolved/`へ集約する形に変更する。理由: Stage Aファイルは使い捨て・再生成対象であり、「未解決だが観測済みのRelationship一覧」を横断的にレビューする置き場が別途必要になるため
-- merged relationshipのIDは`Identifier_Specification.md` §7の形式（`REL_{sourceId}_{relationshipType}_{targetId}`、変化する関係は連番付き）
+- 片端でも未解決のものはmerged entityにせず、collection reportの`relationshipReviewRecords`へ根拠付きで置く
+- fact / inferenceと方向を別recordに保つため、preview上のmerged relationship IDには正規化typeに加えて`sourceType`と`direction`を含める。実データRelationshipが0件の段階で採択したため既存canonical ID移行は発生しない
 
 ## 6.2 directionの扱い
 
 - Stage Aで既知の3値（`source_to_target` / `target_to_source` / `bidirectional`）以外のstringが保持されている場合、推測で方向を確定せず、そのRelationshipCandidateだけを昇格対象から外す。元値・episode ID・candidate IDはmerge reportのwarningへ保持する。Stage B schemaのdirection enumは緩和しない
-- 同一merge keyで全candidateのdirectionが一致 → その値を採用
-- 矛盾（`source_to_target`と`bidirectional`が混在等） → 同一(source, target, normalized relationshipType)の全candidate・evidenceを1 entityへ統合し、**broadな方（`bidirectional`）を暫定採用**する。`source_to_target`と`target_to_source`だけが観測され、入力に`bidirectional`が無い場合も、両方向を情報損失なく表す安全な上包として`bidirectional`を選ぶ。観測したdirectionは固定順（`source_to_target` / `target_to_source` / `bidirectional`）で`relationship_conflict`の`values`へ保持し、`field: direction`・`resolutionStatus: auto_selected`・`selectedValue: bidirectional`として記録する（§9.7）。merged relationship IDへdirectionは追加せず、`REL_{sourceId}_{relationshipType}_{targetId}`の安定性を維持する
-- `MEMBER_OF` / `AFFILIATED_WITH`（alias正規化後を含む）は意味的に方向が固定（Character → Organization）のため、`source_to_target`以外の候補はendpoint入れ替えや`bidirectional`へのbroad化を行わず、candidate ID・元のrelationshipType・directionをmerge report warningへ残して候補単位でskipする。同じ入力内の正しい候補や他entityのmergeは継続する
+- 同じ正規化typeでもdirectionが異なるcandidateは別recordに保ち、`bidirectional`へ自動拡張しない。各recordを`review_required`にして`direction_conflict`を構造化する
+- `MEMBER_OF` / `AFFILIATED_WITH`はCharacter → Organization・`source_to_target`固定である。違反candidateは値やendpointを修正せず、内部recordと`relationshipReviewRecords`へ保持する
 
 ## 6.3 relationshipType の暫定扱い
 
-- taxonomyは未確定のまま自由文字列を維持する（`Extraction_Result_Schema.md` §16.4。本文書でも確定させない）
-- `MEMBER_OF` / `AFFILIATED_WITH` / `RELATED_TO` / `APPEARS_WITH` は暫定語彙として使用を継続する
+- taxonomyは`Relationships.md`の公開v1契約を正とする。schema上は未知値不破棄のため自由文字列を維持し、`formal_v1` / `provisional` / `unrecognized`を別フィールドで表す
+- 公開v1は`MEMBER_OF` / `AFFILIATED_WITH`だけとし、その他の既知語彙候補は`provisional`として公開しない
 - `MEMBER_OF`（構造化ID由来）と`AFFILIATED_WITH`（名前のみ由来）は**別merge keyのまま統合しない**。同一(source, target)ペアに両方が存在する場合、格上げ（AFFILIATED_WITH → MEMBER_OF）はマージレポートで提案し、確定は手動補正で行う
-- taxonomy確定（`docs/architecture/04_Knowledge_Graph/Relationships.md`）後に、既存merged relationshipのtype移行手順を別途設計する
+- 大文字小文字・区切り文字だけを自動正規化する。意味を変えるaliasは`suggestedType`付きreview対象とし、merge keyを自動変換しない
 
 ## 6.4 evidence集約と明示/推定の分離
 
 - 同一merge keyのcandidate群のevidenceを全て統合する
-- `sourceType`がfact系（`script`）とinference系（`ai_inferred`、将来のLLM抽出）のRelationshipは、**同一merge keyでも別レコードとして保持する**（マージしない）。「本文に明示された所属」と「AIが推定した所属」を1つに潰すと、後段のWiki（公式情報とAI考察の分離、`AI_CONTEXT.md` 4.5）が成立しなくなるため
-- merged relationshipドキュメントに`sourceType`を持たせ、fact系レコードとinference系レコードをGraph/Wiki側でフィルタできるようにする
+- `sourceType`が異なるRelationshipは**同一endpoint / typeでも別レコードとして保持する**。merged relationshipドキュメントに単一`sourceType`を持たせる
+- 公開v1は`script`と`manual`だけを許可する。`ai_extracted` / `ai_inferred`等はevidenceを保持したまま`review_required`とする
 
 ## 6.5 unresolved / manual correction
 
-- unresolved: 片端未解決（§6.1）。手動補正で両端が解決された時点で昇格
+- unresolved: 片端未解決（§6.1）。`relationshipReviewRecords`から手動補正で両端が解決された時点で再mergeする
 - manual correction: relationshipTypeの修正・格上げ、方向の確定、自己参照や誤検出の無効化（削除ではなく`suppressed: true`のような打ち消しoverride。§8.2）
 
 ---
@@ -461,7 +460,7 @@ Timelineは**エンティティを持たない**ため、他の7種と同じ「�
 | 9.4 | same name, different entity の疑い | 名前のみは自動マージしないため誤統合は起きない。名前一致グループは「マージ候補の提案」としてレポートに出すだけ | merge_suggestion |
 | 9.5 | same entity, different names | 構造化IDが同じなら自動統合し表記はaliasesへ（9.1と同処理）。IDが無い場合は9.4と同様に提案止まり | merge_suggestion |
 | 9.6 | sourceType conflict（同一フィールドにscript値とai_inferred値） | 相互上書きしない。fact系とinference系を別FieldValueとして併記（§4.1原則4）。fact系同士の値矛盾はconfidence高い方を暫定採用し、両方をevidence付きで保持（`Extraction_Pipeline.md` §7.3。矛盾自体がWiki「矛盾点」ページの入力になる） | field_value_conflict |
-| 9.7 | relationship conflict（direction矛盾・type揺れ） | directionはbroad側を暫定採用（§6.2）。MEMBER_OF/AFFILIATED_WITH併存は格上げ提案（§6.3） | relationship_conflict |
+| 9.7 | relationship conflict（direction矛盾・type揺れ） | 方向ごとのrecordを分離し、関与recordを`review_required`にする。MEMBER_OF/AFFILIATED_WITH併存も自動格上げしない（§6.2〜6.3） | relationship_conflict |
 | 9.8 | timeline order conflict | 新しいextractionRun由来を暫定採用し記録（§7.3）。本格的な順序整合性判定はしない | timeline_conflict |
 
 ---

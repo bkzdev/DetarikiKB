@@ -1,16 +1,14 @@
 """
 DKB Merger - Relationship Type Taxonomy
 RelationshipCandidate/merged relationshipの`relationshipType`表記ゆれを
-安全に扱うための、暫定taxonomyと正規化レイヤー。
+安全に扱うための、公開v1 taxonomyと正規化レイヤー。
 
-taxonomyはまだ確定していない (docs/architecture/04_Knowledge_Graph/
-Relationships.md 未確定、Merged_Knowledge_Design.md §6.3)。そのため
-relationshipTypeをenumで強制せず、未知の値も破棄せず保持する。既知の
-表記ゆれ（大文字小文字・区切り文字違い、代表的な同義語）だけを
-canonical typeへ正規化する。
+relationshipTypeは後方互換のため自由文字列を維持し、未知の値も破棄しない。
+公開v1として確定した型、将来検討用の暫定型、未登録型を区別する。自動正規化は
+大文字小文字・区切り文字の差だけに限定し、意味を変える同義語変換は行わない。
 
 自然文からの関係推定・LLMによる分類はここでは一切行わない
-(大文字小文字/区切り文字の正規化と、既知の同義語テーブルのみ)。
+(大文字小文字/区切り文字の正規化と、review用の同義語提案テーブルのみ)。
 
 docs/architecture/06_AI/Merged_Knowledge_Design.md §6.3
 """
@@ -21,14 +19,14 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
-# 暫定taxonomy (Merged_Knowledge_Design.md §6.3の暫定語彙 MEMBER_OF/
-# AFFILIATED_WITH/RELATED_TO/APPEARS_WITHを含む拡張版)。正規化後の値は
-# すべてこのsnake_case形式に揃える。taxonomy確定はここでは行わない
-# (docs/architecture/04_Knowledge_Graph/Relationships.md確定後に見直す)。
-KNOWN_RELATIONSHIP_TYPES: frozenset[str] = frozenset(
+# 公開v1で意味・endpoint・方向を確定した型。
+FORMAL_V1_RELATIONSHIP_TYPES: frozenset[str] = frozenset(
+    {"member_of", "affiliated_with"}
+)
+
+# 語彙候補として保持するが、公開関係には使わない暫定型。
+PROVISIONAL_RELATIONSHIP_TYPES: frozenset[str] = frozenset(
     {
-        "member_of",
-        "affiliated_with",
         "ally_of",
         "enemy_of",
         "family_of",
@@ -46,11 +44,10 @@ KNOWN_RELATIONSHIP_TYPES: frozenset[str] = frozenset(
     }
 )
 
-# 既知の同義語 -> canonical typeの対応表。大文字小文字・区切り文字違いは
-# _slugifyだけで吸収できるため、ここに載せるのは表記ゆれではなく別の語彙
-# (例: "belongs_to" -> "member_of") のみ。方向が入れ替わる可能性のある
-# 同義語 (owned_by等) は誤変換の元になるため意図的に含めない。
-ALIASES: dict[str, str] = {
+KNOWN_RELATIONSHIP_TYPES = FORMAL_V1_RELATIONSHIP_TYPES | PROVISIONAL_RELATIONSHIP_TYPES
+
+# 意味上の同義語候補。自動mergeには使わずreview時の提案だけに使う。
+REVIEW_REQUIRED_ALIASES: dict[str, str] = {
     "belongs_to": "member_of",
     "part_of": "member_of",
     "affiliate_of": "affiliated_with",
@@ -67,6 +64,10 @@ ALIASES: dict[str, str] = {
     "connected_to": "related_to",
     "located_at": "located_in",
 }
+
+TAXONOMY_FORMAL_V1 = "formal_v1"
+TAXONOMY_PROVISIONAL = "provisional"
+TAXONOMY_UNRECOGNIZED = "unrecognized"
 
 
 def _slugify(value: str) -> str:
@@ -86,6 +87,8 @@ class NormalizedRelationshipType:
     original_value: str
     normalized_value: str
     is_known: bool
+    taxonomy_state: str
+    suggested_type: str | None = None
     warnings: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
@@ -93,6 +96,8 @@ class NormalizedRelationshipType:
             "originalValue": self.original_value,
             "normalizedValue": self.normalized_value,
             "isKnown": self.is_known,
+            "taxonomyState": self.taxonomy_state,
+            "suggestedType": self.suggested_type,
             "warnings": list(self.warnings),
         }
 
@@ -115,23 +120,38 @@ def normalize_relationship_type(value: str) -> NormalizedRelationshipType:
             original_value=value,
             normalized_value="",
             is_known=False,
+            taxonomy_state=TAXONOMY_UNRECOGNIZED,
             warnings=["relationshipTypeが空です"],
         )
 
     slug = _slugify(stripped) or "unknown"
-    canonical = ALIASES.get(slug, slug)
-    is_known = canonical in KNOWN_RELATIONSHIP_TYPES
+    normalized = slug
+    is_known = normalized in KNOWN_RELATIONSHIP_TYPES
+    if normalized in FORMAL_V1_RELATIONSHIP_TYPES:
+        taxonomy_state = TAXONOMY_FORMAL_V1
+    elif normalized in PROVISIONAL_RELATIONSHIP_TYPES:
+        taxonomy_state = TAXONOMY_PROVISIONAL
+    else:
+        taxonomy_state = TAXONOMY_UNRECOGNIZED
+    suggested_type = REVIEW_REQUIRED_ALIASES.get(normalized)
 
     warnings: list[str] = []
     if not is_known:
         warnings.append(
             f"未知のrelationshipType '{value}' はtaxonomy未登録のため "
-            f"'{canonical}' として保持しました (破棄はしていません)"
+            f"'{normalized}' として保持しました (破棄はしていません)"
+        )
+    if suggested_type is not None:
+        warnings.append(
+            f"'{value}' は '{suggested_type}' の同義語候補ですが、自動変換せず"
+            "review対象として保持しました"
         )
 
     return NormalizedRelationshipType(
         original_value=value,
-        normalized_value=canonical,
+        normalized_value=normalized,
         is_known=is_known,
+        taxonomy_state=taxonomy_state,
+        suggested_type=suggested_type,
         warnings=warnings,
     )
