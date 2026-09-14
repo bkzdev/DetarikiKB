@@ -61,6 +61,15 @@ def location_page_path(entity: dict[str, Any]) -> str | None:
     return f"locations/{entity['canonicalId']}.md"
 
 
+def organization_page_path(entity: dict[str, Any]) -> str | None:
+    """Organization pageの出力先相対パスを返す。個別ページを生成すべきで
+    なければNoneを返す。
+    """
+    if not is_page_eligible(entity):
+        return None
+    return f"organizations/{entity['canonicalId']}.md"
+
+
 def item_page_path(entity: dict[str, Any]) -> str | None:
     """Item pageの出力先相対パスを返す。個別ページを生成すべきで
     なければNoneを返す。

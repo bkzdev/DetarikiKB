@@ -249,6 +249,16 @@ Relationship表示、実データ投入は本実装の対象外とする。
 - Relationship sectionをここに埋め込む（§8参照）
 - テンプレート名（案）: `templates/wiki/organization.md.j2`
 
+**実装状況（`codex/wiki-organization-page`）**: `render_organization_page`と
+`organization_page_path`を追加し、canonical ID確定かつ共通page gateを満たす
+Organizationだけを`organizations/{canonicalId}.md`へ生成する。Summary、Aliases、
+Appearing Episodes、Evidence、Source Candidates、ConflictsはLocation / Item等と同じ
+安全な要約形式を使い、公開Relationship sectionからpage eligibleなCharacterへだけ
+リンクする。Character page側も同じ条件でOrganizationへリンクし、未公開相手は内部ID・
+未確認名を出さない。`organizations/index.md`は生成対象をcanonical ID順で掲載し、
+公開Relationship record数とTop page導線を提供する。実データ投入とRelationship独立ページは
+対象外とする。
+
 ## 9.7 Item page
 
 - source: `entities.items`
@@ -313,7 +323,7 @@ episode横断統合、逆参照、実データ投入は対象外とする。
 **実装状況（`codex/wiki-relationship-section`）**: Character page内の
 `## Relationships`として実装した。主体のmerged entity IDがsourceまたはtargetに一致し、
 `publicationStatus: eligible`のrecordだけを決定的な順序で表示する。未検証・破損入力への
-defense-in-depthとして公開v1のtype / sourceType / direction / endpoint型allowlistも表示直前に
+defense-in-depthとして公開v1のtype / taxonomyState / sourceType / direction / endpoint型allowlistも表示直前に
 照合するが、candidateやconfidenceから適格性を再推測しない。表示項目は公開v1の
 日本語label、相手Organizationの表示名、direction、source区分、evidence件数、任意の
 `temporalNote`に限定する。`review_required`は個別type・相手名・内部IDを含め一切表示しない。
@@ -434,6 +444,7 @@ site_src/
     index.md
     {canonicalId}.md
   organizations/
+    index.md
     {canonicalId}.md
   items/
     index.md

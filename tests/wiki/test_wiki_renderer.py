@@ -32,6 +32,7 @@ from agents.wiki_generator import (
     item_page_path,
     location_page_path,
     lore_page_path,
+    organization_page_path,
     render_character_index_page,
     render_character_page,
     render_episode_page,
@@ -45,6 +46,8 @@ from agents.wiki_generator import (
     render_location_page,
     render_lore_index_page,
     render_lore_page,
+    render_organization_index_page,
+    render_organization_page,
     render_story_index_page,
     render_story_page,
     render_unresolved_report,
@@ -300,6 +303,22 @@ def test_location_page_path_includes_conflict_with_canonical_id(resolved_locatio
     conflict = deepcopy(resolved_location)
     conflict["status"] = "conflict"
     assert location_page_path(conflict) == "locations/LOC_TEST_PLAZA.md"
+
+
+def test_organization_page_path_uses_canonical_id():
+    organization = _synthetic_public_organization()
+    assert organization_page_path(organization) == "organizations/ORG_TEST_ALPHA.md"
+
+
+def test_organization_page_path_none_for_unresolved():
+    organization = _synthetic_public_organization(page_eligible=False)
+    assert organization_page_path(organization) is None
+
+
+def test_organization_page_path_rejects_unsafe_canonical_id():
+    organization = _synthetic_public_organization()
+    organization["canonicalId"] = "../ORG_TEST_ALPHA"
+    assert organization_page_path(organization) is None
 
 
 def test_page_eligibility_rejects_conflict_without_canonical_id(resolved_location):
@@ -573,9 +592,14 @@ def _synthetic_public_organization(
         "type": "organization",
         "canonicalId": "ORG_TEST_ALPHA" if page_eligible else None,
         "displayName": "Test Organization Alpha",
+        "aliases": ["Test Org Alpha"],
         "status": "merged" if page_eligible else "unresolved",
+        "sourceTypes": ["script"],
         "confidence": 0.9,
         "evidenceRefs": [{"evidenceId": "EVIDENCE_TEST_ORG_001"}],
+        "sourceCandidates": [],
+        "extractionRunRefs": {},
+        "conflicts": [],
     }
 
 
@@ -595,6 +619,7 @@ def _synthetic_public_relationship(
         "targetEntityType": "organization",
         "relationshipType": relationship_type,
         "normalizedRelationshipType": relationship_type,
+        "taxonomyState": "formal_v1",
         "direction": "source_to_target",
         "sourceType": source_type,
         "publicationStatus": publication_status,
@@ -617,7 +642,10 @@ def test_render_character_page_shows_public_relationship(resolved_character):
     )
 
     assert "## Relationships" in page
-    assert "**所属**: Test Organization Alpha" in page
+    assert (
+        "**所属**: [Test Organization Alpha]"
+        "(../organizations/ORG_TEST_ALPHA.md)" in page
+    )
     assert "Direction: source_to_target" in page
     assert "Source: 本文抽出" in page
     assert "Evidence: 2 件" in page
@@ -695,6 +723,8 @@ def test_render_character_page_ignores_relationship_for_another_character(
     ("field", "value"),
     [
         ("normalizedRelationshipType", "unknown_public_type"),
+        ("taxonomyState", "provisional"),
+        ("taxonomyState", "unrecognized"),
         ("sourceType", "ai_inferred"),
         ("direction", "bidirectional"),
         ("sourceEntityType", "organization"),
@@ -773,8 +803,174 @@ def test_build_pages_passes_relationships_to_character_page(synthetic_collection
 
     page = build_pages(collection)["characters/CHAR_TEST_RAIN.md"]
 
-    assert "**所属**: Test Organization Alpha" in page
+    assert (
+        "**所属**: [Test Organization Alpha]"
+        "(../organizations/ORG_TEST_ALPHA.md)" in page
+    )
     assert "REL_TEST_UNKNOWN" not in page
+
+
+def test_render_organization_page_has_summary_aliases_and_relationship(
+    resolved_character,
+):
+    organization = _synthetic_public_organization()
+    relationship = _synthetic_public_relationship()
+
+    page = render_organization_page(
+        organization,
+        relationships=[relationship],
+        characters=[resolved_character],
+    )
+
+    assert 'entity_type: "organization"' in page
+    assert 'canonical_id: "ORG_TEST_ALPHA"' in page
+    assert "# Test Organization Alpha" in page
+    assert "- Test Org Alpha" in page
+    assert "**所属**: [Test Character Rain](../characters/CHAR_TEST_RAIN.md)" in page
+    assert "Source: 本文抽出" in page
+    assert "Evidence: 2 件" in page
+
+
+def test_render_organization_page_hides_review_required_relationship(
+    resolved_character,
+):
+    relationship = _synthetic_public_relationship(
+        publication_status="review_required",
+        relationship_type="internal_review_type",
+    )
+    page = render_organization_page(
+        _synthetic_public_organization(),
+        relationships=[relationship],
+        characters=[resolved_character],
+    )
+
+    assert "公開可能な関係は記録されていません。" in page
+    assert "internal_review_type" not in page
+    assert "Test Character Rain" not in page
+
+
+def test_render_organization_page_hides_malformed_taxonomy_state(
+    resolved_character,
+):
+    relationship = _synthetic_public_relationship()
+    relationship["taxonomyState"] = "provisional"
+    page = render_organization_page(
+        _synthetic_public_organization(),
+        relationships=[relationship],
+        characters=[resolved_character],
+    )
+
+    assert "公開可能な関係は記録されていません。" in page
+    assert "Test Character Rain" not in page
+
+
+def test_render_organization_page_rejects_reversed_subject_endpoint(
+    resolved_character,
+):
+    relationship = _synthetic_public_relationship()
+    relationship["sourceEntityId"], relationship["targetEntityId"] = (
+        relationship["targetEntityId"],
+        relationship["sourceEntityId"],
+    )
+    page = render_organization_page(
+        _synthetic_public_organization(),
+        relationships=[relationship],
+        characters=[resolved_character],
+    )
+
+    assert "公開可能な関係は記録されていません。" in page
+    assert "Test Character Rain" not in page
+
+
+def test_render_organization_page_hides_unpublished_character_identity():
+    relationship = _synthetic_public_relationship()
+    unpublished = {
+        "id": "CHAR_TEST_RAIN",
+        "type": "character",
+        "canonicalId": None,
+        "displayName": "Internal Character Name",
+        "status": "unresolved",
+        "confidence": 0.9,
+        "evidenceRefs": [{"evidenceId": "EVIDENCE_TEST_CHAR_001"}],
+    }
+    page = render_organization_page(
+        _synthetic_public_organization(),
+        relationships=[relationship],
+        characters=[unpublished],
+    )
+
+    assert "関連先の個別ページは未公開です" in page
+    assert "CHAR_TEST_RAIN" not in page
+    assert "Internal Character Name" not in page
+
+
+def test_render_organization_page_links_appearing_episode(synthetic_collection):
+    organization = _synthetic_public_organization()
+    organization["evidenceRefs"][0]["episodeId"] = "EP_TEST_001"
+    page = render_organization_page(
+        organization, source_documents=synthetic_collection["sourceDocuments"]
+    )
+
+    assert "## Appearing Episodes" in page
+    assert "](../stories/EP_TEST_001.md)" in page
+
+
+def test_render_organization_page_conflict_shows_warning():
+    organization = _synthetic_public_organization()
+    organization["status"] = "conflict"
+    page = render_organization_page(organization)
+    assert '!!! warning "未解決の矛盾があります"' in page
+
+
+def test_render_organization_index_is_sorted_and_excludes_unresolved():
+    alpha = _synthetic_public_organization()
+    beta = _synthetic_public_organization(entity_id="ORG_ENTITY_TEST_BETA")
+    beta["canonicalId"] = "ORG_TEST_BETA"
+    beta["displayName"] = "Test Organization Beta"
+    unresolved = _synthetic_public_organization(
+        entity_id="ORG_ENTITY_TEST_UNRESOLVED", page_eligible=False
+    )
+    relationship = _synthetic_public_relationship()
+
+    page = render_organization_index_page([beta, unresolved, alpha], [relationship])
+
+    assert "| Organization pages | 2 |" in page
+    assert "[Test Organization Alpha](ORG_TEST_ALPHA.md)" in page
+    assert "[Test Organization Beta](ORG_TEST_BETA.md)" in page
+    assert "ORG_ENTITY_TEST_UNRESOLVED" not in page
+    assert page.index("Test Organization Alpha") < page.index("Test Organization Beta")
+    assert "| [Test Organization Alpha](ORG_TEST_ALPHA.md) | 1 |" in page
+
+
+def test_render_organization_index_empty_list_shows_message():
+    page = render_organization_index_page([])
+    assert "登録されているOrganization pageはありません。" in page
+
+
+def test_build_pages_includes_organization_pages_and_mutual_links(
+    synthetic_collection,
+):
+    collection = deepcopy(synthetic_collection)
+    collection["entities"]["organizations"].append(_synthetic_public_organization())
+    collection["entities"]["relationships"].append(_synthetic_public_relationship())
+
+    pages = build_pages(collection)
+
+    assert "organizations/index.md" in pages
+    assert "organizations/ORG_TEST_ALPHA.md" in pages
+    assert (
+        "[Test Organization Alpha](../organizations/ORG_TEST_ALPHA.md)"
+        in pages["characters/CHAR_TEST_RAIN.md"]
+    )
+    assert (
+        "[Test Character Rain](../characters/CHAR_TEST_RAIN.md)"
+        in pages["organizations/ORG_TEST_ALPHA.md"]
+    )
+
+
+def test_render_index_page_links_to_organizations_index(synthetic_collection):
+    page = render_index_page(synthetic_collection)
+    assert "[Organizations](organizations/index.md)" in page
 
 
 # ----------------------------------------------------------------
