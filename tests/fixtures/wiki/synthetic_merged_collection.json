@@ -542,8 +542,14 @@
         },
         "sourceEntityId": "CHAR_TEST_RAIN",
         "targetEntityId": "UNRESOLVED_CHAR_TEST_0001",
+        "sourceEntityType": "character",
+        "targetEntityType": "character",
         "relationshipType": "MYSTERIOUS_BOND_TEST",
+        "normalizedRelationshipType": "mysterious_bond_test",
+        "taxonomyState": "unrecognized",
         "direction": "source_to_target",
+        "sourceType": "script",
+        "publicationStatus": "review_required",
         "temporalNote": null,
         "fieldValues": {},
         "conflicts": [],
@@ -903,8 +909,9 @@
     "warnings": ["EP_TEST_002: サンプルwarningメッセージ"],
     "errors": [],
     "relationshipTypeSummary": {
-      "knownTypes": {},
-      "unknownTypes": { "MYSTERIOUS_BOND_TEST": 1 },
+      "formalV1Types": {},
+      "provisionalTypes": {},
+      "unrecognizedTypes": { "MYSTERIOUS_BOND_TEST": 1 },
       "normalizedTypes": {}
     },
     "canonicalIdSummary": {

@@ -27,7 +27,7 @@ Path: `docs/runbooks/Real_Data_Wiki_Render_Dry_Run_Result_Template.md`
 - **Conflict summary**: `<例: total 2 件>`
 - **Warning summary**: `<例: total 1 件>`
 - **Canonical ID summary**: `<例: totalAssigned 5, invalidCount 0（reportに存在しない場合は「report.canonicalIdSummaryなし」と記録）>`
-- **Relationship type summary**: `<例: unknownTypes 2 種（reportに存在しない場合は「report.relationshipTypeSummaryなし」と記録）>`
+- **Relationship type summary**: `<例: unrecognizedTypes 2 種（reportに存在しない場合は「report.relationshipTypeSummaryなし」と記録）>`
 - **Errors**: `<rendererが出したエラーの一般的な種別・関数名のみ。実データ内容は書かない>`
 - **Warnings**: `<同上>`
 - **Findings**: `<dry-runで見つかった一般的な問題点。例: 「sourceDocumentsが空の場合でもクラッシュしないことを確認」「長いwarningメッセージがtruncateされることを確認」>`

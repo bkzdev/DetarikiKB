@@ -265,7 +265,7 @@ def test_same_source_target_type_direction_merges_into_one_entity():
         ("source_to_target", "target_to_source"),
     ],
 )
-def test_conflicting_directions_merge_as_bidirectional_with_conflict(directions):
+def test_conflicting_directions_stay_separate_with_review_records(directions):
     relationships = [
         _relationship_candidate(
             f"EP01_CAND_REL{index:03d}",
@@ -290,34 +290,21 @@ def test_conflicting_directions_merge_as_bidirectional_with_conflict(directions)
         {"id": "CHAR_B", "sourceCandidates": []},
     ]
 
+    review_records = []
     entities, warnings = build_relationship_entities(
-        [("ep01.json", document)], known_entities
+        [("ep01.json", document)], known_entities, review_records
     )
 
     assert warnings == []
-    assert len(entities) == 1
-    entity = entities[0]
-    assert entity["direction"] == "bidirectional"
-    assert len(entity["evidenceRefs"]) == 2
-    assert len(entity["sourceCandidates"]) == 2
-    conflict = entity["conflicts"][0]
-    assert conflict["field"] == "direction"
-    expected_directions = [
-        direction
-        for direction in (
-            "source_to_target",
-            "target_to_source",
-            "bidirectional",
-        )
-        if direction in directions
-    ]
-    assert conflict["values"] == expected_directions
-    assert conflict["resolutionStatus"] == "auto_selected"
-    assert conflict["selectedValue"] == "bidirectional"
+    assert len(entities) == 2
+    assert {entity["direction"] for entity in entities} == set(directions)
+    assert all(entity["publicationStatus"] == "review_required" for entity in entities)
+    assert all(entity["conflicts"][0]["field"] == "direction" for entity in entities)
+    assert all("direction_conflict" in record["reasons"] for record in review_records)
 
 
 @pytest.mark.parametrize("direction", ["target_to_source", "bidirectional"])
-def test_fixed_direction_type_rejects_non_source_to_target(direction):
+def test_fixed_direction_type_is_retained_for_review(direction):
     relationship = _relationship_candidate(
         "EP01_CAND_REL001",
         ["EP01_DLG0001"],
@@ -332,23 +319,26 @@ def test_fixed_direction_type_rejects_non_source_to_target(direction):
         evidence_index={"EP01_DLG0001": _evidence_ref("EP01_DLG0001", "EP01")},
     )
     known_entities = [
-        {"id": "CHAR_A", "sourceCandidates": []},
-        {"id": "ORG_A", "sourceCandidates": []},
+        {"id": "CHAR_A", "type": "character", "sourceCandidates": []},
+        {"id": "ORG_A", "type": "organization", "sourceCandidates": []},
     ]
 
+    review_records = []
     entities, warnings = build_relationship_entities(
-        [("ep01.json", document)], known_entities
+        [("ep01.json", document)], known_entities, review_records
     )
 
-    assert entities == []
+    assert len(entities) == 1
+    assert entities[0]["publicationStatus"] == "review_required"
     assert len(warnings) == 1
     assert "EP01/EP01_CAND_REL001" in warnings[0]
     assert "MEMBER_OF" in warnings[0]
     assert direction in warnings[0]
     assert "source_to_target固定" in warnings[0]
+    assert review_records[0]["reasons"] == ["invalid_formal_direction"]
 
 
-def test_fixed_direction_type_promotes_valid_and_skips_invalid_candidate():
+def test_formal_type_and_semantic_alias_are_not_automatically_merged():
     relationships = [
         _relationship_candidate(
             "EP01_CAND_REL001",
@@ -376,21 +366,177 @@ def test_fixed_direction_type_promotes_valid_and_skips_invalid_candidate():
         },
     )
     known_entities = [
-        {"id": "CHAR_A", "sourceCandidates": []},
-        {"id": "ORG_A", "sourceCandidates": []},
+        {"id": "CHAR_A", "type": "character", "sourceCandidates": []},
+        {"id": "ORG_A", "type": "organization", "sourceCandidates": []},
     ]
 
+    review_records = []
     entities, warnings = build_relationship_entities(
-        [("ep01.json", document)], known_entities
+        [("ep01.json", document)], known_entities, review_records
     )
 
-    assert len(entities) == 1
-    assert entities[0]["direction"] == "source_to_target"
-    assert [source["candidateId"] for source in entities[0]["sourceCandidates"]] == [
-        "EP01_CAND_REL001"
+    assert len(entities) == 2
+    formal = next(e for e in entities if e["normalizedRelationshipType"] == "member_of")
+    alias = next(e for e in entities if e["normalizedRelationshipType"] == "belongs_to")
+    assert formal["publicationStatus"] == "review_required"
+    assert alias["publicationStatus"] == "review_required"
+    assert warnings == []
+    alias_record = next(
+        record
+        for record in review_records
+        if record["candidateId"] == "EP01_CAND_REL002"
+    )
+    assert alias_record["suggestedType"] == "member_of"
+    assert "semantic_alias" in alias_record["reasons"]
+
+
+def test_formal_script_relationship_is_publication_eligible():
+    relationship = _relationship_candidate(
+        "EP01_CAND_REL001",
+        ["EP01_DLG0001"],
+        source_candidate="CHAR_A",
+        target_candidate="ORG_A",
+        relationship_type="MEMBER OF",
+    )
+    document = _episode_extraction(
+        "EP01",
+        relationships=[relationship],
+        evidence_index={"EP01_DLG0001": _evidence_ref("EP01_DLG0001", "EP01")},
+    )
+    known_entities = [
+        {"id": "CHAR_A", "type": "character", "sourceCandidates": []},
+        {"id": "ORG_A", "type": "organization", "sourceCandidates": []},
     ]
-    assert len(warnings) == 1
-    assert "EP01/EP01_CAND_REL002" in warnings[0]
+    review_records = []
+
+    entities, warnings = build_relationship_entities(
+        [("ep01.json", document)], known_entities, review_records
+    )
+
+    assert warnings == []
+    assert review_records == []
+    assert entities[0]["normalizedRelationshipType"] == "member_of"
+    assert entities[0]["taxonomyState"] == "formal_v1"
+    assert entities[0]["sourceType"] == "script"
+    assert entities[0]["publicationStatus"] == "eligible"
+
+
+def test_formal_relationship_endpoint_type_mismatch_requires_review():
+    relationship = _relationship_candidate(
+        "EP01_CAND_REL001",
+        ["EP01_DLG0001"],
+        source_candidate="CHAR_A",
+        target_candidate="CHAR_B",
+        relationship_type="MEMBER_OF",
+    )
+    document = _episode_extraction(
+        "EP01",
+        relationships=[relationship],
+        evidence_index={"EP01_DLG0001": _evidence_ref("EP01_DLG0001", "EP01")},
+    )
+    known_entities = [
+        {"id": "CHAR_A", "type": "character", "sourceCandidates": []},
+        {"id": "CHAR_B", "type": "character", "sourceCandidates": []},
+    ]
+    review_records = []
+
+    entities, _warnings = build_relationship_entities(
+        [("ep01.json", document)], known_entities, review_records
+    )
+
+    assert entities[0]["publicationStatus"] == "review_required"
+    assert review_records[0]["reasons"] == ["endpoint_type_mismatch"]
+    assert review_records[0]["targetEntityType"] == "character"
+
+
+def test_source_types_are_separate_and_ai_extracted_requires_review():
+    script_relationship = _relationship_candidate(
+        "EP01_CAND_REL001",
+        ["EP01_DLG0001"],
+        source_candidate="CHAR_A",
+        target_candidate="ORG_A",
+        relationship_type="AFFILIATED_WITH",
+    )
+    ai_relationship = _relationship_candidate(
+        "EP01_CAND_REL002",
+        ["EP01_DLG0002"],
+        source_candidate="CHAR_A",
+        target_candidate="ORG_A",
+        relationship_type="AFFILIATED_WITH",
+    )
+    ai_relationship["sourceType"] = "ai_extracted"
+    document = _episode_extraction(
+        "EP01",
+        relationships=[script_relationship, ai_relationship],
+        evidence_index={
+            "EP01_DLG0001": _evidence_ref("EP01_DLG0001", "EP01"),
+            "EP01_DLG0002": _evidence_ref("EP01_DLG0002", "EP01"),
+        },
+    )
+    known_entities = [
+        {"id": "CHAR_A", "type": "character", "sourceCandidates": []},
+        {"id": "ORG_A", "type": "organization", "sourceCandidates": []},
+    ]
+    review_records = []
+
+    entities, _warnings = build_relationship_entities(
+        [("ep01.json", document)], known_entities, review_records
+    )
+
+    assert len(entities) == 2
+    assert len({entity["id"] for entity in entities}) == 2
+    by_source = {entity["sourceType"]: entity for entity in entities}
+    assert by_source["script"]["publicationStatus"] == "eligible"
+    assert by_source["ai_extracted"]["publicationStatus"] == "review_required"
+    assert review_records[0]["candidateId"] == "EP01_CAND_REL002"
+    assert review_records[0]["reasons"] == ["non_public_source_type"]
+
+
+def test_cross_source_type_conflict_quarantines_otherwise_eligible_record():
+    script_relationship = _relationship_candidate(
+        "EP01_CAND_REL001",
+        ["EP01_DLG0001"],
+        source_candidate="CHAR_A",
+        target_candidate="ORG_A",
+        relationship_type="MEMBER_OF",
+    )
+    ai_relationship = _relationship_candidate(
+        "EP01_CAND_REL002",
+        ["EP01_DLG0002"],
+        source_candidate="CHAR_A",
+        target_candidate="ORG_A",
+        relationship_type="AFFILIATED_WITH",
+    )
+    ai_relationship["sourceType"] = "ai_inferred"
+    document = _episode_extraction(
+        "EP01",
+        relationships=[script_relationship, ai_relationship],
+        evidence_index={
+            "EP01_DLG0001": _evidence_ref("EP01_DLG0001", "EP01"),
+            "EP01_DLG0002": _evidence_ref("EP01_DLG0002", "EP01"),
+        },
+    )
+    known_entities = [
+        {"id": "CHAR_A", "type": "character", "sourceCandidates": []},
+        {"id": "ORG_A", "type": "organization", "sourceCandidates": []},
+    ]
+    review_records = []
+
+    entities, _warnings = build_relationship_entities(
+        [("ep01.json", document)], known_entities, review_records
+    )
+
+    assert len(entities) == 2
+    assert all(entity["publicationStatus"] == "review_required" for entity in entities)
+    by_candidate = {record["candidateId"]: record for record in review_records}
+    assert by_candidate["EP01_CAND_REL001"]["reasons"] == [
+        "endpoint_relationship_conflict"
+    ]
+    assert by_candidate["EP01_CAND_REL001"]["sourceCandidate"] == "CHAR_A"
+    assert by_candidate["EP01_CAND_REL002"]["reasons"] == [
+        "non_public_source_type",
+        "endpoint_relationship_conflict",
+    ]
 
 
 def test_different_relationship_type_produces_separate_merged_relationship():
@@ -643,13 +789,21 @@ def test_unresolvable_source_does_not_produce_relationship():
     )
     known_entities = [{"id": "CHAR_RAIN", "sourceCandidates": []}]
 
+    review_records = []
     entities, warnings = build_relationship_entities(
-        [("ep01.json", document)], known_entities
+        [("ep01.json", document)], known_entities, review_records
     )
 
     assert entities == []
     assert len(warnings) == 1
     assert "sourceCandidate" in warnings[0]
+    assert review_records[0]["reasons"] == [
+        "unrecognized_type",
+        "unresolved_endpoint",
+    ]
+    assert review_records[0]["sourceCandidate"] == "謎の人物"
+    assert review_records[0]["evidenceIds"] == ["EP01_DLG0001"]
+    assert review_records[0]["extractionRun"]["extractionMethod"] == "rule_based"
 
 
 def test_unresolvable_target_does_not_produce_relationship():

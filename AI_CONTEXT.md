@@ -69,6 +69,10 @@ raw DEC配置とDKB正規ID体系（storyId/episodeId）は`story_manifest.yaml`
 ### 3.12 コンテンツスコープ方針（要約）
 `data/raw/`配下のコンテンツは、軸(A)内部KB対象か・軸(B)公開対象か、の2軸で独立に判断する（two-tier方針）。`character`カテゴリのH_scene系（演出コンテンツ）は、ユーザー決定（2026-07-15）により**軸(A)内部KB対象・軸(B)公開対象外（恒久除外）**と確定した。実パース対象はH_sceneN本体・`H_scene_s`（約589件）に加え、本体の部分集合になっていない例外変種（最大144件、ユーザー決定(b)・2026-07-15、パース時に動的判定）とし、純粋な部分集合だった変種と`_VR`全件はパース対象外のままとする。詳細・open questions（純コマンド演出ファイルの扱い・5〜6桁キャラID帯）は`docs/architecture/01_Project/03_Scope.md`を参照。`character`/`character_date`カテゴリのstoryId体系（ローマ字characterId方式、新設カテゴリ`CHAR_HS`）・例外変種の別episode取り込み方式・`@SpineTalk`分類決定は`docs/architecture/05_Parser/Character_Story_ID_Manifest_Design.md`を参照（2026-07-16決定、実装は同文書§9のPR B〜Eで行う）。
 
+### 3.13 Relationship公開v1方針（要約）
+
+公開型は`member_of` / `affiliated_with`の2種だけとし、Character → Organization・`source_to_target`・`sourceType: script|manual`を必須にする。未知・暫定型、AI由来、endpoint / 方向 / type矛盾は公開せず、元値・evidence・provenanceを構造化review recordへ保持する。意味を変えるaliasや`affiliated_with`から`member_of`への格上げは自動実行しない。詳細は`docs/architecture/04_Knowledge_Graph/Relationships.md`を正とする。
+
 ## 4. やってはいけないこと
 
 - `reference/parser/story_parse_reference.py` / `characters_reference.json` を直接改造しない（読み取り専用の参照資料。DKB Parserは`agents/parser/`に新規実装する）

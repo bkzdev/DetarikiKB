@@ -436,7 +436,7 @@
     },
 
     "MergedRelationship": {
-      "description": "Merged_Knowledge_Design.md §6。両端解決済みのみmerged/relationships/へ昇格。relationshipTypeはtaxonomy未確定のため自由文字列 (§6.3)",
+      "description": "Merged_Knowledge_Design.md §6。両端解決済みのみmerged relationship化し、公開v1 taxonomy stateとpublicationStatusを別フィールドで保持する。relationshipTypeは未知値不破棄のため自由文字列を維持する",
       "allOf": [
         { "$ref": "#/definitions/MergedEntityBase" },
         {
@@ -445,8 +445,14 @@
             "type",
             "sourceEntityId",
             "targetEntityId",
+            "sourceEntityType",
+            "targetEntityType",
             "relationshipType",
-            "direction"
+            "normalizedRelationshipType",
+            "taxonomyState",
+            "direction",
+            "sourceType",
+            "publicationStatus"
           ],
           "properties": {
             "type": { "const": "relationship" },
@@ -458,16 +464,53 @@
               "type": "string",
               "description": "関係の終点となる解決済みEntity ID"
             },
+            "sourceEntityType": {
+              "type": ["string", "null"],
+              "description": "解決した起点Entityのtype。公開v1ではcharacter必須"
+            },
+            "targetEntityType": {
+              "type": ["string", "null"],
+              "description": "解決した終点Entityのtype。公開v1ではorganization必須"
+            },
             "relationshipType": {
               "type": "string",
-              "description": "関係種別。taxonomyはRelationships.md未確定のため自由文字列を許容 (§6.3。暫定語彙: MEMBER_OF/AFFILIATED_WITH/RELATED_TO/APPEARS_WITH)"
+              "description": "観測された元の関係種別。後方互換と不明値保持のため自由文字列を許容"
+            },
+            "normalizedRelationshipType": {
+              "type": "string",
+              "description": "大文字小文字・区切り文字だけを正規化した関係種別"
+            },
+            "taxonomyState": {
+              "type": "string",
+              "enum": ["formal_v1", "provisional", "unrecognized"]
             },
             "direction": { "$ref": "#/definitions/Direction" },
+            "sourceType": { "$ref": "#/definitions/SourceType" },
+            "publicationStatus": {
+              "type": "string",
+              "enum": ["eligible", "review_required"],
+              "description": "公開v1の機械判定。eligible以外はrendererで公開しない"
+            },
             "temporalNote": {
               "type": ["string", "null"],
               "description": "関係が変化した場合の変化契機 (連番Relationship IDと対応)"
             }
-          }
+          },
+          "allOf": [
+            {
+              "if": { "properties": { "publicationStatus": { "const": "eligible" } } },
+              "then": {
+                "properties": {
+                  "normalizedRelationshipType": { "enum": ["member_of", "affiliated_with"] },
+                  "taxonomyState": { "const": "formal_v1" },
+                  "sourceEntityType": { "const": "character" },
+                  "targetEntityType": { "const": "organization" },
+                  "direction": { "const": "source_to_target" },
+                  "sourceType": { "enum": ["script", "manual"] }
+                }
+              }
+            }
+          ]
         }
       ]
     },

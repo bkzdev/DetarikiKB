@@ -213,7 +213,7 @@ def test_unknown_relationship_type_is_not_discarded():
 
 
 # ----------------------------------------------------------------
-# 3. direction競合はbroad側へ統合し、source/target違いはmergeしない
+# 3. direction競合は別recordに保ち、source/target違いもmergeしない
 # ----------------------------------------------------------------
 
 
@@ -242,7 +242,7 @@ def test_different_target_with_same_type_does_not_merge():
     assert targets == {"CHAR_B", "CHAR_C"}
 
 
-def test_different_direction_with_same_type_merges_as_bidirectional_conflict():
+def test_different_direction_with_same_type_stays_separate_and_requires_review():
     relationship1 = _relationship_candidate(
         "EP01_CAND_REL001",
         "EP01_DLG0001",
@@ -268,27 +268,23 @@ def test_different_direction_with_same_type_merges_as_bidirectional_conflict():
         },
     )
 
+    review_records = []
     entities, _warnings = build_relationship_entities(
-        [("ep01.json", document)], _KNOWN_ENTITIES
+        [("ep01.json", document)], _KNOWN_ENTITIES, review_records
     )
 
-    assert len(entities) == 1
-    entity = entities[0]
-    assert entity["direction"] == "bidirectional"
-    assert len(entity["evidenceRefs"]) == 2
-    assert len(entity["sourceCandidates"]) == 2
-    assert len(entity["conflicts"]) == 1
-    conflict = entity["conflicts"][0]
-    assert conflict["conflictType"] == "relationship_conflict"
-    assert conflict["field"] == "direction"
-    assert conflict["values"] == ["source_to_target", "bidirectional"]
-    assert conflict["sourceCandidateIds"] == [
+    assert len(entities) == 2
+    assert {entity["direction"] for entity in entities} == {
+        "source_to_target",
+        "bidirectional",
+    }
+    assert all(entity["publicationStatus"] == "review_required" for entity in entities)
+    assert all(entity["conflicts"][0]["field"] == "direction" for entity in entities)
+    assert {record["candidateId"] for record in review_records} == {
         "EP01_CAND_REL001",
         "EP01_CAND_REL002",
-    ]
-    assert conflict["severity"] == "warning"
-    assert conflict["resolutionStatus"] == "auto_selected"
-    assert conflict["selectedValue"] == "bidirectional"
+    }
+    assert all("direction_conflict" in record["reasons"] for record in review_records)
 
 
 # ----------------------------------------------------------------
@@ -372,8 +368,9 @@ def test_relationship_type_summary_reports_known_and_unknown_types(engine, tmp_p
     collection = engine.merge_inputs([str(path)])
     summary = collection["report"]["relationshipTypeSummary"]
 
-    assert summary["knownTypes"].get("member_of") == 1
-    assert summary["unknownTypes"].get("rival_ish") == 1
+    assert summary["formalV1Types"].get("member_of") == 1
+    assert summary["provisionalTypes"] == {}
+    assert summary["unrecognizedTypes"].get("rival_ish") == 1
     assert summary["normalizedTypes"]["MEMBER_OF"] == "member_of"
     assert summary["normalizedTypes"]["rival-ish"] == "rival_ish"
 
@@ -483,4 +480,4 @@ def test_cli_output_with_relationship_type_summary_matches_collection_schema(
     errors = list(collection_validator.iter_errors(data))
     assert not errors, [e.message for e in errors]
     summary = data["report"]["relationshipTypeSummary"]
-    assert summary["knownTypes"].get("affiliated_with") == 1
+    assert summary["formalV1Types"].get("affiliated_with") == 1

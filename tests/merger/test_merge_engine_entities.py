@@ -646,7 +646,7 @@ def test_merge_engine_promotes_known_direction_and_skips_unknown_direction(
     )
 
 
-def test_merge_engine_resolves_direction_conflict_without_duplicate_id(
+def test_merge_engine_separates_direction_conflict_without_duplicate_id(
     collection_validator, engine, tmp_path
 ):
     doc = _episode_with_relationship_candidate("EP01")
@@ -662,23 +662,33 @@ def test_merge_engine_resolves_direction_conflict_without_duplicate_id(
     collection = engine.merge_file(path)
 
     relationships = collection["entities"]["relationships"]
-    assert len(relationships) == 1
-    entity = relationships[0]
-    assert entity["direction"] == "bidirectional"
-    assert len(entity["sourceCandidates"]) == 2
-    assert entity["conflicts"][0]["field"] == "direction"
-    assert collection["report"]["mergedEntityCounts"]["relationships"] == 1
-    assert collection["report"]["conflictsCount"] == 1
+    assert len(relationships) == 2
+    assert {entity["direction"] for entity in relationships} == {
+        "source_to_target",
+        "target_to_source",
+    }
+    assert all(
+        entity["publicationStatus"] == "review_required" for entity in relationships
+    )
+    assert all(
+        entity["conflicts"][0]["field"] == "direction" for entity in relationships
+    )
+    assert collection["report"]["mergedEntityCounts"]["relationships"] == 2
+    assert collection["report"]["conflictsCount"] == 2
     assert collection["report"]["conflictCounts"]["byType"] == {
-        "relationship_conflict": 1
+        "relationship_conflict": 2
     }
     assert collection["report"]["canonicalIdSummary"]["duplicateCount"] == 0
-    assert len({relationship["id"] for relationship in relationships}) == 1
+    assert len({relationship["id"] for relationship in relationships}) == 2
+    assert {
+        record["candidateId"]
+        for record in collection["report"]["relationshipReviewRecords"]
+    } == {"EP01_CAND_REL001", "EP01_CAND_REL002"}
     errors = list(collection_validator.iter_errors(collection))
     assert not errors, [error.message for error in errors]
 
 
-def test_merge_engine_skips_invalid_fixed_direction_candidate(engine, tmp_path):
+def test_merge_engine_retains_semantic_alias_for_review(engine, tmp_path):
     doc = _episode_with_relationship_candidate("EP01")
     invalid = copy.deepcopy(doc["relationships"][0])
     invalid["id"] = "EP01_CAND_REL002"
@@ -692,15 +702,18 @@ def test_merge_engine_skips_invalid_fixed_direction_candidate(engine, tmp_path):
     collection = engine.merge_file(path)
 
     relationships = collection["entities"]["relationships"]
-    assert len(relationships) == 1
-    assert relationships[0]["direction"] == "source_to_target"
-    assert [
-        source["candidateId"] for source in relationships[0]["sourceCandidates"]
-    ] == ["EP01_CAND_REL001"]
-    assert any(
-        "EP01/EP01_CAND_REL002" in warning and "source_to_target固定" in warning
-        for warning in collection["report"]["warnings"]
+    assert len(relationships) == 2
+    assert {entity["normalizedRelationshipType"] for entity in relationships} == {
+        "member_of",
+        "belongs_to",
+    }
+    alias_record = next(
+        record
+        for record in collection["report"]["relationshipReviewRecords"]
+        if record["candidateId"] == "EP01_CAND_REL002"
     )
+    assert alias_record["suggestedType"] == "member_of"
+    assert "semantic_alias" in alias_record["reasons"]
     assert collection["report"]["canonicalIdSummary"]["duplicateCount"] == 0
 
 

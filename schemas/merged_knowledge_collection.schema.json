@@ -295,6 +295,11 @@
           "$ref": "#/definitions/RelationshipTypeSummary",
           "description": "relationshipTypeの正規化集計 (agents/merger/relationship_taxonomy.py)。requiredには含めない任意プロパティ (既存の手書きfixtureを壊さないため。MergeEngineの実出力には常に含まれる)"
         },
+        "relationshipReviewRecords": {
+          "type": "array",
+          "description": "公開不可・要確認のRelationshipCandidateを根拠付きで保持するreview queue",
+          "items": { "$ref": "#/definitions/RelationshipReviewRecord" }
+        },
         "canonicalIdSummary": {
           "$ref": "#/definitions/CanonicalIdSummary",
           "description": "canonicalIdの形式・重複検証結果 (agents/merger/canonical_ids.py、docs/architecture/06_AI/Canonical_ID_Policy.md)。requiredには含めない任意プロパティ (既存の手書きfixtureを壊さないため。MergeEngineの実出力には常に含まれ、--overrides指定時はoverride適用後の値で上書きされる)"
@@ -485,24 +490,85 @@
 
     "RelationshipTypeSummary": {
       "type": "object",
-      "description": "relationshipTypeの正規化集計 (agents/merger/relationship_taxonomy.py normalize_relationship_type)。merged relationship entityのみを対象とする (両端未解決でentity化されなかった候補は含まない)。relationshipType自体はenum化しない方針のため、キー集合は固定しない",
-      "required": ["knownTypes", "unknownTypes", "normalizedTypes"],
+      "description": "relationshipTypeの公開v1 taxonomy状態別集計。merged relationship entityのみを対象とし、未解決候補はrelationshipReviewRecordsで別集計する",
+      "required": ["formalV1Types", "provisionalTypes", "unrecognizedTypes", "normalizedTypes"],
       "additionalProperties": false,
       "properties": {
-        "knownTypes": {
+        "formalV1Types": {
           "type": "object",
-          "description": "暫定taxonomy (KNOWN_RELATIONSHIP_TYPES) に一致した正規化後relationshipType別の件数",
+          "description": "公開v1で確定した型の件数",
           "additionalProperties": { "type": "integer", "minimum": 0 }
         },
-        "unknownTypes": {
+        "provisionalTypes": {
           "type": "object",
-          "description": "taxonomy未登録の正規化後relationshipType (slug化した値) 別の件数。破棄はせずここに記録する",
+          "description": "将来検討用の暫定型の件数",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        },
+        "unrecognizedTypes": {
+          "type": "object",
+          "description": "未登録型の件数。破棄はせず保持する",
           "additionalProperties": { "type": "integer", "minimum": 0 }
         },
         "normalizedTypes": {
           "type": "object",
           "description": "元のrelationshipType表記 -> 正規化後の値の対応表",
           "additionalProperties": { "type": "string" }
+        }
+      }
+    },
+
+    "RelationshipReviewRecord": {
+      "type": "object",
+      "description": "Relationship公開判定で確定できなかったcandidateの構造化記録",
+      "required": [
+        "episodeId", "candidateId", "reasons", "relationshipType",
+        "normalizedRelationshipType", "taxonomyState", "suggestedType",
+        "direction", "sourceType", "confidence", "sourceCandidate",
+        "targetCandidate", "sourceEntityId", "targetEntityId",
+        "sourceEntityType", "targetEntityType", "evidenceIds", "extractionRun"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "episodeId": { "type": ["string", "null"] },
+        "candidateId": { "type": ["string", "null"] },
+        "reasons": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "empty_relationship_type", "invalid_direction",
+              "invalid_formal_direction", "unresolved_endpoint",
+              "endpoint_type_mismatch", "provisional_type",
+              "unrecognized_type", "semantic_alias",
+              "non_public_source_type", "direction_conflict",
+              "endpoint_relationship_conflict"
+            ]
+          }
+        },
+        "relationshipType": { "type": ["string", "null"] },
+        "normalizedRelationshipType": { "type": ["string", "null"] },
+        "taxonomyState": {
+          "type": ["string", "null"],
+          "enum": ["formal_v1", "provisional", "unrecognized", null]
+        },
+        "suggestedType": { "type": ["string", "null"] },
+        "direction": { "type": ["string", "null"] },
+        "sourceType": { "type": ["string", "null"] },
+        "confidence": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "sourceCandidate": { "type": ["string", "null"] },
+        "targetCandidate": { "type": ["string", "null"] },
+        "sourceEntityId": { "type": ["string", "null"] },
+        "targetEntityId": { "type": ["string", "null"] },
+        "sourceEntityType": { "type": ["string", "null"] },
+        "targetEntityType": { "type": ["string", "null"] },
+        "evidenceIds": { "type": "array", "items": { "type": "string" } },
+        "extractionRun": {
+          "anyOf": [
+            { "$ref": "merged_knowledge.schema.json#/definitions/ExtractionRun" },
+            { "type": "null" }
+          ]
         }
       }
     },

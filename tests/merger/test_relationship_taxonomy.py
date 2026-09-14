@@ -3,14 +3,16 @@ tests/merger/test_relationship_taxonomy.py
 agents/merger/relationship_taxonomy.py (normalize_relationship_type) の
 単体テスト。
 
-relationshipTypeの表記ゆれ (大文字小文字・区切り文字・既知の同義語) が
-安全にcanonical typeへ正規化されること、未知の値がエラーにならず
+relationshipTypeの表記ゆれ (大文字小文字・区切り文字) が安全に正規化され、
+意味aliasは提案だけに留まること、未知の値がエラーにならず
 安全なslugとして保持されること (isKnown: False) を重点的に確認する。
 """
 
 from agents.merger.relationship_taxonomy import (
-    ALIASES,
+    FORMAL_V1_RELATIONSHIP_TYPES,
     KNOWN_RELATIONSHIP_TYPES,
+    PROVISIONAL_RELATIONSHIP_TYPES,
+    REVIEW_REQUIRED_ALIASES,
     normalize_relationship_type,
 )
 
@@ -49,6 +51,7 @@ def test_related_to_normalizes():
     result = normalize_relationship_type("RELATED_TO")
     assert result.normalized_value == "related_to"
     assert result.is_known is True
+    assert result.taxonomy_state == "provisional"
 
 
 def test_already_lowercase_canonical_value_is_unchanged():
@@ -58,18 +61,21 @@ def test_already_lowercase_canonical_value_is_unchanged():
 
 
 # ----------------------------------------------------------------
-# 2. 既知の同義語 (ALIASES) の正規化
+# 2. 意味aliasは自動変換せずreview提案に留める
 # ----------------------------------------------------------------
 
 
-def test_known_alias_normalizes_to_canonical_type():
+def test_semantic_alias_is_not_automatically_normalized():
     result = normalize_relationship_type("belongs_to")
-    assert result.normalized_value == "member_of"
-    assert result.is_known is True
+    assert result.normalized_value == "belongs_to"
+    assert result.is_known is False
+    assert result.taxonomy_state == "unrecognized"
+    assert result.suggested_type == "member_of"
+    assert any("自動変換せず" in warning for warning in result.warnings)
 
 
-def test_all_aliases_map_to_a_known_type():
-    for alias, canonical in ALIASES.items():
+def test_all_review_required_aliases_point_to_known_type():
+    for alias, canonical in REVIEW_REQUIRED_ALIASES.items():
         assert canonical in KNOWN_RELATIONSHIP_TYPES, (alias, canonical)
 
 
@@ -107,3 +113,11 @@ def test_known_relationship_types_are_all_lowercase_snake_case():
         assert value == value.lower()
         assert " " not in value
         assert "-" not in value
+
+
+def test_taxonomy_states_are_disjoint_and_cover_known_types():
+    assert FORMAL_V1_RELATIONSHIP_TYPES.isdisjoint(PROVISIONAL_RELATIONSHIP_TYPES)
+    assert (
+        FORMAL_V1_RELATIONSHIP_TYPES | PROVISIONAL_RELATIONSHIP_TYPES
+        == KNOWN_RELATIONSHIP_TYPES
+    )

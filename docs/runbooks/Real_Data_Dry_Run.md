@@ -243,12 +243,12 @@ uv run python scripts/merge_extractions.py \
 | `unresolvedEntityCounts` | `status: unresolved`のentity件数（type別）。構造化ID（`existing*Id`）が解決されていない候補が多い場合はキャラクター辞書の充実度を疑う |
 | `conflictCounts` | `total`/`bySeverity`/`byType`/`byEntityType`。`field_value_conflict`（displayName等の表記ゆれ）が多い場合は正規化ルール・辞書の見直しを検討 |
 | `warningCounts` | `unresolvedRelationships`（source/target未解決でskipされたrelationship件数）、`skippedOverrides`（overrides未適用件数） |
-| `relationshipTypeSummary` | `knownTypes`/`unknownTypes`。`unknownTypes`が多い場合、暫定taxonomy（`agents/merger/relationship_taxonomy.py`）に追加すべき語彙が無いか検討する（ただしtaxonomy本確定はこのPRのNon-goals） |
+| `relationshipTypeSummary` | `formalV1Types`/`provisionalTypes`/`unrecognizedTypes`。未確定値は`relationshipReviewRecords`の理由別内訳と合わせて確認し、自動昇格しない |
 | `canonicalIdSummary` | `totalAssigned`/`duplicateCount`/`invalidCount`。`invalidCount`/`duplicateCount`が0でない場合は`warnings`を確認する（`docs/architecture/06_AI/Canonical_ID_Policy.md`参照） |
 | `manualOverrides` | （`--overrides`指定時のみ）`appliedCount`/`skippedCount`/`errorCount`と`results[]` |
 | collection側`entities.*` の件数 | `merged_knowledge_collection.json`の`entities.characters` 等8配列それぞれの`length`。`mergedEntityCounts`と一致するはず |
 | unresolved relationship warnings | `warnings`のうち、`agents/merger/relationship.py`の`UNRESOLVED_ENDPOINT_MARKER`文言を含むもの |
-| unknown relationshipType | `relationshipTypeSummary.unknownTypes`のキー一覧 |
+| unknown relationshipType | `relationshipTypeSummary.unrecognizedTypes`のキー一覧 |
 | invalid / duplicate canonicalId | `canonicalIdSummary.warnings`のうち「形式が不正」「重複しています」を含むもの |
 | collection側timeline unresolved entries | `merged_knowledge_collection.json`の`entities.timeline`は現状の設計上**常に`status: unresolved`**（`Merged_Knowledge_Design.md` §7.1）。件数のみ確認すればよく、`unresolved`であること自体はエラーではない |
 | collection側`sourceDocuments` | `merged_knowledge_collection.json`で、どの入力ファイルがmergeに使われたか（`documentId`/`episodeId`/`candidateCounts`） |

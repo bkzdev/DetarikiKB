@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://detariki-kb/schemas/relationship.schema.json",
+  "title": "Relationship Public v1 Contract",
+  "description": "Relationshipの公開v1 taxonomyと公開適格性を表す独立schema。Stage AのrelationshipType自由文字列契約は維持する。",
+  "type": "object",
+  "required": [
+    "relationshipType",
+    "normalizedRelationshipType",
+    "taxonomyState",
+    "sourceEntityType",
+    "targetEntityType",
+    "direction",
+    "sourceType",
+    "publicationStatus"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "relationshipType": { "type": "string" },
+    "normalizedRelationshipType": { "type": "string" },
+    "taxonomyState": {
+      "type": "string",
+      "enum": ["formal_v1", "provisional", "unrecognized"]
+    },
+    "sourceEntityType": { "type": ["string", "null"] },
+    "targetEntityType": { "type": ["string", "null"] },
+    "direction": {
+      "type": "string",
+      "enum": ["source_to_target", "target_to_source", "bidirectional"]
+    },
+    "sourceType": {
+      "type": "string",
+      "enum": ["official", "script", "ai_extracted", "ai_inferred", "manual", "unknown"]
+    },
+    "publicationStatus": {
+      "type": "string",
+      "enum": ["eligible", "review_required"]
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "publicationStatus": { "const": "eligible" } } },
+      "then": {
+        "properties": {
+          "normalizedRelationshipType": {
+            "enum": ["member_of", "affiliated_with"]
+          },
+          "taxonomyState": { "const": "formal_v1" },
+          "sourceEntityType": { "const": "character" },
+          "targetEntityType": { "const": "organization" },
+          "direction": { "const": "source_to_target" },
+          "sourceType": { "enum": ["script", "manual"] }
+        }
+      }
+    }
+  ]
+}
