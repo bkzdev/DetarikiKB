@@ -79,6 +79,15 @@ def lore_page_path(entity: dict[str, Any]) -> str | None:
     return f"lore/{entity['canonicalId']}.md"
 
 
+def event_page_path(entity: dict[str, Any]) -> str | None:
+    """Event pageの出力先相対パスを返す。個別ページを生成すべきで
+    なければNoneを返す。
+    """
+    if not is_page_eligible(entity):
+        return None
+    return f"events/{entity['canonicalId']}.md"
+
+
 def resolve_episode_path_id(source_document: dict[str, Any]) -> str | None:
     """Episode pageのURL/filenameに使うIDを解決する。
 

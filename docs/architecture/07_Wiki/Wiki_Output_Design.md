@@ -294,6 +294,15 @@ canonical ID割当、同名候補の統合・他種別への再分類、Episode�
 - 表示: `displayName`、参加キャラクター（`participantEntityIds`）、発生場所（`locationEntityIds`）、関連エピソード
 - テンプレート名（案）: `templates/wiki/event.md.j2`
 
+**実装状況（`codex/wiki-event-page`）**: §6の防御条件を満たすEventだけを
+`events/{canonicalId}.md`へ生成し、Summary、Aliases、Participants、Locations、
+登場Episode、Evidence、Source Candidates、Conflictsを表示する。参加者・場所参照は
+prefixから推測せず、期待typeのentity IDとして解決でき、かつ参照先ページも生成可能な
+場合だけCharacter / Location pageへリンクする。未知・型違い・非公開参照は初出順で
+重複排除し、IDをHTML-safeな非リンクcodeとして保持する。`events/index.md`は生成対象を
+canonical ID順で掲載し、参照数とTop page導線を提供する。Eventのcanonical ID割当・
+episode横断統合、逆参照、実データ投入は対象外とする。
+
 ## 9.10 Relationship section（独立ページではない、§8参照）
 
 - source: `entities.relationships`。`sourceEntityId`/`targetEntityId`のいずれかが該当ページの主体と一致するものを抽出
@@ -421,6 +430,7 @@ site_src/
     index.md
     {canonicalId}.md
   events/
+    index.md
     {canonicalId}.md
   timelines/
     index.md
