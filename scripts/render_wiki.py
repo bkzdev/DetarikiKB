@@ -563,12 +563,13 @@ def main() -> int:
         evidence_index_lookup=evidence_index_lookup,
     )
     output_dir = Path(args.output)
+    output_root = output_dir.resolve()
     written = write_pages(pages, output_dir, clean=args.clean)
 
     if not args.quiet:
         print(f"[wiki] {len(written)} 件のMarkdownを生成しました: {output_dir}")
         for path in sorted(written):
-            print(f"  - {path.relative_to(output_dir)}")
+            print(f"  - {path.relative_to(output_root)}")
 
     return 0
 
