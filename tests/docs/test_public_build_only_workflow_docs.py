@@ -22,6 +22,15 @@ def test_workflow_is_read_only_reviewed_build_without_upload_or_deploy() -> None
     assert workflow["permissions"] == {"contents": "read"}
     assert set(workflow["jobs"]) == {"public-build"}
     assert workflow["jobs"]["public-build"]["runs-on"] == "ubuntu-latest"
+    install_uv = next(
+        step
+        for step in workflow["jobs"]["public-build"]["steps"]
+        if step["name"] == "Install uv"
+    )
+    assert install_uv["with"] == {
+        "enable-cache": "true",
+        "cache-suffix": "public-build",
+    }
     assert (
         text.count("knowledge/public/timelines/canonical_timeline_public_input.json")
         == 2

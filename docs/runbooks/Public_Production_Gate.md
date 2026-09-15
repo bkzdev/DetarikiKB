@@ -1,6 +1,6 @@
 # Public Production Environment Gate
 
-Version: 0.7
+Version: 0.8
 Status: Implemented, rehearsed, and live
 Updated: 2026-09-16
 
@@ -38,7 +38,7 @@ preflightはGitHubのread-only REST APIからenvironment snapshotとbranch polic
 
 任意inputの`expected_tree_sha256`は、小文字64桁のZensical site tree SHA-256である。指定SHAがpreflight時点の`origin/main`先端と一致する通常deployでは空欄にできるが、過去SHAの再配備では必須とする。したがって初回Aと変更版Bでは空欄にし、Aへのrollback時は初回Aのjob summaryに記録された値を指定する。過去SHAでの省略、形式不正、再生成したtree digestとの不一致は、artifact uploadより前に`production-rollback-digest-required`、`production-expected-digest-invalid`、`production-output-digest-mismatch`のいずれかで停止する。
 
-CLIとworkflow固有の診断は固定の匿名status / error codeだけを出し、入力SHAやpathを診断へ展開しない。Git commandもquiet modeで実行する。checkout actionは完全修飾`refs/heads/main`、full history、`persist-credentials: false`とし、外部actionは検証時のcommit SHAへ固定する。JavaScript actionはNode.js 24対応major（checkout v5、setup-python v6、setup-uv v7）のcommitを固定し、通常CIと同じruntime世代を使う。
+CLIとworkflow固有の診断は固定の匿名status / error codeだけを出し、入力SHAやpathを診断へ展開しない。Git commandもquiet modeで実行する。checkout actionは完全修飾`refs/heads/main`、full history、`persist-credentials: false`とし、外部actionは検証時のcommit SHAへ固定する。JavaScript actionはNode.js 24対応major（checkout v5、setup-python v6、setup-uv v7）のcommitを固定し、通常CIと同じruntime世代を使う。uv cacheは有効のまま`cache-suffix: production-gate`で専用namespaceへ分離し、通常CI / Public Buildと同時実行されても保存先を競合させない。
 
 # 4. Public input選択、build、artifact、deployment record
 

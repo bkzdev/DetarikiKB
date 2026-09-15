@@ -77,6 +77,14 @@ def test_ci_uses_node24_action_majors() -> None:
     ):
         assert deprecated_action not in workflow
 
+    parsed_workflow = _load_yaml(".github/workflows/ci.yml")
+    install_uv = next(
+        step
+        for step in parsed_workflow["jobs"]["test"]["steps"]
+        if step["name"] == "Install uv"
+    )
+    assert install_uv["with"] == {"enable-cache": True, "cache-suffix": "ci"}
+
 
 def test_runbook_and_ignore_rules_keep_generated_sites_out_of_git() -> None:
     runbook = _read("docs/runbooks/Wiki_Dual_Build.md")
