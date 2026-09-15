@@ -82,6 +82,11 @@ def test_workflow_is_manual_protected_reviewed_pages_deploy() -> None:
         "path": "${{ env.PUBLIC_BUILD_ROOT }}/site-zensical",
         "retention-days": "1",
     }
+    install_uv = next(step for step in steps if step["name"] == "Install uv")
+    assert install_uv["with"] == {
+        "enable-cache": "true",
+        "cache-suffix": "production-gate",
+    }
     deploy = workflow["jobs"]["deploy"]
     assert deploy["needs"] == "preflight"
     assert deploy["permissions"] == {

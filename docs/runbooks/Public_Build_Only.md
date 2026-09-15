@@ -1,6 +1,6 @@
 # Public Build-Only Workflow
 
-Version: 0.3
+Version: 0.4
 Status: Implemented
 Updated: 2026-09-16
 
@@ -42,7 +42,7 @@ findingは固定の匿名codeだけで返す。public labelはstub headingへ書
 
 workflowは`pull_request`と`main` pushで動き、権限は`contents: read`だけとする。
 
-workflowのJavaScript actionはNode.js 24対応major（`actions/checkout@v5`、`actions/setup-python@v6`、`astral-sh/setup-uv@v7`）を使う。これはGitHub-hosted runnerを前提とし、action更新によって入力、cache、Python 3.12、権限境界は変更しない。
+workflowのJavaScript actionはNode.js 24対応major（`actions/checkout@v5`、`actions/setup-python@v6`、`astral-sh/setup-uv@v7`）を使う。これはGitHub-hosted runnerを前提とし、action更新によって入力、Python 3.12、権限境界は変更しない。uv cacheは有効のまま`cache-suffix: public-build`で専用namespaceへ分離し、同時起動する通常CIとのcache保存競合を防ぐ。
 
 1. `uv sync --locked`
 2. レビュー済みpublic inputから一時source / configを準備
