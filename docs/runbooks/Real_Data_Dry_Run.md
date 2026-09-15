@@ -328,7 +328,7 @@ exit code `0`なら問題なし、`1`なら該当ファイルが一覧表示さ�
 
 - Windows日本語環境（cp932コンソール）では、`normalize_story.py`/`check_script_compatibility.py`のコンソールサマリーに絵文字が含まれていると`UnicodeEncodeError`でクラッシュ・誤ったエラー報告になっていた（このtrialで修正済み）。今後同様のCLIを追加する場合、コンソール向け出力に絵文字を使う際はcp932環境での動作確認を行うこと。
 - 2026-07-28に`normalize_story.py --check-compat`へ`--compat-report-output DIR`を追加し、互換性レポートをrunごとのディレクトリへ隔離できるようにした。未指定時は後方互換のため`data/reports/`へ出力される。固定ファイル名の上書きを避けるため、§7の通り`workspace/dry_runs/<timestamp>/reports/`を指定する。
-- `check_script_compatibility.py`単体実行時の判定と、`normalize_story.py --check-compat`経由でNormalized JSONに埋め込まれる`compatibilityReport`の判定が食い違うことがある（新規会話コマンド候補の検出件数など）。report確認（§12）の際はどちらの経路の結果を見ているか区別すること。
+- `check_script_compatibility.py`単体実行時の判定と、`normalize_story.py --check-compat`経由でNormalized JSONに埋め込まれる`compatibilityReport`の互換性判定は共有ロジックと回帰テストで対称化済みである。ただし、前者は`sampleLines`、後者はNormalized Story内の`unknown` Blockという異なる診断情報を持つため、report確認（§12）では用途に応じて両方を確認する。
 - 実データに`itemId`/`relationshipType`等の明示的な構造化タグが含まれない場合、Item/Lore/Event/Relationship/Timeline Candidateは0件になる（rule-based抽出の設計上の制約であり、バグではない）。Character/Locationの抽出件数のみを見て「抽出が動いていない」と誤解しないこと。
 
 ---
@@ -342,7 +342,7 @@ exit code `0`なら問題なし、`1`なら該当ファイルが一覧表示さ�
 unknown commandは以下の2経路で検出される。**どちらの経路でも、未知コマンドは破棄せず必ずreportまたはcompatibilityReportに残す**（AI_CONTEXT.md §13.3の既存不変条件）。
 
 - Parser経由: Normalized Story JSONの`compatibilityReport.unknownCommands`（コマンド名と出現数）、および各Sceneの`blocks`内の`type: "unknown"`ブロック（`notes`に元のコマンド名を保持）
-- compatibility check経由: `scripts/check_script_compatibility.py`（単体実行）の`report.unknownCommands`（`sampleLines`付き）。§17で記録した通り、この2経路の判定は現状完全には一致しない（`feature/compatibility-check-consistency`で対応予定）ため、両方を確認すること
+- compatibility check経由: `scripts/check_script_compatibility.py`（単体実行）の`report.unknownCommands`（`sampleLines`付き）。互換性判定はParser経路と対称化済みだが、各経路固有の診断情報を確認するため両方を実行すること
 
 ## 18.2 一覧化
 
@@ -383,6 +383,8 @@ print(counter.most_common(50))
 ## 18.4 追加手順
 
 分類方針が決まったコマンドは、以下の3箇所に追加する（`config/script_commands.yaml`とParser本体は別システムであり、`CLAUDE.md`記載の通りどちらか片方だけでは反映されない）。
+
+`tests/parser/test_command_dictionary_contract.py`は、`stage_direction`について3箇所の同期、設定内の重複、`direction_type`の文書化、Parserとstandalone checkerへの到達をCIで検査する。追加漏れがあればテストを回避せず、次の手順に従って全登録先を更新する。
 
 1. `config/script_commands.yaml`の該当カテゴリ（`speech`/`speaker_assignment`/`choice`/`stage_direction`等）にコマンド名を追加（`check_script_compatibility.py`の既知コマンド判定に反映）
 2. `@`プレフィックス無しのコマンドの場合のみ、`agents/parser/tokenizer.py`の`Tokenizer.KEYWORD_TOKENS`にも追加（`@`付きコマンドは`tokenizer.py`側の変更不要。先頭が`@`であれば自動的に`TokenType.COMMAND`になるため）
