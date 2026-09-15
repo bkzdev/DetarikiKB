@@ -65,6 +65,18 @@ def _episode_evidence_blocks(episode: dict[str, Any]):
         yield from _iter_evidence_blocks(scene.get("blocks") or [])
 
 
+def _is_populated_choice(block: dict[str, Any]) -> bool:
+    """子Blockを持つchoiceかを返す。
+
+    choiceは自身のchoiceTextだけでなくoption内Blockを束ねる構造コンテナでもある。
+    親choiceの識別子だけが既出でも、子に変種固有の内容やdedup対象外Blockがあれば
+    親ごと除外してはならない。子Blockは再帰走査で個別に重複判定する。
+    """
+    return block.get("type") == "choice" and any(
+        option.get("blocks") for option in block.get("options") or []
+    )
+
+
 # ----------------------------------------------------------------
 # Block単位の識別子集合
 # ----------------------------------------------------------------
@@ -254,7 +266,7 @@ def _compute_group_dedup(
             # 空集合 (アセットpath/本文のいずれも持たないBlock) は
             # 比較材料が無いため常に維持する (subsetの自明な成立で誤って
             # 除外マークしないようにする)。
-            if ids and ids <= seen:
+            if ids and ids <= seen and not _is_populated_choice(block):
                 block_id = block.get("id")
                 if block_id:
                     duplicate_block_ids.add(block_id)
