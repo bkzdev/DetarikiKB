@@ -29,6 +29,8 @@ Raw Script (.dec)
 
 現在の状態: Parser Phase 1・Extraction Stage A・Merge Stage B（8種entity最小merge）・Wiki renderer Phase 1に加えてPhase 2のLocation / Organization / Item / Lore / Event pageと各index、Relationship公開v1基盤・Character↔OrganizationのRelationship section、MkDocs local previewまで実装済み。詳細な完了履歴は `docs/project_history/Completed_PRs_2026-07.md` を参照。直近の作業内容は `TASKS.md` を参照。
 
+`scripts/normalize_story.py` / `scripts/extract_story.py` の `--validate` はfail-closedで動作する。schema依存・schema file・schema自体・出力JSONの検証が一つでも失敗した場合は非0で終了し、Normalized / Extraction JSONは書き出さない。複数Extractionも全件検証後に書き出す。
+
 ## 3. 最重要方針
 
 ### 3.1 Raw Scriptを直接AIに渡さない

@@ -722,16 +722,16 @@ def main() -> int:
     if exit_code != 0:
         return exit_code
 
-    output_path, exit_code = _export_story(args, story_json, episode_id)
-    if exit_code != 0:
-        return exit_code
-
     if args.validate:
         if not args.quiet:
             print("[DKB] JSON Schema 検証中...")
         exit_code = validate_schema(story_json, Path(args.schema), args.quiet)
         if exit_code != 0:
             return exit_code
+
+    output_path, exit_code = _export_story(args, story_json, episode_id)
+    if exit_code != 0:
+        return exit_code
 
     _print_completion_summary(args, story_json, output_path)
 
@@ -744,22 +744,23 @@ def validate_schema(story_json: dict, schema_path: Path, quiet: bool = False) ->
         import jsonschema
     except ImportError:
         print(
-            "[警告] jsonschema がインストールされていません。スキップします。",
+            "[エラー] jsonschema がインストールされていません。",
             file=sys.stderr,
         )
         print("       pip install jsonschema でインストールできます。", file=sys.stderr)
-        return 0
+        return 1
 
     if not schema_path.exists():
         print(
-            f"[警告] スキーマファイルが見つかりません: {schema_path}", file=sys.stderr
+            f"[エラー] スキーマファイルが見つかりません: {schema_path}", file=sys.stderr
         )
-        return 0
+        return 1
 
     try:
         with open(schema_path, encoding="utf-8") as f:
             schema = json.load(f)
 
+        jsonschema.Draft7Validator.check_schema(schema)
         validator = jsonschema.Draft7Validator(schema)
         errors = list(validator.iter_errors(story_json))
 

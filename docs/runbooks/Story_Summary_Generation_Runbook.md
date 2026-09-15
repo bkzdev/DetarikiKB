@@ -66,7 +66,7 @@ uv run python scripts/normalize_story.py \
 ```
 
 - `--manifest`/`--raw-root`/`--manifest-strict`により、manifest側で確定済みの`storyId`/`episodeId`/`publicStoryId`/`publicEpisodeId`等が`metadata`へ伝播する。対象episodeが複数ある場合は、episodeごとに`--input`を変えてこのコマンドを繰り返す
-- **`uv run`を必ず使うこと。** `--validate`はJSON Schema検証を`import jsonschema`で行うが、素の`python`（`uv`が管理する仮想環境を経由しない実行）では`jsonschema`パッケージが見つからず、`[警告] jsonschema がインストールされていません。スキップします。`と表示されて検証が黙ってskipされる。この状態でもexit codeは0のまま進んでしまうため、`--validate`を指定したのにschema検証が実際には行われていないことに気づかないまま次stepへ進むリスクがある
+- **`uv run`を必ず使うこと。** `--validate`はJSON Schema検証に`jsonschema`を使う。素の`python`（`uv`が管理する仮想環境を経由しない実行）で依存が見つからない場合、CLIはfail-closedで非0終了し、Normalized Story JSONを新規作成・上書きしない。schema file欠落・不正schema・出力のschema不適合も同様である
 - 実行後、以下を確認する:
   - 出力JSONの`compatibilityReport`（またはstdout）で`unknownCommands: 0`相当であること（`unknown`ブロックが残っている場合は、そのepisodeを対象から外すか`config/script_commands.yaml`の辞書拡充を先に行う）
   - 出力JSONの`metadata.publicStoryId`/`episodes[].metadata.publicEpisodeId`が期待するpublic IDに正しく伝播していること（`--manifest`側で確定済みの値と一致するか目視確認する）

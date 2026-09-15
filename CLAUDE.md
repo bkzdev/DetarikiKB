@@ -46,6 +46,8 @@ python scripts/normalize_story.py \
 
 `normalize_story.py --compat-report-output DIR`は`--check-compat`との併用時のみ有効で、埋め込み互換性チェックのJSON/Markdownレポートを`DIR`へ出力する。省略時は従来通り`data/reports/`へ出力する。レポート名は固定のため、複数runではrunごとに別ディレクトリを指定する。
 
+`normalize_story.py` / `extract_story.py` の `--validate` はfail-closedである。`jsonschema`またはschema fileが無い、schemaが不正、出力がschema不適合のいずれかで非0終了し、検証に失敗したNormalized / Extraction JSONは新規作成・上書きしない。CLIは`uv run python ...`で実行する。
+
 Docker/Dev Container (optional, for Neo4j + Ollama services): `cp .env.example .env && docker compose up -d`, then reopen in VS Code Dev Container. Neo4j Browser on :7474, Ollama API on :11434, MkDocs on :8000. These services are not required for parser work — pytest and the parser scripts run with plain Python.
 
 ## Architecture: the Parser (`agents/parser/`)
