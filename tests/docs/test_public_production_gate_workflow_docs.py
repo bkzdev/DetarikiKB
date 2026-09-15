@@ -51,7 +51,7 @@ def test_workflow_is_manual_protected_reviewed_pages_deploy() -> None:
     ]
     checkout = steps[1]
     assert checkout["uses"] == (
-        "actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+        "actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09"
     )
     assert checkout["with"] == {
         "ref": "refs/heads/main",
@@ -125,9 +125,9 @@ def test_workflow_is_manual_protected_reviewed_pages_deploy() -> None:
         "persist-credentials: false",
         "fetch-depth: 0",
         "ref: refs/heads/main",
-        "actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
-        "astral-sh/setup-uv@e58605a9b6da7c637471fab8847a5e5a6b8df081",
-        "actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+        "actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
+        "astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78",
+        "actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
         "$RUNNER_TEMP/dkb-production-gate",
         "prepare_public_build.py",
         "mkdocs build --strict",

@@ -60,6 +60,24 @@ def test_ci_and_standard_validation_run_both_generators() -> None:
     assert workflow.index("MkDocs build") < workflow.index("Zensical build")
 
 
+def test_ci_uses_node24_action_majors() -> None:
+    workflow = _read(".github/workflows/ci.yml")
+
+    for required in (
+        "actions/checkout@v5",
+        "astral-sh/setup-uv@v7",
+        "actions/setup-python@v6",
+    ):
+        assert required in workflow
+
+    for deprecated_action in (
+        "actions/checkout@v4",
+        "astral-sh/setup-uv@v5",
+        "actions/setup-python@v5",
+    ):
+        assert deprecated_action not in workflow
+
+
 def test_runbook_and_ignore_rules_keep_generated_sites_out_of_git() -> None:
     runbook = _read("docs/runbooks/Wiki_Dual_Build.md")
     gitignore = _read(".gitignore")

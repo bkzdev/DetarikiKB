@@ -1,8 +1,8 @@
 # Public Build-Only Workflow
 
-Version: 0.2
+Version: 0.3
 Status: Implemented
-Updated: 2026-09-13
+Updated: 2026-09-16
 
 ---
 
@@ -41,6 +41,8 @@ findingは固定の匿名codeだけで返す。public labelはstub headingへ書
 # 4. Workflow gate
 
 workflowは`pull_request`と`main` pushで動き、権限は`contents: read`だけとする。
+
+workflowのJavaScript actionはNode.js 24対応major（`actions/checkout@v5`、`actions/setup-python@v6`、`astral-sh/setup-uv@v7`）を使う。これはGitHub-hosted runnerを前提とし、action更新によって入力、cache、Python 3.12、権限境界は変更しない。
 
 1. `uv sync --locked`
 2. レビュー済みpublic inputから一時source / configを準備
