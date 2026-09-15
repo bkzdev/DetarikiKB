@@ -103,27 +103,43 @@ def parse_args() -> argparse.Namespace:
 # ----------------------------------------------------------------
 
 
-def validate_schema(instance: dict, schema_path: Path, quiet: bool = False) -> int:
-    """JSON Schema で instance を検証する"""
+def _load_schema_validator(schema_path: Path):
+    """Schemaをfail-closedで読み込み、validatorを返す。"""
     try:
         import jsonschema
     except ImportError:
         print(
-            "[警告] jsonschema がインストールされていません。スキップします。",
+            "[エラー] jsonschema がインストールされていません。",
             file=sys.stderr,
         )
-        return 0
+        return None
 
     if not schema_path.exists():
         print(
-            f"[警告] スキーマファイルが見つかりません: {schema_path}", file=sys.stderr
+            f"[エラー] スキーマファイルが見つかりません: {schema_path}", file=sys.stderr
         )
-        return 0
+        return None
 
-    with open(schema_path, encoding="utf-8") as f:
-        schema = json.load(f)
+    try:
+        with open(schema_path, encoding="utf-8") as f:
+            schema = json.load(f)
 
-    validator = jsonschema.Draft7Validator(schema)
+        jsonschema.Draft7Validator.check_schema(schema)
+        return jsonschema.Draft7Validator(schema)
+    except (OSError, json.JSONDecodeError, jsonschema.SchemaError) as e:
+        print(f"[エラー] JSON Schema 読み込み失敗: {schema_path}: {e}", file=sys.stderr)
+        return None
+
+
+def validate_schema(
+    instance: dict, schema_path: Path, quiet: bool = False, validator=None
+) -> int:
+    """JSON Schema で instance を検証する。"""
+    if validator is None:
+        validator = _load_schema_validator(schema_path)
+        if validator is None:
+            return 1
+
     errors = list(validator.iter_errors(instance))
 
     if errors:
@@ -202,6 +218,21 @@ def _extract_from_file(
     return Extractor().extract_story(story_json), None
 
 
+def _validate_extractions(
+    extractions: list[dict], schema_path: Path, quiet: bool
+) -> int:
+    """Schema自体を1回検査し、全extractionを書き出し前に検証する。"""
+    validator = _load_schema_validator(schema_path)
+    if validator is None:
+        return 1
+
+    for extraction in extractions:
+        exit_code = validate_schema(extraction, schema_path, quiet, validator=validator)
+        if exit_code != 0:
+            return exit_code
+    return 0
+
+
 def main() -> int:
     args = parse_args()
 
@@ -216,9 +247,14 @@ def main() -> int:
     if error_code is not None:
         return error_code
 
+    if args.validate:
+        schema_path = Path(args.schema)
+        exit_code = _validate_extractions(extractions, schema_path, args.quiet)
+        if exit_code != 0:
+            return exit_code
+
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
-
     for extraction in extractions:
         episode_id = extraction["episodeId"]
         output_path = output_dir / f"{episode_id}.extraction.json"
@@ -227,11 +263,6 @@ def main() -> int:
 
         if not args.quiet:
             print(f"[DKB] 出力完了: {output_path}")
-
-        if args.validate:
-            exit_code = validate_schema(extraction, Path(args.schema), args.quiet)
-            if exit_code != 0:
-                return exit_code
 
     if not args.quiet:
         print(f"[DKB] 完了: {len(extractions)} エピソード")
