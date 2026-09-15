@@ -64,6 +64,28 @@ def test_cli_generates_expected_markdown_files(tmp_path):
     assert not (output_dir / "characters" / "UNRESOLVED_CHAR_TEST_0001.md").exists()
 
 
+def test_cli_accepts_relative_output_directory(tmp_path):
+    """runbookの相対output指定でも生成後の一覧表示が失敗しない。"""
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            "--input",
+            str(FIXTURE_PATH),
+            "--output",
+            "wiki_out",
+            "--validate",
+        ],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert (tmp_path / "wiki_out" / "index.md").is_file()
+    assert "  - index.md" in result.stdout
+
+
 def test_cli_validate_resolves_entity_schema_outside_repo_root(tmp_path):
     """cross-file $refは実行時CWDやnetwork取得に依存せず解決する。"""
     output_dir = tmp_path / "wiki_out"
