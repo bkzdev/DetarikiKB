@@ -23,6 +23,7 @@ import pytest
 from jsonschema import Draft7Validator
 
 from agents.extractor import Extractor, extract_stories_with_hscene_dedup
+from agents.extractor.hscene_dedup import _filter_episode_for_extraction
 from agents.parser.normalizer import Normalizer
 from agents.parser.parser import StoryParser
 
@@ -72,6 +73,47 @@ def _extraction_for(
         if extraction["episodeId"] == episode_id:
             return extraction
     raise AssertionError(f"episodeId={episode_id!r} の抽出結果が見つかりません")
+
+
+def _nested_blocks(block: dict[str, Any]) -> list[dict[str, Any]]:
+    return [
+        nested
+        for option in block.get("options") or []
+        for nested in option.get("blocks") or []
+    ]
+
+
+def _choice_block(
+    block_id: str,
+    blocks: list[dict[str, Any]],
+    *,
+    option_text: str,
+) -> dict[str, Any]:
+    return {
+        "id": block_id,
+        "type": "choice",
+        "source": {},
+        "choiceText": "同じ選択肢です",
+        "options": [
+            {
+                "optionId": f"{block_id}_OPT01",
+                "optionText": option_text,
+                "blocks": blocks,
+            }
+        ],
+    }
+
+
+def _variant_trace(base_episode_id: str) -> dict[str, Any]:
+    return {
+        "baseEpisodeId": base_episode_id,
+        "variantPattern": "n",
+        "dupIndex": None,
+        "judgment": "exception",
+        "bodyIdentifierCount": 2,
+        "variantIdentifierCount": 4,
+        "extraInVariantCount": 2,
+    }
 
 
 @pytest.fixture
@@ -191,6 +233,135 @@ def test_dedup_extraction_validates_against_extraction_schema(
     for extraction in extractions:
         errors = list(extraction_validator.iter_errors(extraction))
         assert not errors, [e.message for e in errors]
+
+
+def test_duplicate_choice_container_keeps_unique_nested_variant_content(
+    extraction_validator,
+):
+    """同じchoiceTextでも、子Blockの変種固有内容を親ごと失わない。"""
+    body = _build_story_json(BODY_SCRIPT, "CHAR_HS_CHOICE", "CHAR_HS_CHOICE_E01")
+    variant = _build_story_json(
+        VARIANT_SUPERSET_SCRIPT,
+        "CHAR_HS_CHOICE",
+        "CHAR_HS_CHOICE_E01_VN",
+        variant_trace=_variant_trace("CHAR_HS_CHOICE_E01"),
+    )
+
+    body_scene = body["episodes"][0]["scenes"][0]
+    variant_scene = variant["episodes"][0]["scenes"][0]
+    body_child = body_scene["blocks"][0]
+    variant_child = variant_scene["blocks"][-1]
+    body_choice_id = "CHAR_HS_CHOICE_E01_CHOICE001"
+    variant_choice_id = "CHAR_HS_CHOICE_E01_VN_CHOICE001"
+    body_scene["blocks"] = [
+        _choice_block(body_choice_id, [body_child], option_text="本体")
+    ]
+    variant_scene["blocks"] = [
+        _choice_block(variant_choice_id, [variant_child], option_text="変種")
+    ]
+    before_variant = copy.deepcopy(variant)
+
+    extractions = extract_stories_with_hscene_dedup([body, variant])
+    variant_extraction = _extraction_for(extractions, "CHAR_HS_CHOICE_E01_VN")
+
+    assert set(variant_extraction["evidenceIndex"]) == {
+        variant_choice_id,
+        variant_child["id"],
+    }
+    assert variant_extraction["hsceneDedup"]["excludedBlockIds"] == []
+    assert variant_extraction["hsceneDedup"]["dedupedAgainstEpisodeIds"] == []
+    assert variant == before_variant
+    assert not list(extraction_validator.iter_errors(variant_extraction))
+
+
+def test_duplicate_choice_container_dedups_shared_child_only_and_keeps_other_children():
+    """親choiceを保ち、共有Evidenceだけを除外して非Evidenceの子も維持する。"""
+    body = _build_story_json(BODY_SCRIPT, "CHAR_HS_NESTED", "CHAR_HS_NESTED_E01")
+    variant = _build_story_json(
+        VARIANT_SUPERSET_SCRIPT,
+        "CHAR_HS_NESTED",
+        "CHAR_HS_NESTED_E01_VN",
+        variant_trace=_variant_trace("CHAR_HS_NESTED_E01"),
+    )
+    body_scene = body["episodes"][0]["scenes"][0]
+    variant_scene = variant["episodes"][0]["scenes"][0]
+    shared_body = body_scene["blocks"][0]
+    shared_variant = variant_scene["blocks"][0]
+    unique_variant = variant_scene["blocks"][-1]
+    body_choice_id = "CHAR_HS_NESTED_E01_CHOICE001"
+    variant_choice_id = "CHAR_HS_NESTED_E01_VN_CHOICE001"
+    stage = {
+        "id": "CHAR_HS_NESTED_E01_VN_STAGE001",
+        "type": "stage_direction",
+        "source": {},
+        "directionType": "other",
+        "rawCommand": "@keep",
+        "normalizedCommand": "keep",
+    }
+    unknown = {
+        "id": "CHAR_HS_NESTED_E01_VN_UNKNOWN001",
+        "type": "unknown",
+        "source": {},
+        "raw": "keep unknown",
+    }
+    body_scene["blocks"] = [
+        _choice_block(body_choice_id, [shared_body], option_text="本体")
+    ]
+    variant_choice = _choice_block(
+        variant_choice_id,
+        [shared_variant, unique_variant, stage, unknown],
+        option_text="変種",
+    )
+    variant_scene["blocks"] = [variant_choice]
+
+    extractions = extract_stories_with_hscene_dedup([body, variant])
+    extraction = _extraction_for(extractions, "CHAR_HS_NESTED_E01_VN")
+    dedup = extraction["hsceneDedup"]
+
+    assert set(extraction["evidenceIndex"]) == {
+        variant_choice_id,
+        unique_variant["id"],
+    }
+    assert dedup["excludedBlockIds"] == [shared_variant["id"]]
+    assert dedup["dedupedAgainstEpisodeIds"] == ["CHAR_HS_NESTED_E01"]
+
+    filtered_episode = _filter_episode_for_extraction(
+        variant["episodes"][0], frozenset(dedup["excludedBlockIds"])
+    )
+    kept_nested_ids = {
+        block["id"]
+        for block in _nested_blocks(filtered_episode["scenes"][0]["blocks"][0])
+    }
+    assert kept_nested_ids == {unique_variant["id"], stage["id"], unknown["id"]}
+
+
+def test_duplicate_empty_choice_keeps_existing_leaf_dedup_behavior():
+    """子を持たないchoiceは構造コンテナではなく、従来どおり除外する。"""
+    body_episode_id = "CHAR_HS_EMPTY_CHOICE_E01"
+    variant_episode_id = f"{body_episode_id}_VN"
+    body = _build_story_json(BODY_SCRIPT, "CHAR_HS_EMPTY_CHOICE", body_episode_id)
+    variant = _build_story_json(
+        VARIANT_SUPERSET_SCRIPT,
+        "CHAR_HS_EMPTY_CHOICE",
+        variant_episode_id,
+        variant_trace=_variant_trace(body_episode_id),
+    )
+    body_choice_id = f"{body_episode_id}_CHOICE001"
+    variant_choice_id = f"{variant_episode_id}_CHOICE001"
+    body["episodes"][0]["scenes"][0]["blocks"] = [
+        _choice_block(body_choice_id, [], option_text="本体")
+    ]
+    variant["episodes"][0]["scenes"][0]["blocks"] = [
+        _choice_block(variant_choice_id, [], option_text="変種")
+    ]
+
+    extraction = _extraction_for(
+        extract_stories_with_hscene_dedup([body, variant]), variant_episode_id
+    )
+
+    assert extraction["evidenceIndex"] == {}
+    assert extraction["hsceneDedup"]["excludedBlockIds"] == [variant_choice_id]
+    assert extraction["hsceneDedup"]["dedupedAgainstEpisodeIds"] == [body_episode_id]
 
 
 # ----------------------------------------------------------------
