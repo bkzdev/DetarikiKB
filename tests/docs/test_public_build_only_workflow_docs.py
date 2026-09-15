@@ -28,9 +28,9 @@ def test_workflow_is_read_only_reviewed_build_without_upload_or_deploy() -> None
     )
 
     for required in (
-        "actions/checkout@v4",
-        "astral-sh/setup-uv@v5",
-        "actions/setup-python@v5",
+        "actions/checkout@v5",
+        "astral-sh/setup-uv@v7",
+        "actions/setup-python@v6",
         "uv sync --locked",
         "knowledge/public/timelines/canonical_timeline_public_input.json",
         "$RUNNER_TEMP/dkb-public-build",
@@ -58,6 +58,13 @@ def test_workflow_is_read_only_reviewed_build_without_upload_or_deploy() -> None
         "approved_synthetic_input.json",
     ):
         assert forbidden not in text
+
+    for deprecated_action in (
+        "actions/checkout@v4",
+        "astral-sh/setup-uv@v5",
+        "actions/setup-python@v5",
+    ):
+        assert deprecated_action not in text
 
 
 def test_runbook_and_handoff_fix_build_only_boundary() -> None:
