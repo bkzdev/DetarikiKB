@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Build Story Manifest Candidates
-ローカルのraw DECファイル配置（`EVENT`・`CHARACTER`・`CHARACTER_DATE`カテゴリ）
+ローカルのraw DECファイル配置（`EVENT`・`RAID`・`CHARACTER`・
+`CHARACTER_DATE`カテゴリ）
 から、`story_manifest.yaml`候補（`schemas/story_manifest.schema.json`準拠）を
 機械的に生成するCLI。
 
@@ -19,10 +20,13 @@ docs/architecture/05_Parser/Character_Story_ID_Manifest_Design.md 参照。
 パターンを参照）。schema非対応文字を含むEVENT sourceKeyはID componentだけを
 決定的にescapeし、sourceKey/rawPath/sourceFileNameの元値は変更しない。
 
-対応するraw配置（EVENT・CHARACTER・CHARACTER_DATEカテゴリ、MAIN/RAID/OTHERは
+対応するraw配置（EVENT・RAID・CHARACTER・CHARACTER_DATEカテゴリ、MAIN/OTHERは
 未対応、Story_Manifest_Design.md §18 OD-002）:
 
     EVENT/csl_script_event_{sourceKey}_export/
+        CAB-csl_script_event_{sourceKey}-episode{N}.dec
+
+    RAID/csl_script_event_{sourceKey}_export/
         CAB-csl_script_event_{sourceKey}-episode{N}.dec
 
     CHARACTER/csl_script_charastory_character{N}_export/
@@ -75,6 +79,7 @@ from agents.parser.character_dictionary import load_character_dictionary  # noqa
 from agents.parser.story_manifest_candidates import (  # noqa: E402
     build_candidate_document,
     build_character_story_manifest_candidates,
+    build_raid_story_manifest_candidates,
     build_story_manifest_candidates,
     find_candidate_id_collisions,
 )
@@ -87,7 +92,7 @@ _DEFAULT_CHARACTER_DICTIONARY = (
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "ローカルのraw DECファイル配置 (EVENT/CHARACTER/CHARACTER_DATE"
+            "ローカルのraw DECファイル配置 (EVENT/RAID/CHARACTER/CHARACTER_DATE"
             "カテゴリ) から story_manifest.yaml候補を機械的に生成する"
         ),
     )
@@ -96,7 +101,7 @@ def parse_args() -> argparse.Namespace:
         required=True,
         help=(
             "raw DECファイル群のルートディレクトリ "
-            "(EVENT/CHARACTER/CHARACTER_DATE等を直下に含む)"
+            "(EVENT/RAID/CHARACTER/CHARACTER_DATE等を直下に含む)"
         ),
     )
     parser.add_argument(
@@ -155,13 +160,14 @@ def main() -> int:
         return 1
 
     event_candidates = build_story_manifest_candidates(raw_root)
+    raid_candidates = build_raid_story_manifest_candidates(raw_root)
 
     dictionary_entries = load_character_dictionary(args.character_dictionary)
     character_candidates, character_report = build_character_story_manifest_candidates(
         raw_root, dictionary_entries
     )
 
-    candidates = event_candidates + character_candidates
+    candidates = event_candidates + raid_candidates + character_candidates
     candidates.sort(key=lambda story: story["storyId"])
     if _report_id_collisions(candidates):
         return 1
