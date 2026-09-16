@@ -23,6 +23,8 @@ from agents.parser.character_dictionary import (
 from agents.parser.story_manifest_candidates import (
     build_candidate_document,
     build_character_story_manifest_candidates,
+    build_main_story_manifest_candidate,
+    build_main_story_manifest_candidates,
     build_raid_story_manifest_candidate,
     build_raid_story_manifest_candidates,
     build_story_manifest_candidate,
@@ -32,6 +34,7 @@ from agents.parser.story_manifest_candidates import (
     find_candidate_id_collisions,
     find_character_category_directory,
     find_character_date_category_directory,
+    find_main_category_directory,
     find_raid_category_directory,
     normalize_path_separators,
     parse_episode_filename,
@@ -63,6 +66,34 @@ def _make_raid_export_dir(raw_root, source_key: str = SOURCE_KEY):
     export_dir = raw_root / "RAID" / f"csl_script_event_{source_key}_export"
     export_dir.mkdir(parents=True)
     return export_dir
+
+
+def _make_main_export_dir(
+    raw_root: Path, season_number: int = 1, chapter_number: int = 2
+) -> Path:
+    export_dir = (
+        raw_root
+        / "MAIN"
+        / f"MAIN{season_number}"
+        / f"csl_script_mainstory_chapter{chapter_number}_export"
+    )
+    export_dir.mkdir(parents=True)
+    return export_dir
+
+
+def _make_main_file(
+    export_dir: Path,
+    chapter_number: int,
+    episode_number: int,
+    tutorial_suffix: str | None = None,
+) -> Path:
+    suffix = "" if tutorial_suffix is None else f"_tutorial{tutorial_suffix}"
+    path = export_dir / (
+        f"CAB-csl_script_mainstory_chapter{chapter_number}-"
+        f"main{episode_number}{suffix}.dec"
+    )
+    path.write_text("", encoding="utf-8")
+    return path
 
 
 # ----------------------------------------------------------------
@@ -408,6 +439,99 @@ def test_build_raid_story_manifest_candidates_ignores_mismatched_files(tmp_path)
     _make_episode_file(export_dir, "different_source", 1)
 
     assert build_raid_story_manifest_candidates(tmp_path) == []
+
+
+def test_build_main_story_manifest_candidate_maps_tutorials_to_unique_episodes(
+    tmp_path,
+):
+    export_dir = _make_main_export_dir(tmp_path)
+    for episode_number in (1, 2, 3):
+        _make_main_file(export_dir, 2, episode_number)
+    _make_main_file(export_dir, 2, 3, "")
+    _make_main_file(export_dir, 2, 3, "2")
+    _make_main_file(export_dir, 2, 3, "3")
+
+    candidate, report = build_main_story_manifest_candidate(
+        export_dir, tmp_path, season_number=1
+    )
+
+    assert report == []
+    assert candidate is not None
+    assert candidate["storyId"] == "MAIN_S01_C02"
+    assert candidate["category"] == "main"
+    assert candidate["sourceKey"] == "S1_C2"
+    assert [episode["episodeId"] for episode in candidate["episodes"]] == [
+        "MAIN_S01_C02_E01",
+        "MAIN_S01_C02_E02",
+        "MAIN_S01_C02_E03",
+        "MAIN_S01_C02_E04",
+        "MAIN_S01_C02_E05",
+        "MAIN_S01_C02_E06",
+    ]
+    assert [episode["episodeNumber"] for episode in candidate["episodes"]] == [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+    ]
+    assert "auxiliaryFiles" not in candidate
+    assert "publicStoryId" not in candidate
+
+
+def test_build_main_story_manifest_candidates_finds_main_case_insensitively(tmp_path):
+    export_dir = tmp_path / "Main" / "main2" / "csl_script_mainstory_chapter35_export"
+    export_dir.mkdir(parents=True)
+    for episode_number in (1, 2, 3):
+        _make_main_file(export_dir, 35, episode_number)
+
+    assert find_main_category_directory(tmp_path) is not None
+    candidates, report = build_main_story_manifest_candidates(tmp_path)
+
+    assert report == []
+    assert [candidate["storyId"] for candidate in candidates] == ["MAIN_S02_C35"]
+
+
+def test_build_main_story_manifest_candidates_fail_closed_on_unknown_dec(tmp_path):
+    export_dir = _make_main_export_dir(tmp_path)
+    _make_main_file(export_dir, 2, 1)
+    (export_dir / "synthetic_unknown.dec").write_text("", encoding="utf-8")
+
+    candidates, report = build_main_story_manifest_candidates(tmp_path)
+
+    assert candidates == []
+    assert [issue["issueType"] for issue in report] == ["unrecognized_main_file"]
+
+
+def test_build_main_story_manifest_candidate_fail_closed_on_numbering_gap(tmp_path):
+    export_dir = _make_main_export_dir(tmp_path)
+    _make_main_file(export_dir, 2, 1)
+    _make_main_file(export_dir, 2, 3)
+
+    candidate, report = build_main_story_manifest_candidate(
+        export_dir, tmp_path, season_number=1
+    )
+
+    assert candidate is None
+    assert [issue["issueType"] for issue in report] == [
+        "non_contiguous_main_episode_numbers"
+    ]
+
+
+def test_main_candidate_document_validates_against_schema(tmp_path):
+    export_dir = _make_main_export_dir(tmp_path)
+    for episode_number in (1, 2, 3):
+        _make_main_file(export_dir, 2, episode_number)
+    _make_main_file(export_dir, 2, 3, "")
+
+    candidates, report = build_main_story_manifest_candidates(tmp_path)
+    assert report == []
+    document = build_candidate_document(candidates)
+
+    with open(SCHEMA_PATH, encoding="utf-8") as f:
+        schema = json.load(f)
+    assert list(Draft7Validator(schema).iter_errors(document)) == []
 
 
 # ----------------------------------------------------------------

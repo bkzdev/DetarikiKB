@@ -117,6 +117,17 @@ _STORY_ID_SAFE_PATTERN = re.compile(r"^[A-Z][A-Z0-9_]*$")
 _SOURCE_KEY_SAFE_PATTERN = re.compile(r"^[A-Za-z0-9_]+$")
 _SOURCE_KEY_ENCODED_PREFIX = "ENC_"
 
+_MAIN_SEASON_DIRECTORY_PATTERN = re.compile(r"^MAIN(?P<season>\d+)$", re.IGNORECASE)
+_MAIN_EXPORT_DIRECTORY_PATTERN = re.compile(
+    r"^csl_script_mainstory_chapter(?P<chapter>\d+)_export$", re.IGNORECASE
+)
+_MAIN_EPISODE_FILE_PATTERN = re.compile(
+    r"^CAB-csl_script_mainstory_chapter(?P<chapter>\d+)-"
+    r"main(?P<episode>\d+)"
+    r"(?:_tutorial(?P<tutorial>\d*))?\.dec$",
+    re.IGNORECASE,
+)
+
 
 def normalize_path_separators(path: str) -> str:
     """Windowsのバックスラッシュ区切りをスラッシュ区切りへ正規化する
@@ -316,6 +327,11 @@ def find_raid_category_directory(raw_root: Path) -> Path | None:
     return _find_category_directory(raw_root, "raid")
 
 
+def find_main_category_directory(raw_root: Path) -> Path | None:
+    """raw_root直下のMAINディレクトリを探す。"""
+    return _find_category_directory(raw_root, "main")
+
+
 def build_story_manifest_candidates(raw_root: Path) -> list[dict[str, Any]]:
     """raw_root配下のEVENTカテゴリから、story manifest候補一覧を組み立てる。
 
@@ -359,6 +375,228 @@ def build_raid_story_manifest_candidates(raw_root: Path) -> list[dict[str, Any]]
 
     candidates.sort(key=lambda story: story["storyId"])
     return candidates
+
+
+def _main_issue(issue_type: str, path: Path, detail: str) -> dict[str, str]:
+    return {
+        "issueType": issue_type,
+        "path": normalize_path_separators(str(path)),
+        "detail": detail,
+    }
+
+
+def _collect_main_episode_files(
+    export_dir: Path, chapter_number: int
+) -> tuple[dict[int, Path], dict[int, tuple[int, Path]], list[dict[str, str]]]:
+    """MAIN 1章のDECを通常episodeとtutorialへ分類する。"""
+    base_files: dict[int, Path] = {}
+    tutorial_files: dict[int, tuple[int, Path]] = {}
+    report: list[dict[str, str]] = []
+    for entry in sorted(export_dir.iterdir(), key=lambda path: path.name.lower()):
+        if not entry.is_file() or entry.suffix.lower() != ".dec":
+            continue
+        file_match = _MAIN_EPISODE_FILE_PATTERN.fullmatch(entry.name)
+        if file_match is None:
+            report.append(
+                _main_issue(
+                    "unrecognized_main_file",
+                    entry,
+                    "MAIN episode filenameの命名規則に一致しません",
+                )
+            )
+            continue
+        if int(file_match.group("chapter")) != chapter_number:
+            report.append(
+                _main_issue(
+                    "main_chapter_mismatch",
+                    entry,
+                    "export directoryとfilenameのchapter番号が一致しません",
+                )
+            )
+            continue
+
+        raw_episode_number = int(file_match.group("episode"))
+        tutorial_raw = file_match.group("tutorial")
+        if tutorial_raw is None:
+            base_files[raw_episode_number] = entry
+            continue
+        tutorial_number = int(tutorial_raw) if tutorial_raw else 1
+        if tutorial_number in tutorial_files:
+            report.append(
+                _main_issue(
+                    "duplicate_main_tutorial_number",
+                    entry,
+                    f"tutorial番号{tutorial_number}が重複しています",
+                )
+            )
+            continue
+        tutorial_files[tutorial_number] = (raw_episode_number, entry)
+    return base_files, tutorial_files, report
+
+
+def _validate_main_episode_layout(
+    export_dir: Path,
+    base_files: dict[int, Path],
+    tutorial_files: dict[int, tuple[int, Path]],
+) -> list[dict[str, str]]:
+    """MAIN 1章の連番性とtutorialの親episodeを検証する。"""
+    report: list[dict[str, str]] = []
+    if not base_files:
+        return [
+            _main_issue(
+                "missing_main_base_episode",
+                export_dir,
+                "通常のmainN episodeがありません",
+            )
+        ]
+
+    expected_base_numbers = set(range(1, max(base_files) + 1))
+    if set(base_files) != expected_base_numbers:
+        report.append(
+            _main_issue(
+                "non_contiguous_main_episode_numbers",
+                export_dir,
+                "通常のmainN episode番号に欠番があります",
+            )
+        )
+    if not tutorial_files:
+        return report
+
+    expected_tutorial_numbers = set(range(1, max(tutorial_files) + 1))
+    if set(tutorial_files) != expected_tutorial_numbers:
+        report.append(
+            _main_issue(
+                "non_contiguous_main_tutorial_numbers",
+                export_dir,
+                "tutorial番号に欠番があります",
+            )
+        )
+    if any(
+        raw_episode_number != max(base_files)
+        for raw_episode_number, _entry in tutorial_files.values()
+    ):
+        report.append(
+            _main_issue(
+                "unexpected_main_tutorial_parent",
+                export_dir,
+                "tutorialのraw main番号が章内の最終通常episodeと一致しません",
+            )
+        )
+    return report
+
+
+def build_main_story_manifest_candidate(
+    export_dir: Path,
+    raw_root: Path,
+    *,
+    season_number: int,
+) -> tuple[dict[str, Any] | None, list[dict[str, str]]]:
+    """MAINの1章から候補を組み立てる。
+
+    通常の``mainN``はNをepisodeNumberに使う。``mainN_tutorial[数字]``は
+    独立した内容を持つ通常episodeとして、通常episodeの直後へ連番で配置する。
+    raw側のNはrawPath/sourceFileNameに保持し、canonicalOrderには使わない。
+
+    想定外のDEC、章番号不一致、欠番があれば、その章を部分的に出力せず
+    reportを返す (fail-closed)。
+    """
+    directory_match = _MAIN_EXPORT_DIRECTORY_PATTERN.fullmatch(export_dir.name)
+    if directory_match is None:
+        return None, [
+            _main_issue(
+                "unrecognized_main_export_directory",
+                export_dir,
+                "MAIN export directoryの命名規則に一致しません",
+            )
+        ]
+
+    chapter_number = int(directory_match.group("chapter"))
+    base_files, tutorial_files, report = _collect_main_episode_files(
+        export_dir, chapter_number
+    )
+    report.extend(_validate_main_episode_layout(export_dir, base_files, tutorial_files))
+
+    if report:
+        return None, report
+
+    story_id = f"MAIN_S{season_number:02d}_C{chapter_number:02d}"
+    episodes = [
+        _make_episode_entry(
+            f"{story_id}_E{episode_number:02d}",
+            episode_number,
+            entry,
+            raw_root,
+        )
+        for episode_number, entry in sorted(base_files.items())
+    ]
+    base_count = len(episodes)
+    for tutorial_number, (_raw_episode_number, entry) in sorted(tutorial_files.items()):
+        episode_number = base_count + tutorial_number
+        episodes.append(
+            _make_episode_entry(
+                f"{story_id}_E{episode_number:02d}",
+                episode_number,
+                entry,
+                raw_root,
+            )
+        )
+
+    return (
+        {
+            "storyId": story_id,
+            "category": "main",
+            "sourceKey": f"S{season_number}_C{chapter_number}",
+            "title": None,
+            "displayTitle": None,
+            "metadataStatus": METADATA_STATUS_PENDING,
+            "rawDirectory": _relative_posix_path(export_dir, raw_root),
+            "notes": None,
+            "episodes": episodes,
+        },
+        [],
+    )
+
+
+def build_main_story_manifest_candidates(
+    raw_root: Path,
+) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
+    """raw_root配下のMAIN全章から候補とfail-closed reportを返す。"""
+    main_dir = find_main_category_directory(raw_root)
+    if main_dir is None:
+        return [], []
+
+    candidates: list[dict[str, Any]] = []
+    report: list[dict[str, str]] = []
+    for season_dir in sorted(main_dir.iterdir(), key=lambda path: path.name.lower()):
+        if not season_dir.is_dir():
+            continue
+        season_match = _MAIN_SEASON_DIRECTORY_PATTERN.fullmatch(season_dir.name)
+        if season_match is None:
+            report.append(
+                _main_issue(
+                    "unrecognized_main_season_directory",
+                    season_dir,
+                    "MAIN season directoryの命名規則に一致しません",
+                )
+            )
+            continue
+        season_number = int(season_match.group("season"))
+        for export_dir in sorted(
+            season_dir.iterdir(), key=lambda path: path.name.lower()
+        ):
+            if not export_dir.is_dir():
+                continue
+            candidate, candidate_report = build_main_story_manifest_candidate(
+                export_dir,
+                raw_root,
+                season_number=season_number,
+            )
+            report.extend(candidate_report)
+            if candidate is not None:
+                candidates.append(candidate)
+
+    candidates.sort(key=lambda story: story["storyId"])
+    return candidates, report
 
 
 def build_candidate_document(candidates: list[dict[str, Any]]) -> dict[str, Any]:

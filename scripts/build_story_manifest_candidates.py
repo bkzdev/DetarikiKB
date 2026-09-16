@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Build Story Manifest Candidates
-ローカルのraw DECファイル配置（`EVENT`・`RAID`・`CHARACTER`・
+ローカルのraw DECファイル配置（`MAIN`・`EVENT`・`RAID`・`CHARACTER`・
 `CHARACTER_DATE`カテゴリ）
 から、`story_manifest.yaml`候補（`schemas/story_manifest.schema.json`準拠）を
 機械的に生成するCLI。
@@ -20,8 +20,12 @@ docs/architecture/05_Parser/Character_Story_ID_Manifest_Design.md 参照。
 パターンを参照）。schema非対応文字を含むEVENT sourceKeyはID componentだけを
 決定的にescapeし、sourceKey/rawPath/sourceFileNameの元値は変更しない。
 
-対応するraw配置（EVENT・RAID・CHARACTER・CHARACTER_DATEカテゴリ、MAIN/OTHERは
+対応するraw配置（MAIN・EVENT・RAID・CHARACTER・CHARACTER_DATEカテゴリ、OTHERは
 未対応、Story_Manifest_Design.md §18 OD-002）:
+
+    MAIN/MAIN{season}/csl_script_mainstory_chapter{chapter}_export/
+        CAB-csl_script_mainstory_chapter{chapter}-main{N}.dec
+        CAB-csl_script_mainstory_chapter{chapter}-main{N}_tutorial[{M}].dec
 
     EVENT/csl_script_event_{sourceKey}_export/
         CAB-csl_script_event_{sourceKey}-episode{N}.dec
@@ -79,6 +83,7 @@ from agents.parser.character_dictionary import load_character_dictionary  # noqa
 from agents.parser.story_manifest_candidates import (  # noqa: E402
     build_candidate_document,
     build_character_story_manifest_candidates,
+    build_main_story_manifest_candidates,
     build_raid_story_manifest_candidates,
     build_story_manifest_candidates,
     find_candidate_id_collisions,
@@ -92,7 +97,7 @@ _DEFAULT_CHARACTER_DICTIONARY = (
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "ローカルのraw DECファイル配置 (EVENT/RAID/CHARACTER/CHARACTER_DATE"
+            "ローカルのraw DECファイル配置 (MAIN/EVENT/RAID/CHARACTER/CHARACTER_DATE"
             "カテゴリ) から story_manifest.yaml候補を機械的に生成する"
         ),
     )
@@ -101,7 +106,7 @@ def parse_args() -> argparse.Namespace:
         required=True,
         help=(
             "raw DECファイル群のルートディレクトリ "
-            "(EVENT/RAID/CHARACTER/CHARACTER_DATE等を直下に含む)"
+            "(MAIN/EVENT/RAID/CHARACTER/CHARACTER_DATE等を直下に含む)"
         ),
     )
     parser.add_argument(
@@ -148,6 +153,47 @@ def _report_id_collisions(candidates: list[dict]) -> bool:
     return True
 
 
+def _report_main_layout_errors(main_report: list[dict]) -> bool:
+    if not main_report:
+        return False
+    print(
+        f"[story-manifest] blocking MAIN配置エラー: {len(main_report)} 件",
+        file=sys.stderr,
+    )
+    for issue in main_report:
+        print(
+            f"  - [{issue['issueType']}] path={issue['path']}: {issue['detail']}",
+            file=sys.stderr,
+        )
+    return True
+
+
+def _print_summary(candidates: list[dict], character_report: list[dict]) -> None:
+    episode_count = sum(len(story["episodes"]) for story in candidates)
+    print(
+        f"[story-manifest] 検出したストーリー数: {len(candidates)} "
+        f"(episode合計: {episode_count})"
+    )
+    for story in candidates:
+        print(f"  - {story['storyId']} ({len(story['episodes'])} episodes)")
+
+    if not character_report:
+        return
+    print(
+        f"[story-manifest] 未解決の報告: {len(character_report)} 件 "
+        "(黙って除外していません。人間確認が必要です)"
+    )
+    for issue in character_report:
+        detail = issue.get("detail", "")
+        path = issue.get("path")
+        path_text = f" path={path}" if path else ""
+        print(
+            f"  - [{issue['issueType']}] "
+            f"sourceCharacterId={issue.get('sourceCharacterId')}"
+            f"{path_text}: {detail}"
+        )
+
+
 def main() -> int:
     args = parse_args()
 
@@ -159,6 +205,7 @@ def main() -> int:
         )
         return 1
 
+    main_candidates, main_report = build_main_story_manifest_candidates(raw_root)
     event_candidates = build_story_manifest_candidates(raw_root)
     raid_candidates = build_raid_story_manifest_candidates(raw_root)
 
@@ -167,40 +214,19 @@ def main() -> int:
         raw_root, dictionary_entries
     )
 
-    candidates = event_candidates + raid_candidates + character_candidates
+    if _report_main_layout_errors(main_report):
+        return 1
+
+    candidates = (
+        main_candidates + event_candidates + raid_candidates + character_candidates
+    )
     candidates.sort(key=lambda story: story["storyId"])
     if _report_id_collisions(candidates):
         return 1
     document = build_candidate_document(candidates)
-    episode_count = sum(len(story["episodes"]) for story in candidates)
 
     if not args.quiet:
-        print(
-            f"[story-manifest] 検出したストーリー数: {len(candidates)} "
-            f"(episode合計: {episode_count})"
-        )
-        for story in candidates:
-            print(f"  - {story['storyId']} ({len(story['episodes'])} episodes)")
-
-        if character_report:
-            print(
-                f"[story-manifest] 未解決の報告: {len(character_report)} 件 "
-                "(黙って除外していません。人間確認が必要です)"
-            )
-            for issue in character_report:
-                detail = issue.get("detail", "")
-                path = issue.get("path")
-                if path:
-                    print(
-                        f"  - [{issue['issueType']}] "
-                        f"sourceCharacterId={issue.get('sourceCharacterId')} "
-                        f"path={path}: {detail}"
-                    )
-                else:
-                    print(
-                        f"  - [{issue['issueType']}] "
-                        f"sourceCharacterId={issue.get('sourceCharacterId')}: {detail}"
-                    )
+        _print_summary(candidates, character_report)
 
     if args.output:
         output_path = Path(args.output)

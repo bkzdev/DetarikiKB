@@ -47,6 +47,23 @@ def _make_raid_export_dir(raw_root: Path, source_key: str = SOURCE_KEY) -> Path:
     return export_dir
 
 
+def _make_main_export_dir(raw_root: Path) -> Path:
+    export_dir = raw_root / "MAIN" / "MAIN1" / "csl_script_mainstory_chapter2_export"
+    export_dir.mkdir(parents=True)
+    return export_dir
+
+
+def _make_main_file(
+    export_dir: Path, episode_number: int, tutorial_suffix: str | None = None
+) -> Path:
+    suffix = "" if tutorial_suffix is None else f"_tutorial{tutorial_suffix}"
+    path = export_dir / (
+        f"CAB-csl_script_mainstory_chapter2-main{episode_number}{suffix}.dec"
+    )
+    path.write_text("", encoding="utf-8")
+    return path
+
+
 def _colliding_candidates() -> list[dict]:
     def story(source_key: str, raw_directory: str) -> dict:
         return {
@@ -201,7 +218,11 @@ def test_cli_schema_safely_encodes_unsupported_event_source_key(tmp_path):
     )
 
 
-def test_cli_combines_event_and_raid_candidates(tmp_path):
+def test_cli_combines_main_event_and_raid_candidates(tmp_path):
+    main_export_dir = _make_main_export_dir(tmp_path)
+    for episode_number in (1, 2, 3):
+        _make_main_file(main_export_dir, episode_number)
+    _make_main_file(main_export_dir, 3, "")
     event_export_dir = _make_export_dir(tmp_path)
     _make_episode_file(event_export_dir, SOURCE_KEY, 1)
     raid_source_key = "250626_synthetic_raid"
@@ -228,12 +249,49 @@ def test_cli_combines_event_and_raid_candidates(tmp_path):
         document = yaml.safe_load(f)
     assert [story["storyId"] for story in document["stories"]] == [
         "EVT_250626_SYNTHETIC_DANCER",
+        "MAIN_S01_C02",
         "RAID_250626_SYNTHETIC_RAID",
     ]
     assert [story["category"] for story in document["stories"]] == [
         "event",
+        "main",
         "raid",
     ]
+    main_story = next(
+        story for story in document["stories"] if story["category"] == "main"
+    )
+    assert [episode["episodeNumber"] for episode in main_story["episodes"]] == [
+        1,
+        2,
+        3,
+        4,
+    ]
+
+
+def test_cli_fails_without_output_when_main_layout_is_unrecognized(tmp_path):
+    export_dir = _make_main_export_dir(tmp_path)
+    _make_main_file(export_dir, 1)
+    (export_dir / "synthetic_unknown.dec").write_text("", encoding="utf-8")
+    output_path = tmp_path / "out" / "story_manifest_candidates.yaml"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            "--raw-root",
+            str(tmp_path),
+            "--output",
+            str(output_path),
+            "--quiet",
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 1
+    assert not output_path.exists()
+    assert "blocking MAIN配置エラー" in result.stderr
+    assert "unrecognized_main_file" in result.stderr
 
 
 def test_cli_without_output_does_not_write_file(tmp_path):

@@ -13,7 +13,7 @@ Raw Scriptを安全に正規化し、根拠・不明情報・内部IDを失わ�
 | Milestone | 状態 | 完了の目安 | 現在の要点 |
 |---|---|---|---|
 | M1 基盤と安全境界 | 完了 | schema、匿名化、非commit境界、PR/検証手順が固定される | parser・KB・Wikiを進める共通契約は整備済み |
-| M2 Parser / Normalized Story | ほぼ完了 | 主要カテゴリを再現可能に正規化し、unknownを不破棄で診断できる | 主経路とstandalone / embedded互換性は実装済み。RAIDのmanifest候補生成被覆を追加し、v1 release scopeの再生成・匿名品質集計を待つ |
+| M2 Parser / Normalized Story | ほぼ完了 | 主要カテゴリを再現可能に正規化し、unknownを不破棄で診断できる | 主経路とstandalone / embedded互換性は実装済み。RAID・MAINのmanifest候補生成被覆を追加し、v1 release scopeの再生成・匿名品質集計を待つ |
 | M3 Extraction / Merge / 内部KB | 進行中 | candidateとprovenanceを保持して主要entityを統合できる | Stage A、8種entityの最小merge、Evidence・Summary基盤は実装済み。実corpusの充足は継続 |
 | M4 Canonical curation | 進行中 | ID・profile・story内順序・story間Timelineをreview可能な形で保持できる | EVENT story内順序は完了。story間Timelineは基盤と15回の小規模batch運用を実証済み |
 | M5 Wiki / 閲覧体験 | 完了 | public-safeなStory/Episode/Character/Evidenceページを一貫生成できる | Phase 1 / 2のpage・index・公開Relationship表示を実装し、合成全体siteの機械検査と人間目視を完了 |
