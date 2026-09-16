@@ -62,9 +62,9 @@ Path: `docs/architecture/05_Parser/Story_ID_Policy_Decision.md`
 |---|---|---|
 | MAIN | `MAIN_Sxx_Cxx_Exx` | 手動指定のみ、意味のある構造を既に持つ |
 | EVENT | `EVT_{eventNumber}`（仕様）と`EVT_{sourceKey}`（実装）が併存 | `EVT_{sourceKey}`実装済み、raw配置由来の長いslug問題を抱える |
-| RAID | `RAID_{raidNumber}` | 未実装、raw配置規約も未確認 |
+| RAID | `RAID_{raidNumber}` | raw traceability用のpendingな`RAID_{sourceKey}`候補生成を実装済み。公開番号はprivate mapping / Registryと分離し、自動投入しない |
 | OTHER | `OTHER_{number}` | 未実装 |
-| CHARACTER | `CHAR_MAIN`/`CHAR_EXTRA`/`CHAR_DATE`+characterId | 未実装、raw配置からのprefix判定方法も未確認 |
+| CHARACTER | `CHAR_MAIN`/`CHAR_EXTRA`/`CHAR_DATE`/`CHAR_HS`+characterId | raw配置とconfirmed character dictionaryからの候補生成を実装済み |
 
 ## 4.5 EVENT実データサンプルで見えた問題
 
@@ -288,7 +288,7 @@ PR #70から持ち越し、または本PRで新たに生じたもの。
 
 - 実際に同日複数イベントは発生するか（母集団確認が必要、EVENT/RAID採番方針の判断材料）
 - sourceKeyの命名は運営側でどれだけ安定しているか
-- MAIN/RAID/OTHER/CHARACTERの正式なraw配置規約（`Story_Manifest_Design.md` §18 OD-002/OD-003、未解消）
+- MAIN/OTHERの正式なraw配置・派生file識別子規約（`Story_Manifest_Design.md` §18 OD-002。RAID / CHARACTERは対応済み）
 - 「surprise」等、現行7分類に含まれないraw category語彙をどう扱うか
 - 公開Wiki化の優先度・時期（`public-publishing-platform-evaluation`との関係）
 - `publicStoryId`/`publicEpisodeId`を採用する場合、Wiki renderer側の参照ロジックをどこまで変更する必要があるか（次PRで具体化）

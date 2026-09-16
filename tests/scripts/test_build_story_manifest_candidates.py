@@ -41,6 +41,12 @@ def _make_episode_file(export_dir: Path, source_key: str, episode_number: int) -
     return path
 
 
+def _make_raid_export_dir(raw_root: Path, source_key: str = SOURCE_KEY) -> Path:
+    export_dir = raw_root / "RAID" / f"csl_script_event_{source_key}_export"
+    export_dir.mkdir(parents=True)
+    return export_dir
+
+
 def _colliding_candidates() -> list[dict]:
     def story(source_key: str, raw_directory: str) -> dict:
         return {
@@ -85,6 +91,11 @@ def test_cli_collision_reports_all_observations_and_does_not_write_candidate(
         manifest_cli,
         "build_story_manifest_candidates",
         lambda _root: _colliding_candidates(),
+    )
+    monkeypatch.setattr(
+        manifest_cli,
+        "build_raid_story_manifest_candidates",
+        lambda _root: [],
     )
     monkeypatch.setattr(manifest_cli, "load_character_dictionary", lambda _path: [])
     monkeypatch.setattr(
@@ -188,6 +199,41 @@ def test_cli_schema_safely_encodes_unsupported_event_source_key(tmp_path):
     assert document["stories"][0]["storyId"] == (
         "EVT_ENC_73796E7468657469632B726576696577"
     )
+
+
+def test_cli_combines_event_and_raid_candidates(tmp_path):
+    event_export_dir = _make_export_dir(tmp_path)
+    _make_episode_file(event_export_dir, SOURCE_KEY, 1)
+    raid_source_key = "250626_synthetic_raid"
+    raid_export_dir = _make_raid_export_dir(tmp_path, raid_source_key)
+    _make_episode_file(raid_export_dir, raid_source_key, 1)
+    output_path = tmp_path / "out" / "story_manifest_candidates.yaml"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            "--raw-root",
+            str(tmp_path),
+            "--output",
+            str(output_path),
+            "--quiet",
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    with open(output_path, encoding="utf-8") as f:
+        document = yaml.safe_load(f)
+    assert [story["storyId"] for story in document["stories"]] == [
+        "EVT_250626_SYNTHETIC_DANCER",
+        "RAID_250626_SYNTHETIC_RAID",
+    ]
+    assert [story["category"] for story in document["stories"]] == [
+        "event",
+        "raid",
+    ]
 
 
 def test_cli_without_output_does_not_write_file(tmp_path):

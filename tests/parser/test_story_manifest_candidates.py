@@ -23,6 +23,8 @@ from agents.parser.character_dictionary import (
 from agents.parser.story_manifest_candidates import (
     build_candidate_document,
     build_character_story_manifest_candidates,
+    build_raid_story_manifest_candidate,
+    build_raid_story_manifest_candidates,
     build_story_manifest_candidate,
     build_story_manifest_candidates,
     classify_auxiliary_suffix,
@@ -30,6 +32,7 @@ from agents.parser.story_manifest_candidates import (
     find_candidate_id_collisions,
     find_character_category_directory,
     find_character_date_category_directory,
+    find_raid_category_directory,
     normalize_path_separators,
     parse_episode_filename,
     parse_export_directory_name,
@@ -54,6 +57,12 @@ def _make_episode_file(export_dir, source_key: str, episode_number: int):
     path = export_dir / f"CAB-csl_script_event_{source_key}-episode{episode_number}.dec"
     path.write_text("", encoding="utf-8")
     return path
+
+
+def _make_raid_export_dir(raw_root, source_key: str = SOURCE_KEY):
+    export_dir = raw_root / "RAID" / f"csl_script_event_{source_key}_export"
+    export_dir.mkdir(parents=True)
+    return export_dir
 
 
 # ----------------------------------------------------------------
@@ -344,6 +353,61 @@ def test_build_story_manifest_candidates_finds_event_directory_case_insensitivel
     candidates = build_story_manifest_candidates(tmp_path)
 
     assert len(candidates) == 1
+
+
+def test_build_raid_story_manifest_candidate_generates_pending_internal_ids(tmp_path):
+    export_dir = _make_raid_export_dir(tmp_path)
+    _make_episode_file(export_dir, SOURCE_KEY, 2)
+    _make_episode_file(export_dir, SOURCE_KEY, 1)
+
+    candidate = build_raid_story_manifest_candidate(export_dir, tmp_path)
+
+    assert candidate is not None
+    assert candidate["storyId"] == "RAID_250626_SYNTHETIC_DANCER"
+    assert candidate["category"] == "raid"
+    assert candidate["sourceKey"] == SOURCE_KEY
+    assert [episode["episodeId"] for episode in candidate["episodes"]] == [
+        "RAID_250626_SYNTHETIC_DANCER_E01",
+        "RAID_250626_SYNTHETIC_DANCER_E02",
+    ]
+    assert "publicStoryId" not in candidate
+
+
+def test_build_raid_story_manifest_candidate_uses_schema_safe_source_key(tmp_path):
+    source_key = "synthetic+raid"
+    export_dir = _make_raid_export_dir(tmp_path, source_key)
+    _make_episode_file(export_dir, source_key, 1)
+
+    candidate = build_raid_story_manifest_candidate(export_dir, tmp_path)
+
+    assert candidate is not None
+    assert candidate["sourceKey"] == source_key
+    assert candidate["storyId"] == "RAID_ENC_73796E7468657469632B72616964"
+    document = build_candidate_document([candidate])
+    with open(SCHEMA_PATH, encoding="utf-8") as f:
+        schema = json.load(f)
+    assert list(Draft7Validator(schema).iter_errors(document)) == []
+
+
+def test_build_raid_story_manifest_candidates_finds_category_case_insensitively(
+    tmp_path,
+):
+    export_dir = tmp_path / "Raid" / f"csl_script_event_{SOURCE_KEY}_export"
+    export_dir.mkdir(parents=True)
+    _make_episode_file(export_dir, SOURCE_KEY, 1)
+
+    assert find_raid_category_directory(tmp_path) is not None
+    candidates = build_raid_story_manifest_candidates(tmp_path)
+    assert [candidate["storyId"] for candidate in candidates] == [
+        "RAID_250626_SYNTHETIC_DANCER"
+    ]
+
+
+def test_build_raid_story_manifest_candidates_ignores_mismatched_files(tmp_path):
+    export_dir = _make_raid_export_dir(tmp_path)
+    _make_episode_file(export_dir, "different_source", 1)
+
+    assert build_raid_story_manifest_candidates(tmp_path) == []
 
 
 # ----------------------------------------------------------------

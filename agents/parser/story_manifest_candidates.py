@@ -1,6 +1,7 @@
 """
 DKB Parser - Story Manifest Candidate Builder
-ローカルのraw DECファイル配置（`EVENT`・`CHARACTER`・`CHARACTER_DATE`カテゴリ）
+ローカルのraw DECファイル配置（`EVENT`・`RAID`・`CHARACTER`・
+`CHARACTER_DATE`カテゴリ）
 から、`story_manifest.yaml`候補（`schemas/story_manifest.schema.json`準拠）を
 機械的に生成する。
 
@@ -9,9 +10,9 @@ docs/architecture/05_Parser/Character_Story_ID_Manifest_Design.md 参照。
 
 **重要**: このモジュールはDEC本文を一切読まない（ファイル名・ディレクトリ名の
 文字列処理のみ）。title/subtitle/displayTitleは常にnull、metadataStatusは
-常にpendingとして組み立てる。MAIN/RAIDカテゴリのraw配置規約は未確認のため、
-このモジュールはEVENT・CHARACTER・CHARACTER_DATEカテゴリのみに対応する
-（Story_Manifest_Design.md §6・§18 OD-002）。EVENT sourceKeyのうちID schemaで
+常にpendingとして組み立てる。MAIN/OTHERカテゴリは識別子の曖昧な派生fileを
+含むため未対応とし、認識済みのEVENT/RAID配置だけを同じ安全境界で扱う
+（Story_Manifest_Design.md §6・§18 OD-002）。sourceKeyのうちID schemaで
 許可されない値は、元値をraw trace fieldへ保持したまま§8の可逆なescapeを行う。
 """
 
@@ -113,8 +114,8 @@ _DIRECTION_SUFFIX_PATTERNS = [
 # storyId/episodeIdがschemaのpattern (^[A-Z][A-Z0-9_]*$) を満たすかの確認用
 # (characterIdはCHARACTER_ID_PATTERNでハイフンを許容するが、storyId側は許容しない)。
 _STORY_ID_SAFE_PATTERN = re.compile(r"^[A-Z][A-Z0-9_]*$")
-_EVENT_SOURCE_KEY_SAFE_PATTERN = re.compile(r"^[A-Za-z0-9_]+$")
-_EVENT_SOURCE_KEY_ENCODED_PREFIX = "ENC_"
+_SOURCE_KEY_SAFE_PATTERN = re.compile(r"^[A-Za-z0-9_]+$")
+_SOURCE_KEY_ENCODED_PREFIX = "ENC_"
 
 
 def normalize_path_separators(path: str) -> str:
@@ -150,8 +151,8 @@ def parse_episode_filename(name: str, expected_source_key: str) -> int | None:
     return int(match.group("episode_number"))
 
 
-def encode_event_source_key_for_id(source_key: str) -> str:
-    """EVENT sourceKeyをstory/episode ID用のschema-safe componentへ変換する。
+def encode_source_key_for_id(source_key: str) -> str:
+    """sourceKeyをstory/episode ID用のschema-safe componentへ変換する。
 
     既存のASCII英数字・underscoreだけのkeyは大文字化して互換維持する。
     schemaで許可されない文字を含むkeyと予約prefix ``ENC_`` で始まるkeyは、
@@ -160,13 +161,18 @@ def encode_event_source_key_for_id(source_key: str) -> str:
     元のsourceKeyはmanifest fieldへ変更せず保持する。
     """
     upper_source_key = source_key.upper()
-    if _EVENT_SOURCE_KEY_SAFE_PATTERN.fullmatch(source_key) and not (
-        upper_source_key.startswith(_EVENT_SOURCE_KEY_ENCODED_PREFIX)
+    if _SOURCE_KEY_SAFE_PATTERN.fullmatch(source_key) and not (
+        upper_source_key.startswith(_SOURCE_KEY_ENCODED_PREFIX)
     ):
         return upper_source_key
 
     encoded = source_key.encode("utf-8").hex().upper()
-    return f"{_EVENT_SOURCE_KEY_ENCODED_PREFIX}{encoded}"
+    return f"{_SOURCE_KEY_ENCODED_PREFIX}{encoded}"
+
+
+def encode_event_source_key_for_id(source_key: str) -> str:
+    """後方互換用のEVENT名付きwrapper。"""
+    return encode_source_key_for_id(source_key)
 
 
 def find_candidate_id_collisions(
@@ -214,8 +220,12 @@ def find_candidate_id_collisions(
     return reports
 
 
-def build_story_manifest_candidate(
-    export_dir: Path, raw_root: Path
+def _build_export_story_manifest_candidate(
+    export_dir: Path,
+    raw_root: Path,
+    *,
+    id_prefix: str,
+    category: str,
 ) -> dict[str, Any] | None:
     """1つの`_export`ディレクトリからstory manifest候補エントリを組み立てる。
 
@@ -225,7 +235,7 @@ def build_story_manifest_candidate(
     if source_key is None:
         return None
 
-    story_id = f"EVT_{encode_event_source_key_for_id(source_key)}"
+    story_id = f"{id_prefix}_{encode_source_key_for_id(source_key)}"
     episodes: list[dict[str, Any]] = []
     for entry in export_dir.iterdir():
         if not entry.is_file():
@@ -253,7 +263,7 @@ def build_story_manifest_candidate(
 
     return {
         "storyId": story_id,
-        "category": "event",
+        "category": category,
         "sourceKey": source_key,
         "title": None,
         "displayTitle": None,
@@ -264,12 +274,46 @@ def build_story_manifest_candidate(
     }
 
 
-def find_event_category_directory(raw_root: Path) -> Path | None:
-    """raw_root直下のEVENTディレクトリを探す (大文字小文字を区別しない)。"""
+def build_story_manifest_candidate(
+    export_dir: Path, raw_root: Path
+) -> dict[str, Any] | None:
+    """EVENTの1つの`_export`ディレクトリから候補を組み立てる。"""
+    return _build_export_story_manifest_candidate(
+        export_dir,
+        raw_root,
+        id_prefix="EVT",
+        category="event",
+    )
+
+
+def build_raid_story_manifest_candidate(
+    export_dir: Path, raw_root: Path
+) -> dict[str, Any] | None:
+    """RAIDの1つの`_export`ディレクトリから候補を組み立てる。"""
+    return _build_export_story_manifest_candidate(
+        export_dir,
+        raw_root,
+        id_prefix="RAID",
+        category="raid",
+    )
+
+
+def _find_category_directory(raw_root: Path, category: str) -> Path | None:
+    """raw_root直下のカテゴリdirを探す (大文字小文字を区別しない)。"""
     for entry in raw_root.iterdir():
-        if entry.is_dir() and entry.name.lower() == "event":
+        if entry.is_dir() and entry.name.lower() == category.lower():
             return entry
     return None
+
+
+def find_event_category_directory(raw_root: Path) -> Path | None:
+    """raw_root直下のEVENTディレクトリを探す。"""
+    return _find_category_directory(raw_root, "event")
+
+
+def find_raid_category_directory(raw_root: Path) -> Path | None:
+    """raw_root直下のRAIDディレクトリを探す。"""
+    return _find_category_directory(raw_root, "raid")
 
 
 def build_story_manifest_candidates(raw_root: Path) -> list[dict[str, Any]]:
@@ -287,6 +331,29 @@ def build_story_manifest_candidates(raw_root: Path) -> list[dict[str, Any]]:
         if not entry.is_dir():
             continue
         candidate = build_story_manifest_candidate(entry, raw_root)
+        if candidate is not None:
+            candidates.append(candidate)
+
+    candidates.sort(key=lambda story: story["storyId"])
+    return candidates
+
+
+def build_raid_story_manifest_candidates(raw_root: Path) -> list[dict[str, Any]]:
+    """raw_root配下のRAIDカテゴリから候補一覧を組み立てる。
+
+    RAIDは実配置調査でEVENTと同じexport directory / episode filename契約を
+    満たすことを確認済みである。public IDは生成せず、raw traceability用の
+    pendingな内部IDだけを組み立てる。
+    """
+    raid_dir = find_raid_category_directory(raw_root)
+    if raid_dir is None:
+        return []
+
+    candidates: list[dict[str, Any]] = []
+    for entry in raid_dir.iterdir():
+        if not entry.is_dir():
+            continue
+        candidate = build_raid_story_manifest_candidate(entry, raw_root)
         if candidate is not None:
             candidates.append(candidate)
 

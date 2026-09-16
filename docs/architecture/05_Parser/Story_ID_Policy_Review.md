@@ -26,6 +26,8 @@ Path: `docs/architecture/05_Parser/Story_ID_Policy_Review.md`
 
 # 3. 現行仕様の整理
 
+本章はPR #70で本レビューを作成した時点のsnapshotであり、後続実装の現状説明ではない。現在はCHARACTERの候補生成に対応済みで、RAIDも`codex/story-manifest-raid-support`で全量配置確認とpending内部ID候補生成に対応した。現行状態は`Story_Manifest_Design.md` §6・§16・§18と`Story_ID_Policy_Decision.md` §4.4を正とする。
+
 ## 3.1 MAIN
 
 - 仕様: `Identifier_Specification.md` §4.1/§4.2。`MAIN_S{season}_C{chapter}` / `MAIN_S{season}_C{chapter}_E{episode}`
@@ -44,7 +46,7 @@ Path: `docs/architecture/05_Parser/Story_ID_Policy_Review.md`
 ## 3.3 RAID
 
 - 仕様: `Identifier_Specification.md` §4.4。`RAID_{raidNumber}`
-- 実装状況: **未実装**。候補生成・manifest対応ともに無し（`Story_Manifest_Design.md` §6 OD-002、EVENTと同じraw配置規約に従うかも未確認）
+- 実装状況（レビュー時点）: **未実装**。候補生成・manifest対応ともに無し（後続の`codex/story-manifest-raid-support`で解消済み）
 
 ## 3.4 OTHER
 
@@ -54,7 +56,7 @@ Path: `docs/architecture/05_Parser/Story_ID_Policy_Review.md`
 ## 3.5 CHARACTER（CHAR_MAIN / CHAR_EXTRA / CHAR_DATE）
 
 - 仕様: `Identifier_Specification.md` §4.6-4.8。`CHAR_MAIN_{characterId}_E{episode}`等
-- 実装状況: **未実装**。raw配置だけからCHAR_MAIN/CHAR_EXTRA/CHAR_DATEのどれに該当するかを機械的に判定する方法が未確認（`Story_Manifest_Design.md` §6 OD-003）
+- 実装状況（レビュー時点）: **未実装**。raw配置だけからCHAR_MAIN/CHAR_EXTRA/CHAR_DATEのどれに該当するかを機械的に判定する方法が未確認（後続のcharacter manifest対応で解消済み）
 
 ---
 
@@ -221,7 +223,7 @@ MAINの既存`MAIN_S{season}_C{chapter}_E{episode}`形式は変更不要とい�
 1. **story-id-policy-design-decision**: このレビュー結果を踏まえ、実際にどの案（またはハイブリッド）を採用するかを決定する設計PR（実装はまだしない）
 2. **story-manifest-public-id-fields-design**: `story_manifest.yaml`に`publicStoryId`/`publicEpisodeId`（案名未確定）を任意フィールドとして追加する設計（§9の分離方針の具体化）。schema変更を伴うが、既存`storyId`/`episodeId`生成ロジックは変更しない
 3. **story-id-policy-real-sample-review-002**: より多くの実データサンプル（複数カテゴリ、同日複数イベントの実例）を確認し、本レビューの仮説（sourceKey長さ、collision非発生、カテゴリごとのraw配置規約）を再検証する
-4. **story-manifest-raw-layout-main-raid-other-character**: MAIN/RAID/OTHER/CHARACTERの実際のraw配置規約を確認し、`story_manifest_candidates.py`をEVENT以外にも対応拡張する（`Story_Manifest_Design.md` §18 OD-002/OD-003の解消）
+4. **story-manifest-raw-layout-main-raid-other-character**: MAIN/RAID/OTHER/CHARACTERの実際のraw配置規約を確認し、`story_manifest_candidates.py`をEVENT以外にも対応拡張する（`Story_Manifest_Design.md` §18 OD-002/OD-003）。CHARACTERは既に対応済み、RAIDは`codex/story-manifest-raid-support`で全量配置を確認して対応済み。残件はMAIN / OTHER
 
 ---
 
@@ -241,7 +243,7 @@ MAINの既存`MAIN_S{season}_C{chapter}_E{episode}`形式は変更不要とい�
 
 - 実際に同日複数イベントは発生するか（母集団確認が必要、§6案Bの判断材料）
 - sourceKeyの命名は運営側でどれだけ安定しているか（同一イベントの再配布・修正でディレクトリ名が変わることはあるか）
-- MAIN/RAID/OTHER/CHARACTERの正式なraw配置規約はどうなっているか（`Story_Manifest_Design.md` §18 OD-002/OD-003、未解消のまま）
+- MAIN/OTHERの正式なraw配置と派生file識別子規約はどうなっているか（`Story_Manifest_Design.md` §18 OD-002。RAID / CHARACTERは対応済み）
 - 「surprise」等、現行7分類に含まれないraw category語彙をどう扱うか（新しいstoryId prefixを追加するか、既存分類へマッピングするか）
 - 公開Wiki化の優先度・時期（`public-publishing-platform-evaluation`との関係）
 - `publicStoryId`等の分離設計を採用する場合、Wiki renderer側の参照ロジックをどこまで変更する必要があるか

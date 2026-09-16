@@ -102,11 +102,11 @@ raw配置の先頭ディレクトリ名（ユーザー環境での慣習、大�
 |---|---|---|---|
 | `EVENT` | `event` | `EVT` | **対応（§4で確認済みのパターン）** |
 | `MAIN` | `main` | `MAIN` | 未対応。`docs/runbooks/Real_Data_Dry_Run.md`のサンプルでは`MAIN_S01_C02_E01.dec`のようにDECファイル名自体が既に最終storyId形式であり、`EVENT`と同じ`_export`ディレクトリ規約に従うかは未確認（§18 OD-002） |
-| `RAID` | `raid` | `RAID` | 未対応。`EVENT`と同じゲームエクスポート由来なら同型の可能性が高いが、実際のraw配置未確認のため今回は決め打ちしない（§18 OD-002） |
+| `RAID` | `raid` | `RAID` | **対応済み**。全量実配置で`EVENT`と同じ`csl_script_event_{sourceKey}_export` / `episode{N}`契約を確認し、pendingな`RAID_{sourceKey}`候補を生成する（§16.2）。公開IDは生成しない |
 | `OTHER` | `other` | `OTHER` | 未対応（同上） |
 | `CHARACTER`（想定） | `character` | `CHAR_MAIN`/`CHAR_EXTRA`/`CHAR_DATE`/`CHAR_HS`のいずれか | **実装済み**（`docs/architecture/05_Parser/Character_Story_ID_Manifest_Design.md`参照、2026-07-16ユーザー決定。`feature/story-manifest-character-category-support`（PR C）で`scripts/build_story_manifest_candidates.py`・`agents/parser/story_manifest_candidates.py`へ実装した）。raw配置ディレクトリ（`character`/`character_date`）とファイル名サフィックスの組み合わせでprefixを機械判定する |
 
-**候補生成scriptが実際に対応するのは`EVENT`・`CHARACTER`・`CHARACTER_DATE`カテゴリ**である（`CHARACTER`/`CHARACTER_DATE`対応の詳細は§16参照）。`MAIN`/`RAID`/`OTHER`は、実際のraw配置を確認してから対応を追加する（Non-goals、§19、§18 OD-002）。
+**候補生成scriptが実際に対応するのは`EVENT`・`RAID`・`CHARACTER`・`CHARACTER_DATE`カテゴリ**である（RAIDは§16.2、`CHARACTER`/`CHARACTER_DATE`は§16.1参照）。`MAIN`/`OTHER`は、派生fileの識別子規則を確定してから対応を追加する（Non-goals、§19、§18 OD-002）。
 
 ---
 
@@ -440,7 +440,7 @@ canonicalOrderSource:
 
 # 16. 候補生成script
 
-`scripts/build_story_manifest_candidates.py`（本PRで追加）は、ローカルのraw DEC配置（`EVENT`カテゴリのみ、§6）から`story_manifest.yaml`候補を機械的に生成するCLIである。
+`scripts/build_story_manifest_candidates.py`は、ローカルのraw DEC配置（`EVENT`・`RAID`・`CHARACTER`・`CHARACTER_DATE`、§6）から`story_manifest.yaml`候補を機械的に生成するCLIである。
 
 - `--raw-root <path>`: raw DECファイル群のルートディレクトリ（例: `EVENT/`の親ディレクトリ）
 - `--output <path>`: 生成したmanifest候補（YAML）の書き出し先（省略時は件数サマリーのみ表示し書き出さない）
@@ -448,8 +448,8 @@ canonicalOrderSource:
 
 動作:
 
-1. `--raw-root`直下の`EVENT`ディレクトリ（大文字小文字を区別しない）を探す
-2. `EVENT`直下の各サブディレクトリ名が`csl_script_event_{sourceKey}_export`パターンに一致するか確認する
+1. `--raw-root`直下の対応カテゴリディレクトリ（大文字小文字を区別しない）を探す
+2. `EVENT` / `RAID`直下の各サブディレクトリ名が`csl_script_event_{sourceKey}_export`パターンに一致するか確認する
 3. 一致するディレクトリ内の`.dec`ファイルのうち、`CAB-csl_script_event_{sourceKey}-episode{N}.dec`パターン（ディレクトリ名と同じ`sourceKey`を持つもの）に一致するファイルを収集する
 4. `episodeNumber`を数値としてソートする（§10）
 5. `storyId`/`episodeId`を機械的に組み立てる（§8-9）
@@ -467,7 +467,17 @@ canonicalOrderSource:
 - storyId/episodeId生成は`Character_Story_ID_Manifest_Design.md` §4.2の対応表どおり（`episode{N}`→`CHAR_MAIN_{ROMAJI}`、`episode_EX{N}`→`CHAR_EXTRA_{ROMAJI}`、`H_scene{N}`→`CHAR_HS_{ROMAJI}`、`H_scene_s`→`CHAR_HS_{ROMAJI}_ES01`、`Surprise_{M}`→`CHAR_DATE_{ROMAJI}`）。1キャラクターにつき該当ファイルが存在する種別のみstoryを生成する
 - H_sceneN変種（`_n`/`_spine`/`_VR`/`#N`等）・camera/finish等の演出コマンド専用ファイル・img/test等の特殊ファイルは、`characterId`/`auxiliaryFiles`拡張（§13.3参照）へ、`fileRole: variant`/`direction`/`other`として記録する。紐づけ先はH_scene変種→当該キャラのCHAR_HS story、それ以外→CHAR_HS storyが存在すればそこ、無ければCHAR_MAIN story、いずれも無ければCLI標準出力へpending報告する
 - ディレクトリ名の`{N}`とファイル名の`{N}`が一致しないファイルは、認識できないファイルとしてCLI標準出力へ報告し、episode/auxiliaryFilesいずれにも含めない（EVENTのsourceKey一致確認と同じ方針）
-- EVENT既存挙動には一切影響しない（`build_story_manifest_candidates()`は変更していない、CLIは両者の候補を統合したdocumentを出力する）
+- EVENT / RAID既存挙動には一切影響しない（`build_story_manifest_candidates()`と`build_raid_story_manifest_candidates()`は独立し、CLIは各候補を統合したdocumentを出力する）
+
+## 16.2 RAID対応（`codex/story-manifest-raid-support`）
+
+ローカルのRAID全量配置をfilename-onlyで調査し、全export directoryと全62 DECが既存EVENTと同じ`csl_script_event_{sourceKey}_export/CAB-csl_script_event_{sourceKey}-episode{N}.dec`契約に一致することを確認した。候補生成は次の境界を維持する。
+
+- `storyId`はraw traceability用のpendingな`RAID_{sourceKey}`、`episodeId`は`{storyId}_E{N:02d}`とする。schema非対応文字と予約`ENC_` prefixはEVENTと同じ可逆UTF-8 hex escapeを使う
+- `sourceKey` / `rawDirectory` / `rawPath` / `sourceFileName`は元値を変更せず保持し、directoryとfilenameのsourceKey不一致は候補に含めない
+- `publicStoryId` / `publicEpisodeId`は生成しない。private allocation mappingやRegistryの値を候補へ自動昇格しない
+- DEC本文、タイトル、subtitleは読まず、metadataはpendingのままにする
+- MAIN / OTHERはこの対応へ便乗させない。MAINのtutorial派生とOTHERの非episode fileは別の識別子・保持方針を要するため、OD-002の残件として扱う
 
 ---
 
@@ -502,7 +512,7 @@ canonicalOrderSource:
 
 ## OD-002: MAIN/RAID/OTHERカテゴリのraw配置規約
 
-`EVENT`と同じ`csl_script_{category}_{sourceKey}_export`規約に従うかどうかが未確認（§6）。実際のraw配置サンプルが得られ次第、本文書と候補生成scriptを拡張する。
+RAIDは全量実配置の確認により解消し、§16.2の候補生成を実装した。MAINはseason/chapter階層とtutorial派生、OTHERは通常episode以外のfileを含むため、単純なEVENT型として取り込まない。両カテゴリは対象fileの識別子・auxiliary保持方針を別途確定してから候補生成scriptを拡張する。
 
 ## OD-003: CHARACTERカテゴリのstoryId prefix判定
 
@@ -532,7 +542,7 @@ canonicalOrderSource:
 - GitHub Pages / Cloudflare Pages公開
 - Knowledge Graph生成
 - LLM/provider/prompt実装
-- MAIN/RAID/OTHER/CHARACTERカテゴリのraw配置規約確定（OD-002/OD-003）
+- MAIN/OTHERカテゴリのraw配置・派生file識別子規約確定（OD-002。RAIDとCHARACTERは対応済み）
 
 ---
 
