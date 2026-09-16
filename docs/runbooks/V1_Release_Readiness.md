@@ -43,8 +43,8 @@ M2〜M5のいずれかが未完了の場合、本checklistの下流をリハー�
 
 - [ ] [Real Data Dry Run](Real_Data_Dry_Run.md)の対象範囲と入力を固定する
 - [ ] `normalize_release_scope.py`を使い、manifest全件とH_scene例外変種をno-clobberで一括normalizeする。schema検証失敗・episode ID重複・未処理入力があれば部分出力や完了reportを公開しない
-- [ ] `extract_story.py --validate`を使い、複数入力は全件検証後に保存する
-- [ ] [Merged Collection Dry Run](Real_Data_Merged_Collection_Dry_Run.md)に従い、Stage Bのinvalid / skippedを確認する
+- [ ] `build_release_scope_knowledge.py`をM2匿名reportとともに使い、Stage A / Bをno-clobberで一括再生成する。M2件数・categoryとの一致、入力episode集合との一致、Extraction schema / semantic validation、Stage B invalid / skipped 0、Merged Collection schemaをすべてgateする
+- [ ] [Merged Collection Dry Run](Real_Data_Merged_Collection_Dry_Run.md)に従い、匿名`release_scope_knowledge_report.json`を検証する
 - [ ] Timelineを対象に含める場合は[Timeline Consistency Check](Timeline_Consistency_Check.md)を実行する
 - [ ] Wiki入力を再生成し、[Real Data Wiki Render](Real_Data_Wiki_Render_Dry_Run.md)の検証を実行する
 
@@ -62,6 +62,18 @@ needs_update 2。unknown block 379件（66 episode）は破棄せず保持した
 CHAR_HSの孤立したbranch marker 3件を2 episodeで診断した結果で、未報告skipではない。
 このbaselineはM2完了の再現性証跡であり、最終candidate SHAを固定したrelease gateの
 チェック済み状態を意味しない。
+
+M3の証跡は`schemas/release_scope_knowledge_report.schema.json`準拠の匿名reportとし、
+個別ID、path、本文、warning / error本文、review record内容をrelease recordやPRへ
+含めない。内部のExtraction、merged collection、完全なmerge reportはworkspace限定とする。
+
+M3 baseline（2026-09-17）はM2の2,840 episodeを全件処理し、Extraction schema / semantic
+error、merge invalid / skippedはいずれも0だった。Character 9,684件・Location 3,250件の
+candidateからCharacter 1,528件・Location 3,250件を統合し、全4,778 entityでEvidenceRefと
+SourceCandidateを保持した。canonical ID 184件、未解決entity 4,594件、Character conflict
+3件、special speaker label 403件を匿名集計で保持した。H_sceneは本体74 episode・例外変種
+144 episode、重複除外block 6,017件だった。このbaselineはM3完了の再現性証跡であり、
+最終candidate SHAを固定したrelease gateのチェック済み状態を意味しない。
 
 ### 4.2 記録する品質指標
 

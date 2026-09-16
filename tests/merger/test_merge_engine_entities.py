@@ -288,6 +288,26 @@ def test_merged_entity_counts_in_report(engine, tmp_path):
     assert collection["report"]["unresolvedCount"] == 0
 
 
+def test_character_source_id_with_unsafe_characters_uses_collision_free_id_segment(
+    collection_validator, engine, tmp_path
+):
+    doc = _episode_with_resolved_candidates("EP01")
+    candidate = doc["characters"][0]
+    candidate["existingCharacterId"] = None
+    candidate["sourceCharacterId"] = "synthetic:id/α"
+    path = tmp_path / "EP01.extraction.json"
+    path.write_text(json.dumps(doc, ensure_ascii=False), encoding="utf-8")
+
+    collection = engine.merge_file(path)
+
+    entity = collection["entities"]["characters"][0]
+    encoded = "synthetic:id/α".encode().hex().upper()
+    assert entity["id"] == f"UNRESOLVED_CHAR_SRC_HEX_{encoded}"
+    assert entity["mergedId"] == entity["id"]
+    assert entity["sourceCharacterIds"] == ["synthetic:id/α"]
+    assert not list(collection_validator.iter_errors(collection))
+
+
 def test_entities_aggregate_across_multiple_episodes(engine, tmp_path):
     doc1 = _episode_with_resolved_candidates("EP01")
     doc2 = _episode_with_resolved_candidates("EP02")

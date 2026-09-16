@@ -243,6 +243,11 @@ canonical IDへ解決できていないcandidate（`existing*Id: null`）は、�
 | unresolved | `existingCharacterId`も`sourceCharacterId`も無いもの（speakerNameのみ）は`_unresolved/characters.json`へ |
 | manual correction | canonical ID割り当て（ローマ字化はOD-001未確定のためAIに確定させない）、同一人物判定（別名統合）、canonicalName選択 |
 
+`sourceCharacterId`はprovenance上の原値を`sourceCharacterIds`へ不変保持する。一方、
+未解決entityの`id` / `mergedId`へ組み込む際、`[A-Z0-9_-]+`外の値は
+UTF-8 byte列のhex表現へ可逆・衝突なしで符号化する。これはcanonical ID解決や
+値の同一視ではなく、Merged EntityのID schemaを満たすための表現変換に限る。
+
 ## 5.2 Location
 
 | 項目 | 方針 |
