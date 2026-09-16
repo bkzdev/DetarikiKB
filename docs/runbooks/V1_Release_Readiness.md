@@ -42,13 +42,26 @@ M2〜M5のいずれかが未完了の場合、本checklistの下流をリハー�
 ### 4.1 Internal pipeline
 
 - [ ] [Real Data Dry Run](Real_Data_Dry_Run.md)の対象範囲と入力を固定する
-- [ ] `normalize_story.py --validate`を使い、schema・compatibility検証に失敗したJSONを保存しない
+- [ ] `normalize_release_scope.py`を使い、manifest全件とH_scene例外変種をno-clobberで一括normalizeする。schema検証失敗・episode ID重複・未処理入力があれば部分出力や完了reportを公開しない
 - [ ] `extract_story.py --validate`を使い、複数入力は全件検証後に保存する
 - [ ] [Merged Collection Dry Run](Real_Data_Merged_Collection_Dry_Run.md)に従い、Stage Bのinvalid / skippedを確認する
 - [ ] Timelineを対象に含める場合は[Timeline Consistency Check](Timeline_Consistency_Check.md)を実行する
 - [ ] Wiki入力を再生成し、[Real Data Wiki Render](Real_Data_Wiki_Render_Dry_Run.md)の検証を実行する
 
 実Normalized Story、Extraction、merged collection、生成Markdown / HTML、review packetは既存方針どおりworkspace限定・非commitとする。
+
+M2の証跡には`release_scope_normalization_report.json`の匿名集計だけを転記する。
+個別のstory / episode ID、raw path、本文、unknown値の列挙、manifest digest以外の
+private mappingはrelease recordやPRへ含めない。report schemaは
+`schemas/release_scope_normalization_report.schema.json`を正とする。
+
+M2 baseline（2026-09-16）は511 story・manifest 2,696 episodeにH_scene例外変種
+144 episodeを加えた2,840 episodeを全件処理し、Normalized Story schema error、invalid、
+skippedはいずれも0だった。compatibility内訳はcompatible 2,201、warning 637、
+needs_update 2。unknown block 379件（66 episode）は破棄せず保持した。needs_updateは
+CHAR_HSの孤立したbranch marker 3件を2 episodeで診断した結果で、未報告skipではない。
+このbaselineはM2完了の再現性証跡であり、最終candidate SHAを固定したrelease gateの
+チェック済み状態を意味しない。
 
 ### 4.2 記録する品質指標
 

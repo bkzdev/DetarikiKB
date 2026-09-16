@@ -51,6 +51,7 @@ from agents.parser import (  # noqa: E402
     StoryParser,
 )
 from agents.parser.story_manifest import (  # noqa: E402
+    build_manifest_normalization_metadata,
     load_story_manifest,
     resolve_manifest_episode,
     resolve_story_category,
@@ -521,47 +522,12 @@ def _build_manifest_metadata(
     if lookup_result is None or lookup_result.status != "matched":
         return {}, {}, manifest_source
 
-    story = lookup_result.story
-    episode = lookup_result.episode
-
-    manifest_source.update(
-        {
-            "manifestMatched": True,
-            "matchedBy": lookup_result.matched_by,
-            "sourceFileName": episode.source_file_name,
-            "rawPath": episode.raw_path,
-            # source.manifest側はraw manifest照合結果の記録として保持する
-            # (traceability目的)。renderer/paths.pyが実際に使うpublic IDは
-            # story_metadata/episode_metadata経由 (storyTitle等と同じ
-            # 伝播経路、feature/story-manifest-public-id-renderer-switch)。
-            "publicStoryId": story.public_story_id,
-            "publicEpisodeId": episode.public_episode_id,
-        }
+    return build_manifest_normalization_metadata(
+        lookup_result.story,
+        lookup_result.episode,
+        manifest_path=args.manifest,
+        matched_by=lookup_result.matched_by,
     )
-
-    story_metadata: dict[str, Any] = {"metadataStatus": story.metadata_status}
-    if story.title is not None:
-        story_metadata["storyTitle"] = story.title
-    if story.display_title is not None:
-        story_metadata["displayTitle"] = story.display_title
-    if story.public_story_id is not None:
-        story_metadata["publicStoryId"] = story.public_story_id
-
-    episode_metadata: dict[str, Any] = {
-        "episodeSubtitle": episode.subtitle,
-        "metadataStatus": episode.metadata_status,
-    }
-    if episode.display_title is not None:
-        episode_metadata["displayTitle"] = episode.display_title
-    if episode.public_episode_id is not None:
-        episode_metadata["publicEpisodeId"] = episode.public_episode_id
-    if episode.has_confirmed_canonical_order():
-        episode_metadata["canonicalOrder"] = episode.canonical_order
-        episode_metadata["metadataSources"] = {
-            "canonicalOrder": dict(episode.canonical_order_source or {})
-        }
-
-    return story_metadata, episode_metadata, manifest_source
 
 
 def _normalize_story(
