@@ -1,0 +1,142 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://detariki-kb.local/schemas/release_scope_knowledge_report.schema.json",
+  "title": "DKB Release Scope Knowledge Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "documentType",
+    "status",
+    "normalizationReportSha256",
+    "normalizedTreeSha256",
+    "normalizedDocumentCount",
+    "normalizedEpisodeCount",
+    "normalizedCategoryCounts",
+    "extractionDocumentCount",
+    "extractionInvalidCount",
+    "extractionSemanticErrorCount",
+    "extractionSemanticWarningCount",
+    "hsceneDedup",
+    "mergeResolvedInputCount",
+    "mergeValidInputCount",
+    "mergeInvalidInputCount",
+    "mergeSkippedInputCount",
+    "candidateCounts",
+    "specialSpeakerLabelCandidateCount",
+    "mergedEntityCounts",
+    "unresolvedEntityCounts",
+    "conflictCount",
+    "conflictEntityCounts",
+    "warningCounts",
+    "relationshipReviewRecordCount",
+    "canonicalIdSummary",
+    "specialSpeakerLabelCount"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "0.1" },
+    "documentType": { "const": "release_scope_knowledge_report" },
+    "status": { "const": "complete" },
+    "normalizationReportSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "normalizedTreeSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "normalizedDocumentCount": { "$ref": "#/definitions/count" },
+    "normalizedEpisodeCount": { "$ref": "#/definitions/count" },
+    "normalizedCategoryCounts": { "$ref": "#/definitions/categoryCounts" },
+    "extractionDocumentCount": { "$ref": "#/definitions/count" },
+    "extractionInvalidCount": { "const": 0 },
+    "extractionSemanticErrorCount": { "const": 0 },
+    "extractionSemanticWarningCount": { "$ref": "#/definitions/count" },
+    "hsceneDedup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bodyEpisodeCount", "variantEpisodeCount", "excludedBlockCount"],
+      "properties": {
+        "bodyEpisodeCount": { "$ref": "#/definitions/count" },
+        "variantEpisodeCount": { "$ref": "#/definitions/count" },
+        "excludedBlockCount": { "$ref": "#/definitions/count" }
+      }
+    },
+    "mergeResolvedInputCount": { "$ref": "#/definitions/count" },
+    "mergeValidInputCount": { "$ref": "#/definitions/count" },
+    "mergeInvalidInputCount": { "const": 0 },
+    "mergeSkippedInputCount": { "const": 0 },
+    "candidateCounts": { "$ref": "#/definitions/candidateCounts" },
+    "specialSpeakerLabelCandidateCount": { "$ref": "#/definitions/count" },
+    "mergedEntityCounts": { "$ref": "#/definitions/entityCounts" },
+    "unresolvedEntityCounts": { "$ref": "#/definitions/entityCounts" },
+    "conflictCount": { "$ref": "#/definitions/count" },
+    "conflictEntityCounts": { "$ref": "#/definitions/entityCounts" },
+    "warningCounts": { "$ref": "#/definitions/warningCounts" },
+    "relationshipReviewRecordCount": { "$ref": "#/definitions/count" },
+    "canonicalIdSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["totalAssigned", "duplicateCount", "invalidCount"],
+      "properties": {
+        "totalAssigned": { "$ref": "#/definitions/count" },
+        "duplicateCount": { "$ref": "#/definitions/count" },
+        "invalidCount": { "$ref": "#/definitions/count" }
+      }
+    },
+    "specialSpeakerLabelCount": { "$ref": "#/definitions/count" }
+  },
+  "definitions": {
+    "count": { "type": "integer", "minimum": 0 },
+    "categoryCounts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["MAIN", "EVT", "RAID", "OTHER", "CHAR_MAIN", "CHAR_EXTRA", "CHAR_DATE", "CHAR_HS"],
+      "properties": {
+        "MAIN": { "$ref": "#/definitions/count" },
+        "EVT": { "$ref": "#/definitions/count" },
+        "RAID": { "$ref": "#/definitions/count" },
+        "OTHER": { "$ref": "#/definitions/count" },
+        "CHAR_MAIN": { "$ref": "#/definitions/count" },
+        "CHAR_EXTRA": { "$ref": "#/definitions/count" },
+        "CHAR_DATE": { "$ref": "#/definitions/count" },
+        "CHAR_HS": { "$ref": "#/definitions/count" }
+      }
+    },
+    "candidateCounts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["characters", "locations", "organizations", "items", "lore", "events", "relationships", "timelineCandidates"],
+      "properties": {
+        "characters": { "$ref": "#/definitions/count" },
+        "locations": { "$ref": "#/definitions/count" },
+        "organizations": { "$ref": "#/definitions/count" },
+        "items": { "$ref": "#/definitions/count" },
+        "lore": { "$ref": "#/definitions/count" },
+        "events": { "$ref": "#/definitions/count" },
+        "relationships": { "$ref": "#/definitions/count" },
+        "timelineCandidates": { "$ref": "#/definitions/count" }
+      }
+    },
+    "entityCounts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["characters", "locations", "organizations", "items", "lore", "events", "relationships", "timeline"],
+      "properties": {
+        "characters": { "$ref": "#/definitions/count" },
+        "locations": { "$ref": "#/definitions/count" },
+        "organizations": { "$ref": "#/definitions/count" },
+        "items": { "$ref": "#/definitions/count" },
+        "lore": { "$ref": "#/definitions/count" },
+        "events": { "$ref": "#/definitions/count" },
+        "relationships": { "$ref": "#/definitions/count" },
+        "timeline": { "$ref": "#/definitions/count" }
+      }
+    },
+    "warningCounts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total", "unresolvedRelationships", "skippedOverrides", "other"],
+      "properties": {
+        "total": { "$ref": "#/definitions/count" },
+        "unresolvedRelationships": { "$ref": "#/definitions/count" },
+        "skippedOverrides": { "$ref": "#/definitions/count" },
+        "other": { "$ref": "#/definitions/count" }
+      }
+    }
+  }
+}

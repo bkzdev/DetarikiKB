@@ -10,6 +10,9 @@ MILESTONES = (
 TASKS = PROJECT_ROOT / "TASKS.md"
 AI_CONTEXT = PROJECT_ROOT / "AI_CONTEXT.md"
 REAL_DATA_DRY_RUN = PROJECT_ROOT / "docs" / "runbooks" / "Real_Data_Dry_Run.md"
+MERGED_DRY_RUN = (
+    PROJECT_ROOT / "docs" / "runbooks" / "Real_Data_Merged_Collection_Dry_Run.md"
+)
 
 
 def _read(path: Path) -> str:
@@ -73,8 +76,24 @@ def test_m2_release_scope_runner_and_anonymous_report_are_documented() -> None:
     assert "内部ID、raw path、" in dry_run
 
 
+def test_m3_release_scope_runner_and_anonymous_report_are_documented() -> None:
+    readiness = _read(RUNBOOK)
+    dry_run = _read(MERGED_DRY_RUN)
+
+    assert (PROJECT_ROOT / "scripts" / "build_release_scope_knowledge.py").is_file()
+    assert (
+        PROJECT_ROOT / "schemas" / "release_scope_knowledge_report.schema.json"
+    ).is_file()
+    assert "build_release_scope_knowledge.py" in readiness
+    assert "release_scope_knowledge_report.schema.json" in readiness
+    assert "# 5. release scope一括実行手順（推奨）" in dry_run
+    assert "個別ID、path、本文" in dry_run
+
+
 def test_project_status_marks_m7_in_progress_without_completing_it() -> None:
     milestones = _read(MILESTONES)
+    assert "| M3 Extraction / Merge / 内部KB | 完了 |" in milestones
+    assert "M3は2026-09-17に完了した" in milestones
     assert "| M7 v1リリースと継続運用 | 進行中 |" in milestones
     assert "checklist草案を作成済み" in milestones
     assert "M2〜M5の完了確認後" in milestones

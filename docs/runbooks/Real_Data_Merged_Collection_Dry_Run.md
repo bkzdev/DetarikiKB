@@ -49,6 +49,7 @@ workspace/dry_runs/<RUN_ID>/
     merged_knowledge_collection.json  # Merger出力 (merge_extractions.pyの固定出力ファイル名)
   reports/
     merge_report.json                 # Mergerの独立report artifact
+  release_scope_knowledge_report.json # commit可能な匿名件数report
 
 workspace/wiki_preview/<RUN_ID>/      # Wiki render handoff時の出力 (Real_Data_Wiki_Render_Dry_Run.md参照)
 ```
@@ -57,7 +58,40 @@ workspace/wiki_preview/<RUN_ID>/      # Wiki render handoff時の出力 (Real_Da
 
 ---
 
-# 5. Extractor実行手順
+# 5. release scope一括実行手順（推奨）
+
+M2の`normalize_release_scope.py`出力全体には、次の単一process runnerを使う。
+通常episodeは1件ずつstream処理し、`CHAR_HS`だけをstory単位でまとめて既存の
+本体・例外変種dedupを適用する。全Stage A出力のschema / semantic validation、
+入力episode集合との一致、Stage Bのinvalid / skipped 0、collection / 匿名reportの
+schema検証がすべて成功した場合だけ、一時directoryを`--output`へrenameする。
+既存outputと同名の並行実行は拒否し、上書きしない。
+
+```bash
+uv run python scripts/build_release_scope_knowledge.py \
+    --normalized-root workspace/dry_runs/<M2_RUN_ID>/normalized \
+    --output workspace/dry_runs/<RUN_ID>
+```
+
+省略時は`--normalized-root`の親にある
+`release_scope_normalization_report.json`をM2 attestationとして読み、schema、完了状態、
+invalid / skipped 0、Normalized総件数・category件数を実入力と照合する。別の配置を使う
+場合だけ`--normalization-report FILE`を明示する。不足したsubsetは成功扱いにしない。
+
+`extracted/`、`merged/`、`reports/merge_report.json`は内部artifactでありcommitしない。
+`release_scope_knowledge_report.json`は件数、M2 report digest、Normalized tree digestに
+限定した匿名証跡形式で、schemaだけをcommitし、実run artifact自体はworkspace限定とする。
+`schemas/release_scope_knowledge_report.schema.json`を正とする。
+個別ID、path、本文、warning / error本文、review record内容は含めない。runner失敗時は
+完了reportもoutput rootも公開されないため、stderrの一般化された理由を確認して入力を
+修正し、新しい空の`--output`で再実行する。
+
+# 6. 個別CLI実行手順（限定調査用）
+
+次のExtractor / Merger個別手順は、少数episodeの原因調査用である。release scope全件の
+品質gateには§5の一括runnerを使う。
+
+## 6.1 Extractor
 
 Normalized Story JSON 1件につき1回実行する（`scripts/extract_story.py`は`--input`にファイル1件のみを受け付ける、Phase 1時点の仕様）。複数話ある場合はループで実行する。
 
@@ -80,7 +114,7 @@ done
 
 ---
 
-# 6. Merger実行手順
+## 6.2 Merger
 
 ```bash
 mkdir -p workspace/dry_runs/<RUN_ID>/merged
@@ -173,9 +207,10 @@ git check-ignore -v data/normalized/main/<episodeId>.json
 
 # 10. 確認項目
 
-- [ ] Extractorがexit code `0`で完了する（episodeごと）
-- [ ] `--validate`指定時、Extraction Result schema検証が通る
-- [ ] Mergerがexit code `0`で完了する
+- [ ] 一括runnerがexit code `0`で完了し、入力・extractionのepisode件数が一致する
+- [ ] Extraction Resultのschema / semantic errorが0件である
+- [ ] Stage Bのinvalid / skippedが0件である
+- [ ] `release_scope_knowledge_report.json`がschema-validである
 - [ ] `reports/merge_report.json`が生成され、collection内の`report`と同一内容である
 - [ ] Merged Knowledge Collection schema検証が通る（§6の検証コマンド）
 - [ ] `entities.*`（characters/locations/organizations/items/lore/events/relationships/timeline）の件数が確認できる
@@ -195,7 +230,8 @@ Wiki render handoffまで実施した場合、`docs/runbooks/Real_Data_Wiki_Rend
 
 | 症状 | 想定される原因 | 対応 |
 |---|---|---|
-| Extractorが`--input`にディレクトリを渡してエラーになる | `extract_story.py`はファイル1件のみ受け付ける仕様（`merge_extractions.py`とは異なる） | ループで1ファイルずつ実行する（§5参照） |
+| Extractorが`--input`にディレクトリを渡してエラーになる | `extract_story.py`はファイル1件のみ受け付ける限定調査用仕様 | release scope全件には§5の一括runnerを使う |
+| 一括runnerが既存outputまたはlockを拒否する | no-clobber / 同時実行防止gateが作動した | 既存runを保存したまま別RUN_IDを使う。stale lockは実行processが無いことを確認してから扱う |
 | Merger実行後、`entities.*`が全種別0件 | 実データに構造化タグ（`itemId`/`relationshipType`等）が含まれない場合の既知の制約（rule-based抽出の設計上の制約、バグではない） | `docs/runbooks/Real_Data_Dry_Run.md` §17参照。Character/Locationの抽出件数のみを見て判断する |
 | `unresolvedEntityCounts`が`mergedEntityCounts`と一致（全件unresolved） | キャラクター辞書（`knowledge/dictionaries/characters.yaml`）が実データの数値ID帯をカバーしていない既知の課題 | `scripts/check_character_dictionary_coverage.py`で確認。本dry-runのスコープでは辞書拡充は行わない |
 | `characters/*.md`が1件も生成されない（Wiki render handoff時） | 上記と同じ理由でcanonicalId確定entityが0件 | 想定通りの挙動（`is_page_eligible`の判定基準通り）。バグではない |

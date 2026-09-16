@@ -19,9 +19,19 @@ sourceCharacterId以外の解決済み識別子フィールドが無いため、
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from .entity_base import build_merged_entities
+
+_SAFE_SOURCE_ID = re.compile(r"^[A-Z0-9_-]+$")
+
+
+def _source_character_id_segment(value: str) -> str:
+    """source IDをmerged ID用の衝突しないASCII断片へ変換する。"""
+    if _SAFE_SOURCE_ID.fullmatch(value):
+        return value
+    return f"HEX_{value.encode('utf-8').hex().upper()}"
 
 
 def _character_merge_key(candidate: dict[str, Any]) -> tuple[str, str]:
@@ -31,7 +41,10 @@ def _character_merge_key(candidate: dict[str, Any]) -> tuple[str, str]:
 
     source_character_id = candidate.get("sourceCharacterId")
     if source_character_id:
-        return ("source_char_id", f"SRC_{source_character_id}")
+        return (
+            "source_char_id",
+            f"SRC_{_source_character_id_segment(source_character_id)}",
+        )
 
     return ("unresolved", candidate["id"])
 
