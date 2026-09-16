@@ -42,10 +42,66 @@ CANONICAL_ORDER_SOURCE_TYPES = frozenset(
 )
 
 
-def resolve_story_category(manifest_category: str) -> str | None:
+def resolve_story_category(
+    manifest_category: str, story_id: str | None = None
+) -> str | None:
     """story_manifest.yamlのcategoryから、normalize_story.pyの`--category`
-    相当の値を解決する。対応が無い場合 (例: character) はNoneを返す。"""
+    相当の値を解決する。
+
+    characterはstoryId prefixが渡された場合だけCHAR_MAIN/CHAR_EXTRA/
+    CHAR_DATE/CHAR_HSへ解決する。単体CLIの既存呼び出し（storyId未指定）は
+    従来どおりNoneを返し、明示指定を要求する。
+    """
+    if manifest_category == "character" and story_id is not None:
+        for prefix in ("CHAR_MAIN_", "CHAR_EXTRA_", "CHAR_DATE_", "CHAR_HS_"):
+            if story_id.startswith(prefix):
+                return prefix.removesuffix("_")
     return MANIFEST_CATEGORY_TO_STORY_CATEGORY.get(manifest_category)
+
+
+def build_manifest_normalization_metadata(
+    story: StoryManifestStory,
+    episode: StoryManifestEpisode,
+    *,
+    manifest_path: str,
+    matched_by: str,
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+    """manifest一致entryからNormalizerへ渡すmetadataを組み立てる。
+
+    単体normalize CLIとrelease-scope batch runnerで同じ伝播契約を共有する。
+    title/subtitleの推測やpublic ID fallbackは行わない。
+    """
+    manifest_source: dict[str, Any] = {
+        "manifestPath": manifest_path,
+        "manifestMatched": True,
+        "matchedBy": matched_by,
+        "sourceFileName": episode.source_file_name,
+        "rawPath": episode.raw_path,
+        "publicStoryId": story.public_story_id,
+        "publicEpisodeId": episode.public_episode_id,
+    }
+    story_metadata: dict[str, Any] = {"metadataStatus": story.metadata_status}
+    if story.title is not None:
+        story_metadata["storyTitle"] = story.title
+    if story.display_title is not None:
+        story_metadata["displayTitle"] = story.display_title
+    if story.public_story_id is not None:
+        story_metadata["publicStoryId"] = story.public_story_id
+
+    episode_metadata: dict[str, Any] = {
+        "episodeSubtitle": episode.subtitle,
+        "metadataStatus": episode.metadata_status,
+    }
+    if episode.display_title is not None:
+        episode_metadata["displayTitle"] = episode.display_title
+    if episode.public_episode_id is not None:
+        episode_metadata["publicEpisodeId"] = episode.public_episode_id
+    if episode.has_confirmed_canonical_order():
+        episode_metadata["canonicalOrder"] = episode.canonical_order
+        episode_metadata["metadataSources"] = {
+            "canonicalOrder": dict(episode.canonical_order_source or {})
+        }
+    return story_metadata, episode_metadata, manifest_source
 
 
 def normalize_manifest_path(path: str) -> str:

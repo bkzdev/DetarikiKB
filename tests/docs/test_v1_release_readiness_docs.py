@@ -9,6 +9,7 @@ MILESTONES = (
 )
 TASKS = PROJECT_ROOT / "TASKS.md"
 AI_CONTEXT = PROJECT_ROOT / "AI_CONTEXT.md"
+REAL_DATA_DRY_RUN = PROJECT_ROOT / "docs" / "runbooks" / "Real_Data_Dry_Run.md"
 
 
 def _read(path: Path) -> str:
@@ -55,6 +56,21 @@ def test_release_readiness_links_existing_source_runbooks() -> None:
     ):
         assert (RUNBOOK.parent / relative_path).is_file()
         assert relative_path in content
+
+
+def test_m2_release_scope_runner_and_anonymous_report_are_documented() -> None:
+    readiness = _read(RUNBOOK)
+    dry_run = _read(REAL_DATA_DRY_RUN)
+
+    assert (PROJECT_ROOT / "scripts" / "normalize_release_scope.py").is_file()
+    assert (
+        PROJECT_ROOT / "schemas" / "release_scope_normalization_report.schema.json"
+    ).is_file()
+    assert "normalize_release_scope.py" in readiness
+    assert "release_scope_normalization_report.schema.json" in readiness
+    assert "## 7.1 v1 release scopeの一括生成" in dry_run
+    assert "全件成功後だけ`--output`へatomic" in dry_run
+    assert "内部ID、raw path、" in dry_run
 
 
 def test_project_status_marks_m7_in_progress_without_completing_it() -> None:

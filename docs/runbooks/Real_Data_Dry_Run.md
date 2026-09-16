@@ -142,6 +142,34 @@ uv run python scripts/normalize_story.py \
 
   - exit code `0`: compatible、`1`: needs_update、`2`: blocked。`1`/`2`の場合は`config/script_commands.yaml`または`reference/parser/characters_reference.json`相当のキャラクター辞書を確認してから先に進む（`CLAUDE.md`参照）。
 
+## 7.1 v1 release scopeの一括生成
+
+manifest候補を確定したrun単位で、MAIN / EVENT / RAID / characterの全episodeと、
+CHAR_HSの動的判定で`exception`になった変種を一括normalizeする場合は次を使う。
+
+```bash
+uv run python scripts/normalize_release_scope.py \
+    --raw-root data/raw \
+    --manifest workspace/story_manifest/<manifest>.yaml \
+    --output workspace/dry_runs/<timestamp>/
+```
+
+このcommandはmanifestと全Normalized Storyをschema検証し、episode ID重複を拒否する。
+処理中は同じ親directoryの一時directoryへ書き、全件成功後だけ`--output`へatomicに
+公開する。同じ出力先は隣接lock fileで協調run間を排他し、既存の出力先は上書きしない。
+失敗時は部分出力を公開せず、一時directoryとlockを削除してnon-zeroで終了する。
+
+出力先の`release_scope_normalization_report.json`は、入力件数、category / compatibility
+内訳、unknown block / command / character ID、未解決speaker、branch issue、case variant、
+control character除去、H_scene判定の**件数だけ**を持つ匿名集計である。内部ID、raw path、
+本文、個別episodeとの対応は含めない。詳細なNormalized Storyは`normalized/`以下に保持し、
+reportを含むrun全体をignored workspaceからcommitしない。
+
+`invalidCount` / `skippedCount`は完全成功reportでは常に0である。1件でもinvalidまたは
+未処理入力があればreport自体を公開しないため、commandのexit codeと出力directoryの
+有無を先に確認する。unknown / unresolvedの非0は自動失敗ではなく、不破棄保持された
+品質状態として§12およびV1 Release Readinessで評価する。
+
 ---
 
 # 8. extraction JSON生成手順

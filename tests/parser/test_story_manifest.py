@@ -91,6 +91,25 @@ def test_resolve_story_category_returns_none_for_character():
     assert resolve_story_category("character") is None
 
 
+@pytest.mark.parametrize(
+    ("story_id", "expected"),
+    [
+        ("CHAR_MAIN_SYNTHETIC", "CHAR_MAIN"),
+        ("CHAR_EXTRA_SYNTHETIC", "CHAR_EXTRA"),
+        ("CHAR_DATE_SYNTHETIC", "CHAR_DATE"),
+        ("CHAR_HS_SYNTHETIC", "CHAR_HS"),
+    ],
+)
+def test_resolve_story_category_uses_character_story_id_prefix(
+    story_id: str, expected: str
+):
+    assert resolve_story_category("character", story_id) == expected
+
+
+def test_resolve_story_category_rejects_unknown_character_story_id_prefix():
+    assert resolve_story_category("character", "CHAR_UNKNOWN_SYNTHETIC") is None
+
+
 def test_resolve_story_category_returns_none_for_unknown():
     assert resolve_story_category("unknown_category") is None
 

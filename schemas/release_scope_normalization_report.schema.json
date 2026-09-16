@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://detariki-kb.local/schemas/release_scope_normalization_report.schema.json",
+  "title": "DKB Release Scope Normalization Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "documentType",
+    "status",
+    "manifestSha256",
+    "manifestStoryCount",
+    "manifestEpisodeCount",
+    "dynamicExceptionEpisodeCount",
+    "normalizedEpisodeCount",
+    "invalidCount",
+    "skippedCount",
+    "categoryEpisodeCounts",
+    "compatibilityStatusCounts",
+    "unknownBlockCount",
+    "episodesWithUnknownBlocks",
+    "unknownCommandDistinctCount",
+    "unknownCommandOccurrenceCount",
+    "episodesWithUnknownCommands",
+    "unknownCharacterIdDistinctCount",
+    "episodesWithUnknownCharacterIds",
+    "unresolvedSpeakerBlockCount",
+    "episodesWithUnresolvedSpeakers",
+    "nonSpeakerNumericAssignmentCount",
+    "nonLiteralSpeakerExpressionCount",
+    "branchIssueCount",
+    "caseVariantCount",
+    "controlCharsRemoved",
+    "hsceneVariantJudgment"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "0.1" },
+    "documentType": { "const": "release_scope_normalization_report" },
+    "status": { "const": "complete" },
+    "manifestSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "manifestStoryCount": { "$ref": "#/definitions/nonNegativeInteger" },
+    "manifestEpisodeCount": { "$ref": "#/definitions/nonNegativeInteger" },
+    "dynamicExceptionEpisodeCount": { "$ref": "#/definitions/nonNegativeInteger" },
+    "normalizedEpisodeCount": { "$ref": "#/definitions/nonNegativeInteger" },
+    "invalidCount": { "const": 0 },
+    "skippedCount": { "const": 0 },
+    "categoryEpisodeCounts": { "$ref": "#/definitions/countMap" },
+    "compatibilityStatusCounts": { "$ref": "#/definitions/countMap" },
+    "unknownBlockCount": { "$ref": "#/definitions/nonNegativeInteger" },
+    "episodesWithUnknownBlocks": { "$ref": "#/definitions/nonNegativeInteger" },
+    "unknownCommandDistinctCount": { "$ref": "#/definitions/nonNegativeInteger" },
+    "unknownCommandOccurrenceCount": { "$ref": "#/definitions/nonNegativeInteger" },
+    "episodesWithUnknownCommands": { "$ref": "#/definitions/nonNegativeInteger" },
+    "unknownCharacterIdDistinctCount": { "$ref": "#/definitions/nonNegativeInteger" },
+    "episodesWithUnknownCharacterIds": { "$ref": "#/definitions/nonNegativeInteger" },
+    "unresolvedSpeakerBlockCount": { "$ref": "#/definitions/nonNegativeInteger" },
+    "episodesWithUnresolvedSpeakers": { "$ref": "#/definitions/nonNegativeInteger" },
+    "nonSpeakerNumericAssignmentCount": { "$ref": "#/definitions/nonNegativeInteger" },
+    "nonLiteralSpeakerExpressionCount": { "$ref": "#/definitions/nonNegativeInteger" },
+    "branchIssueCount": { "$ref": "#/definitions/nonNegativeInteger" },
+    "caseVariantCount": { "$ref": "#/definitions/nonNegativeInteger" },
+    "controlCharsRemoved": { "$ref": "#/definitions/nonNegativeInteger" },
+    "hsceneVariantJudgment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["subset", "exception", "skippedVr"],
+      "properties": {
+        "subset": { "$ref": "#/definitions/nonNegativeInteger" },
+        "exception": { "$ref": "#/definitions/nonNegativeInteger" },
+        "skippedVr": { "$ref": "#/definitions/nonNegativeInteger" }
+      }
+    }
+  },
+  "definitions": {
+    "nonNegativeInteger": { "type": "integer", "minimum": 0 },
+    "countMap": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/definitions/nonNegativeInteger" }
+    }
+  }
+}
