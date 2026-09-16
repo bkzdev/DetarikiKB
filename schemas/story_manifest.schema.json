@@ -134,7 +134,7 @@
         "episodeNumber": {
           "type": "integer",
           "minimum": 1,
-          "description": "raw DECファイル名から抽出したエピソード番号 (数値としてソートする、episode1/episode2/episode10の順)"
+          "description": "Story内の安定した処理順を表すエピソード番号。通常はraw DECファイル名から抽出し、MAIN tutorial派生のようにraw番号が重複する独立episodeは既存episodeの直後へ一意な連番で配置する"
         },
         "subtitle": {
           "oneOf": [{ "type": "string" }, { "type": "null" }],

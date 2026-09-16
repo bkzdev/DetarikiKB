@@ -101,12 +101,12 @@ raw配置の先頭ディレクトリ名（ユーザー環境での慣習、大�
 | raw先頭ディレクトリ名（想定） | 正規化category | storyId prefix | このPRでの自動推定対応状況 |
 |---|---|---|---|
 | `EVENT` | `event` | `EVT` | **対応（§4で確認済みのパターン）** |
-| `MAIN` | `main` | `MAIN` | 未対応。`docs/runbooks/Real_Data_Dry_Run.md`のサンプルでは`MAIN_S01_C02_E01.dec`のようにDECファイル名自体が既に最終storyId形式であり、`EVENT`と同じ`_export`ディレクトリ規約に従うかは未確認（§18 OD-002） |
+| `MAIN` | `main` | `MAIN` | **対応済み**。全量実配置の`MAIN{season}/csl_script_mainstory_chapter{chapter}_export`階層から`MAIN_S{season}_C{chapter}`候補を生成する。tutorial派生は固有内容を保持する通常episodeとして連番化する（§16.3） |
 | `RAID` | `raid` | `RAID` | **対応済み**。全量実配置で`EVENT`と同じ`csl_script_event_{sourceKey}_export` / `episode{N}`契約を確認し、pendingな`RAID_{sourceKey}`候補を生成する（§16.2）。公開IDは生成しない |
 | `OTHER` | `other` | `OTHER` | 未対応（同上） |
 | `CHARACTER`（想定） | `character` | `CHAR_MAIN`/`CHAR_EXTRA`/`CHAR_DATE`/`CHAR_HS`のいずれか | **実装済み**（`docs/architecture/05_Parser/Character_Story_ID_Manifest_Design.md`参照、2026-07-16ユーザー決定。`feature/story-manifest-character-category-support`（PR C）で`scripts/build_story_manifest_candidates.py`・`agents/parser/story_manifest_candidates.py`へ実装した）。raw配置ディレクトリ（`character`/`character_date`）とファイル名サフィックスの組み合わせでprefixを機械判定する |
 
-**候補生成scriptが実際に対応するのは`EVENT`・`RAID`・`CHARACTER`・`CHARACTER_DATE`カテゴリ**である（RAIDは§16.2、`CHARACTER`/`CHARACTER_DATE`は§16.1参照）。`MAIN`/`OTHER`は、派生fileの識別子規則を確定してから対応を追加する（Non-goals、§19、§18 OD-002）。
+**候補生成scriptが実際に対応するのは`MAIN`・`EVENT`・`RAID`・`CHARACTER`・`CHARACTER_DATE`カテゴリ**である（`CHARACTER`/`CHARACTER_DATE`は§16.1、RAIDは§16.2、MAINは§16.3参照）。`OTHER`は、非episode fileの識別子・保持規則を確定してから対応を追加する（Non-goals、§19、§18 OD-002）。
 
 ---
 
@@ -440,7 +440,7 @@ canonicalOrderSource:
 
 # 16. 候補生成script
 
-`scripts/build_story_manifest_candidates.py`は、ローカルのraw DEC配置（`EVENT`・`RAID`・`CHARACTER`・`CHARACTER_DATE`、§6）から`story_manifest.yaml`候補を機械的に生成するCLIである。
+`scripts/build_story_manifest_candidates.py`は、ローカルのraw DEC配置（`MAIN`・`EVENT`・`RAID`・`CHARACTER`・`CHARACTER_DATE`、§6）から`story_manifest.yaml`候補を機械的に生成するCLIである。
 
 - `--raw-root <path>`: raw DECファイル群のルートディレクトリ（例: `EVENT/`の親ディレクトリ）
 - `--output <path>`: 生成したmanifest候補（YAML）の書き出し先（省略時は件数サマリーのみ表示し書き出さない）
@@ -479,6 +479,26 @@ canonicalOrderSource:
 - DEC本文、タイトル、subtitleは読まず、metadataはpendingのままにする
 - MAIN / OTHERはこの対応へ便乗させない。MAINのtutorial派生とOTHERの非episode fileは別の識別子・保持方針を要するため、OD-002の残件として扱う
 
+## 16.3 MAIN対応（`codex/story-manifest-main-support`）
+
+ローカルのMAIN全量配置をfilename-onlyで調査し、3 season / 70 chapter / 213 DECが
+`MAIN{season}/csl_script_mainstory_chapter{chapter}_export/`階層にあり、通常は各章
+`main1`〜`main3`の3 episodeであることを確認した。1章だけ存在する3本の
+`main3_tutorial[数字]`派生は、識別子集合が通常`main3`と重ならず固有内容を持つ。
+このため`auxiliaryFiles`へ退避せず、通常episodeとして保持する。
+
+- `storyId`は既存仕様どおり`MAIN_S{season:02d}_C{chapter:02d}`とする
+- 通常の`mainN`は`episodeId = {storyId}_E{N:02d}`、`episodeNumber = N`とする
+- tutorial派生は通常episodeの直後へsuffix数値順で一意な連番を割り当てる。確認済み配置では`E04`〜`E06`となる。raw側の`main3`との対応は`rawPath` / `sourceFileName`で保持する
+- tutorial連番は処理順であり、作中時系列の`canonicalOrder`を生成・推測しない
+- 未認識DEC、directory / filenameのchapter不一致、通常episodeまたはtutorialの欠番、tutorial親番号の不一致は黙って除外せず、MAIN候補全体をfail-closedで出力しない
+- `publicStoryId` / `publicEpisodeId`、private allocation mapping、confirmed metadataは生成しない
+- DEC本文は候補生成時に読まず、固有内容の確認は設計判断前のlocal集計だけに限定する
+
+filename-only実dry-runではMAIN 70 story / 213 episodeを追加し、全体511 story /
+2,696 episode、manifest schema error 0、既存EVENT 137 / 537・RAID 27 / 62・
+character 277 / 1,884の件数不変を確認した。生成候補はignored workspace限定である。
+
 ---
 
 # 17. 実DEC・実manifestはcommitしない方針
@@ -512,7 +532,7 @@ canonicalOrderSource:
 
 ## OD-002: MAIN/RAID/OTHERカテゴリのraw配置規約
 
-RAIDは全量実配置の確認により解消し、§16.2の候補生成を実装した。MAINはseason/chapter階層とtutorial派生、OTHERは通常episode以外のfileを含むため、単純なEVENT型として取り込まない。両カテゴリは対象fileの識別子・auxiliary保持方針を別途確定してから候補生成scriptを拡張する。
+RAIDは全量実配置の確認により解消し、§16.2の候補生成を実装した。MAINもseason/chapter階層とtutorial派生の保持方針を確定し、§16.3の候補生成を実装した。残るOTHERは通常episode以外のfileを含むため、対象fileの識別子・保持方針を別途確定してから候補生成scriptを拡張する。
 
 ## OD-003: CHARACTERカテゴリのstoryId prefix判定
 

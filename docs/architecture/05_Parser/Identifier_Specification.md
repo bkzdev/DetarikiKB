@@ -202,6 +202,12 @@ MAIN_S01_C02_E01
 メインストーリー 第1期 第2章 エピソード1
 ```
 
+`mainN_tutorial[数字]`形式の派生fileは、固有内容を持つ場合に同じ章の独立した
+episodeとして扱う。内部IDは既存の`..._E{episode}`形式を維持し、通常の
+`mainN` episodeの直後へ一意な連番を割り当てる。raw側で重複する`mainN`の値は
+IDへ再利用せず、manifestの`rawPath` / `sourceFileName`で追跡する。
+`episodeNumber`は処理順であり、`canonicalOrder`の根拠にはしない。
+
 ---
 
 ## 4.3 イベントストーリーID
