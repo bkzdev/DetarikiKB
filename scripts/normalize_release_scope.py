@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -40,13 +41,49 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--story-schema", default=str(DEFAULT_STORY_SCHEMA))
     parser.add_argument("--manifest-schema", default=str(DEFAULT_MANIFEST_SCHEMA))
     parser.add_argument("--report-schema", default=str(DEFAULT_REPORT_SCHEMA))
+    parser.add_argument("--source-sha", required=True)
     parser.add_argument("--quiet", "-q", action="store_true")
     return parser.parse_args()
+
+
+def _git(*arguments: str) -> str:
+    try:
+        result = subprocess.run(
+            ["git", *arguments],
+            cwd=_PROJECT_ROOT,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+    except OSError as exc:
+        raise ValueError("release source git command is unavailable") from exc
+    if result.returncode != 0:
+        raise ValueError("release source git command failed")
+    return result.stdout.strip()
+
+
+def _verify_source_revision(source_sha: str) -> None:
+    _git(
+        "fetch",
+        "--quiet",
+        "--no-tags",
+        "origin",
+        "refs/heads/main:refs/remotes/origin/main",
+    )
+    if _git("status", "--porcelain"):
+        raise ValueError("release source worktree is dirty")
+    if _git("branch", "--show-current") != "main":
+        raise ValueError("release source branch is not main")
+    if _git("rev-parse", "HEAD") != source_sha:
+        raise ValueError("release source does not match HEAD")
+    if _git("rev-parse", "origin/main") != source_sha:
+        raise ValueError("release source does not match origin/main")
 
 
 def main() -> int:
     args = parse_args()
     try:
+        _verify_source_revision(args.source_sha)
         report = normalize_release_scope(
             raw_root=Path(args.raw_root),
             manifest_path=Path(args.manifest),
@@ -56,6 +93,7 @@ def main() -> int:
             story_schema_path=Path(args.story_schema),
             manifest_schema_path=Path(args.manifest_schema),
             report_schema_path=Path(args.report_schema),
+            source_revision=args.source_sha,
         )
     except Exception as exc:
         print(f"[release-scope] failed: {exc}", file=sys.stderr)

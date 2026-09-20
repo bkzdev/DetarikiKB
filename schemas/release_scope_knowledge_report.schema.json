@@ -37,6 +37,7 @@
     "schemaVersion": { "const": "0.1" },
     "documentType": { "const": "release_scope_knowledge_report" },
     "status": { "const": "complete" },
+    "sourceRevision": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
     "normalizationReportSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
     "normalizedTreeSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
     "normalizedDocumentCount": { "$ref": "#/definitions/count" },

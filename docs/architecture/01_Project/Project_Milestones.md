@@ -18,7 +18,7 @@ Raw Scriptを安全に正規化し、根拠・不明情報・内部IDを失わ�
 | M4 Canonical curation | 完了 | ID・profile・story内順序・story間Timelineをreview可能な形で保持できる | release scope全体の確定・保留・conflict・scope差を匿名横断reportで説明可能。全値確定とは分離 |
 | M5 Wiki / 閲覧体験 | 完了 | public-safeなStory/Episode/Character/Evidenceページを一貫生成できる | Phase 1 / 2のpage・index・公開Relationship表示を実装し、合成全体siteの機械検査と人間目視を完了 |
 | M6 公開準備 | 完了 | 公開範囲、ホスティング、更新・rollback、漏えい検査を決定し、限定公開できる | 実データpublic inputの初回配備、desktop / 390px表示、既知正常rollback digestまで確認済み |
-| M7 v1リリースと継続運用 | 進行中 | 再生成手順、品質指標、障害対応、定期更新が運用できる | checklist草案を作成済み。v1判定はM2〜M5の完了確認後に行う |
+| M7 v1リリースと継続運用 | 進行中 | 再生成手順、品質指標、障害対応、定期更新が運用できる | 同一main SHAへM2〜M4、dual public build、hosted CI、rollbackを束縛するrehearsal recordを実装済み。次はmainで実行 |
 
 ## 現在地と直近の区切り
 
@@ -38,7 +38,7 @@ M3は2026-09-17に完了した。M2匿名reportをattestationとして同じ2,84
 
 M4は2026-09-17に完了した。M2 / M3の同一入力digestを固定し、canonical ID、Character Profile、release scope全体のstory内順序、internal story間Timelineを1つの匿名readiness reportへ集約した。4領域はすべてschema / semantic validationを通過し`reviewable: true`、保留を残すため`fullyConfirmed: false`だった。canonical ID保留4,594 entity、観測source character IDの未登録3件、profile保留178 Character、story内順序保留511 story、story間Timelineの現scope外7 nodeを0と見せず保持した。これは「全値を確定する」完了ではなく、「確定と保留をreview可能に保持する」というM4完了条件に対応する。実artifactと詳細reportはignored workspaceに限定した。
 
-M7は`docs/runbooks/V1_Release_Readiness.md`の草案作成により着手した。これは既存runbookの実行順、品質証跡、blocking条件、release record、rollbackへの導線を整理するもので、M2〜M5の未完了項目を完了扱いしない。
+M7は`docs/runbooks/V1_Release_Readiness.md`のchecklistに加え、同一main SHAへM2→M3→M4のsource revision / digest連鎖、dual public build manifest、main CI / Public Build成功run、既知rollback先をfail-closedに束縛する匿名rehearsal recordを実装した。次はmerge後のmain SHAでrecordを生成し、production承認前のcandidate gateを確定する。production dispatchやM7完了判定はこの段階では行わない。
 
 ## 人間確認を求める場面
 

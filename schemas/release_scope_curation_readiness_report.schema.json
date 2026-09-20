@@ -20,6 +20,7 @@
     "schemaVersion": { "const": "0.1" },
     "documentType": { "const": "release_scope_curation_readiness_report" },
     "status": { "const": "complete" },
+    "sourceRevision": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
     "inputDigests": {
       "type": "object",
       "additionalProperties": false,

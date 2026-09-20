@@ -151,6 +151,7 @@ CHAR_HSの動的判定で`exception`になった変種を一括normalizeする�
 uv run python scripts/normalize_release_scope.py \
     --raw-root data/raw \
     --manifest workspace/story_manifest/<manifest>.yaml \
+    --source-sha <40文字のmain SHA> \
     --output workspace/dry_runs/<timestamp>/
 ```
 
@@ -159,7 +160,9 @@ uv run python scripts/normalize_release_scope.py \
 公開する。同じ出力先は隣接lock fileで協調run間を排他し、既存の出力先は上書きしない。
 失敗時は部分出力を公開せず、一時directoryとlockを削除してnon-zeroで終了する。
 
-出力先の`release_scope_normalization_report.json`は、入力件数、category / compatibility
+`--source-sha`はrelease candidateと同じcleanな`main` SHAを指定する。runnerは先に
+`origin/main`をfetchし、current branch、`HEAD`、`origin/main`、clean worktreeを照合してから
+後続M3 / M4 reportへ値を伝播させる。出力先の`release_scope_normalization_report.json`は、入力件数、category / compatibility
 内訳、unknown block / command / character ID、未解決speaker、branch issue、case variant、
 control character除去、H_scene判定の**件数だけ**を持つ匿名集計である。内部ID、raw path、
 本文、個別episodeとの対応は含めない。詳細なNormalized Storyは`normalized/`以下に保持し、

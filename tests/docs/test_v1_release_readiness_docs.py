@@ -36,7 +36,7 @@ def test_release_readiness_covers_required_operational_gates() -> None:
         "## 6. Public release gate",
         "## 7. 障害時とrollback",
         "## 8. 継続運用",
-        "## 9. Release record template",
+        "## 9. Release record",
         "## 10. M7完了条件",
         "unknown、unresolved、conflict、provenanceの黙示破棄",
         "protected environmentで人間がdeployを承認",
@@ -95,8 +95,17 @@ def test_project_status_marks_m7_in_progress_without_completing_it() -> None:
     assert "| M3 Extraction / Merge / 内部KB | 完了 |" in milestones
     assert "M3は2026-09-17に完了した" in milestones
     assert "| M7 v1リリースと継続運用 | 進行中 |" in milestones
-    assert "checklist草案を作成済み" in milestones
-    assert "M2〜M5の完了確認後" in milestones
+    assert "rehearsal recordを実装済み" in milestones
+    assert "production dispatchやM7完了判定はこの段階では行わない" in milestones
 
     assert "codex/v1-release-readiness-checklist" in _read(TASKS)
     assert "docs/runbooks/V1_Release_Readiness.md" in _read(AI_CONTEXT)
+
+
+def test_release_candidate_record_is_local_and_does_not_authorize_deploy() -> None:
+    content = _read(RUNBOOK)
+    assert (PROJECT_ROOT / "scripts/build_v1_release_candidate_record.py").is_file()
+    assert (PROJECT_ROOT / "schemas/v1_release_candidate_record.schema.json").is_file()
+    assert "workspace/dry_runs/" in content
+    assert "candidateGateStatus: pending_human_approval" in content
+    assert "scriptはdispatch、" in content

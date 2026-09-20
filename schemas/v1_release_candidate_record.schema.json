@@ -1,0 +1,116 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://detariki-kb.local/schemas/v1_release_candidate_record.schema.json",
+  "title": "DKB v1 Release Candidate Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "documentType", "classification", "commitAllowed", "status", "candidate", "scope", "qualityEvidence", "publicBuild", "hostedChecks", "production", "finalDecision"],
+  "properties": {
+    "schemaVersion": { "const": "0.1" },
+    "documentType": { "const": "v1_release_candidate_record" },
+    "classification": { "const": "local_internal" },
+    "commitAllowed": { "const": false },
+    "status": { "const": "rehearsal_complete" },
+    "candidate": {
+      "type": "object", "additionalProperties": false,
+      "required": ["sourceSha", "lockSha256", "publicInputSha256", "validatedAt"],
+      "properties": {
+        "sourceSha": { "$ref": "#/definitions/sha1" },
+        "lockSha256": { "$ref": "#/definitions/sha256" },
+        "publicInputSha256": { "$ref": "#/definitions/sha256" },
+        "validatedAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "scope": {
+      "type": "object", "additionalProperties": false,
+      "required": ["categoryEpisodeCounts", "publicInputDocumentType", "publicInputContentType", "exclusions"],
+      "properties": {
+        "categoryEpisodeCounts": {
+          "type": "object", "minProperties": 1, "additionalProperties": false,
+          "properties": {
+            "MAIN": { "$ref": "#/definitions/count" },
+            "EVT": { "$ref": "#/definitions/count" },
+            "RAID": { "$ref": "#/definitions/count" },
+            "OTHER": { "$ref": "#/definitions/count" },
+            "CHAR_MAIN": { "$ref": "#/definitions/count" },
+            "CHAR_EXTRA": { "$ref": "#/definitions/count" },
+            "CHAR_DATE": { "$ref": "#/definitions/count" },
+            "CHAR_HS": { "$ref": "#/definitions/count" }
+          }
+        },
+        "publicInputDocumentType": { "const": "canonical_timeline_public_input" },
+        "publicInputContentType": { "const": "canonical_timeline_public_projection" },
+        "exclusions": {
+          "const": ["raw_and_private_artifacts", "unreviewed_public_content", "production_deploy"]
+        }
+      }
+    },
+    "qualityEvidence": {
+      "type": "object", "additionalProperties": false,
+      "required": ["normalizationReportSha256", "knowledgeReportSha256", "curationReportSha256", "normalizedEpisodeCount", "mergedEntityCount", "curationReviewable", "curationFullyConfirmed"],
+      "properties": {
+        "normalizationReportSha256": { "$ref": "#/definitions/sha256" },
+        "knowledgeReportSha256": { "$ref": "#/definitions/sha256" },
+        "curationReportSha256": { "$ref": "#/definitions/sha256" },
+        "normalizedEpisodeCount": { "$ref": "#/definitions/count" },
+        "mergedEntityCount": { "$ref": "#/definitions/count" },
+        "curationReviewable": { "const": true },
+        "curationFullyConfirmed": { "type": "boolean" }
+      }
+    },
+    "publicBuild": {
+      "type": "object", "additionalProperties": false,
+      "required": ["mkdocsManifestSha256", "zensicalManifestSha256", "mkdocsTreeSha256", "zensicalTreeSha256", "routeCount", "dualBuildStatus"],
+      "properties": {
+        "mkdocsManifestSha256": { "$ref": "#/definitions/sha256" },
+        "zensicalManifestSha256": { "$ref": "#/definitions/sha256" },
+        "mkdocsTreeSha256": { "$ref": "#/definitions/sha256" },
+        "zensicalTreeSha256": { "$ref": "#/definitions/sha256" },
+        "routeCount": { "type": "integer", "minimum": 1 },
+        "dualBuildStatus": { "const": "passed" }
+      }
+    },
+    "hostedChecks": {
+      "type": "object", "additionalProperties": false,
+      "required": ["mainCi", "publicBuild"],
+      "properties": {
+        "mainCi": { "$ref": "#/definitions/workflowEvidence" },
+        "publicBuild": { "$ref": "#/definitions/workflowEvidence" }
+      }
+    },
+    "production": {
+      "type": "object", "additionalProperties": false,
+      "required": ["candidateGateStatus", "knownRollback"],
+      "properties": {
+        "candidateGateStatus": { "const": "pending_human_approval" },
+        "knownRollback": {
+          "type": "object", "additionalProperties": false,
+          "required": ["sourceSha", "treeSha256", "runUrl", "publicUrl"],
+          "properties": {
+            "sourceSha": { "$ref": "#/definitions/sha1" },
+            "treeSha256": { "$ref": "#/definitions/sha256" },
+            "runUrl": { "$ref": "#/definitions/runUrl" },
+            "publicUrl": { "type": "string", "pattern": "^https://[^\\s]+$" }
+          }
+        }
+      }
+    },
+    "finalDecision": { "const": "pending" }
+  },
+  "definitions": {
+    "sha1": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "count": { "type": "integer", "minimum": 0 },
+    "runUrl": { "type": "string", "pattern": "^https://github\\.com/[^/]+/[^/]+/actions/runs/[0-9]+$" },
+    "workflowEvidence": {
+      "type": "object", "additionalProperties": false,
+      "required": ["workflow", "headSha", "conclusion", "runUrl"],
+      "properties": {
+        "workflow": { "enum": ["CI", "Public Build (Reviewed Input, No Deploy)"] },
+        "headSha": { "$ref": "#/definitions/sha1" },
+        "conclusion": { "const": "success" },
+        "runUrl": { "$ref": "#/definitions/runUrl" }
+      }
+    }
+  }
+}

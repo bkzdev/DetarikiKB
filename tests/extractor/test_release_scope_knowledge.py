@@ -79,6 +79,7 @@ def _write_normalization_report(tmp_path: Path, *, normalized_count: int = 3) ->
         "schemaVersion": "0.1",
         "documentType": "release_scope_normalization_report",
         "status": "complete",
+        "sourceRevision": "a" * 40,
         "manifestSha256": "0" * 64,
         "manifestStoryCount": 2,
         "manifestEpisodeCount": 2,
@@ -146,6 +147,7 @@ def test_release_scope_extracts_merges_and_emits_anonymous_report(tmp_path):
     report, output_root = _run(tmp_path)
 
     assert report["normalizedDocumentCount"] == 3
+    assert report["sourceRevision"] == "a" * 40
     assert report["normalizedEpisodeCount"] == 3
     assert report["normalizedCategoryCounts"] == {
         "CHAR_DATE": 0,

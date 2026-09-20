@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "0.1",
+  "documentType": "public_rollback_record",
+  "classification": "public",
+  "commitAllowed": true,
+  "sourceSha": "110241915d187a52ad51f55a5badc358aadcc989",
+  "treeSha256": "eebbd70af0916ec5d7c0108757cd0092ce9b55d1a8a797018d6d11aa26f11c74",
+  "runId": 34742291497,
+  "publicUrl": "https://bkzdev.github.io/DetarikiKB/"
+}

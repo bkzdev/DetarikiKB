@@ -48,6 +48,7 @@ def _normalization_report() -> dict:
         "schemaVersion": "0.1",
         "documentType": "release_scope_normalization_report",
         "status": "complete",
+        "sourceRevision": "a" * 40,
         "manifestSha256": "0" * 64,
         "manifestStoryCount": 1,
         "manifestEpisodeCount": 1,
@@ -86,6 +87,7 @@ def _knowledge_report(normalization_digest: str) -> dict:
         "schemaVersion": "0.1",
         "documentType": "release_scope_knowledge_report",
         "status": "complete",
+        "sourceRevision": "a" * 40,
         "normalizationReportSha256": normalization_digest,
         "normalizedTreeSha256": "1" * 64,
         "normalizedDocumentCount": 1,
@@ -221,6 +223,7 @@ def test_builds_schema_valid_anonymous_reviewable_report(tmp_path):
     )
     assert not list(Draft7Validator(schema).iter_errors(report))
     assert report["reviewable"] is True
+    assert report["sourceRevision"] == "a" * 40
     assert report["fullyConfirmed"] is False
     assert report["canonicalIds"]["totalAssigned"] == 1
     assert report["canonicalIds"]["warningCount"] == 0
@@ -244,6 +247,16 @@ def test_rejects_normalization_digest_mismatch(tmp_path):
         assert "digest does not match" in str(exc)
     else:
         raise AssertionError("digest mismatch must fail closed")
+
+
+def test_rejects_release_report_source_revision_mismatch(tmp_path):
+    inputs = _inputs(tmp_path)
+    knowledge = json.loads(inputs["knowledge_report_path"].read_text(encoding="utf-8"))
+    knowledge["sourceRevision"] = "b" * 40
+    _write_json(inputs["knowledge_report_path"], knowledge)
+
+    with pytest.raises(ValueError, match="source revisions do not match"):
+        build_release_curation_readiness_report(**inputs)
 
 
 def test_rejects_same_size_different_timeline_episode_set(tmp_path):
