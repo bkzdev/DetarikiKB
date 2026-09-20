@@ -1,0 +1,218 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://detariki-kb.local/schemas/release_scope_curation_readiness_report.schema.json",
+  "title": "DKB Release Scope Curation Readiness Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "documentType",
+    "status",
+    "inputDigests",
+    "canonicalIds",
+    "characterProfiles",
+    "storyLocalTimeline",
+    "crossStoryTimeline",
+    "reviewable",
+    "fullyConfirmed"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "0.1" },
+    "documentType": { "const": "release_scope_curation_readiness_report" },
+    "status": { "const": "complete" },
+    "inputDigests": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "normalizationReportSha256",
+        "knowledgeReportSha256",
+        "collectionSha256",
+        "characterDictionarySha256",
+        "characterProfilesSha256",
+        "storyTimelineReportSha256",
+        "canonicalTimelineSha256"
+      ],
+      "properties": {
+        "normalizationReportSha256": { "$ref": "#/definitions/digest" },
+        "knowledgeReportSha256": { "$ref": "#/definitions/digest" },
+        "collectionSha256": { "$ref": "#/definitions/digest" },
+        "characterDictionarySha256": { "$ref": "#/definitions/digest" },
+        "characterProfilesSha256": { "$ref": "#/definitions/digest" },
+        "storyTimelineReportSha256": { "$ref": "#/definitions/digest" },
+        "canonicalTimelineSha256": { "$ref": "#/definitions/digest" }
+      }
+    },
+    "canonicalIds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entityCounts",
+        "assignedCounts",
+        "pendingCounts",
+        "conflictCounts",
+        "totalAssigned",
+        "invalidCount",
+        "duplicateCount",
+        "warningCount",
+        "reviewable",
+        "fullyConfirmed"
+      ],
+      "properties": {
+        "entityCounts": { "$ref": "#/definitions/entityCounts" },
+        "assignedCounts": { "$ref": "#/definitions/entityCounts" },
+        "pendingCounts": { "$ref": "#/definitions/entityCounts" },
+        "conflictCounts": { "$ref": "#/definitions/entityCounts" },
+        "totalAssigned": { "$ref": "#/definitions/count" },
+        "invalidCount": { "$ref": "#/definitions/count" },
+        "duplicateCount": { "$ref": "#/definitions/count" },
+        "warningCount": { "$ref": "#/definitions/count" },
+        "reviewable": { "type": "boolean" },
+        "fullyConfirmed": { "type": "boolean" }
+      },
+      "allOf": [{ "$ref": "#/definitions/fullyConfirmedImpliesReviewable" }]
+    },
+    "characterProfiles": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observedSourceIdCount",
+        "knownSourceIdCount",
+        "unknownSourceIdCount",
+        "dictionaryConfirmedCount",
+        "releaseCanonicalCharacterCount",
+        "confirmedProfileCount",
+        "profileOutsideReleaseCount",
+        "releaseCharacterWithProfileCount",
+        "releaseCharacterPendingProfileCount",
+        "reviewable",
+        "fullyConfirmed"
+      ],
+      "properties": {
+        "observedSourceIdCount": { "$ref": "#/definitions/count" },
+        "knownSourceIdCount": { "$ref": "#/definitions/count" },
+        "unknownSourceIdCount": { "$ref": "#/definitions/count" },
+        "dictionaryConfirmedCount": { "$ref": "#/definitions/count" },
+        "releaseCanonicalCharacterCount": { "$ref": "#/definitions/count" },
+        "confirmedProfileCount": { "$ref": "#/definitions/count" },
+        "profileOutsideReleaseCount": { "$ref": "#/definitions/count" },
+        "releaseCharacterWithProfileCount": { "$ref": "#/definitions/count" },
+        "releaseCharacterPendingProfileCount": { "$ref": "#/definitions/count" },
+        "reviewable": { "type": "boolean" },
+        "fullyConfirmed": { "type": "boolean" }
+      },
+      "allOf": [{ "$ref": "#/definitions/fullyConfirmedImpliesReviewable" }]
+    },
+    "storyLocalTimeline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "inputEpisodeCount",
+        "storyCount",
+        "readyStoryCount",
+        "pendingStoryCount",
+        "comparableEpisodeCount",
+        "missingEpisodeCount",
+        "ambiguousEpisodeCount",
+        "findingCount",
+        "reviewable",
+        "fullyConfirmed"
+      ],
+      "properties": {
+        "inputEpisodeCount": { "$ref": "#/definitions/count" },
+        "storyCount": { "$ref": "#/definitions/count" },
+        "readyStoryCount": { "$ref": "#/definitions/count" },
+        "pendingStoryCount": { "$ref": "#/definitions/count" },
+        "comparableEpisodeCount": { "$ref": "#/definitions/count" },
+        "missingEpisodeCount": { "$ref": "#/definitions/count" },
+        "ambiguousEpisodeCount": { "$ref": "#/definitions/count" },
+        "findingCount": { "$ref": "#/definitions/count" },
+        "reviewable": { "type": "boolean" },
+        "fullyConfirmed": { "type": "boolean" }
+      },
+      "allOf": [{ "$ref": "#/definitions/fullyConfirmedImpliesReviewable" }]
+    },
+    "crossStoryTimeline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "nodeCount",
+        "edgeCount",
+        "relationStateCounts",
+        "reviewStatusCounts",
+        "adoptionStatusCounts",
+        "releaseScopeNodeCount",
+        "outsideReleaseScopeNodeCount",
+        "findingCount",
+        "reviewable",
+        "fullyConfirmed"
+      ],
+      "properties": {
+        "nodeCount": { "$ref": "#/definitions/count" },
+        "edgeCount": { "$ref": "#/definitions/count" },
+        "relationStateCounts": { "$ref": "#/definitions/stateCounts" },
+        "reviewStatusCounts": { "$ref": "#/definitions/stateCounts" },
+        "adoptionStatusCounts": { "$ref": "#/definitions/stateCounts" },
+        "releaseScopeNodeCount": { "$ref": "#/definitions/count" },
+        "outsideReleaseScopeNodeCount": { "$ref": "#/definitions/count" },
+        "findingCount": { "$ref": "#/definitions/count" },
+        "reviewable": { "type": "boolean" },
+        "fullyConfirmed": { "type": "boolean" }
+      },
+      "allOf": [{ "$ref": "#/definitions/fullyConfirmedImpliesReviewable" }]
+    },
+    "reviewable": { "type": "boolean" },
+    "fullyConfirmed": { "type": "boolean" }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "fullyConfirmed": { "const": true } },
+        "required": ["fullyConfirmed"]
+      },
+      "then": {
+        "properties": { "reviewable": { "const": true } }
+      }
+    }
+  ],
+  "definitions": {
+    "fullyConfirmedImpliesReviewable": {
+      "if": {
+        "properties": { "fullyConfirmed": { "const": true } },
+        "required": ["fullyConfirmed"]
+      },
+      "then": {
+        "properties": { "reviewable": { "const": true } }
+      }
+    },
+    "count": { "type": "integer", "minimum": 0 },
+    "digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "stateCounts": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/definitions/count" }
+    },
+    "entityCounts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "characters",
+        "locations",
+        "organizations",
+        "items",
+        "lore",
+        "events",
+        "relationships",
+        "timeline"
+      ],
+      "properties": {
+        "characters": { "$ref": "#/definitions/count" },
+        "locations": { "$ref": "#/definitions/count" },
+        "organizations": { "$ref": "#/definitions/count" },
+        "items": { "$ref": "#/definitions/count" },
+        "lore": { "$ref": "#/definitions/count" },
+        "events": { "$ref": "#/definitions/count" },
+        "relationships": { "$ref": "#/definitions/count" },
+        "timeline": { "$ref": "#/definitions/count" }
+      }
+    }
+  }
+}
