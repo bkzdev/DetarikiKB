@@ -2,7 +2,7 @@
 
 Version: 0.1 Draft
 Status: Draft checklist; release decision not yet made
-Updated: 2026-09-15
+Updated: 2026-09-17
 
 ---
 
@@ -46,6 +46,7 @@ M2〜M5のいずれかが未完了の場合、本checklistの下流をリハー�
 - [ ] `build_release_scope_knowledge.py`をM2匿名reportとともに使い、Stage A / Bをno-clobberで一括再生成する。M2件数・categoryとの一致、入力episode集合との一致、Extraction schema / semantic validation、Stage B invalid / skipped 0、Merged Collection schemaをすべてgateする
 - [ ] [Merged Collection Dry Run](Real_Data_Merged_Collection_Dry_Run.md)に従い、匿名`release_scope_knowledge_report.json`を検証する
 - [ ] Timelineを対象に含める場合は[Timeline Consistency Check](Timeline_Consistency_Check.md)を実行する
+- [ ] [Release Scope Curation Readiness](Release_Scope_Curation_Readiness.md)でcanonical ID / profile / story内・story間Timelineの確定と保留を匿名集約する
 - [ ] Wiki入力を再生成し、[Real Data Wiki Render](Real_Data_Wiki_Render_Dry_Run.md)の検証を実行する
 
 実Normalized Story、Extraction、merged collection、生成Markdown / HTML、review packetは既存方針どおりworkspace限定・非commitとする。
@@ -74,6 +75,16 @@ SourceCandidateを保持した。canonical ID 184件、未解決entity 4,594件�
 3件、special speaker label 403件を匿名集計で保持した。H_sceneは本体74 episode・例外変種
 144 episode、重複除外block 6,017件だった。このbaselineはM3完了の再現性証跡であり、
 最終candidate SHAを固定したrelease gateのチェック済み状態を意味しない。
+
+M4 baseline（2026-09-17）は同じM2 / M3 artifactとdictionary / profile / Timelineを
+横断照合し、4領域すべて`reviewable: true`、全体`fullyConfirmed: false`を確認した。
+canonical ID 184件に対してCharacter 1,344件・Location 3,250件を保留し、canonical
+Character 184件中profile確認済み6件・保留178件、観測source character IDの未登録3件を
+匿名集計した。release scope全体の
+story内順序は2,840 episode / 511 storyでfinding 0・保留511 story、story間Timelineは
+72 node / 40 confirmed edge・semantic finding 0で、現scope内65 node・scope外7 nodeだった。
+未解決を0と見せずreview可能に保持したためM4の完了条件を満たすが、全値確定や最終
+candidate SHAのrelease gate完了を意味しない。
 
 ### 4.2 記録する品質指標
 
