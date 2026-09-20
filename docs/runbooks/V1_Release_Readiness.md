@@ -2,7 +2,7 @@
 
 Version: 0.1 Draft
 Status: Draft checklist; release decision not yet made
-Updated: 2026-09-17
+Updated: 2026-09-21
 
 ---
 
@@ -24,6 +24,15 @@ checklistを開始する前に、次の値を1つのrelease recordへ固定す�
 
 candidate検証中にsource、lock、schema、dictionary、public input、renderer、workflowのいずれかが変わった場合、旧結果を流用せず、新しいcandidate SHAで必要なgateを再実行する。
 
+`schemas/v1_release_candidate_record.schema.json`と
+`scripts/build_v1_release_candidate_record.py`は、この固定を機械的に確認する。scriptはcleanな
+`main`の`HEAD`と`origin/main`が指定SHAに一致する場合だけ動作し、M2→M3→M4のreport
+digest連鎖、同じSHA / lock / public inputから得たMkDocs・Zensical manifest、GitHub上の
+main CI / Public Build成功run、既知正常rollback先を1 recordへ束縛する。GitHub runは
+記録済みrun IDをread-only APIで再取得し、workflow path、main push、head SHA、成功状態を
+照合する。既知rollback runもproduction workflow、source SHA、成功状態を同じAPIで照合する。
+list検索結果や手入力の成功表明だけでは通さない。
+
 ## 3. Milestone依存gate
 
 | Milestone | v1判定前の確認 | 証跡 |
@@ -42,7 +51,7 @@ M2〜M5のいずれかが未完了の場合、本checklistの下流をリハー�
 ### 4.1 Internal pipeline
 
 - [ ] [Real Data Dry Run](Real_Data_Dry_Run.md)の対象範囲と入力を固定する
-- [ ] `normalize_release_scope.py`を使い、manifest全件とH_scene例外変種をno-clobberで一括normalizeする。schema検証失敗・episode ID重複・未処理入力があれば部分出力や完了reportを公開しない
+- [ ] `normalize_release_scope.py --source-sha <candidate SHA>`を使い、manifest全件とH_scene例外変種をno-clobberで一括normalizeする。schema検証失敗・episode ID重複・未処理入力があれば部分出力や完了reportを公開しない
 - [ ] `build_release_scope_knowledge.py`をM2匿名reportとともに使い、Stage A / Bをno-clobberで一括再生成する。M2件数・categoryとの一致、入力episode集合との一致、Extraction schema / semantic validation、Stage B invalid / skipped 0、Merged Collection schemaをすべてgateする
 - [ ] [Merged Collection Dry Run](Real_Data_Merged_Collection_Dry_Run.md)に従い、匿名`release_scope_knowledge_report.json`を検証する
 - [ ] Timelineを対象に含める場合は[Timeline Consistency Check](Timeline_Consistency_Check.md)を実行する
@@ -173,7 +182,43 @@ hosting切替、強制push、履歴削除、未検証artifactの手動uploadを�
 
 時間ベースの棚卸し周期、自動dependency update、自動production deployは未採択である。必要性と運用コストを実測して別途決める。
 
-## 9. Release record template
+## 9. Release record
+
+### 9.1 機械生成するrehearsal record
+
+M2〜M4の実reportとpublic site manifestは非commitのため、rehearsal recordも
+`workspace/dry_runs/`配下へno-clobberで生成し、commitしない。recordは内部ID、raw path、
+本文、private mappingを含めず、digest、匿名件数、run URL、rollback情報だけを保持する。
+生成時点ではproductionを実行・承認せず、`candidateGateStatus: pending_human_approval`、
+`finalDecision: pending`に固定する。したがって、このrecordが生成できてもM7完了や公開承認を
+意味しない。
+
+dual public site manifestは外部fileを入力せず、CLIが候補SHAのcommitted public inputから
+一時directoryへMkDocs / Zensicalをstrict buildし、既存exposure scanを通して生成する。
+M2〜M4 reportはM2生成時に指定した`sourceRevision`を後段へ伝播し、candidate SHAと3 report
+すべてが一致しなければ停止する。
+
+```powershell
+uv run python scripts/build_v1_release_candidate_record.py `
+  --candidate-sha <40文字のmain SHA> `
+  --normalization-report <M2匿名report> `
+  --knowledge-report <M3匿名report> `
+  --curation-report <M4匿名report> `
+  --ci-run-id <main CI run ID> `
+  --public-build-run-id <Public Build run ID> `
+  --validated-at <UTC ISO 8601> `
+  --output workspace/dry_runs/<run>/v1_release_candidate_record.json
+```
+
+候補SHAを変えた場合はmanifestとhosted runを含めてrecordを作り直す。scriptはdispatch、
+deploy、artifact upload、environment承認を行わない。
+
+既知正常rollback先は`config/public_rollback.json`をmachine-readableな正とする。変更は
+production成功runのsource SHA / Zensical tree SHA-256 / Pages URLを確認した別PRでのみ行い、
+release record生成時はschema検証、対象repositoryのPages URL、production workflow成功run、
+source SHAをread-onlyで再照合する。任意のSHA / tree / runをCLI引数で差し替えられない。
+
+### 9.2 最終release判断で補う記録
 
 ```text
 Candidate SHA:

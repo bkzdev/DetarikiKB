@@ -135,6 +135,7 @@ def _run(tmp_path: Path, output_name: str = "release") -> tuple[dict, Path]:
         report_schema_path=(
             PROJECT_ROOT / "schemas" / "release_scope_normalization_report.schema.json"
         ),
+        source_revision="a" * 40,
     )
     return report, output_root
 
@@ -146,6 +147,7 @@ def test_release_scope_normalizes_manifest_and_dynamic_hscene_exception(tmp_path
     assert report["manifestEpisodeCount"] == 2
     assert report["dynamicExceptionEpisodeCount"] == 1
     assert report["normalizedEpisodeCount"] == 3
+    assert report["sourceRevision"] == "a" * 40
     assert report["categoryEpisodeCounts"] == {"CHAR_HS": 2, "EVT": 1}
     assert report["hsceneVariantJudgment"] == {
         "subset": 1,

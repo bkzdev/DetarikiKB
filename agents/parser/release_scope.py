@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import shutil
 import tempfile
 from collections import Counter
@@ -408,6 +409,7 @@ def _normalize_reserved_output(
     commands_path: Path,
     story_validator: Draft7Validator,
     report_validator: Draft7Validator,
+    source_revision: str | None,
 ) -> dict[str, Any]:
     temporary_root = Path(
         tempfile.mkdtemp(prefix=f".{output_root.name}.tmp-", dir=output_root.parent)
@@ -466,6 +468,8 @@ def _normalize_reserved_output(
             },
             **metrics.as_report(),
         }
+        if source_revision is not None:
+            report["sourceRevision"] = source_revision
         report_errors = list(report_validator.iter_errors(report))
         if report_errors:
             raise ValueError(
@@ -501,8 +505,14 @@ def normalize_release_scope(
     story_schema_path: Path,
     manifest_schema_path: Path,
     report_schema_path: Path,
+    source_revision: str | None = None,
 ) -> dict[str, Any]:
     """release scopeをno-clobberな一時dirで全件処理し、成功時だけ公開する。"""
+    if (
+        source_revision is not None
+        and re.fullmatch(r"[0-9a-f]{40}", source_revision) is None
+    ):
+        raise ValueError("source revisionは40文字の小文字SHAである必要があります")
     if not raw_root.is_dir() or not manifest_path.is_file():
         raise FileNotFoundError("raw rootまたはmanifestが見つかりません")
     _validate_manifest(manifest_path, manifest_schema_path)
@@ -522,4 +532,5 @@ def normalize_release_scope(
             commands_path=commands_path,
             story_validator=story_validator,
             report_validator=report_validator,
+            source_revision=source_revision,
         )

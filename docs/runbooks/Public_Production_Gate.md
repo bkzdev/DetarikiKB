@@ -114,3 +114,8 @@ Bの目視マーカーはrehearsal専用だったため、完了後に生成コ�
 | Public URL | <https://bkzdev.github.io/DetarikiKB/> |
 
 preflightと保護environment内のdeployはすべて成功した。公開後にlanding、Canonical Timeline、代表Episodeを確認し、72 episode / 40 confirmed relationの導線、公開用の中立文言、unknown / conflict aggregate 0 / 0、desktop / 390px表示、390pxでの横overflow 0、browser warning / error 0を確認した。合成検証用文言は公開ページに残っていない。本revisionを通常rollbackの新しい既知正常先とする。
+
+この既知正常先のmachine-readableな正は`config/public_rollback.json`とする。M7の
+release candidate recordは同fileをschema検証し、記録されたproduction runのworkflow、
+成功状態、source SHAをGitHub APIで再照合する。tree SHA-256の更新は、この表とproduction
+job summaryの値を確認した別PRで同fileへ反映する。

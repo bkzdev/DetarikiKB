@@ -74,7 +74,7 @@ def _count_story_readiness(report: dict[str, Any]) -> dict[str, int | bool]:
         and not report["skippedInputs"]
         and findings == 0
     )
-    return {
+    report = {
         "inputEpisodeCount": report["validInputs"],
         "storyCount": report["canonicalReadinessStoryCount"],
         "readyStoryCount": report["canonicalReadyStoryCount"],
@@ -88,6 +88,7 @@ def _count_story_readiness(report: dict[str, Any]) -> dict[str, int | bool]:
         "reviewable": structurally_valid,
         "fullyConfirmed": structurally_valid and missing == 0 and ambiguous == 0,
     }
+    return report
 
 
 def build_release_curation_readiness_report(  # noqa: C901
@@ -320,7 +321,7 @@ def build_release_curation_readiness_report(  # noqa: C901
     story_local = _count_story_readiness(story_timeline_report)
 
     sections = [canonical_ids, profiles_summary, story_local, cross_story]
-    return {
+    report = {
         "schemaVersion": "0.1",
         "documentType": "release_scope_curation_readiness_report",
         "status": "complete",
@@ -340,3 +341,10 @@ def build_release_curation_readiness_report(  # noqa: C901
         "reviewable": all(section["reviewable"] for section in sections),
         "fullyConfirmed": all(section["fullyConfirmed"] for section in sections),
     }
+    normalization_revision = normalization_report.get("sourceRevision")
+    knowledge_revision = knowledge_report.get("sourceRevision")
+    if normalization_revision is not None or knowledge_revision is not None:
+        if normalization_revision != knowledge_revision:
+            raise ValueError("release report source revisions do not match")
+        report["sourceRevision"] = normalization_revision
+    return report

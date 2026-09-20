@@ -37,6 +37,7 @@
     "schemaVersion": { "const": "0.1" },
     "documentType": { "const": "release_scope_normalization_report" },
     "status": { "const": "complete" },
+    "sourceRevision": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
     "manifestSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
     "manifestStoryCount": { "$ref": "#/definitions/nonNegativeInteger" },
     "manifestEpisodeCount": { "$ref": "#/definitions/nonNegativeInteger" },
@@ -44,7 +45,7 @@
     "normalizedEpisodeCount": { "$ref": "#/definitions/nonNegativeInteger" },
     "invalidCount": { "const": 0 },
     "skippedCount": { "const": 0 },
-    "categoryEpisodeCounts": { "$ref": "#/definitions/countMap" },
+    "categoryEpisodeCounts": { "$ref": "#/definitions/categoryCountMap" },
     "compatibilityStatusCounts": { "$ref": "#/definitions/countMap" },
     "unknownBlockCount": { "$ref": "#/definitions/nonNegativeInteger" },
     "episodesWithUnknownBlocks": { "$ref": "#/definitions/nonNegativeInteger" },
@@ -76,6 +77,20 @@
     "countMap": {
       "type": "object",
       "additionalProperties": { "$ref": "#/definitions/nonNegativeInteger" }
+    },
+    "categoryCountMap": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "MAIN": { "$ref": "#/definitions/nonNegativeInteger" },
+        "EVT": { "$ref": "#/definitions/nonNegativeInteger" },
+        "RAID": { "$ref": "#/definitions/nonNegativeInteger" },
+        "OTHER": { "$ref": "#/definitions/nonNegativeInteger" },
+        "CHAR_MAIN": { "$ref": "#/definitions/nonNegativeInteger" },
+        "CHAR_EXTRA": { "$ref": "#/definitions/nonNegativeInteger" },
+        "CHAR_DATE": { "$ref": "#/definitions/nonNegativeInteger" },
+        "CHAR_HS": { "$ref": "#/definitions/nonNegativeInteger" }
+      }
     }
   }
 }

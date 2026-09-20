@@ -124,10 +124,11 @@ def _anonymous_report(
     extraction_metrics: Counter[str],
     special_speaker_candidate_count: int,
     merge_report: dict[str, Any],
+    source_revision: str | None,
 ) -> dict[str, Any]:
     canonical = merge_report.get("canonicalIdSummary", {})
     special = merge_report.get("specialSpeakerLabelSummary", {})
-    return {
+    report = {
         "schemaVersion": REPORT_SCHEMA_VERSION,
         "documentType": REPORT_DOCUMENT_TYPE,
         "status": "complete",
@@ -169,6 +170,9 @@ def _anonymous_report(
         },
         "specialSpeakerLabelCount": special.get("total", 0),
     }
+    if source_revision is not None:
+        report["sourceRevision"] = source_revision
+    return report
 
 
 def _decode_normalized_document(
@@ -333,6 +337,7 @@ def _run_reserved(
                 "specialSpeakerCandidates"
             ],
             merge_report=merge_report,
+            source_revision=normalization_report.get("sourceRevision"),
         )
         _validate_document(report, report_validator, "release scope knowledge report")
         with open(
