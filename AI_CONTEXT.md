@@ -131,7 +131,7 @@ Wiki:
 - `docs/architecture/07_Wiki/Public_Site_Manifest_Exposure_Scan.md`（生成siteの全file / route / raw digestをdetached manifestへ固定し、HTML source / 可視text / 属性とsearch dataを正規化scanするfail-closed gate。manifestは`deploymentAuthorized: false`固定）
 - `docs/runbooks/Public_Build_Only.md`（commit済みレビュー済みpublic inputだけを使うread-only GitHub Actions dual-build、detached manifest比較、artifact upload / deploy禁止境界）
 - `docs/runbooks/Public_Production_Gate.md`（main上の完全SHAとcommit済みレビュー済みinputを再検証し、保護`github-pages` environmentの承認後に検証済みZensical siteだけをPagesへ配備するmanual workflow。owner本人のself-reviewを許可するsolo運用でもadmin bypass禁止・main限定を維持し、過去SHAは既知tree digestを必須とする。実入力導入前の既知正常SHAには`legacy-synthetic-rollback`互換経路を残す。2026-09-09のA→B→A rollback rehearsalに続き、2026-09-13に実projectionの初回production deployと公開表示確認を完了し、実データrevisionを通常rollbackの既知正常先として記録した）
-- `docs/runbooks/V1_Release_Readiness.md`（M7の草案。M1〜M6の依存確認、再生成、匿名品質指標、blocking条件、code / public gate、人間承認、rollback、release recordを既存runbookへ接続する。草案作成はM2〜M5完了やv1 release決定を意味しない）
+- `docs/runbooks/V1_Release_Readiness.md`（M7の正典checklist。M1〜M6の依存確認、再生成、匿名品質指標、blocking条件、code / public gate、人間承認、rollback、release recordを接続する。candidate `a18122cb1ae8e196d1b5bdf4de0fc77061453277`で2026-09-21に全gateを満たしv1 release / M7完了）
 - `docs/architecture/07_Wiki/Story_Page_Design.md`（Story page中心構造への設計方針。`render_story_page`/`story_page_path`で実装済み、Episode pageは維持。Story pageは表示可能なStory/Episode SummaryとevidenceRefsを表示済み。Episode pageへの限定表示も`episode-page-summary-evidence-linking`で実装済み）
 
 Runbooks:

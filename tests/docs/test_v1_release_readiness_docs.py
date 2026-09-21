@@ -1,9 +1,15 @@
 """M7 v1 release readiness checklistの軽量な整合性テスト。"""
 
+import json
 from pathlib import Path
+
+from jsonschema import Draft7Validator
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 RUNBOOK = PROJECT_ROOT / "docs" / "runbooks" / "V1_Release_Readiness.md"
+RELEASE_RECORD = PROJECT_ROOT / "docs" / "releases" / "V1_Release_Record_2026-09-21.md"
+ROLLBACK_RECORD = PROJECT_ROOT / "config" / "public_rollback.json"
+ROLLBACK_SCHEMA = PROJECT_ROOT / "schemas" / "public_rollback_record.schema.json"
 MILESTONES = (
     PROJECT_ROOT / "docs" / "architecture" / "01_Project" / "Project_Milestones.md"
 )
@@ -19,10 +25,25 @@ def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def test_release_readiness_is_a_draft_not_a_release_decision() -> None:
+RELEASE_SHA = "a18122cb1ae8e196d1b5bdf4de0fc77061453277"
+LOCAL_REHEARSAL_TREE_SHA256 = (
+    "59e07e25d53fac86bb2356d418f7ca4d86b52d1a0bf8072c0d2e30d95e8e3b66"
+)
+PRODUCTION_TREE_SHA256 = (
+    "eebbd70af0916ec5d7c0108757cd0092ce9b55d1a8a797018d6d11aa26f11c74"
+)
+PRODUCTION_MANIFEST_SHA256 = (
+    "cc578d0a27664bb8821326f6eadad5838beace00e1921eeb410da74a2d8b269f"
+)
+PRODUCTION_RUN_ID = 35585381055
+
+
+def test_release_readiness_records_completed_release_decision() -> None:
     content = _read(RUNBOOK)
-    assert "Status: Draft checklist; release decision not yet made" in content
-    assert "v1 releaseの承認やM2〜M5の完了を意味しない" in content
+    assert "Version: 1.0" in content
+    assert "Status: Released; release decision completed on 2026-09-21" in content
+    assert RELEASE_SHA in content
+    assert "最終判断は`released`、M7は完了" in content
     assert "Final decision: pending | released | rejected" in content
 
 
@@ -90,16 +111,53 @@ def test_m3_release_scope_runner_and_anonymous_report_are_documented() -> None:
     assert "個別ID、path、本文" in dry_run
 
 
-def test_project_status_marks_m7_in_progress_without_completing_it() -> None:
+def test_project_status_marks_m7_and_v1_complete() -> None:
     milestones = _read(MILESTONES)
     assert "| M3 Extraction / Merge / 内部KB | 完了 |" in milestones
     assert "M3は2026-09-17に完了した" in milestones
-    assert "| M7 v1リリースと継続運用 | 進行中 |" in milestones
-    assert "rehearsal recordを実装済み" in milestones
-    assert "production dispatchやM7完了判定はこの段階では行わない" in milestones
+    assert "| M7 v1リリースと継続運用 | 完了 |" in milestones
+    assert "DKB v1を2026-09-21にreleaseした" in milestones
+    assert RELEASE_SHA in milestones
 
-    assert "codex/v1-release-readiness-checklist" in _read(TASKS)
+    assert "codex/v1-release-final-record" in _read(TASKS)
     assert "docs/runbooks/V1_Release_Readiness.md" in _read(AI_CONTEXT)
+
+
+def test_release_record_preserves_public_evidence_and_final_decision() -> None:
+    content = _read(RELEASE_RECORD)
+    for required in (
+        "Status: Released",
+        RELEASE_SHA,
+        "2,840 episode",
+        "4,778 entity",
+        "Dual build route count: 139",
+        str(PRODUCTION_RUN_ID),
+        LOCAL_REHEARSAL_TREE_SHA256,
+        PRODUCTION_MANIFEST_SHA256,
+        PRODUCTION_TREE_SHA256,
+        "8cdc81c9895a242563ddf8a9818dee2c578df303b5b215802eaef74000399f35",
+        "182f170fef1aa29566c7eb64c40fa8549155234d2d00bb49c68ffe9da5a887fe",
+        "f550157140288df0567fbaf4898aec2ca5b8a11c6cb766a125e7ed81f6671d5b",
+        "eb79814e1fd16672f51de67ca2939af371dda1dc22ba6f666fb491c539910ceb",
+        "20521de32fa3a3814efa83a86249acae03b184b89b41856d2308c39707034c80",
+        "MAIN 213、EVENT 537、RAID 62、CHAR_MAIN 216、CHAR_EXTRA 220、",
+        "CHAR_DATE 859、CHAR_HS 733の合計2,840 episode",
+        "4領域すべて`reviewable: true`",
+        "`fullyConfirmed`はfalse",
+        "Final decision: **released**",
+    ):
+        assert required in content
+
+
+def test_machine_readable_rollback_record_matches_release() -> None:
+    record = json.loads(_read(ROLLBACK_RECORD))
+    schema = json.loads(_read(ROLLBACK_SCHEMA))
+    Draft7Validator(schema).validate(record)
+
+    assert record["sourceSha"] == RELEASE_SHA
+    assert record["treeSha256"] == PRODUCTION_TREE_SHA256
+    assert record["runId"] == PRODUCTION_RUN_ID
+    assert record["publicUrl"] == "https://bkzdev.github.io/DetarikiKB/"
 
 
 def test_release_candidate_record_is_local_and_does_not_authorize_deploy() -> None:
