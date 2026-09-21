@@ -84,7 +84,7 @@ gh workflow run public-production-gate.yml --ref main `
 
 # 7. 次工程
 
-A→B→A rehearsalと表示確認、実データpublic projectionのignored workspace生成、push前人間レビュー、専用public inputへの初回昇格、build-only / production workflowの実入力切替、初回実content deployまで完了した。以後の通常rollbackは§8の実データrevisionとtree SHA-256を使い、同じ全gateを通して再配備する。本手順のM7 release checklistへの組み込みは草案整理を先行できるが、v1判定はM2〜M5の残件完了後に行う。
+A→B→A rehearsalと表示確認、実データpublic projectionのignored workspace生成、push前人間レビュー、専用public inputへの初回昇格、build-only / production workflowの実入力切替、初回実content deployまで完了した。以後の通常rollbackは§8の実データrevisionとtree SHA-256を使い、同じ全gateを通して再配備する。本手順は[v1 Release Readiness Checklist](V1_Release_Readiness.md)へ組み込み、2026-09-21のv1 releaseで実行済みである。
 
 # 8. 実施記録
 
@@ -119,3 +119,13 @@ preflightと保護environment内のdeployはすべて成功した。公開後に
 release candidate recordは同fileをschema検証し、記録されたproduction runのworkflow、
 成功状態、source SHAをGitHub APIで再照合する。tree SHA-256の更新は、この表とproduction
 job summaryの値を確認した別PRで同fileへ反映する。
+
+## v1 release deploy（2026-09-21）
+
+candidate `a18122cb1ae8e196d1b5bdf4de0fc77061453277`をrun
+[35585381055](https://github.com/bkzdev/DetarikiKB/actions/runs/35585381055)でdispatchした。
+preflight、dual build / exposure gate、artifact upload、`github-pages` environmentのhuman承認、
+Pages設定検査、deployはすべて成功した。公開後にLanding、Canonical Timeline、代表Story
+5 routeのHTTP 200と人間目視を確認した。production jobが記録したZensical tree SHA-256は
+`eebbd70af0916ec5d7c0108757cd0092ce9b55d1a8a797018d6d11aa26f11c74`であり、
+本revisionを通常rollbackの新しい既知正常先とする。

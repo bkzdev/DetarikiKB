@@ -1,7 +1,7 @@
 # DKB v1 Release Readiness Checklist
 
-Version: 0.1 Draft
-Status: Draft checklist; release decision not yet made
+Version: 1.0
+Status: Released; release decision completed on 2026-09-21
 Updated: 2026-09-21
 
 ---
@@ -10,7 +10,10 @@ Updated: 2026-09-21
 
 本文書は、DKB v1の候補revisionを「再生成でき、品質状態を説明でき、安全に公開・復旧できる」と判定するための入口である。各領域の手順をここに複製せず、既存の正典runbookをどの順番で使い、何をrelease recordに残すかを定める。
 
-このchecklistの作成はM7の着手を意味するが、v1 releaseの承認やM2〜M5の完了を意味しない。現在のmilestone状態は[Project Milestones](../architecture/01_Project/Project_Milestones.md)を正とする。
+このchecklistはM7の判定手順を定め、candidate
+`a18122cb1ae8e196d1b5bdf4de0fc77061453277`で全gateを完了した。最終証跡は
+[v1 Release Record](../releases/V1_Release_Record_2026-09-21.md)、現在のmilestone状態は
+[Project Milestones](../architecture/01_Project/Project_Milestones.md)を正とする。
 
 ## 2. 固定するrelease candidate
 
@@ -50,13 +53,13 @@ M2〜M5のいずれかが未完了の場合、本checklistの下流をリハー�
 
 ### 4.1 Internal pipeline
 
-- [ ] [Real Data Dry Run](Real_Data_Dry_Run.md)の対象範囲と入力を固定する
-- [ ] `normalize_release_scope.py --source-sha <candidate SHA>`を使い、manifest全件とH_scene例外変種をno-clobberで一括normalizeする。schema検証失敗・episode ID重複・未処理入力があれば部分出力や完了reportを公開しない
-- [ ] `build_release_scope_knowledge.py`をM2匿名reportとともに使い、Stage A / Bをno-clobberで一括再生成する。M2件数・categoryとの一致、入力episode集合との一致、Extraction schema / semantic validation、Stage B invalid / skipped 0、Merged Collection schemaをすべてgateする
-- [ ] [Merged Collection Dry Run](Real_Data_Merged_Collection_Dry_Run.md)に従い、匿名`release_scope_knowledge_report.json`を検証する
-- [ ] Timelineを対象に含める場合は[Timeline Consistency Check](Timeline_Consistency_Check.md)を実行する
-- [ ] [Release Scope Curation Readiness](Release_Scope_Curation_Readiness.md)でcanonical ID / profile / story内・story間Timelineの確定と保留を匿名集約する
-- [ ] Wiki入力を再生成し、[Real Data Wiki Render](Real_Data_Wiki_Render_Dry_Run.md)の検証を実行する
+- [x] [Real Data Dry Run](Real_Data_Dry_Run.md)の対象範囲と入力を固定する
+- [x] `normalize_release_scope.py --source-sha <candidate SHA>`を使い、manifest全件とH_scene例外変種をno-clobberで一括normalizeする。schema検証失敗・episode ID重複・未処理入力があれば部分出力や完了reportを公開しない
+- [x] `build_release_scope_knowledge.py`をM2匿名reportとともに使い、Stage A / Bをno-clobberで一括再生成する。M2件数・categoryとの一致、入力episode集合との一致、Extraction schema / semantic validation、Stage B invalid / skipped 0、Merged Collection schemaをすべてgateする
+- [x] [Merged Collection Dry Run](Real_Data_Merged_Collection_Dry_Run.md)に従い、匿名`release_scope_knowledge_report.json`を検証する
+- [x] Timelineを対象に含める場合は[Timeline Consistency Check](Timeline_Consistency_Check.md)を実行する
+- [x] [Release Scope Curation Readiness](Release_Scope_Curation_Readiness.md)でcanonical ID / profile / story内・story間Timelineの確定と保留を匿名集約する
+- [x] Wiki入力を再生成し、[Real Data Wiki Render](Real_Data_Wiki_Render_Dry_Run.md)の検証を実行する
 
 実Normalized Story、Extraction、merged collection、生成Markdown / HTML、review packetは既存方針どおりworkspace限定・非commitとする。
 
@@ -124,13 +127,13 @@ unknownやunresolvedが0でないこと自体は自動的な失敗ではない�
 
 ## 5. Code / documentation gate
 
-- [ ] candidate SHA上の全PRが完了し、意図しない差分がない
-- [ ] [AI PR Playbook](AI_PR_Playbook.md)の標準検証一式がPASS
-- [ ] PR上のCIとpublic-buildがPASS
-- [ ] squash merge後のmainを同期し、main CIとpublic-buildがPASS
-- [ ] `TASKS.md`と[Project Milestones](../architecture/01_Project/Project_Milestones.md)が実状態と一致
-- [ ] release対象外のKnown Issuesが「未解決だが非blocking」である理由を記録
-- [ ] commit禁止物、実データ生成物、secretがGit履歴へ混入していない
+- [x] candidate SHA上の全PRが完了し、意図しない差分がない
+- [x] [AI PR Playbook](AI_PR_Playbook.md)の標準検証一式がPASS
+- [x] PR上のCIとpublic-buildがPASS
+- [x] squash merge後のmainを同期し、main CIとpublic-buildがPASS
+- [x] `TASKS.md`と[Project Milestones](../architecture/01_Project/Project_Milestones.md)が実状態と一致
+- [x] release対象外のKnown Issuesが「未解決だが非blocking」である理由を記録
+- [x] commit禁止物、実データ生成物、secretがGit履歴へ混入していない
 
 ## 6. Public release gate
 
@@ -138,22 +141,22 @@ unknownやunresolvedが0でないこと自体は自動的な失敗ではない�
 
 [Public Build-Only Workflow](Public_Build_Only.md)をcandidate SHAのPRとmain pushで通す。出力は検証用であり、artifact upload・deploy・`publish-ready`化を行わない。
 
-- [ ] commit済みレビュー済みpublic inputだけを使用
-- [ ] MkDocs / Zensical strict buildがPASS
-- [ ] generator別exposure scanがPASS
-- [ ] detached manifestのroute setとsource / lock / input束縛が一致
-- [ ] hosted workflowがprivate artifactやworkspaceを参照していない
+- [x] commit済みレビュー済みpublic inputだけを使用
+- [x] MkDocs / Zensical strict buildがPASS
+- [x] generator別exposure scanがPASS
+- [x] detached manifestのroute setとsource / lock / input束縛が一致
+- [x] hosted workflowがprivate artifactやworkspaceを参照していない
 
 ### 6.2 Production
 
 公開を伴う操作は[Public Production Environment Gate](Public_Production_Gate.md)を正とする。agentは許可されたdispatchのpreflight結果を確認できるが、`github-pages` environmentの人間承認を代行しない。
 
-- [ ] `main`上の完全SHAを指定
-- [ ] preflightでreviewed public input、environment policy、revision、digestをfail-closedに検査
-- [ ] protected environmentで人間がdeployを承認
-- [ ] 承認後、deploy直前にPages設定をread-onlyで検査
-- [ ] deploy後にURL、代表route、desktop / mobile表示を確認
-- [ ] source SHA、public-safeなdigest、workflow run URL、確認日をrelease recordへ保存
+- [x] `main`上の完全SHAを指定
+- [x] preflightでreviewed public input、environment policy、revision、digestをfail-closedに検査
+- [x] protected environmentで人間がdeployを承認
+- [x] 承認後、deploy直前にPages設定をread-onlyで検査
+- [x] deploy後にURL、代表route、desktop / mobile表示を確認
+- [x] source SHA、public-safeなdigest、workflow run URL、確認日をrelease recordへ保存
 
 ## 7. 障害時とrollback
 
@@ -169,7 +172,7 @@ hosting切替、強制push、履歴削除、未検証artifactの手動uploadを�
 
 ## 8. 継続運用
 
-日付だけで無条件に全データを再生成する定期jobはこの草案で追加しない。次の変更triggerごとに必要な検証範囲を選び、結果をPRまたは匿名release recordに追記する。
+日付だけで無条件に全データを再生成する定期jobは追加しない。次の変更triggerごとに必要な検証範囲を選び、結果をPRまたは匿名release recordに追記する。
 
 | Trigger | 必須の再確認 |
 |---|---|
@@ -256,4 +259,5 @@ M7は次の全てを満たしたときだけ完了とする。
 - release recordと既知正常rollback先が更新済み
 - 未解決事項がblocking / non-blockingに分類され、公開範囲と非公開範囲を説明できる
 
-この条件が揃うまで`Status: Draft checklist; release decision not yet made`を維持する。
+candidate `a18122cb1ae8e196d1b5bdf4de0fc77061453277`は2026-09-21に全条件を満たし、
+protected production deployと公開後確認を完了した。最終判断は`released`、M7は完了である。
