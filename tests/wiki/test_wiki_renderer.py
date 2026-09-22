@@ -2290,13 +2290,16 @@ def test_render_story_index_page_lists_all_stories(synthetic_collection):
 
 
 def test_render_story_index_page_shows_episode_counts(synthetic_collection):
-    """Episodes列に、そのstoryに属するepisode数が表示されることを
+    """各StoryのEpisodes項目に、そのstoryのepisode数が表示されることを
     確認する (TEST_S01_C01=5件、TEST_PUBLIC_ID_STORY=2件、
     TEST_SOLO_STORY=1件)。"""
     page = render_story_index_page(synthetic_collection)
-    assert "| [Synthetic Story Title](TEST_S01_C01.md) | 5 |" in page
-    assert "| [Synthetic Public ID Story Title](PUBLIC_TEST_STORY_001.md) | 2 |" in page
-    assert "| [TEST_SOLO_STORY](TEST_SOLO_STORY.md) | 1 |" in page
+    assert "- [Synthetic Story Title](TEST_S01_C01.md)\n    - Episodes: 5" in page
+    assert (
+        "- [Synthetic Public ID Story Title](PUBLIC_TEST_STORY_001.md)\n"
+        "    - Episodes: 2"
+    ) in page
+    assert "- [TEST_SOLO_STORY](TEST_SOLO_STORY.md)\n    - Episodes: 1" in page
 
 
 def test_render_story_index_page_shows_mixed_status_when_episodes_differ(
@@ -2307,11 +2310,14 @@ def test_render_story_index_page_shows_mixed_status_when_episodes_differ(
     title_unknown/deprecated混在、TEST_PUBLIC_ID_STORY: confirmed/pending
     混在)。"""
     page = render_story_index_page(synthetic_collection)
-    assert "| [Synthetic Story Title](TEST_S01_C01.md) | 5 | mixed |" in page
     assert (
-        "| [Synthetic Public ID Story Title](PUBLIC_TEST_STORY_001.md) | 2 | mixed |"
-        in page
-    )
+        "- [Synthetic Story Title](TEST_S01_C01.md)\n"
+        "    - Episodes: 5\n    - Status: mixed"
+    ) in page
+    assert (
+        "- [Synthetic Public ID Story Title](PUBLIC_TEST_STORY_001.md)\n"
+        "    - Episodes: 2\n    - Status: mixed"
+    ) in page
 
 
 def test_render_story_index_page_shows_uniform_status_when_consistent(
@@ -2321,15 +2327,24 @@ def test_render_story_index_page_shows_uniform_status_when_consistent(
     episode1件のみでpending) は、そのまま日本語補足付きで表示される
     ことを確認する。"""
     page = render_story_index_page(synthetic_collection)
-    assert "| [TEST_SOLO_STORY](TEST_SOLO_STORY.md) | 1 | pending（未確認） |" in page
+    assert (
+        "- [TEST_SOLO_STORY](TEST_SOLO_STORY.md)\n"
+        "    - Episodes: 1\n    - Status: pending（未確認）"
+    ) in page
 
 
-def test_render_story_index_page_column_header(synthetic_collection):
-    """Story indexの列がStory/Episodes/Status/Categoryの4列に
-    なったことを確認する (feature/wiki-story-page-renderer)。"""
+def test_render_story_index_page_uses_grouped_details(synthetic_collection):
+    """横長の表を作らず、各Storyの値を同じ項目にまとめる。"""
     page = render_story_index_page(synthetic_collection)
-    header_line = next(line for line in page.splitlines() if line.startswith("| Story"))
-    assert header_line == "| Story | Episodes | Status | Category |"
+    assert "| Story | Episodes | Status | Category |" not in page
+    assert (
+        "- [Synthetic Story Title](TEST_S01_C01.md)\n"
+        "    - Episodes: 5\n"
+        "    - Status: mixed\n"
+        "    - Category: MAIN"
+    ) in page
+    assert page.index("TEST_S01_C01.md") < page.index("PUBLIC_TEST_STORY_001.md")
+    assert page.index("PUBLIC_TEST_STORY_001.md") < page.index("TEST_SOLO_STORY.md")
 
 
 def test_render_story_index_page_no_double_prefix(synthetic_collection):
@@ -2360,9 +2375,8 @@ def test_render_story_index_page_falls_back_to_story_id_without_title_or_public_
     assert "[TEST_SOLO_STORY](TEST_SOLO_STORY.md)" in page
 
 
-def test_render_story_index_page_escapes_bracket_and_pipe_in_link_text():
-    """storyTitleに`[`/`]`/`|`が含まれる場合でも、tableとlink構造が
-    壊れないよう最小限のMarkdown escapeを行うことを確認する
+def test_render_story_index_page_escapes_untrusted_inline_text():
+    """storyTitleやcategoryにMarkdown/HTMLが含まれても構造を保つ。
     (Story link textはstoryTitle優先のため、storyTitle側で確認する)。"""
     collection = {
         "sourceDocuments": [
@@ -2371,15 +2385,34 @@ def test_render_story_index_page_escapes_bracket_and_pipe_in_link_text():
                 "documentId": "EP_TEST_ESCAPE",
                 "storyId": "TEST_ESCAPE",
                 "episodeId": "EP_TEST_ESCAPE",
-                "storyCategory": "MAIN",
-                "storyTitle": "Chapter [1] | Special",
+                "storyTitle": "Chapter [1] | <script>",
                 "metadataStatus": "confirmed",
+                "storyCategory": "MAIN *unsafe* <img>",
             }
         ],
         "report": {},
     }
     page = render_story_index_page(collection)
-    assert "[Chapter \\[1\\] \\| Special](TEST_ESCAPE.md)" in page
+    assert "[Chapter \\[1\\] \\| &lt;script&gt;](TEST_ESCAPE.md)" in page
+    assert "Category: MAIN \\*unsafe\\* &lt;img&gt;" in page
+    assert "<script>" not in page
+    assert "<img>" not in page
+
+
+def test_render_story_index_page_escapes_unknown_metadata_status(
+    synthetic_collection,
+):
+    solo_document = next(
+        doc
+        for doc in synthetic_collection["sourceDocuments"]
+        if doc["storyId"] == "TEST_SOLO_STORY"
+    )
+    solo_document["metadataStatus"] = "<img src=x onerror=alert(1)>"
+
+    page = render_story_index_page(synthetic_collection)
+
+    assert "Status: &lt;img src=x onerror=alert\\(1\\)&gt;" in page
+    assert "<img" not in page
 
 
 def test_render_episode_page_summary_is_bullet_list_not_table(synthetic_collection):

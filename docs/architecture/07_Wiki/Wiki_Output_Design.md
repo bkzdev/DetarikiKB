@@ -178,6 +178,8 @@ Relationship page（独立ページ）は現時点では見送り、Character/Or
 
 **Episode link text改善（`feature/wiki-story-index-link-text-improvement`で実装）**: manual visual review 001/002で「Episode pageへのリンクテキストがepisodeId中心で分かりにくい」と指摘されたため、Episode列自体を`displayTitle > episodeSubtitle > storyTitle > episodeId`優先の人間向けタイトルへのリンクへ変更した（`_episode_link_text`/`_get_episode_display_title`/`_first_non_blank`）。空文字列・whitespaceのみの値は未登録として次の優先順位へfallbackする。リンク先URL・ファイル名（`stories/{episodeId}.md`）・`episodeId`自体は一切変更していない。あわせて、Episode link textと内容が重複していた独立の「Display Title」列を廃止し、`report.inputResults`由来のinput validation status（valid/invalid、Episode page側のValidation sectionで引き続き確認可能）をmetadataStatus表示（`_format_metadata_status`、PR #62から継続）へ置き換えた。表構成は`| Story ID | Episode | Status | Category |`の4列（storyIdはcode表示）。titleに`|`/`[`/`]`が含まれる場合に備え、`_escape_markdown_table_text`で最小限のMarkdown escapeを行う。storyId/episodeId体系・URL・ファイル名は本PRの対象外（別PRで扱う）。
 
+**Story index狭幅表示（`codex/wiki-story-index-narrow-layout`で実装）**: 上記の4列表は旧実装の経緯であり、現行のStory indexは1 storyごとにStory pageリンクを親項目、Episodes件数・Status・Categoryを子項目とする縦並びで表示する。storyの出現順、title fallback、publicStoryId優先のリンク先、statusの`mixed`判定を維持する。Episode一覧は引き続きStory pageに置く。
+
 ## 9.3 Episode page
 
 - source: 個別`entities.*`のうち、`sourceCandidates[].episodeId`がこのエピソードに一致するもの（登場キャラクター・場所等の索引として）
