@@ -1562,17 +1562,14 @@ def render_story_index_page(collection: dict[str, Any]) -> str:
         lines.append("")
         return "\n".join(lines).rstrip() + "\n"
 
-    # 列数を最小限にする (manual visual review 001での「表が横長すぎる」
-    # 指摘を踏襲)。Story単位の行にし、Episode一覧・Episode単位の
-    # displayTitle等はStory page側で確認する。
-    lines.append("| Story | Episodes | Status | Category |")
-    lines.append("|---|---:|---|---|")
+    # Story単位の一覧を狭幅でも読める縦並びにする。Episode一覧・
+    # Episode単位のdisplayTitle等はStory page側で確認する。
     for story_id, episodes in _group_source_documents_by_story(source_documents):
         sorted_episodes = _sorted_story_episodes(episodes)
         public_story_id = _resolve_group_public_story_id(sorted_episodes)
         story_title = _resolve_group_story_title(sorted_episodes)
         display_title = _story_display_title(story_id, story_title, public_story_id)
-        link_text = _escape_markdown_table_text(display_title)
+        link_text = _escape_markdown_inline_text(display_title)
         story_path = story_page_path(story_id, public_story_id)
         # stories/index.md自身がstories/配下にあるため、story_page_pathが
         # 返す"stories/{id}.md"をそのままリンク先にすると
@@ -1583,11 +1580,13 @@ def render_story_index_page(collection: dict[str, Any]) -> str:
             _resolve_group_metadata_status(sorted_episodes)
         )
         category = _resolve_group_category(sorted_episodes)
-        lines.append(
-            f"| [{link_text}]({story_filename}) "
-            f"| {len(sorted_episodes)} "
-            f"| {status} "
-            f"| {category} |"
+        lines.extend(
+            [
+                f"- [{link_text}]({story_filename})",
+                f"    - Episodes: {len(sorted_episodes)}",
+                f"    - Status: {_escape_markdown_inline_text(status)}",
+                f"    - Category: {_escape_markdown_inline_text(category)}",
+            ]
         )
     lines.append("")
 
