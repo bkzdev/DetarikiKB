@@ -1093,12 +1093,9 @@ def _render_overview_section(collection: dict[str, Any]) -> list[str]:
 def _render_entity_type_sections(collection: dict[str, Any]) -> tuple[list[str], int]:
     """entity種別ごとのunresolved一覧セクション群を組み立てる。
 
-    Canonical ID列を持つ表を、種別 (Character/Location/...) ごとに出力
-    する。戻り値は (行リスト, 総unresolved件数)。件数が0の種別はセクション
-    ごと省略する。EvidenceとSource Candidatesはそれぞれ独立した列だと
-    横長になる (manual visual review 001での指摘) ため、「Refs」列へ
-    「evidence件数/source candidate件数」の形式で統合する
-    (件数情報自体は失わない)。
+    種別 (Character/Location/...) ごとに、1 entityを1つの入れ子箇条書き
+    で出力する。戻り値は (行リスト, 総unresolved件数)。件数が0の種別は
+    セクションごと省略する。Refsは「evidence件数/source candidate件数」。
     """
     entities = collection.get("entities", {}) or {}
     lines: list[str] = []
@@ -1120,17 +1117,20 @@ def _render_entity_type_sections(collection: dict[str, Any]) -> tuple[list[str],
         entity_type = ENTITY_KEY_TO_TYPE[entity_key]
         lines.append(f"## {entity_type} ({len(unresolved)} 件)")
         lines.append("")
-        lines.append("| Display Name | Entity ID | Status | Canonical ID | Refs |")
-        lines.append("|---|---|---|---|---:|")
         for e in unresolved:
             evidence_count = len(e.get("evidenceRefs") or [])
             candidate_count = len(e.get("sourceCandidates") or [])
-            lines.append(
-                f"| {e.get('displayName') or '(不明)'} "
-                f"| {_format_code(e.get('id'))} "
-                f"| {e.get('status', '')} "
-                f"| {_format_code(e.get('canonicalId'))} "
-                f"| {evidence_count}/{candidate_count} |"
+            display_name = _escape_markdown_inline_text(
+                e.get("displayName") or "(不明)"
+            )
+            lines.extend(
+                [
+                    f"- **{display_name}**",
+                    f"    - Entity ID: {_format_code(e.get('id'))}",
+                    f"    - Status: {e.get('status', '')}",
+                    f"    - Canonical ID: {_format_code(e.get('canonicalId'))}",
+                    f"    - Refs: {evidence_count}/{candidate_count}",
+                ]
             )
         lines.append("")
     return lines, total_unresolved
@@ -1277,17 +1277,25 @@ def _render_special_speaker_labels_section(collection: dict[str, Any]) -> list[s
         lines.append("")
         return lines
 
-    lines.append("| Label | Type | Inferred | Refs |")
-    lines.append("|---|---|---|---:|")
     for label_entity in labels:
         evidence_count = len(label_entity.get("evidenceRefs") or [])
         candidate_count = len(label_entity.get("sourceCandidates") or [])
-        inferred = _format_inferred_speakers(label_entity.get("inferredSpeakers") or [])
-        lines.append(
-            f"| {label_entity.get('rawLabel') or '(不明)'} "
-            f"| {label_entity.get('labelType', '')} "
-            f"| {inferred} "
-            f"| {evidence_count}/{candidate_count} |"
+        raw_label = _escape_markdown_inline_text(
+            label_entity.get("rawLabel") or "(不明)"
+        )
+        label_type = _escape_markdown_inline_text(
+            str(label_entity.get("labelType") or "")
+        )
+        inferred = _escape_markdown_inline_text(
+            _format_inferred_speakers(label_entity.get("inferredSpeakers") or [])
+        )
+        lines.extend(
+            [
+                f"- **{raw_label}**",
+                f"    - Type: {label_type}",
+                f"    - Inferred: {inferred}",
+                f"    - Refs: {evidence_count}/{candidate_count}",
+            ]
         )
     lines.append("")
     return lines

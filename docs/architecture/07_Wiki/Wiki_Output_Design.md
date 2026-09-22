@@ -351,6 +351,8 @@ defense-in-depthとして公開v1のtype / taxonomyState / sourceType / directio
 
 **Special Speaker Labels section（Speaker Label Normalization設計）**: `name`コマンド/`@ChTalkName`由来のspeaker labelのうち`labelType`が`single_speaker`以外のもの（speaker group・modifier付き・generic/ambiguousな表記）は、`entities.characters`ではなく`entities.specialSpeakerLabels`（`docs/architecture/06_AI/Merged_Knowledge_Design.md` §7.5）から取得し、entity種別別セクション（通常のUnresolved Characters）とは別に「Special Speaker Labels」sectionとして一覧表示する。Character merged entityと構造的に分離されているため、通常セクションへの重複表示は発生しない。表はLabel/Type/Inferred（confirmed character dictionaryとの参考照合結果のmatchedNameのみ、characterId/matchStatus自体は表示しない）/Refs（evidence件数/source candidate件数）の4列のみで、自動でconfirmed character解決をしたことを示す表示（`confirmed`という語）は一切出さない。Characters index page・Character page（個別ページ）にはspecial speaker labelは一切現れない。§9.13〜9.15で独立ページとして構想していたConflict/Relationship type/Canonical ID summaryは、今回はこの単一のUnresolved reportページ内のセクションとして統合実装した（独立ページとして分離するかは未確定、Phase 2以降で再検討）。evidenceRefs/sourceCandidatesは件数のみ表示し、元セリフ全文・raw payloadは一切含めない。**Refs列統合**: manual visual review 001で「entity種別別表が横長すぎる」と指摘されたため、Evidence件数とSource Candidates件数の独立2列を「Refs」列（`evidence件数/source candidate件数`形式、例: `1/1`）へ統合した（元の6列表から5列表へ、件数情報自体は失っていない）。運用上重要な情報（Canonical ID等）は引き続き列として残す。
 
+**狭幅表示の改善（`codex/wiki-unresolved-report-readability`）**: entity種別別一覧とSpecial Speaker Labelsの横長表を、1件ごとに名称を親項目、残る値を子項目とする入れ子箇条書きへ変更した。entityの表示順、Entity ID、Status、Canonical ID、Refs、speaker labelのType、Inferredを維持する。Refsは引き続き`evidence件数/source candidate件数`で、個別evidence IDやraw payloadは表示しない。Overviewや各Summaryの短い集計表は維持する。前段落の表・列数は旧実装の経緯である。
+
 ## 9.13 Conflict report page
 
 - source: `report.conflictCounts`
