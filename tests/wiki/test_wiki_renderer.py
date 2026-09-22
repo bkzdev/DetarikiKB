@@ -2000,9 +2000,12 @@ def test_render_unresolved_report_includes_non_merged_status_character(
     report = render_unresolved_report(synthetic_collection)
     assert "CHAR_TEST_DEPRECATED" in report
     assert (
-        "| Test Character Deprecated | `CHAR_TEST_DEPRECATED` | deprecated "
-        "| `CHAR_TEST_DEPRECATED` | 1/1 |" in report
-    )
+        "- **Test Character Deprecated**\n"
+        "    - Entity ID: `CHAR_TEST_DEPRECATED`\n"
+        "    - Status: deprecated\n"
+        "    - Canonical ID: `CHAR_TEST_DEPRECATED`\n"
+        "    - Refs: 1/1"
+    ) in report
 
 
 def test_render_unresolved_report_has_front_matter(synthetic_collection):
@@ -2021,17 +2024,51 @@ def test_render_unresolved_report_overview_section(synthetic_collection):
     assert "| Duplicate canonical IDs | 0 |" in report
 
 
-def test_render_unresolved_report_entity_table_columns(synthetic_collection):
-    """列数を最小限にするため (manual visual review 001での指摘)、
-    EvidenceとSource Candidatesは「Refs」列へ「evidence件数/
-    source candidate件数」の形式で統合する。"""
+def test_render_unresolved_report_entity_details_are_grouped(synthetic_collection):
+    """Entityごとに全てのreview情報を保持し、横長の表を作らない。"""
     report = render_unresolved_report(synthetic_collection)
-    assert "| Display Name | Entity ID | Status | Canonical ID | Refs |" in report
-    # canonicalId未確定の場合は「未登録」が表示される
     assert (
-        "| Test Character Unknown | `UNRESOLVED_CHAR_TEST_0001` "
-        "| unresolved | 未登録 | 1/1 |" in report
+        "- **Test Character Unknown**\n"
+        "    - Entity ID: `UNRESOLVED_CHAR_TEST_0001`\n"
+        "    - Status: unresolved\n"
+        "    - Canonical ID: 未登録\n"
+        "    - Refs: 1/1"
+    ) in report
+    assert "| Display Name | Entity ID | Status | Canonical ID | Refs |" not in report
+
+
+def test_render_unresolved_report_list_labels_escape_markdown(synthetic_collection):
+    unresolved_character = next(
+        entity
+        for entity in synthetic_collection["entities"]["characters"]
+        if entity["id"] == "UNRESOLVED_CHAR_TEST_0001"
     )
+    unresolved_character["displayName"] = "Test *Name* <script>"
+    speaker = synthetic_collection["entities"]["specialSpeakerLabels"][0]
+    speaker["rawLabel"] = "Speaker [Test] <script>"
+    speaker["labelType"] = "<img src=x onerror=alert(1)>"
+
+    report = render_unresolved_report(synthetic_collection)
+
+    assert "- **Test \\*Name\\* &lt;script&gt;**" in report
+    assert "- **Speaker \\[Test\\] &lt;script&gt;**" in report
+    assert r"    - Type: &lt;img src=x onerror=alert\(1\)&gt;" in report
+    assert "<script>" not in report
+    assert "<img" not in report
+
+
+def test_render_unresolved_report_preserves_entity_and_label_order(
+    synthetic_collection,
+):
+    report = render_unresolved_report(synthetic_collection)
+    first_entity = report.index("- **Test Character Unknown**")
+    second_entity = report.index("- **Test Character Deprecated**")
+    first_label = report.index("- **Test Speaker A ＆ Test Speaker B**")
+    second_label = report.index("- **？？？**")
+
+    assert first_entity < second_entity < first_label < second_label
+    assert report.index("Entity ID: `UNRESOLVED_CHAR_TEST_0001`") < second_entity
+    assert report.index("Type: speaker_group") < second_label
 
 
 def test_render_unresolved_report_conflict_summary(synthetic_collection):
@@ -2118,11 +2155,11 @@ def test_render_unresolved_report_has_special_speaker_labels_section(
     assert "## Special Speaker Labels" in report
 
 
-def test_render_unresolved_report_special_speaker_labels_table_columns(
+def test_render_unresolved_report_special_speaker_labels_use_grouped_details(
     synthetic_collection,
 ):
     report = render_unresolved_report(synthetic_collection)
-    assert "| Label | Type | Inferred | Refs |" in report
+    assert "| Label | Type | Inferred | Refs |" not in report
 
 
 def test_render_unresolved_report_special_speaker_labels_lists_speaker_group(
@@ -2130,16 +2167,20 @@ def test_render_unresolved_report_special_speaker_labels_lists_speaker_group(
 ):
     report = render_unresolved_report(synthetic_collection)
     assert (
-        "| Test Speaker A ＆ Test Speaker B | speaker_group "
-        "| Test Speaker A | 1/1 |" in report
-    )
+        "- **Test Speaker A ＆ Test Speaker B**\n"
+        "    - Type: speaker_group\n"
+        "    - Inferred: Test Speaker A\n"
+        "    - Refs: 1/1"
+    ) in report
 
 
 def test_render_unresolved_report_special_speaker_labels_lists_generic_speaker(
     synthetic_collection,
 ):
     report = render_unresolved_report(synthetic_collection)
-    assert "| ？？？ | generic_speaker | - | 1/1 |" in report
+    assert (
+        "- **？？？**\n    - Type: generic_speaker\n    - Inferred: -\n    - Refs: 1/1"
+    ) in report
 
 
 def test_render_unresolved_report_special_speaker_labels_not_in_character_section(
@@ -2156,10 +2197,10 @@ def test_render_unresolved_report_special_speaker_labels_not_in_character_sectio
     assert "？？？" not in character_section
 
 
-def test_render_unresolved_report_special_speaker_labels_table_never_shows_confirmed(
+def test_render_unresolved_report_special_speaker_labels_never_shows_confirmed(
     synthetic_collection,
 ):
-    """Special Speaker Labelsのtable行 (Label/Type/Inferred/Refs) には、
+    """Special Speaker Labelsの一覧には、
     値としての"confirmed"が現れないことを確認する (自動でconfirmed
     character解決はしない方針。説明文中の"confirmed characterへ解決..."
     という地の文は対象外)。"""
@@ -2167,9 +2208,11 @@ def test_render_unresolved_report_special_speaker_labels_table_never_shows_confi
     special_section_start = report.index("## Special Speaker Labels")
     conflict_section_start = report.index("## Conflict Summary")
     special_section = report[special_section_start:conflict_section_start]
-    table_rows = [line for line in special_section.splitlines() if line.startswith("|")]
-    assert table_rows, "table rows should be present"
-    assert not any("confirmed" in row for row in table_rows)
+    detail_rows = [
+        line for line in special_section.splitlines() if line.startswith("    -")
+    ]
+    assert detail_rows
+    assert not any("confirmed" in row for row in detail_rows)
 
 
 def test_render_unresolved_report_special_speaker_labels_empty_shows_placeholder():
