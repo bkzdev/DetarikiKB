@@ -973,7 +973,11 @@ def test_render_organization_index_is_sorted_and_excludes_unresolved():
     assert "[Test Organization Beta](ORG_TEST_BETA.md)" in page
     assert "ORG_ENTITY_TEST_UNRESOLVED" not in page
     assert page.index("Test Organization Alpha") < page.index("Test Organization Beta")
-    assert "| [Test Organization Alpha](ORG_TEST_ALPHA.md) | 1 |" in page
+    assert (
+        "- [Test Organization Alpha](ORG_TEST_ALPHA.md)\n"
+        "    - Relationships: 1\n"
+        "    - ID: `ORG_TEST_ALPHA`" in page
+    )
 
 
 def test_render_organization_index_empty_list_shows_message():
@@ -1207,8 +1211,9 @@ def test_render_character_index_page_shows_profile_registered_character(
     page = render_character_index_page(characters, character_profiles_index)
     assert "[Test Character Rain](CHAR_TEST_RAIN.md)" in page
     assert (
-        "| [Test Character Rain](CHAR_TEST_RAIN.md) | 登録あり | `CHAR_TEST_RAIN` |"
-        in page
+        "- [Test Character Rain](CHAR_TEST_RAIN.md)\n"
+        "    - Profile: 登録あり\n"
+        "    - ID: `CHAR_TEST_RAIN`" in page
     )
 
 
@@ -1218,8 +1223,9 @@ def test_render_character_index_page_shows_profile_unregistered_character(
     characters = synthetic_collection["entities"]["characters"]
     page = render_character_index_page(characters, character_profiles_index)
     assert (
-        "| [Test Character Conflict](CHAR_TEST_CONFLICT.md) | 未登録 "
-        "| `CHAR_TEST_CONFLICT` |" in page
+        "- [Test Character Conflict](CHAR_TEST_CONFLICT.md)\n"
+        "    - Profile: 未登録\n"
+        "    - ID: `CHAR_TEST_CONFLICT`" in page
     )
 
 
@@ -1429,6 +1435,11 @@ def test_render_location_index_is_sorted_and_excludes_unresolved(resolved_locati
     page = render_location_index_page([later, unresolved, resolved_location])
     assert "| Location pages | 2 |" in page
     assert "[Test Plaza](LOC_TEST_PLAZA.md)" in page
+    assert (
+        "- [Test Plaza](LOC_TEST_PLAZA.md)\n"
+        "    - Scenes: 2\n"
+        "    - ID: `LOC_TEST_PLAZA`" in page
+    )
     assert page.index("Test Plaza") < page.index("Test Zoo")
     assert "Hidden Place" not in page
     assert "[Unresolved report](../reports/unresolved.md)" in page
@@ -1639,6 +1650,9 @@ def test_render_item_index_is_sorted_escaped_and_excludes_unresolved(resolved_it
     page = render_item_index_page([later, unresolved, resolved_item])
     assert "| Item pages | 2 |" in page
     assert "[Test Compass](ITEM_TEST_COMPASS.md)" in page
+    assert (
+        "- [Test Compass](ITEM_TEST_COMPASS.md)\n    - ID: `ITEM_TEST_COMPASS`" in page
+    )
     assert r"[Test \| \[Zeta\]](ITEM_TEST_ZETA.md)" in page
     assert page.index("Test Compass") < page.index(r"Test \| \[Zeta\]")
     assert "Hidden Item" not in page
@@ -1761,6 +1775,7 @@ def test_render_lore_index_is_sorted_escaped_and_excludes_unresolved(resolved_lo
     page = render_lore_index_page([later, unresolved, resolved_lore])
     assert "| Lore pages | 2 |" in page
     assert "[Test Aether](LORE_TEST_AETHER.md)" in page
+    assert "- [Test Aether](LORE_TEST_AETHER.md)\n    - ID: `LORE_TEST_AETHER`" in page
     assert r"[Test \| \[Zeta\]](LORE_TEST_ZETA.md)" in page
     assert page.index("Test Aether") < page.index(r"Test \| \[Zeta\]")
     assert "Hidden Lore" not in page
@@ -1930,7 +1945,12 @@ def test_render_event_index_is_sorted_escaped_and_excludes_unresolved(resolved_e
     assert "| Event pages | 2 |" in page
     assert "[Test Launch](EVENT_TEST_LAUNCH.md)" in page
     assert r"[Test \| \[Zeta\]](EVENT_TEST_ZETA.md)" in page
-    assert "| 2 | 1 | `EVENT_TEST_ZETA` |" in page
+    assert (
+        "- [Test \\| \\[Zeta\\]](EVENT_TEST_ZETA.md)\n"
+        "    - Participants: 2\n"
+        "    - Locations: 1\n"
+        "    - ID: `EVENT_TEST_ZETA`" in page
+    )
     assert page.index("Test Launch") < page.index(r"Test \| \[Zeta\]")
     assert "Hidden Event" not in page
     assert "[Unresolved report](../reports/unresolved.md)" in page

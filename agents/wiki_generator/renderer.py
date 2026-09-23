@@ -1622,6 +1622,25 @@ def _has_registered_profile(
     return character_profiles.get(canonical_id) is not None
 
 
+def _render_entity_index_entry(
+    entity: dict[str, Any],
+    path_resolver: EntityPathResolver,
+    details: list[tuple[str, str | int]],
+) -> list[str]:
+    """index内の1 entityを、狭幅でも読める縦並びで表示する。"""
+    canonical_id = entity["canonicalId"]
+    display_name = _escape_markdown_inline_text(
+        entity.get("displayName") or canonical_id
+    )
+    path = path_resolver(entity)
+    filename = path.rsplit("/", 1)[-1] if path else None
+    name = f"[{display_name}]({filename})" if filename else display_name
+    lines = [f"- {name}"]
+    lines.extend(f"    - {label}: {value}" for label, value in details)
+    lines.append(f"    - ID: `{canonical_id}`")
+    return lines
+
+
 def render_character_index_page(
     characters: list[dict[str, Any]],
     character_profiles: CharacterProfileIndex | None = None,
@@ -1631,9 +1650,7 @@ def render_character_index_page(
 
     `is_page_eligible`がTrueのcharacterのみを一覧表示する。unresolved・
     canonicalId未確定・status不一致のcharacterはここには載せず、
-    `reports/unresolved.md`側でのみ確認できるようにする (§5)。表は列数を
-    抑え、横スクロールが発生しにくい構成にする
-    （詳細な可読性改善は`feature/wiki-renderer-readability-improvements`）。
+    `reports/unresolved.md`側でのみ確認できるようにする (§5)。
     """
     eligible = sorted(
         (c for c in characters if is_page_eligible(c)),
@@ -1670,25 +1687,17 @@ def render_character_index_page(
         lines.append("")
         return "\n".join(lines).rstrip() + "\n"
 
-    lines.append("| Character | Profile | ID |")
-    lines.append("|---|---|---|")
     for entity in eligible:
-        canonical_id = entity.get("canonicalId")
-        display_name = entity.get("displayName") or canonical_id
-        display_name = _escape_markdown_table_text(display_name)
-        page_path = character_page_path(entity)
-        # characters/index.md自身がcharacters/配下にあるため、
-        # character_page_pathが返す"characters/{canonicalId}.md"を
-        # そのままリンク先にすると"characters/characters/..."という
-        # 壊れた相対リンクになる (stories/index.mdと同じ既知の対策)。
-        filename = page_path.rsplit("/", 1)[-1] if page_path else None
-        name_link = f"[{display_name}]({filename})" if filename else display_name
         profile_label = (
             "登録あり"
             if _has_registered_profile(entity, character_profiles)
             else "未登録"
         )
-        lines.append(f"| {name_link} | {profile_label} | `{canonical_id}` |")
+        lines.extend(
+            _render_entity_index_entry(
+                entity, character_page_path, [("Profile", profile_label)]
+            )
+        )
     lines.append("")
 
     return "\n".join(lines).rstrip() + "\n"
@@ -1723,16 +1732,13 @@ def render_location_index_page(locations: list[dict[str, Any]]) -> str:
         lines.extend(["登録されているLocation pageはありません。", ""])
         return "\n".join(lines).rstrip() + "\n"
 
-    lines.extend(["| Location | Scenes | ID |", "|---|---:|---|"])
     for entity in eligible:
-        canonical_id = entity.get("canonicalId")
-        display_name = entity.get("displayName") or canonical_id
-        display_name = _escape_markdown_table_text(display_name)
-        path = location_page_path(entity)
-        filename = path.rsplit("/", 1)[-1] if path else None
-        name = f"[{display_name}]({filename})" if filename else display_name
-        lines.append(
-            f"| {name} | {len(entity.get('sceneRefs') or [])} | `{canonical_id}` |"
+        lines.extend(
+            _render_entity_index_entry(
+                entity,
+                location_page_path,
+                [("Scenes", len(entity.get("sceneRefs") or []))],
+            )
         )
     lines.append("")
     return "\n".join(lines).rstrip() + "\n"
@@ -1787,16 +1793,15 @@ def render_organization_index_page(
         lines.extend(["登録されているOrganization pageはありません。", ""])
         return "\n".join(lines).rstrip() + "\n"
 
-    lines.extend(["| Organization | Relationships | ID |", "|---|---:|---|"])
     for entity in eligible:
-        canonical_id = entity.get("canonicalId")
-        display_name = entity.get("displayName") or canonical_id
-        safe_name = _escape_markdown_table_text(display_name)
-        path = organization_page_path(entity)
-        filename = path.rsplit("/", 1)[-1] if path else None
-        name = f"[{safe_name}]({filename})" if filename else safe_name
         relationship_count = _public_relationship_count(entity, public_relationships)
-        lines.append(f"| {name} | {relationship_count} | `{canonical_id}` |")
+        lines.extend(
+            _render_entity_index_entry(
+                entity,
+                organization_page_path,
+                [("Relationships", relationship_count)],
+            )
+        )
     lines.append("")
     return "\n".join(lines).rstrip() + "\n"
 
@@ -1830,15 +1835,8 @@ def render_item_index_page(items: list[dict[str, Any]]) -> str:
         lines.extend(["登録されているItem pageはありません。", ""])
         return "\n".join(lines).rstrip() + "\n"
 
-    lines.extend(["| Item | ID |", "|---|---|"])
     for entity in eligible:
-        canonical_id = entity.get("canonicalId")
-        display_name = entity.get("displayName") or canonical_id
-        display_name = _escape_markdown_table_text(display_name)
-        path = item_page_path(entity)
-        filename = path.rsplit("/", 1)[-1] if path else None
-        name = f"[{display_name}]({filename})" if filename else display_name
-        lines.append(f"| {name} | `{canonical_id}` |")
+        lines.extend(_render_entity_index_entry(entity, item_page_path, []))
     lines.append("")
     return "\n".join(lines).rstrip() + "\n"
 
@@ -1872,15 +1870,8 @@ def render_lore_index_page(lore_entities: list[dict[str, Any]]) -> str:
         lines.extend(["登録されているLore pageはありません。", ""])
         return "\n".join(lines).rstrip() + "\n"
 
-    lines.extend(["| Lore | ID |", "|---|---|"])
     for entity in eligible:
-        canonical_id = entity.get("canonicalId")
-        display_name = entity.get("displayName") or canonical_id
-        display_name = _escape_markdown_table_text(display_name)
-        path = lore_page_path(entity)
-        filename = path.rsplit("/", 1)[-1] if path else None
-        name = f"[{display_name}]({filename})" if filename else display_name
-        lines.append(f"| {name} | `{canonical_id}` |")
+        lines.extend(_render_entity_index_entry(entity, lore_page_path, []))
     lines.append("")
     return "\n".join(lines).rstrip() + "\n"
 
@@ -1914,22 +1905,19 @@ def render_event_index_page(events: list[dict[str, Any]]) -> str:
         lines.extend(["登録されているEvent pageはありません。", ""])
         return "\n".join(lines).rstrip() + "\n"
 
-    lines.extend(["| Event | Participants | Locations | ID |", "|---|---:|---:|---|"])
     for entity in eligible:
-        canonical_id = entity.get("canonicalId")
-        display_name = entity.get("displayName") or canonical_id
-        display_name = _escape_markdown_table_text(display_name)
-        path = event_page_path(entity)
-        filename = path.rsplit("/", 1)[-1] if path else None
-        name = f"[{display_name}]({filename})" if filename else display_name
         participant_count = len(
             _unique_reference_ids(entity.get("participantEntityIds") or [])
         )
         location_count = len(
             _unique_reference_ids(entity.get("locationEntityIds") or [])
         )
-        lines.append(
-            f"| {name} | {participant_count} | {location_count} | `{canonical_id}` |"
+        lines.extend(
+            _render_entity_index_entry(
+                entity,
+                event_page_path,
+                [("Participants", participant_count), ("Locations", location_count)],
+            )
         )
     lines.append("")
     return "\n".join(lines).rstrip() + "\n"
