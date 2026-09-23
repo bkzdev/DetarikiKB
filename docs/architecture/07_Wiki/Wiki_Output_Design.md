@@ -180,6 +180,8 @@ Relationship page（独立ページ）は現時点では見送り、Character/Or
 
 **Story index狭幅表示（`codex/wiki-story-index-narrow-layout`で実装）**: 上記の4列表は旧実装の経緯であり、現行のStory indexは1 storyごとにStory pageリンクを親項目、Episodes件数・Status・Categoryを子項目とする縦並びで表示する。storyの出現順、title fallback、publicStoryId優先のリンク先、statusの`mixed`判定を維持する。Episode一覧は引き続きStory pageに置く。
 
+**Story pageのEpisode一覧狭幅表示（`codex/wiki-story-episode-list-narrow-layout`）**: `## Episodes`の3列表を、各Episode pageへのリンクを親項目、metadataStatusとPublic Episode IDを子項目とする入れ子箇条書きへ変更した。story内のEpisode順、表示タイトルのfallback、publicEpisodeId優先の相対リンク、未登録表示は維持し、未知のstatus値は破棄せずMarkdown/HTML-safeに表示する。0件では空の一覧を出さず「エピソードは記録されていません。」と明示する。Story/Episode SummaryやEpisode page自体は変更しない。
+
 ## 9.3 Episode page
 
 - source: 個別`entities.*`のうち、`sourceCandidates[].episodeId`がこのエピソードに一致するもの（登場キャラクター・場所等の索引として）
