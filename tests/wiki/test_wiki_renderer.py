@@ -518,14 +518,48 @@ def test_render_character_page_no_aliases_message(conflict_character):
 
 def test_render_character_page_shows_source_types(resolved_character):
     page = render_character_page(resolved_character)
-    assert "| Source types | script |" in page
+    assert "- Source types: script" in page
     assert 'source_types: "script"' in page
 
 
 def test_render_character_page_shows_confidence(resolved_character):
     page = render_character_page(resolved_character)
-    assert "| Confidence | 0.9 |" in page
+    assert "- Confidence: 0.9" in page
     assert 'confidence: "0.9"' in page
+
+
+def test_render_character_page_details_use_narrow_lists(
+    resolved_character, character_profiles_index
+):
+    page = render_character_page(resolved_character, character_profiles_index)
+    summary = page.split("## Summary\n\n", 1)[1].split("## 基本プロフィール", 1)[0]
+    profile = page.split("## 基本プロフィール\n\n", 1)[1].split("### 自己紹介", 1)[0]
+
+    assert "| 項目 | 値 |" not in summary + profile
+    assert summary.index("- Entity ID: CHAR_TEST_RAIN") < summary.index(
+        "- Source types: script"
+    )
+    assert profile.index("- 名前: Test Character Rain") < profile.index(
+        "- Status: confirmed"
+    )
+
+
+def test_render_character_page_details_escape_untrusted_values(
+    resolved_character, character_profiles_index
+):
+    resolved_character["sourceTypes"] = ["script*", "<img>"]
+    profile = character_profiles_index["CHAR_TEST_RAIN"]
+    profile.display_name = "Test *Rain* <img>"
+    profile.profile_highlight = ProfileHighlight(label="趣味 [A]", value="<script>")
+
+    page = render_character_page(resolved_character, character_profiles_index)
+    details = page.split("## Summary\n\n", 1)[1].split("### 自己紹介", 1)[0]
+
+    assert "- Source types: script\\*, &lt;img&gt;" in details
+    assert "- 名前: Test \\*Rain\\* &lt;img&gt;" in details
+    assert "- 特記事項: 【趣味 \\[A\\]】&lt;script&gt;" in details
+    assert "<img>" not in details
+    assert "<script>" not in details
 
 
 def test_render_character_page_evidence_is_reference_only(resolved_character):
@@ -997,35 +1031,35 @@ def test_render_character_page_shows_basic_profile_when_matched(
     一致するため、基本プロフィールsectionに各フィールドが表示される。"""
     page = render_character_page(resolved_character, character_profiles_index)
     assert "## 基本プロフィール" in page
-    assert "| ふりがな | てすとれいん |" in page
-    assert "| ローマ字 | Tesuto Rein |" in page
-    assert "| 所属 | Test Team Alpha |" in page
-    assert "| 血液型 | A |" in page
-    assert "| CV | Test Voice Actor |" in page
+    assert "- ふりがな: てすとれいん" in page
+    assert "- ローマ字: Tesuto Rein" in page
+    assert "- 所属: Test Team Alpha" in page
+    assert "- 血液型: A" in page
+    assert "- CV: Test Voice Actor" in page
 
 
 def test_render_character_page_formats_height_cm(
     resolved_character, character_profiles_index
 ):
     page = render_character_page(resolved_character, character_profiles_index)
-    assert "| 身長 | 150cm |" in page
+    assert "- 身長: 150cm" in page
 
 
 def test_render_character_page_shows_birthday_display(
     resolved_character, character_profiles_index
 ):
     page = render_character_page(resolved_character, character_profiles_index)
-    assert "| 誕生日 | 4/23 |" in page
+    assert "- 誕生日: 4/23" in page
 
 
 def test_render_character_page_shows_profile_highlight(
     resolved_character, character_profiles_index
 ):
     """profileHighlightはWiki記載と同じ雰囲気の「【label】value」形式で、
-    基本プロフィール表の「特記事項」行として表示される
+    基本プロフィール一覧の「特記事項」項目として表示される
     (独立sectionとしては表示しない)。"""
     page = render_character_page(resolved_character, character_profiles_index)
-    assert "| 特記事項 | 【好きなこと】テストデータの整理 |" in page
+    assert "- 特記事項: 【好きなこと】テストデータの整理" in page
     assert "### キャラ別特記事項" not in page
 
 
@@ -1044,7 +1078,7 @@ def test_render_character_page_profile_highlight_label_only():
         "status": "merged",
     }
     page = render_character_page(entity, {"CHAR_TEST_LABEL_ONLY": profile})
-    assert "| 特記事項 | 【合成項目】 |" in page
+    assert "- 特記事項: 【合成項目】" in page
 
 
 def test_render_character_page_profile_highlight_value_only():
@@ -1061,7 +1095,7 @@ def test_render_character_page_profile_highlight_value_only():
         "status": "merged",
     }
     page = render_character_page(entity, {"CHAR_TEST_VALUE_ONLY": profile})
-    assert "| 特記事項 | 合成値 |" in page
+    assert "- 特記事項: 合成値" in page
 
 
 def test_render_character_page_hides_profile_source(
@@ -1116,9 +1150,9 @@ def test_render_character_page_self_introduction_null_shows_unregistered_message
     page = render_character_page(entity, character_profiles_index)
     assert "## 基本プロフィール" in page
     assert "自己紹介は登録されていません。" in page
-    assert "| 特記事項 | 未登録 |" in page
-    assert "| ふりがな | 未登録 |" in page
-    assert "| 身長 | 未登録 |" in page
+    assert "- 特記事項: 未登録" in page
+    assert "- ふりがな: 未登録" in page
+    assert "- 身長: 未登録" in page
 
 
 def test_render_character_page_no_canonical_id_shows_unregistered(
@@ -1138,7 +1172,7 @@ def test_build_pages_passes_character_profiles_through(
     反映されることを確認する。"""
     pages = build_pages(synthetic_collection, character_profiles_index)
     rain_page = pages["characters/CHAR_TEST_RAIN.md"]
-    assert "| CV | Test Voice Actor |" in rain_page
+    assert "- CV: Test Voice Actor" in rain_page
 
 
 def test_build_pages_without_character_profiles_keeps_existing_output(

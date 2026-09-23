@@ -372,8 +372,8 @@ def test_cli_with_character_profiles_shows_basic_profile(tmp_path):
         encoding="utf-8"
     )
     assert "## 基本プロフィール" in character_page
-    assert "| CV | Test Voice Actor |" in character_page
-    assert "| 身長 | 150cm |" in character_page
+    assert "- CV: Test Voice Actor" in character_page
+    assert "- 身長: 150cm" in character_page
 
 
 def test_cli_character_profiles_missing_file_returns_exit_1(tmp_path):
@@ -659,7 +659,7 @@ def test_cli_story_summaries_with_character_profiles_combined(tmp_path):
         encoding="utf-8"
     )
     assert "## 基本プロフィール" in character_page
-    assert "| CV | Test Voice Actor |" in character_page
+    assert "- CV: Test Voice Actor" in character_page
 
 
 def test_cli_story_summaries_does_not_leak_source_text(tmp_path):

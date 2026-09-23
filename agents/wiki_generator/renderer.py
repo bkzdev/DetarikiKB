@@ -423,21 +423,26 @@ def _render_basic_profile_section(
 
     kana, romaji = _format_reading(profile.reading)
 
-    lines.append("| 項目 | 値 |")
-    lines.append("|---|---|")
-    lines.append(f"| 名前 | {profile.display_name} |")
-    lines.append(f"| ふりがな | {kana} |")
-    lines.append(f"| ローマ字 | {romaji} |")
-    lines.append(f"| 所属 | {_format_affiliation(profile.affiliation)} |")
-    lines.append(f"| 身長 | {_format_height_cm(profile.height_cm)} |")
-    lines.append(f"| 誕生日 | {_format_birthday(profile.birthday)} |")
-    lines.append(f"| 血液型 | {_format_or_placeholder(profile.blood_type)} |")
-    lines.append(f"| CV | {_format_or_placeholder(profile.cv)} |")
-    lines.append(
-        f"| 特記事項 | {_format_profile_highlight(profile.profile_highlight)} |"
+    profile_items = [
+        ("名前", profile.display_name),
+        ("ふりがな", kana),
+        ("ローマ字", romaji),
+        ("所属", _format_affiliation(profile.affiliation)),
+        ("身長", _format_height_cm(profile.height_cm)),
+        ("誕生日", _format_birthday(profile.birthday)),
+        ("血液型", _format_or_placeholder(profile.blood_type)),
+        ("CV", _format_or_placeholder(profile.cv)),
+        ("特記事項", _format_profile_highlight(profile.profile_highlight)),
+        ("Status", profile.status),
+    ]
+    lines.extend(
+        _render_key_value_list(
+            [
+                (label, _escape_markdown_inline_text(value))
+                for label, value in profile_items
+            ]
+        )
     )
-    lines.append(f"| Status | {profile.status} |")
-    lines.append("")
     # profile source (出典) はcharacter_profiles.yaml側にはデータとして
     # 保持するが、Wiki表示上は出さない方針 (manual visual reviewでの
     # ユーザー要望)。source情報自体の削除・schema変更は行っていない。
@@ -621,17 +626,29 @@ def render_character_page(
 
     lines.append("## Summary")
     lines.append("")
-    lines.append("| 項目 | 値 |")
-    lines.append("|---|---|")
-    lines.append(f"| Entity ID | {entity.get('id', '')} |")
-    lines.append(f"| Canonical ID | {entity.get('canonicalId', '')} |")
-    lines.append(f"| Status | {entity.get('status', '')} |")
-    lines.append(f"| Confidence | {entity.get('confidence', '')} |")
     source_types_display = (
         ", ".join(source_types) if source_types else "情報源区分は記録されていません。"
     )
-    lines.append(f"| Source types | {source_types_display} |")
-    lines.append("")
+    summary_items = [
+        ("Entity ID", entity.get("id")),
+        ("Canonical ID", entity.get("canonicalId")),
+        ("Status", entity.get("status")),
+        ("Confidence", entity.get("confidence")),
+        ("Source types", source_types_display),
+    ]
+    lines.extend(
+        _render_key_value_list(
+            [
+                (
+                    label,
+                    _escape_markdown_inline_text(
+                        str(value) if value is not None else ""
+                    ),
+                )
+                for label, value in summary_items
+            ]
+        )
+    )
 
     lines.extend(_render_basic_profile_section(entity, character_profiles))
     lines.extend(_render_aliases_section(entity))

@@ -225,6 +225,8 @@ Relationship page（独立ページ）は現時点では見送り、Character/Or
 
 **Characters index page（`feature/wiki-character-index-page`で追加）**: manual visual review 001で「Top pageからCharacter pageへの直接導線が無く、Episode pageのRelated Characters経由でしか辿れない」ことが判明したため、`characters/index.md`を新設した。`render_character_index_page(characters, character_profiles=None)`は、`is_page_eligible`がtrue（canonicalId確定 + `status: merged|conflict` + §6の防御条件を充足）のcharacterのみを一覧表示する（生成条件を満たさないcharacterはここには載せず、`reports/unresolved.md`側でのみ確認できるようにする）。Overview（Character pages件数・プロフィール登録あり/なし件数、`Unresolved report`へのリンク案内）とCharacter List表（Character名（リンク付き）・Profile Status（登録あり/未登録）・ID の3列のみ、manual visual review 001で判明した「表が横長すぎる」問題を踏まえ列数を最小限に抑えた）で構成する。profile登録判定は`render_character_page`の基本プロフィールsectionと同じ照合ロジック（`entity.canonicalId == character_profiles`のキー一致）を再利用する。Top pageの「## リンク」セクションに`[Characters](characters/index.md)`を追加し、`build_pages()`が返すページ一覧へ`characters/index.md`を含めるようにした。profileHighlightの表示統合・profile source非表示化・表の可読性改善（列のさらなる整理、モバイル対応）は本PRのスコープ外（それぞれ`feature/wiki-character-profile-display-refinement`・`feature/wiki-renderer-readability-improvements`）。
 
+**Character details狭幅表示（`codex/wiki-character-details-narrow-layout`で実装）**: Character pageのSummaryと基本プロフィールは、幅の狭い2列表から項目名と値を1行ずつ並べる一覧へ変更した。表示項目・順序・未登録時の表記・プロフィールsource非表示・自己紹介文の独立sectionは維持し、一覧の自由形式の値はMarkdown/HTML escapeする。上記の「基本プロフィール表」等の記述は旧実装の経緯である。
+
 ## 9.5 Location page
 
 - source: `entities.locations`
