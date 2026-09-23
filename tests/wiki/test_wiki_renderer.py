@@ -2875,24 +2875,51 @@ def test_render_story_page_episode_summary_heading_falls_back_to_positional_inde
     assert "### Episode 5" in page
 
 
-def test_render_story_page_shows_episode_list_table(synthetic_collection):
+def test_render_story_page_shows_vertical_episode_list(synthetic_collection):
     episodes = _story_episodes(synthetic_collection, "TEST_S01_C01")
     page = render_story_page("TEST_S01_C01", episodes, synthetic_collection)
-    assert "| Episode | Status | Public Episode ID |" in page
-    assert "[Synthetic Display Title](EP_TEST_001.md)" in page
-    assert "[EP_TEST_002](EP_TEST_002.md)" in page
+    assert "| Episode | Status | Public Episode ID |" not in page
+    assert (
+        "- [Synthetic Display Title](EP_TEST_001.md)\n"
+        "    - Status: confirmed（確認済み）\n"
+        "    - Public Episode ID: 未登録" in page
+    )
+    assert (
+        "- [EP_TEST_002](EP_TEST_002.md)\n"
+        "    - Status: pending（未確認）\n"
+        "    - Public Episode ID: 未登録" in page
+    )
+    assert page.index("[Synthetic Display Title]") < page.index("[EP_TEST_002]")
 
 
-def test_render_story_page_episode_list_shows_public_episode_id_column(
+def test_render_story_page_episode_list_explains_empty_input(synthetic_collection):
+    page = render_story_page("TEST_EMPTY_STORY", [], synthetic_collection)
+    episode_list_section = page.split("## Episodes\n\n", 1)[1].split(
+        "## Related Characters", 1
+    )[0]
+    assert episode_list_section.strip() == "エピソードは記録されていません。"
+
+
+def test_render_story_page_episode_list_shows_public_episode_id(
     synthetic_collection,
 ):
     episodes = _story_episodes(synthetic_collection, "TEST_PUBLIC_ID_STORY")
     page = render_story_page("TEST_PUBLIC_ID_STORY", episodes, synthetic_collection)
-    assert "`PUBLIC_TEST_STORY_001_E01`" in page
+    assert "    - Public Episode ID: `PUBLIC_TEST_STORY_001_E01`" in page
     episode_list_section = page.split("## Episodes", 1)[1].split(
         "## Related Characters", 1
     )[0]
     assert "未登録" in episode_list_section
+
+
+def test_render_story_page_episode_list_escapes_unknown_status(synthetic_collection):
+    episodes = deepcopy(_story_episodes(synthetic_collection, "TEST_S01_C01"))
+    episodes[0]["metadataStatus"] = "pending|<script>"
+    page = render_story_page("TEST_S01_C01", episodes, synthetic_collection)
+    episode_list_section = page.split("## Episodes", 1)[1].split(
+        "## Related Characters", 1
+    )[0]
+    assert "    - Status: pending\\|&lt;script&gt;" in episode_list_section
 
 
 def test_render_story_page_episode_list_uses_public_episode_id_link(

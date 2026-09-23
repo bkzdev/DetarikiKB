@@ -2337,12 +2337,9 @@ def _render_story_episode_list_section(episodes: list[dict[str, Any]]) -> list[s
     使う。stories/配下の同階層へのリンクのためファイル名のみにする
     (Story indexと同じ二重prefix対策)。
     """
-    lines = [
-        "## Episodes",
-        "",
-        "| Episode | Status | Public Episode ID |",
-        "|---|---|---|",
-    ]
+    lines = ["## Episodes", ""]
+    if not episodes:
+        return [*lines, "エピソードは記録されていません。", ""]
     for source_document in episodes:
         episode_path = episode_page_path(source_document)
         episode_filename = episode_path.rsplit("/", 1)[-1] if episode_path else None
@@ -2350,9 +2347,17 @@ def _render_story_episode_list_section(episodes: list[dict[str, Any]]) -> list[s
         episode_link = (
             f"[{link_text}]({episode_filename})" if episode_filename else link_text
         )
-        status = _format_metadata_status(source_document.get("metadataStatus"))
+        status = _escape_markdown_inline_text(
+            _format_metadata_status(source_document.get("metadataStatus"))
+        )
         public_episode_id = _format_code(source_document.get("publicEpisodeId"))
-        lines.append(f"| {episode_link} | {status} | {public_episode_id} |")
+        lines.extend(
+            [
+                f"- {episode_link}",
+                f"    - Status: {status}",
+                f"    - Public Episode ID: {public_episode_id}",
+            ]
+        )
     lines.append("")
     return lines
 
