@@ -777,6 +777,35 @@ def _render_entity_references_section(
     return lines
 
 
+def _render_entity_summary(
+    entity: dict[str, Any], *, include_scene_refs: bool = False
+) -> list[str]:
+    """Entity詳細ページの共通Summaryを狭幅向けに表示する。"""
+    source_types = entity.get("sourceTypes") or []
+    source_types_display = (
+        ", ".join(source_types) if source_types else "情報源区分は記録されていません。"
+    )
+    items = [
+        ("Entity ID", entity.get("id", "")),
+        ("Canonical ID", entity.get("canonicalId", "")),
+        ("Status", entity.get("status", "")),
+        ("Confidence", entity.get("confidence", "")),
+        ("Source types", source_types_display),
+    ]
+    if include_scene_refs:
+        items.append(("Scene refs", len(entity.get("sceneRefs") or [])))
+    return [
+        "## Summary",
+        "",
+        *_render_key_value_list(
+            [
+                (label, _escape_markdown_inline_text(str(value)))
+                for label, value in items
+            ]
+        ),
+    ]
+
+
 def render_location_page(
     entity: dict[str, Any],
     source_documents: list[dict[str, Any]] | None = None,
@@ -798,30 +827,13 @@ def render_location_page(
             "generated_from": GENERATED_FROM,
         }
     )
-    source_types_display = (
-        ", ".join(source_types) if source_types else "情報源区分は記録されていません。"
-    )
     lines = [
         front_matter,
         f"# {_escape_markdown_inline_text(display_name)}",
         "",
     ]
     lines.extend(_render_entity_status_warning(entity))
-    lines.extend(
-        [
-            "## Summary",
-            "",
-            "| 項目 | 値 |",
-            "|---|---|",
-            f"| Entity ID | {entity.get('id', '')} |",
-            f"| Canonical ID | {entity.get('canonicalId', '')} |",
-            f"| Status | {entity.get('status', '')} |",
-            f"| Confidence | {entity.get('confidence', '')} |",
-            f"| Source types | {source_types_display} |",
-            f"| Scene refs | {len(entity.get('sceneRefs') or [])} |",
-            "",
-        ]
-    )
+    lines.extend(_render_entity_summary(entity, include_scene_refs=True))
     lines.extend(_render_aliases_section(entity))
     lines.extend(_render_appearing_episodes_section(entity, source_documents or []))
     lines.extend(_render_evidence_section(entity))
@@ -853,29 +865,13 @@ def render_organization_page(
             "generated_from": GENERATED_FROM,
         }
     )
-    source_types_display = (
-        ", ".join(source_types) if source_types else "情報源区分は記録されていません。"
-    )
     lines = [
         front_matter,
         f"# {_escape_markdown_inline_text(display_name)}",
         "",
     ]
     lines.extend(_render_entity_status_warning(entity))
-    lines.extend(
-        [
-            "## Summary",
-            "",
-            "| 項目 | 値 |",
-            "|---|---|",
-            f"| Entity ID | {entity.get('id', '')} |",
-            f"| Canonical ID | {entity.get('canonicalId', '')} |",
-            f"| Status | {entity.get('status', '')} |",
-            f"| Confidence | {entity.get('confidence', '')} |",
-            f"| Source types | {source_types_display} |",
-            "",
-        ]
-    )
+    lines.extend(_render_entity_summary(entity))
     lines.extend(_render_aliases_section(entity))
     lines.extend(
         _render_relationships_section(
@@ -913,26 +909,10 @@ def render_item_page(
             "generated_from": GENERATED_FROM,
         }
     )
-    source_types_display = (
-        ", ".join(source_types) if source_types else "情報源区分は記録されていません。"
-    )
     safe_display_name = _escape_markdown_inline_text(display_name)
     lines = [front_matter, f"# {safe_display_name}", ""]
     lines.extend(_render_entity_status_warning(entity))
-    lines.extend(
-        [
-            "## Summary",
-            "",
-            "| 項目 | 値 |",
-            "|---|---|",
-            f"| Entity ID | {entity.get('id', '')} |",
-            f"| Canonical ID | {entity.get('canonicalId', '')} |",
-            f"| Status | {entity.get('status', '')} |",
-            f"| Confidence | {entity.get('confidence', '')} |",
-            f"| Source types | {source_types_display} |",
-            "",
-        ]
-    )
+    lines.extend(_render_entity_summary(entity))
     lines.extend(_render_aliases_section(entity))
     lines.extend(_render_appearing_episodes_section(entity, source_documents or []))
     lines.extend(_render_evidence_section(entity))
@@ -962,9 +942,6 @@ def render_lore_page(
             "generated_from": GENERATED_FROM,
         }
     )
-    source_types_display = (
-        ", ".join(source_types) if source_types else "情報源区分は記録されていません。"
-    )
     lines = [
         front_matter,
         f"# {_escape_markdown_inline_text(display_name)}",
@@ -972,20 +949,7 @@ def render_lore_page(
     ]
     lines.extend(_render_lore_merge_suggestion_warning(entity))
     lines.extend(_render_entity_status_warning(entity))
-    lines.extend(
-        [
-            "## Summary",
-            "",
-            "| 項目 | 値 |",
-            "|---|---|",
-            f"| Entity ID | {entity.get('id', '')} |",
-            f"| Canonical ID | {entity.get('canonicalId', '')} |",
-            f"| Status | {entity.get('status', '')} |",
-            f"| Confidence | {entity.get('confidence', '')} |",
-            f"| Source types | {source_types_display} |",
-            "",
-        ]
-    )
+    lines.extend(_render_entity_summary(entity))
     lines.extend(_render_aliases_section(entity))
     lines.extend(_render_appearing_episodes_section(entity, source_documents or []))
     lines.extend(_render_evidence_section(entity))
@@ -1017,29 +981,13 @@ def render_event_page(
             "generated_from": GENERATED_FROM,
         }
     )
-    source_types_display = (
-        ", ".join(source_types) if source_types else "情報源区分は記録されていません。"
-    )
     lines = [
         front_matter,
         f"# {_escape_markdown_inline_text(display_name)}",
         "",
     ]
     lines.extend(_render_entity_status_warning(entity))
-    lines.extend(
-        [
-            "## Summary",
-            "",
-            "| 項目 | 値 |",
-            "|---|---|",
-            f"| Entity ID | {entity.get('id', '')} |",
-            f"| Canonical ID | {entity.get('canonicalId', '')} |",
-            f"| Status | {entity.get('status', '')} |",
-            f"| Confidence | {entity.get('confidence', '')} |",
-            f"| Source types | {source_types_display} |",
-            "",
-        ]
-    )
+    lines.extend(_render_entity_summary(entity))
     lines.extend(_render_aliases_section(entity))
     lines.extend(
         _render_entity_references_section(

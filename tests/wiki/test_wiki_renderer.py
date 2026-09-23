@@ -1324,6 +1324,39 @@ def test_build_pages_characters_index_page_count_matches_generated_pages(
 # ----------------------------------------------------------------
 
 
+@pytest.mark.parametrize(
+    ("renderer", "fixture_name"),
+    [
+        (render_location_page, "resolved_location"),
+        (render_organization_page, "organization"),
+        (render_item_page, "resolved_item"),
+        (render_lore_page, "resolved_lore"),
+        (render_event_page, "resolved_event"),
+    ],
+)
+def test_entity_detail_summary_is_vertical_and_escapes_untrusted_values(
+    renderer, fixture_name, request
+):
+    entity = (
+        _synthetic_public_organization()
+        if fixture_name == "organization"
+        else deepcopy(request.getfixturevalue(fixture_name))
+    )
+    entity["id"] = "ENTITY_TEST|<x>"
+    entity["sourceTypes"] = ["script|<img>"]
+
+    page = renderer(entity)
+    summary = page.split("## Summary\n\n", 1)[1].split("\n## ", 1)[0]
+
+    assert "| 項目 | 値 |" not in summary
+    assert "- Entity ID: ENTITY_TEST\\|&lt;x&gt;" in summary
+    assert f"- Canonical ID: {entity['canonicalId']}" in summary
+    assert f"- Status: {entity['status']}" in summary
+    assert f"- Confidence: {entity['confidence']}" in summary
+    assert "- Source types: script\\|&lt;img&gt;" in summary
+    assert ("- Scene refs: 2" in summary) == (fixture_name == "resolved_location")
+
+
 def test_render_location_page_has_summary_and_aliases(
     synthetic_collection, resolved_location
 ):
@@ -1333,7 +1366,7 @@ def test_render_location_page_has_summary_and_aliases(
     assert 'entity_type: "location"' in page
     assert 'canonical_id: "LOC_TEST_PLAZA"' in page
     assert "# Test Plaza" in page
-    assert "| Scene refs | 2 |" in page
+    assert "- Scene refs: 2" in page
     assert "- Synthetic Square" in page
 
 
