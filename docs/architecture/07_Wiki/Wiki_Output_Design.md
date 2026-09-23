@@ -317,6 +317,8 @@ prefixから推測せず、期待typeのentity IDとして解決でき、かつ�
 canonical ID順で掲載し、参照数とTop page導線を提供する。Eventのcanonical ID割当・
 episode横断統合、逆参照、実データ投入は対象外とする。
 
+**entity一覧の狭幅表示（`codex/wiki-entity-index-narrow-layout`）**: Characters、Locations、Organizations、Items、Lore、Eventsの各indexは、横長の明細表を1件ごとの入れ子箇条書きへ変更した。名称を詳細ページへのリンクとして親項目に置き、Canonical IDと既存の補足値（プロフィール登録状態、場面数、公開Relationship数、参加者数、場所数）を子項目に表示する。生成対象・Canonical ID順・参照件数・未解決reportへの導線は維持する。短いOverview集計表は変更しない。各節にある表形式の説明は旧実装の経緯である。
+
 ## 9.10 Relationship section（独立ページではない、§8参照）
 
 - source: `entities.relationships`。`sourceEntityId`/`targetEntityId`のいずれかが該当ページの主体と一致するものを抽出
