@@ -579,6 +579,65 @@ def test_render_character_page_evidence_summary_lists_all_refs(resolved_characte
     assert "evidenceId: EP_TEST_001_DLG0003" in page
 
 
+def test_render_entity_provenance_uses_nested_lists(resolved_location):
+    page = render_location_page(resolved_location)
+    evidence = page.split("## Evidence\n\n", 1)[1].split("## Source Candidates", 1)[0]
+    candidates = page.split("## Source Candidates\n\n", 1)[1].split("## Conflicts", 1)[
+        0
+    ]
+    assert (
+        "- evidenceId: EV_TEST_LOCATION_001\n"
+        "    - episodeId: EP_TEST_001\n"
+        "    - sceneId: EP_TEST_001_SC001\n"
+        "    - blockId: EP_TEST_001_DLG0001"
+    ) in evidence
+    assert (
+        "- candidateId: LOC_CAND_TEST_001\n"
+        "    - candidateType: location\n"
+        "    - episodeId: EP_TEST_002\n"
+        "    - evidenceIds件数: 1\n"
+        "    - sourceDocumentId: EP_TEST_002"
+    ) in candidates
+    assert " / " not in evidence + candidates
+    assert "SYNTHETIC RAW TEXT MUST NOT APPEAR" not in page
+    assert "SYNTHETIC RAW PAYLOAD MUST NOT APPEAR" not in page
+
+
+def test_render_entity_provenance_omits_absent_optional_fields(resolved_location):
+    location = deepcopy(resolved_location)
+    location["evidenceRefs"] = [{"evidenceId": "EV_TEST_MINIMAL"}]
+    location["sourceCandidates"] = [{"candidateId": "CAND_TEST_MINIMAL"}]
+    page = render_location_page(location)
+    evidence = page.split("## Evidence\n\n", 1)[1].split("## Source Candidates", 1)[0]
+    candidates = page.split("## Source Candidates\n\n", 1)[1].split("## Conflicts", 1)[
+        0
+    ]
+    assert "- evidenceId: EV_TEST_MINIMAL" in evidence
+    assert "episodeId:" not in evidence
+    assert "sceneId:" not in evidence
+    assert "blockId:" not in evidence
+    assert "- candidateId: CAND_TEST_MINIMAL\n    - evidenceIds件数: 0" in candidates
+    assert "candidateType:" not in candidates
+    assert "sourceDocumentId:" not in candidates
+
+
+def test_render_entity_provenance_escapes_all_external_fields(resolved_location):
+    location = deepcopy(resolved_location)
+    raw = "A|*<i>\n## injected"
+    for key in ("evidenceId", "episodeId", "sceneId", "blockId"):
+        location["evidenceRefs"][0][key] = raw
+    for key in ("candidateId", "candidateType", "episodeId", "sourceDocumentId"):
+        location["sourceCandidates"][0][key] = raw
+    page = render_location_page(location)
+    safe = "A\\|\\*&lt;i&gt; ## injected"
+    for label in ("evidenceId", "episodeId", "sceneId", "blockId"):
+        assert f"{label}: {safe}" in page
+    for label in ("candidateId", "candidateType", "sourceDocumentId"):
+        assert f"{label}: {safe}" in page
+    assert "\n## injected" not in page
+    assert "<i>" not in page
+
+
 def test_render_character_page_does_not_include_full_dialogue_text(
     resolved_character,
 ):
