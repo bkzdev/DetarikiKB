@@ -229,6 +229,8 @@ Relationship page（独立ページ）は現時点では見送り、Character/Or
 
 **Character details狭幅表示（`codex/wiki-character-details-narrow-layout`で実装）**: Character pageのSummaryと基本プロフィールは、幅の狭い2列表から項目名と値を1行ずつ並べる一覧へ変更した。表示項目・順序・未登録時の表記・プロフィールsource非表示・自己紹介文の独立sectionは維持し、一覧の自由形式の値はMarkdown/HTML escapeする。上記の「基本プロフィール表」等の記述は旧実装の経緯である。
 
+**個別entityのprovenance狭幅表示（`codex/wiki-entity-provenance-narrow-layout`）**: Character / Location / Organization / Item / Lore / Eventに共通するEvidenceとSource Candidatesの` / `連結1行表示を、IDを親項目・残りの参照fieldを子項目とする入れ子箇条書きへ変更した。各参照の順序、任意fieldの省略、evidenceIds件数、Markdown/HTML escape、本文・raw payloadの非表示を維持する。短い件数表やUnresolved reportは変更しない。
+
 ## 9.5 Location page
 
 - source: `entities.locations`

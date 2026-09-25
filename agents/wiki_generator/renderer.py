@@ -80,21 +80,23 @@ _RELATIONSHIP_SOURCE_LABELS = {
 }
 
 
-def _format_evidence_ref(ref: dict[str, Any]) -> str:
-    """1件のevidenceRefを、参照情報のみの1行に整形する
-    (evidenceId/episodeId/sceneId/blockId。textExcerpt等の本文は含めない)。
-    """
+def _format_evidence_ref(ref: dict[str, Any]) -> list[str]:
+    """1件のevidenceRefを、本文を含まない縦並びの参照情報に整形する。"""
     evidence_id = _escape_markdown_inline_text(str(ref.get("evidenceId", "?")))
-    parts = [f"evidenceId: {evidence_id}"]
+    lines = [f"- evidenceId: {evidence_id}"]
     if ref.get("episodeId"):
-        parts.append(
-            f"episodeId: {_escape_markdown_inline_text(str(ref['episodeId']))}"
+        lines.append(
+            f"    - episodeId: {_escape_markdown_inline_text(str(ref['episodeId']))}"
         )
     if ref.get("sceneId"):
-        parts.append(f"sceneId: {_escape_markdown_inline_text(str(ref['sceneId']))}")
+        lines.append(
+            f"    - sceneId: {_escape_markdown_inline_text(str(ref['sceneId']))}"
+        )
     if ref.get("blockId"):
-        parts.append(f"blockId: {_escape_markdown_inline_text(str(ref['blockId']))}")
-    return " / ".join(parts)
+        lines.append(
+            f"    - blockId: {_escape_markdown_inline_text(str(ref['blockId']))}"
+        )
+    return lines
 
 
 def _render_evidence_section(entity: dict[str, Any]) -> list[str]:
@@ -107,7 +109,7 @@ def _render_evidence_section(entity: dict[str, Any]) -> list[str]:
     lines.append(f"{len(evidence_refs)} 件の参照:")
     lines.append("")
     for ref in evidence_refs:
-        lines.append(f"- {_format_evidence_ref(ref)}")
+        lines.extend(_format_evidence_ref(ref))
     lines.append("")
     return lines
 
@@ -181,29 +183,28 @@ def _render_aliases_section(entity: dict[str, Any]) -> list[str]:
     return lines
 
 
-def _format_source_candidate(candidate: dict[str, Any]) -> str:
-    """1件のsourceCandidateを、summaryのみの1行に整形する
+def _format_source_candidate(candidate: dict[str, Any]) -> list[str]:
+    """1件のsourceCandidateを、summaryのみの縦並びに整形する
     (candidateId/candidateType/episodeId/evidenceIds件数/
     sourceDocumentId。元candidateの本文・raw payloadは含めない)。
     """
     candidate_id = _escape_markdown_inline_text(str(candidate.get("candidateId", "?")))
-    parts = [f"candidateId: {candidate_id}"]
+    lines = [f"- candidateId: {candidate_id}"]
     if candidate.get("candidateType"):
-        parts.append(
-            "candidateType: "
+        lines.append(
+            "    - candidateType: "
             f"{_escape_markdown_inline_text(str(candidate['candidateType']))}"
         )
     if candidate.get("episodeId"):
-        parts.append(
-            f"episodeId: {_escape_markdown_inline_text(str(candidate['episodeId']))}"
-        )
-    parts.append(f"evidenceIds件数: {len(candidate.get('evidenceIds') or [])}")
+        episode_id = _escape_markdown_inline_text(str(candidate["episodeId"]))
+        lines.append(f"    - episodeId: {episode_id}")
+    lines.append(f"    - evidenceIds件数: {len(candidate.get('evidenceIds') or [])}")
     if candidate.get("sourceDocumentId"):
-        parts.append(
-            "sourceDocumentId: "
+        lines.append(
+            "    - sourceDocumentId: "
             f"{_escape_markdown_inline_text(str(candidate['sourceDocumentId']))}"
         )
-    return " / ".join(parts)
+    return lines
 
 
 def _render_source_candidates_section(entity: dict[str, Any]) -> list[str]:
@@ -216,7 +217,7 @@ def _render_source_candidates_section(entity: dict[str, Any]) -> list[str]:
     lines.append(f"{len(candidates)} 件のcandidateから統合:")
     lines.append("")
     for candidate in candidates:
-        lines.append(f"- {_format_source_candidate(candidate)}")
+        lines.extend(_format_source_candidate(candidate))
     lines.append("")
     return lines
 
