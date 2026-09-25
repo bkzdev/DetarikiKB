@@ -2160,10 +2160,40 @@ def test_render_unresolved_report_preserves_entity_and_label_order(
 
 def test_render_unresolved_report_conflict_summary(synthetic_collection):
     report = render_unresolved_report(synthetic_collection)
-    assert "## Conflict Summary" in report
-    assert "| Severity | warning | 1 |" in report
-    assert "| Type | name_conflict | 1 |" in report
-    assert "| Entity Type | characters | 1 |" in report
+    section = report.split("## Conflict Summary\n\n", 1)[1].split(
+        "## Warning Summary", 1
+    )[0]
+    assert "| Group | Value | Count |" not in section
+    assert "- Severity: warning\n    - Count: 1" in section
+    assert "- Type: name_conflict\n    - Count: 1" in section
+    assert "- Entity Type: characters\n    - Count: 1" in section
+    assert section.index("- Severity:") < section.index("- Type:")
+    assert section.index("- Type:") < section.index("- Entity Type:")
+
+
+def test_render_unresolved_report_conflict_summary_escapes_value(
+    synthetic_collection,
+):
+    collection = deepcopy(synthetic_collection)
+    collection["report"]["conflictCounts"]["byType"] = {"name|<script>": 1}
+    report = render_unresolved_report(collection)
+    section = report.split("## Conflict Summary\n\n", 1)[1].split(
+        "## Warning Summary", 1
+    )[0]
+    assert "- Type: name\\|&lt;script&gt;\n    - Count: 1" in section
+    assert "<script>" not in section
+
+
+def test_render_unresolved_report_conflict_summary_explains_missing_breakdown(
+    synthetic_collection,
+):
+    collection = deepcopy(synthetic_collection)
+    collection["report"]["conflictCounts"] = {"total": 1}
+    report = render_unresolved_report(collection)
+    section = report.split("## Conflict Summary\n\n", 1)[1].split(
+        "## Warning Summary", 1
+    )[0]
+    assert section.strip() == "矛盾の内訳は記録されていません。"
 
 
 def test_render_unresolved_report_warning_summary(synthetic_collection):

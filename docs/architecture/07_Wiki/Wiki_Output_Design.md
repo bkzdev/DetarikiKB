@@ -363,6 +363,8 @@ defense-in-depthとして公開v1のtype / taxonomyState / sourceType / directio
 
 **狭幅表示の改善（`codex/wiki-unresolved-report-readability`）**: entity種別別一覧とSpecial Speaker Labelsの横長表を、1件ごとに名称を親項目、残る値を子項目とする入れ子箇条書きへ変更した。entityの表示順、Entity ID、Status、Canonical ID、Refs、speaker labelのType、Inferredを維持する。Refsは引き続き`evidence件数/source candidate件数`で、個別evidence IDやraw payloadは表示しない。Overviewや各Summaryの短い集計表は維持する。前段落の表・列数は旧実装の経緯である。
 
+**Conflict Summaryの狭幅表示（`codex/wiki-conflict-summary-narrow-layout`）**: 3列のGroup/Value/Count表を、GroupとValueを親項目、Countを子項目とする縦並びへ変更した。Severity、Type、Entity Typeの順序と各件数を維持し、ValueはMarkdown/HTML-safeに表示する。totalが非0でも内訳が空ならその旨を明示する。Overview、Warning Summary等の短い集計表は変更しない。
+
 ## 9.13 Conflict report page
 
 - source: `report.conflictCounts`

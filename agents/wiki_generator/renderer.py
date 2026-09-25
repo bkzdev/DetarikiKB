@@ -1105,7 +1105,7 @@ def _render_conflict_summary_section(collection: dict[str, Any]) -> list[str]:
     """Conflict summaryセクションを組み立てる。
 
     report.conflictCounts.bySeverity/byType/byEntityTypeを
-    | Group | Value | Count | の表で表示する。自動解決は行わない。
+    Group/Value/Countを保持した縦並びで表示する。自動解決は行わない。
     """
     conflict_counts = (collection.get("report", {}) or {}).get("conflictCounts") or {}
     lines = ["## Conflict Summary", ""]
@@ -1114,15 +1114,21 @@ def _render_conflict_summary_section(collection: dict[str, Any]) -> list[str]:
         lines.append("")
         return lines
 
-    lines.append("| Group | Value | Count |")
-    lines.append("|---|---|---:|")
+    has_breakdown = False
     for group_label, group_key in (
         ("Severity", "bySeverity"),
         ("Type", "byType"),
         ("Entity Type", "byEntityType"),
     ):
         for value, count in (conflict_counts.get(group_key) or {}).items():
-            lines.append(f"| {group_label} | {value} | {count} |")
+            has_breakdown = True
+            safe_value = _escape_markdown_inline_text(str(value))
+            safe_count = _escape_markdown_inline_text(str(count))
+            lines.extend(
+                [f"- {group_label}: {safe_value}", f"    - Count: {safe_count}"]
+            )
+    if not has_breakdown:
+        lines.append("矛盾の内訳は記録されていません。")
     lines.append("")
     return lines
 
