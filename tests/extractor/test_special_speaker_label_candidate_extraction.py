@@ -17,6 +17,8 @@ from jsonschema import Draft7Validator
 
 from agents.extractor import Extractor
 from agents.extractor.validator import run_semantic_validation
+from agents.parser.normalizer import Normalizer
+from agents.parser.parser import StoryParser
 from agents.parser.speaker_labels import analyze_speaker_label
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
@@ -111,8 +113,9 @@ def test_speaker_group_label_routed_to_special_candidates_not_characters():
     assert candidate["evidenceIds"] == ["EP01_DLG0001"]
 
 
-def test_generic_speaker_label_routed_to_special_candidates():
-    block = _dialogue_block("EP01_DLG0001", _name_command_speaker("？？？"))
+@pytest.mark.parametrize("label", ["？？？", "？", "?"])
+def test_generic_speaker_label_routed_to_special_candidates(label: str):
+    block = _dialogue_block("EP01_DLG0001", _name_command_speaker(label))
     story = _build_normalized_story(
         "EP01", "TEST_STORY", [_scene("EP01_SC001", [block])]
     )
@@ -122,6 +125,34 @@ def test_generic_speaker_label_routed_to_special_candidates():
     assert extraction["characters"] == []
     special = extraction["specialSpeakerLabelCandidates"]
     assert len(special) == 1
+    assert special[0]["rawLabel"] == label
+    assert special[0]["labelType"] == "generic_speaker"
+    assert special[0]["resolutionStatus"] == "needs_review"
+
+
+@pytest.mark.parametrize("label", ["？", "?"])
+@pytest.mark.parametrize("source", ["name", "ch_talk_name"])
+def test_single_question_mark_parser_to_extractor(label: str, source: str):
+    command = (
+        f"name {label}" if source == "name" else f"@ChTalkName 0 {label} Story/test"
+    )
+    script = (
+        f"{command}\n@ChTalk 0\n合成の発話。\n"
+        if source == "name"
+        else f"{command}\n合成の発話。\n"
+    )
+    parsed = StoryParser().parse_text(script, source_file="synthetic.dec")
+    story = Normalizer(
+        story_id="TEST_STORY",
+        story_category="EVT",
+        source_file="synthetic.dec",
+    ).normalize(parsed)
+    extraction = Extractor().extract_story(story)[0]
+
+    assert extraction["characters"] == []
+    special = extraction["specialSpeakerLabelCandidates"]
+    assert len(special) == 1
+    assert special[0]["rawLabel"] == label
     assert special[0]["labelType"] == "generic_speaker"
     assert special[0]["resolutionStatus"] == "needs_review"
 

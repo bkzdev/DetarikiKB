@@ -128,6 +128,14 @@ def test_generic_speaker_question_marks():
     )
 
 
+def test_single_question_mark_is_generic_and_needs_review():
+    for label in ("？", "?"):
+        analysis = analyze_speaker_label(label, source=SOURCE_NAME_COMMAND)
+        assert analysis.label_type == LABEL_TYPE_GENERIC_SPEAKER
+        assert analysis.resolution_status == RESOLUTION_STATUS_NEEDS_REVIEW
+        assert analysis.is_special is True
+
+
 def test_generic_speaker_mysterious_voice():
     assert classify_speaker_label("謎の声") == LABEL_TYPE_GENERIC_SPEAKER
 
