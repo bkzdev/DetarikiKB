@@ -12,12 +12,15 @@ from __future__ import annotations
 import csv
 from pathlib import Path
 
+import pytest
+
 from agents.parser.story_manifest import (
     StoryManifest,
     StoryManifestEpisode,
     StoryManifestStory,
 )
 from agents.parser.story_title_subtitle_candidates import (
+    CandidateConflictError,
     build_candidate_document,
     build_candidates_from_rows,
     read_candidate_rows_from_csv,
@@ -130,6 +133,30 @@ def test_build_candidates_groups_episodes_under_story():
     assert len(story["episodes"]) == 2
     assert story["episodes"][0]["proposedSubtitle"] == "Synthetic Episode 1 Subtitle"
     assert story["episodes"][1]["proposedSubtitle"] == "Synthetic Episode 2 Subtitle"
+
+
+@pytest.mark.parametrize("field", ["proposedTitle", "proposedDisplayTitle"])
+def test_build_candidates_rejects_conflicting_story_fields(field):
+    rows = [
+        _row(storyId="EVT_990101_SAMPLE_EVENT", **{field: "Synthetic First"}),
+        _row(storyId="EVT_990101_SAMPLE_EVENT", **{field: "Synthetic Second"}),
+    ]
+
+    with pytest.raises(CandidateConflictError, match=f"CSV row 3: conflicting {field}"):
+        build_candidates_from_rows(rows)
+
+
+def test_build_candidates_accepts_repeated_identical_story_field():
+    rows = [
+        _row(storyId="EVT_990101_SAMPLE_EVENT", proposedTitle=" Synthetic Title "),
+        _row(storyId="EVT_990101_SAMPLE_EVENT", proposedTitle="Synthetic Title"),
+    ]
+
+    candidates = build_candidates_from_rows(rows)
+
+    assert len(candidates) == 1
+    assert candidates[0]["proposedTitle"] == "Synthetic Title"
+    assert candidates[0]["reviewStatus"] == "pending"
 
 
 def test_build_candidates_all_have_pending_review_status():

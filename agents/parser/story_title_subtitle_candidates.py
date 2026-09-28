@@ -26,6 +26,10 @@ DOCUMENT_TYPE = "story_title_subtitle_candidates"
 REVIEW_STATUS_PENDING = "pending"
 
 
+class CandidateConflictError(ValueError):
+    """同一CSV内のstory候補を情報損失なく統合できない。"""
+
+
 def read_candidate_rows_from_csv(path: str | Path) -> list[dict[str, str]]:
     """CSVファイルを読み込み、行のリストとして返す。
 
@@ -64,11 +68,19 @@ def _episode_exists(
     return False
 
 
-def _merge_story_fields(story: dict[str, Any], row: dict[str, str]) -> None:
-    if story["proposedTitle"] is None:
-        story["proposedTitle"] = _blank_to_none(row.get("proposedTitle"))
-    if story["proposedDisplayTitle"] is None:
-        story["proposedDisplayTitle"] = _blank_to_none(row.get("proposedDisplayTitle"))
+def _merge_story_fields(
+    story: dict[str, Any], row: dict[str, str], row_number: int
+) -> None:
+    for field in ("proposedTitle", "proposedDisplayTitle"):
+        proposed = _blank_to_none(row.get(field))
+        if proposed is None:
+            continue
+        if story[field] is None:
+            story[field] = proposed
+        elif story[field] != proposed:
+            raise CandidateConflictError(
+                f"CSV row {row_number}: conflicting {field} for storyId"
+            )
 
 
 def _build_episode_candidate(row: dict[str, str], episode_id: str) -> dict[str, Any]:
@@ -96,7 +108,7 @@ def build_candidates_from_rows(
     """
     stories_by_id: dict[str, dict[str, Any]] = {}
 
-    for row in rows:
+    for row_number, row in enumerate(rows, start=2):
         story_id = _blank_to_none(row.get("storyId"))
         if story_id is None:
             continue
@@ -112,7 +124,7 @@ def build_candidates_from_rows(
                 "episodes": [],
             },
         )
-        _merge_story_fields(story, row)
+        _merge_story_fields(story, row, row_number)
 
         episode_id = _blank_to_none(row.get("episodeId"))
         if episode_id is None:
