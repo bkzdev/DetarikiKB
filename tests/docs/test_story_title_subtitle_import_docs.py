@@ -152,6 +152,7 @@ def test_candidate_template_review_status_is_pending():
     with open(CANDIDATE_TEMPLATE_PATH, encoding="utf-8") as f:
         document = yaml.safe_load(f)
     for story in document["candidates"]:
+        assert story["reviewStatus"] == "pending"
         for episode in story["episodes"]:
             assert episode["reviewStatus"] == "pending"
 

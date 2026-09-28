@@ -58,7 +58,7 @@ uv run python scripts/build_story_title_subtitle_candidates.py \
 ```
 
 3. `--manifest`を指定すると、各`storyId`/`episodeId`が既存manifestに実在するかを`foundInManifest`として記録する（**一致有無に関わらず、candidateとしては必ず出力される**。unmatchedを黙って除外しない）
-4. 生成されるcandidateはすべて`reviewStatus: "pending"`。このscript自体は`story_manifest.yaml`を一切更新しない
+4. 生成されるstory候補とepisode候補はいずれも`reviewStatus: "pending"`。`episodeId`が空のstory単位行は`episodes: []`でもstory候補として残る。このscript自体は`story_manifest.yaml`を一切更新しない
 
 ---
 
@@ -69,7 +69,7 @@ uv run python scripts/build_story_title_subtitle_candidates.py \
    - 値が正しいか（出典元と実際に照合する）
    - `foundInManifest: false`の場合、`storyId`/`episodeId`の誤記か、それとも`story_manifest.yaml`側にまだそのストーリーが登録されていないだけかを確認する
    - 複数candidateソースで矛盾する値が無いか（§7）
-3. 採用する値には`reviewStatus: "confirmed"`、不採用には`"rejected"`を人間が手動で付ける（このscriptはreviewStatusを書き換えない、あくまで人間がcandidateファイルを編集する運用）
+3. 採用するstory候補・episode候補それぞれの`reviewStatus`を`"confirmed"`、不採用を`"rejected"`に人間が手動で更新する。storyだけの候補ではstory側のstatusを確認する（このscriptはreviewStatusを書き換えない）
 
 ---
 

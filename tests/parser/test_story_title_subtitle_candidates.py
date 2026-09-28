@@ -126,6 +126,7 @@ def test_build_candidates_groups_episodes_under_story():
     story = candidates[0]
     assert story["storyId"] == "EVT_990101_SAMPLE_EVENT"
     assert story["proposedTitle"] == "Synthetic Sample Event"
+    assert story["reviewStatus"] == "pending"
     assert len(story["episodes"]) == 2
     assert story["episodes"][0]["proposedSubtitle"] == "Synthetic Episode 1 Subtitle"
     assert story["episodes"][1]["proposedSubtitle"] == "Synthetic Episode 2 Subtitle"
@@ -144,6 +145,7 @@ def test_build_candidates_all_have_pending_review_status():
 
     candidates = build_candidates_from_rows(rows)
 
+    assert candidates[0]["reviewStatus"] == "pending"
     assert candidates[0]["episodes"][0]["reviewStatus"] == "pending"
 
 
@@ -170,6 +172,7 @@ def test_build_candidates_story_level_row_without_episode_id():
 
     assert len(candidates) == 1
     assert candidates[0]["proposedTitle"] == "Synthetic Title"
+    assert candidates[0]["reviewStatus"] == "pending"
     assert candidates[0]["episodes"] == []
 
 
@@ -205,6 +208,7 @@ def test_build_candidates_unmatched_story_still_emitted_as_pending():
 
     assert len(candidates) == 1
     assert candidates[0]["foundInManifest"] is False
+    assert candidates[0]["reviewStatus"] == "pending"
     assert candidates[0]["episodes"][0]["foundInManifest"] is False
     assert candidates[0]["episodes"][0]["reviewStatus"] == "pending"
 
