@@ -59,6 +59,7 @@ uv run python scripts/build_story_title_subtitle_candidates.py \
 
 3. `--manifest`を指定すると、各`storyId`/`episodeId`が既存manifestに実在するかを`foundInManifest`として記録する（**一致有無に関わらず、candidateとしては必ず出力される**。unmatchedを黙って除外しない）
 4. 生成されるstory候補とepisode候補はいずれも`reviewStatus: "pending"`。`episodeId`が空のstory単位行は`episodes: []`でもstory候補として残る。このscript自体は`story_manifest.yaml`を一切更新しない
+5. 同じCSV内で同一`storyId`の`proposedTitle`または`proposedDisplayTitle`に異なる非空値がある場合、先頭値を自動採用せず、行番号・field名を示して非0終了する。既存の出力は上書きしない。入力CSVを保持したまま、出典の表記を確認してから再実行する（値そのものはエラーに表示しない）
 
 ---
 

@@ -28,6 +28,7 @@ Usage:
 Exit codes:
     0: 成功（候補が0件でも成功）
     1: --input-csvが見つからない、または--manifestで指定したファイルが見つからない
+       または同一storyIdのstory単位候補に矛盾がある
 """
 
 from __future__ import annotations
@@ -44,6 +45,7 @@ if str(_PROJECT_ROOT) not in sys.path:
 
 from agents.parser.story_manifest import load_story_manifest  # noqa: E402
 from agents.parser.story_title_subtitle_candidates import (  # noqa: E402
+    CandidateConflictError,
     build_candidate_document,
     build_candidates_from_rows,
     read_candidate_rows_from_csv,
@@ -130,7 +132,11 @@ def main() -> int:
         manifest = load_story_manifest(manifest_path)
 
     rows = read_candidate_rows_from_csv(csv_path)
-    candidates = build_candidates_from_rows(rows, manifest)
+    try:
+        candidates = build_candidates_from_rows(rows, manifest)
+    except CandidateConflictError as exc:
+        print(f"[エラー] {exc}", file=sys.stderr)
+        return 1
     document = build_candidate_document(candidates, args.source_type, args.source_label)
 
     episode_count = sum(len(story["episodes"]) for story in candidates)

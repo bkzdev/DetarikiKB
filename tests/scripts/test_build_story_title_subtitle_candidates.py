@@ -206,6 +206,36 @@ def test_cli_story_only_title_candidate_remains_pending(tmp_path):
     assert story["episodes"] == []
 
 
+def test_cli_conflicting_story_title_fails_without_overwriting_output(tmp_path):
+    csv_path = tmp_path / "rows.csv"
+    _write_csv(
+        csv_path,
+        [
+            "EVT_990101_SAMPLE_EVENT,,,Synthetic First,,,,",
+            "EVT_990101_SAMPLE_EVENT,,,Synthetic Second,,,,",
+        ],
+    )
+    output_path = tmp_path / "candidates.yaml"
+    output_path.write_text("previous output\n", encoding="utf-8")
+
+    result = _run_cli(
+        [
+            "--input-csv",
+            str(csv_path),
+            "--source-type",
+            "manual",
+            "--output",
+            str(output_path),
+        ]
+    )
+
+    assert result.returncode == 1
+    assert "CSV row 3: conflicting proposedTitle" in result.stderr
+    assert "Synthetic First" not in result.stderr
+    assert "Synthetic Second" not in result.stderr
+    assert output_path.read_text(encoding="utf-8") == "previous output\n"
+
+
 def test_cli_quiet_suppresses_summary_output(tmp_path):
     csv_path = tmp_path / "rows.csv"
     _write_csv(
