@@ -96,6 +96,8 @@ _MODIFIER_PATTERN = re.compile(r"^(?P<base>.*?)[（(](?P<modifier>[^（）()]+)[
 # 単独名としては扱わず、review-needed (generic_speaker) とする。
 GENERIC_SPEAKER_LABELS = frozenset(
     {
+        "？",
+        "?",
         "？？？",
         "???",
         "謎の声",

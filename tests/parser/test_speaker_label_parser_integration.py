@@ -55,6 +55,13 @@ def test_name_command_generic_speaker_gets_label_analysis():
     assert speaker.label_analysis.label_type == LABEL_TYPE_GENERIC_SPEAKER
 
 
+def test_name_command_single_question_mark_is_generic():
+    speaker = _first_dialogue_speaker("name ？\n@ChTalk 0\n誰でしょう。\n")
+    assert speaker.label_source == SOURCE_NAME_COMMAND
+    assert speaker.label_analysis.label_type == LABEL_TYPE_GENERIC_SPEAKER
+    assert speaker.label_analysis.is_special is True
+
+
 def test_name_command_plain_single_name_is_not_special():
     script = "name レイン\n@ChTalk 0\nこんにちは\n"
     speaker = _first_dialogue_speaker(script)
