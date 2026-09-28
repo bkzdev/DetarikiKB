@@ -107,6 +107,7 @@ def build_candidates_from_rows(
                 "storyId": story_id,
                 "proposedTitle": None,
                 "proposedDisplayTitle": None,
+                "reviewStatus": REVIEW_STATUS_PENDING,
                 "foundInManifest": _story_exists(manifest, story_id),
                 "episodes": [],
             },

@@ -24,6 +24,7 @@ candidates:
   - storyId: "EVT_250626_SYNTHETIC_DANCER"
     proposedTitle: null
     proposedDisplayTitle: null
+    reviewStatus: "pending"
     foundInManifest: true
     episodes:
       - episodeId: "EVT_250626_SYNTHETIC_DANCER_E01"

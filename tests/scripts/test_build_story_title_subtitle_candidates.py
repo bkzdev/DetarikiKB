@@ -150,6 +150,7 @@ def test_cli_generates_output_with_matched_and_unmatched(tmp_path):
     assert candidates_by_id["EVT_990101_SAMPLE_EVENT"]["foundInManifest"] is True
     assert candidates_by_id["EVT_UNMATCHED_STORY"]["foundInManifest"] is False
     for story in document["candidates"]:
+        assert story["reviewStatus"] == "pending"
         for episode in story["episodes"]:
             assert episode["reviewStatus"] == "pending"
 
@@ -173,6 +174,36 @@ def test_cli_without_output_does_not_write_file(tmp_path):
     assert result.returncode == 0, result.stderr
     assert "EVT_990101_SAMPLE_EVENT" in result.stdout
     assert not (tmp_path / "candidates.yaml").exists()
+
+
+def test_cli_story_only_title_candidate_remains_pending(tmp_path):
+    csv_path = tmp_path / "rows.csv"
+    _write_csv(csv_path, ["EVT_990101_SAMPLE_EVENT,,,Synthetic Title,,,,"])
+    manifest_path = tmp_path / "manifest.yaml"
+    _write_manifest(manifest_path)
+    output_path = tmp_path / "candidates.yaml"
+
+    result = _run_cli(
+        [
+            "--input-csv",
+            str(csv_path),
+            "--source-type",
+            "official_announcement",
+            "--manifest",
+            str(manifest_path),
+            "--output",
+            str(output_path),
+            "--quiet",
+        ]
+    )
+
+    assert result.returncode == 0, result.stderr
+    with open(output_path, encoding="utf-8") as f:
+        story = yaml.safe_load(f)["candidates"][0]
+    assert story["proposedTitle"] == "Synthetic Title"
+    assert story["reviewStatus"] == "pending"
+    assert story["foundInManifest"] is True
+    assert story["episodes"] == []
 
 
 def test_cli_quiet_suppresses_summary_output(tmp_path):
