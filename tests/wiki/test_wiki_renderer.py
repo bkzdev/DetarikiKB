@@ -3143,6 +3143,104 @@ def test_render_story_page_has_related_characters_section(synthetic_collection):
     assert "`CHAR_TEST_RAIN`" in page
 
 
+def test_story_related_locations_link_once_across_episodes(
+    synthetic_collection, resolved_location
+):
+    collection = deepcopy(synthetic_collection)
+    collection["entities"]["locations"].append(resolved_location)
+
+    pages = build_pages(collection)
+    page = pages["stories/TEST_S01_C01.md"]
+    section = page.split("## Related Locations\n\n", 1)[1].split("## Review Links", 1)[
+        0
+    ]
+
+    assert section.count("[Test Plaza](../locations/LOC_TEST_PLAZA.md)") == 1
+    assert "locations/LOC_TEST_PLAZA.md" in pages
+    assert "要確認の場所: 1件" in section
+    assert "[Unresolved report](../reports/unresolved.md)" in section
+    assert "Test Location Unknown" not in section
+    assert "UNRESOLVED_LOC_TEST_0001" not in section
+
+
+def test_story_related_locations_uses_all_episode_reference_types(
+    synthetic_collection, resolved_location
+):
+    collection = deepcopy(synthetic_collection)
+    location = deepcopy(resolved_location)
+    location["evidenceRefs"][0]["episodeId"] = "EP_TEST_OTHER"
+    location["sourceCandidates"] = []
+    location["extractionRunRefs"] = {"EP_TEST_002": "RUN_TEST_002"}
+    collection["entities"]["locations"] = [location]
+
+    page = render_story_page(
+        "TEST_S01_C01", _story_episodes(collection, "TEST_S01_C01"), collection
+    )
+
+    assert "[Test Plaza](../locations/LOC_TEST_PLAZA.md)" in page
+
+
+def test_story_related_locations_duplicate_canonical_id_is_not_linked(
+    synthetic_collection, resolved_location
+):
+    collection = deepcopy(synthetic_collection)
+    duplicate = deepcopy(resolved_location)
+    duplicate["id"] = "LOC_TEST_OTHER"
+    duplicate["displayName"] = "Test Other"
+    duplicate["evidenceRefs"][0]["episodeId"] = "EP_TEST_OTHER"
+    duplicate["sourceCandidates"] = []
+    duplicate["extractionRunRefs"] = {}
+    collection["entities"]["locations"] = [resolved_location, duplicate]
+
+    page = render_story_page(
+        "TEST_S01_C01", _story_episodes(collection, "TEST_S01_C01"), collection
+    )
+
+    assert "要確認の場所: 1件" in page
+    assert "../locations/LOC_TEST_PLAZA.md" not in page
+    assert "Test Plaza" not in page
+
+
+def test_ineligible_location_with_duplicate_canonical_id_blocks_both_links(
+    synthetic_collection, resolved_location
+):
+    collection = deepcopy(synthetic_collection)
+    duplicate = deepcopy(resolved_location)
+    duplicate["id"] = "LOC_TEST_INELIGIBLE"
+    duplicate["status"] = "unresolved"
+    duplicate["evidenceRefs"][0]["episodeId"] = "EP_TEST_OTHER"
+    duplicate["sourceCandidates"] = []
+    duplicate["extractionRunRefs"] = {}
+    collection["entities"]["locations"] = [resolved_location, duplicate]
+
+    episode_page = render_episode_page(collection["sourceDocuments"][0], collection)
+    story_page = render_story_page(
+        "TEST_S01_C01", _story_episodes(collection, "TEST_S01_C01"), collection
+    )
+
+    for page in (episode_page, story_page):
+        assert "要確認の場所: 1件" in page
+        assert "../locations/LOC_TEST_PLAZA.md" not in page
+        assert "Test Plaza" not in page
+
+
+def test_story_related_locations_escapes_name_and_explains_no_match(
+    synthetic_collection, resolved_location
+):
+    collection = deepcopy(synthetic_collection)
+    resolved_location["displayName"] = "Test [Plaza] <tag>"
+    collection["entities"]["locations"] = [resolved_location]
+
+    page = render_story_page(
+        "TEST_S01_C01", _story_episodes(collection, "TEST_S01_C01"), collection
+    )
+    empty_page = render_story_page("TEST_EMPTY_STORY", [], collection)
+
+    assert "[Test \\[Plaza\\] &lt;tag&gt;](../locations/LOC_TEST_PLAZA.md)" in page
+    assert "<tag>" not in page
+    assert "関連する場所は記録されていません。" in empty_page
+
+
 def test_render_story_page_related_characters_use_first_episode_order_and_identity():
     """入力episode順やcollection全体順ではなくstory内の初出episode順で並べ、
     resolved characterはcanonicalId単位で1回だけ表示する。"""
