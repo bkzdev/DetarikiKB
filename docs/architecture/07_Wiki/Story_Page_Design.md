@@ -92,7 +92,7 @@ Story pageは、閲覧者が最初に見るストーリー単位ページとす�
 - Episode Summaries（§8参照、当面はplaceholder）
 - Episode list（このstoryに属するepisode一覧、Episode pageへのリンク）
 - Related Characters（このstoryに関係するcharacter一覧）
-- Related Locations / Organizations（将来）
+- Related Locations（実装済み）/ Organizations（将来）
 - Unresolved / Special Speaker Labelsへの導線（該当する未解決項目がある場合）
 - Evidence summary（件数・参照情報のみ。**元セリフ全文は出さない**）
 - AI Analysis / Speculationへのリンク（将来、Phase 3、`Wiki_Output_Design.md` §9.17）
@@ -106,9 +106,11 @@ Story pageは、閲覧者が最初に見るストーリー単位ページとす�
 - extraction JSONの生dump
 - AI考察を通常要約と混ぜた内容（`Wiki_Output_Design.md` §3の分離方針を踏襲）
 
-**実装状況（`feature/wiki-story-page-renderer`で実施）**: `render_story_page`（`agents/wiki_generator/renderer.py`）を実装した。Story title（`storyTitle`優先、無ければ`publicStoryId`、無ければ`storyId`）・`storyId`/`publicStoryId`（未登録時は「未登録」表示）・category・`metadataStatus`（story内のepisodeで値が異なる場合は`mixed`）・Story Summary/Episode Summaries（placeholder、§8参照）・Episode list（このstoryに属するepisode一覧とEpisode pageへのリンク）・Related Characters・Unresolved reportへの導線を表示する。Related Locations/Organizations・AI Analysisリンクは未実装のまま（中期・長期方針）。
+**実装状況（`feature/wiki-story-page-renderer`で初回実装）**: `render_story_page`（`agents/wiki_generator/renderer.py`）を実装した。Story title（`storyTitle`優先、無ければ`publicStoryId`、無ければ`storyId`）・`storyId`/`publicStoryId`（未登録時は「未登録」表示）・category・`metadataStatus`（story内のepisodeで値が異なる場合は`mixed`）・Story Summary/Episode Summaries（placeholder、§8参照）・Episode list（このstoryに属するepisode一覧とEpisode pageへのリンク）・Related Characters・Unresolved reportへの導線を表示する。Related Locationsは後続で追加済み。Related Organizations・AI Analysisリンクは未実装（中期・長期方針）。
 
 **Related Characters表示の詳細（`codex/story-page-related-characters-refinement`で確定）**: Story内のEpisodeを既存の決定的なEpisode順で走査し、そのCharacterが最初に現れるEpisodeの順を表示順とする。同じEpisode内ではMerged Knowledge Collectionの`entities.characters`順を維持する。Character pageを生成できるresolved entityは`canonicalId`、unresolved entityは内部`id`をidentity keyとして重複排除し、表示名が同じだけの別entityは統合しない。resolvedはCharacter pageへのリンク付きで先に表示する。unresolvedは情報を破棄せず件数へ集約し、内部IDや表示名をStory pageへ列挙せずUnresolved reportへ誘導する。unresolvedだけが存在するStoryを「関連なし」とは表示しない。Episode pageの既存Related Characters表示は変更しない。
+
+**Related Locations表示（`codex/story-related-locations`で追加）**: Story内の全Episodeへの参照を`evidenceRefs[].episodeId`、`sourceCandidates[].episodeId`、`extractionRunRefs`のキーから収集し、同じLocationはStory pageに1回だけ表示する。個別ページ生成条件を満たし、canonical IDがLocation間で重複しない場合だけ安全な表示名でリンクする。未確定・非適格・canonical ID重複は名前や内部IDを列挙せず、件数とUnresolved report導線で保持する。リンク順はpage path順で固定し、関連Locationがない場合はその旨を明示する。OrganizationとRelationship表示は対象外。
 
 ---
 
@@ -305,7 +307,7 @@ stories/{publicStoryId or storyId}/{publicEpisodeId or episodeId}.md
 
 - **story-summary-schema-design**: Story Summary/Episode Summaryのデータ構造（schema）設計（AI要約生成パイプライン自体はさらに後続）
 - **story-page-manual-review**: 実データ小規模サンプルでStory page表示（Story index→Story page→Episode pageの導線、Related Characters集約）を目視確認する
-- Related Locations/Organizationsのstory page表示、AI Analysisリンク（中期・長期方針、§5参照）
+- Related Organizationsのstory page表示、AI Analysisリンク（中期・長期方針、§5参照）。Related Locationsは実装済み
 - ~~**episode-page-summary-evidence-linking**~~: §7.1の限定契約を実装し、合成fixtureでの回帰テストとlocal manual reviewまで完了した。実データのSummary/Evidence生成・commitは含めていない。
 
 ---

@@ -255,6 +255,7 @@ Episode pageにRelated Locationsを追加した。`evidenceRefs[].episodeId`、
 名前や内部IDをEpisode pageへ列挙せず、件数とUnresolved report導線で保持する。
 表示名はMarkdown/HTMLをescapeし、リンク順はpage path順に固定する。
 Relationship表示と実データ投入は引き続き対象外。
+後続の`codex/story-related-locations`でStory pageにもRelated Locationsを追加した。Story内の全Episodeに関連するLocationを重複排除し、Episode pageと同じ個別ページ適格性・canonical ID重複防止・表示名escape・Unresolved report集約を適用する。Organization・Relationship表示と実データ投入は対象外。
 
 ## 9.6 Organization page
 

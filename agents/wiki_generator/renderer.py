@@ -1972,30 +1972,33 @@ def _render_related_characters_section(
 
 
 def _render_related_locations_section(
-    collection: dict[str, Any], episode_id: str
+    collection: dict[str, Any], episode_ids: list[str]
 ) -> list[str]:
-    """Page生成対象の場所だけをリンクし、未確定の場所はreviewへ誘導する。"""
+    """対象Episode群の場所を重複なく表示し、未確定分はreviewへ誘導する。"""
     locations = collection.get("entities", {}).get("locations", []) or []
+    target_episode_ids = set(episode_ids)
     related = [
         location
         for location in locations
-        if episode_id in _entity_episode_ids(location)
+        if target_episode_ids.intersection(_entity_episode_ids(location))
     ]
     lines = ["## Related Locations", ""]
     if not related:
         return [*lines, "関連する場所は記録されていません。", ""]
 
-    eligible_path_counts: dict[str, int] = {}
+    canonical_id_counts: dict[str, int] = {}
     for location in locations:
-        path = location_page_path(location)
-        if path is not None:
-            eligible_path_counts[path] = eligible_path_counts.get(path, 0) + 1
+        canonical_id = location.get("canonicalId")
+        if isinstance(canonical_id, str) and canonical_id:
+            canonical_id_counts[canonical_id] = (
+                canonical_id_counts.get(canonical_id, 0) + 1
+            )
 
     eligible: dict[str, dict[str, Any]] = {}
     needs_review_count = 0
     for location in related:
         path = location_page_path(location)
-        if path is None or eligible_path_counts[path] != 1:
+        if path is None or canonical_id_counts[location["canonicalId"]] != 1:
             needs_review_count += 1
         else:
             eligible[path] = location
@@ -2157,7 +2160,7 @@ def render_episode_page(
     lines.extend(_render_candidate_counts_section(source_document))
     if episode_id:
         lines.extend(_render_related_characters_section(collection, episode_id))
-        lines.extend(_render_related_locations_section(collection, episode_id))
+        lines.extend(_render_related_locations_section(collection, [episode_id]))
     lines.extend(_render_validation_section(collection, source_document))
 
     lines.append(
@@ -2502,7 +2505,8 @@ def render_story_page(
 
     閲覧者向けの入口ページとして、Overview・Story Summary・Episode
     Summaries（episodeごとに区切る）・Episode一覧・Related Characters・
-    Unresolved reportへの導線を表示する。本文セリフ・raw DECコマンド・
+    Related Locations・Unresolved reportへの導線を表示する。
+    本文セリフ・raw DECコマンド・
     ローカル絶対パス・extraction JSONの生dumpは出さない。
 
     `story_summary_lookup`（`agents.wiki_generator.story_summaries.
@@ -2565,6 +2569,7 @@ def render_story_page(
         doc.get("episodeId") for doc in sorted_episodes if doc.get("episodeId")
     ]
     lines.extend(_render_story_related_characters_section(collection, episode_ids))
+    lines.extend(_render_related_locations_section(collection, episode_ids))
 
     evidence_link = None
     if evidence_index_lookup is not None:
