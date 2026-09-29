@@ -187,7 +187,7 @@ Relationship page（独立ページ）は現時点では見送り、Character/Or
 - source: 個別`entities.*`のうち、`sourceCandidates[].episodeId`がこのエピソードに一致するもの（登場キャラクター・場所等の索引として）
 - 表示: `episodeId`、登場キャラクター一覧（Character pageへのリンク）、登場場所一覧、`unresolvedEntityCounts`のうちこのエピソード由来分
 - 表示しないもの: 本文セリフ全文（§4 evidence方針と同じ理由）
-- unresolved時の表示: このエピソード由来のunresolvedエンティティは名前のみ列挙し、リンクは張らない（個別ページが無いため）
+- unresolved時の表示: Characterは名前のみ列挙してリンクしない。Locationは名前・内部IDをEpisode pageに列挙せず件数とUnresolved report導線を表示する（§9.5）。
 - テンプレート名（案）: `templates/wiki/episode.md.j2`
 
 **実装状況（`feature/episode-page-renderer-expansion`で拡張）**: `render_episode_page`（`agents/wiki_generator/renderer.py`）は、Summary・Candidate Counts表（8種、`Wiki_Output_Design.md` §13対応表と同じ順序・ラベル）・Related Characters（`entities.characters`の`evidenceRefs.episodeId`/`sourceCandidates.episodeId`/`extractionRunRefs`キーのいずれかがこのepisodeIdに一致するcharacterを列挙。canonicalIdがあれば`` `CHAR_XXX` ``、unresolvedなら内部idと`unresolved`表記）・Validation（`report.inputResults`をpathで突き合わせられた場合のみinput status/errors件数/warnings件数を表示、見つからない場合はセクション自体を省略）の順でセクションを出力する。front matterには`page_type: "episode"`（`entity_type`ではなくepisodeがmerged knowledge schema上のentityではないことを明示するため）・`episode_id`/`story_id`/`document_id`を追加した。`source_path`は本文Summaryのみに表示し、front matterには含めない（ローカルパス漏洩懸念への配慮）。Location/Organization等の関連entity summaryは今回未実装（characters優先、Phase 2で拡張予定）。
@@ -247,8 +247,14 @@ Evidence、Source Candidates、ConflictsをCharacter pageと同じ安全な要�
 対応するEpisode pageへリンクする。`sourceDocuments`に対応がないIDも破棄せず
 code表示で残す。`locations/index.md`は生成対象だけをcanonical ID順で掲載し、
 Top pageから導線を設ける。canonical IDを持つ`status: conflict`も§5の共通判定に
-従って生成し、ページ冒頭にwarningを表示する。Episode page側のRelated Locations、
-Relationship表示、実データ投入は本実装の対象外とする。
+従って生成し、ページ冒頭にwarningを表示する。Location page実装時点ではEpisode page側のRelated Locations、
+Relationship表示、実データ投入は対象外とした。後続の`codex/episode-related-locations`で、
+Episode pageにRelated Locationsを追加した。`evidenceRefs[].episodeId`、
+`sourceCandidates[].episodeId`、`extractionRunRefs`のキーで関連付け、
+個別ページ生成条件を満たし、canonical IDがLocation内で重複しない場合だけリンクする。未確定・非適格・canonical ID重複のLocationは
+名前や内部IDをEpisode pageへ列挙せず、件数とUnresolved report導線で保持する。
+表示名はMarkdown/HTMLをescapeし、リンク順はpage path順に固定する。
+Relationship表示と実データ投入は引き続き対象外。
 
 ## 9.6 Organization page
 
