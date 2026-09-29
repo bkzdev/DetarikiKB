@@ -2829,6 +2829,116 @@ def test_render_episode_page_no_related_characters_message(synthetic_collection)
     assert "関連するキャラクターは記録されていません。" in page
 
 
+def test_render_episode_page_related_locations_link_only_eligible(
+    synthetic_collection, resolved_location
+):
+    collection = deepcopy(synthetic_collection)
+    collection["entities"]["locations"].append(resolved_location)
+
+    pages = build_pages(collection)
+    page = pages["stories/EP_TEST_001.md"]
+
+    assert "## Related Locations" in page
+    assert "[Test Plaza](../locations/LOC_TEST_PLAZA.md)" in page
+    assert "locations/LOC_TEST_PLAZA.md" in pages
+    assert "要確認の場所: 1件" in page
+    assert "[Unresolved report](../reports/unresolved.md)" in page
+    assert "Test Location Unknown" not in page
+    assert "../locations/UNRESOLVED_LOC_TEST_0001.md" not in page
+
+
+def test_render_episode_page_related_locations_uses_all_episode_refs(
+    synthetic_collection, resolved_location
+):
+    collection = deepcopy(synthetic_collection)
+    collection["entities"]["locations"] = [resolved_location]
+
+    page = render_episode_page(collection["sourceDocuments"][1], collection)
+
+    assert "[Test Plaza](../locations/LOC_TEST_PLAZA.md)" in page
+
+
+def test_render_episode_page_related_locations_uses_extraction_run_refs(
+    synthetic_collection, resolved_location
+):
+    collection = deepcopy(synthetic_collection)
+    resolved_location["sourceCandidates"] = []
+    resolved_location["extractionRunRefs"]["EP_TEST_002"] = "RUN_TEST_002"
+    collection["entities"]["locations"] = [resolved_location]
+
+    page = render_episode_page(collection["sourceDocuments"][1], collection)
+
+    assert "[Test Plaza](../locations/LOC_TEST_PLAZA.md)" in page
+
+
+def test_render_episode_page_related_locations_uses_evidence_refs_only(
+    synthetic_collection, resolved_location
+):
+    collection = deepcopy(synthetic_collection)
+    resolved_location["sourceCandidates"] = []
+    resolved_location["extractionRunRefs"] = {}
+    collection["entities"]["locations"] = [resolved_location]
+
+    page = render_episode_page(collection["sourceDocuments"][0], collection)
+
+    assert "[Test Plaza](../locations/LOC_TEST_PLAZA.md)" in page
+
+
+def test_render_episode_page_ineligible_canonical_location_is_not_linked(
+    synthetic_collection, resolved_location
+):
+    collection = deepcopy(synthetic_collection)
+    resolved_location["confidence"] = 0.3
+    collection["entities"]["locations"] = [resolved_location]
+
+    page = render_episode_page(collection["sourceDocuments"][0], collection)
+
+    assert "要確認の場所: 1件" in page
+    assert "../locations/LOC_TEST_PLAZA.md" not in page
+
+
+def test_render_episode_page_duplicate_canonical_location_is_not_linked(
+    synthetic_collection, resolved_location
+):
+    collection = deepcopy(synthetic_collection)
+    duplicate = deepcopy(resolved_location)
+    duplicate["id"] = "LOC_TEST_OTHER"
+    duplicate["displayName"] = "Test Other"
+    duplicate["evidenceRefs"][0]["episodeId"] = "EP_TEST_002"
+    duplicate["sourceCandidates"] = []
+    duplicate["extractionRunRefs"] = {}
+    collection["entities"]["locations"] = [resolved_location, duplicate]
+
+    page = render_episode_page(collection["sourceDocuments"][0], collection)
+
+    assert "要確認の場所: 1件" in page
+    assert "../locations/LOC_TEST_PLAZA.md" not in page
+    assert "Test Plaza" not in page
+
+
+def test_render_episode_page_related_locations_without_match(synthetic_collection):
+    collection = deepcopy(synthetic_collection)
+    collection["entities"]["locations"] = []
+
+    page = render_episode_page(collection["sourceDocuments"][0], collection)
+
+    assert "## Related Locations" in page
+    assert "関連する場所は記録されていません。" in page
+
+
+def test_render_episode_page_related_location_name_is_escaped(
+    synthetic_collection, resolved_location
+):
+    collection = deepcopy(synthetic_collection)
+    resolved_location["displayName"] = "Test [Plaza] <tag>"
+    collection["entities"]["locations"] = [resolved_location]
+
+    page = render_episode_page(collection["sourceDocuments"][0], collection)
+
+    assert "[Test \\[Plaza\\] &lt;tag&gt;](../locations/LOC_TEST_PLAZA.md)" in page
+    assert "<tag>" not in page
+
+
 def test_render_episode_page_validation_section_when_available(synthetic_collection):
     """EP_TEST_002はwarningsが1件あるinputResultを持つ合成fixture。"""
     source_document = synthetic_collection["sourceDocuments"][1]

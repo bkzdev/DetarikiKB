@@ -1971,6 +1971,48 @@ def _render_related_characters_section(
     return lines
 
 
+def _render_related_locations_section(
+    collection: dict[str, Any], episode_id: str
+) -> list[str]:
+    """Page生成対象の場所だけをリンクし、未確定の場所はreviewへ誘導する。"""
+    locations = collection.get("entities", {}).get("locations", []) or []
+    related = [
+        location
+        for location in locations
+        if episode_id in _entity_episode_ids(location)
+    ]
+    lines = ["## Related Locations", ""]
+    if not related:
+        return [*lines, "関連する場所は記録されていません。", ""]
+
+    eligible_path_counts: dict[str, int] = {}
+    for location in locations:
+        path = location_page_path(location)
+        if path is not None:
+            eligible_path_counts[path] = eligible_path_counts.get(path, 0) + 1
+
+    eligible: dict[str, dict[str, Any]] = {}
+    needs_review_count = 0
+    for location in related:
+        path = location_page_path(location)
+        if path is None or eligible_path_counts[path] != 1:
+            needs_review_count += 1
+        else:
+            eligible[path] = location
+
+    for path, location in sorted(eligible.items()):
+        name = location.get("displayName") or location["canonicalId"]
+        safe_name = _escape_markdown_inline_text(str(name))
+        lines.append(f"- [{safe_name}](../{path})")
+    if needs_review_count:
+        lines.append(
+            f"- 要確認の場所: {needs_review_count}件"
+            "（[Unresolved report](../reports/unresolved.md)）"
+        )
+    lines.append("")
+    return lines
+
+
 def _find_input_result(
     collection: dict[str, Any], source_document: dict[str, Any]
 ) -> dict[str, Any] | None:
@@ -2115,6 +2157,7 @@ def render_episode_page(
     lines.extend(_render_candidate_counts_section(source_document))
     if episode_id:
         lines.extend(_render_related_characters_section(collection, episode_id))
+        lines.extend(_render_related_locations_section(collection, episode_id))
     lines.extend(_render_validation_section(collection, source_document))
 
     lines.append(
