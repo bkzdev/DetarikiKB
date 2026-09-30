@@ -184,13 +184,13 @@ Relationship page（独立ページ）は現時点では見送り、Character/Or
 
 ## 9.3 Episode page
 
-- source: 個別`entities.*`のうち、`sourceCandidates[].episodeId`がこのエピソードに一致するもの（登場キャラクター・場所等の索引として）
-- 表示: `episodeId`、登場キャラクター一覧（Character pageへのリンク）、登場場所一覧、`unresolvedEntityCounts`のうちこのエピソード由来分
+- source: 個別`entities.*`の`evidenceRefs[].episodeId`・`sourceCandidates[].episodeId`・`extractionRunRefs`キーのいずれかがこのエピソードに一致するもの（登場キャラクター・場所・組織の索引として）
+- 表示: `episodeId`、登場キャラクター一覧（Character pageへのリンク）、登場場所・組織一覧、`unresolvedEntityCounts`のうちこのエピソード由来分
 - 表示しないもの: 本文セリフ全文（§4 evidence方針と同じ理由）
-- unresolved時の表示: Characterは名前のみ列挙してリンクしない。Locationは名前・内部IDをEpisode pageに列挙せず件数とUnresolved report導線を表示する（§9.5）。
+- unresolved時の表示: Characterは名前のみ列挙してリンクしない。Location / Organizationは名前・内部IDをEpisode pageに列挙せず件数とUnresolved report導線を表示する（§9.5・§9.6）。
 - テンプレート名（案）: `templates/wiki/episode.md.j2`
 
-**実装状況（`feature/episode-page-renderer-expansion`で拡張）**: `render_episode_page`（`agents/wiki_generator/renderer.py`）は、Summary・Candidate Counts表（8種、`Wiki_Output_Design.md` §13対応表と同じ順序・ラベル）・Related Characters（`entities.characters`の`evidenceRefs.episodeId`/`sourceCandidates.episodeId`/`extractionRunRefs`キーのいずれかがこのepisodeIdに一致するcharacterを列挙。canonicalIdがあれば`` `CHAR_XXX` ``、unresolvedなら内部idと`unresolved`表記）・Validation（`report.inputResults`をpathで突き合わせられた場合のみinput status/errors件数/warnings件数を表示、見つからない場合はセクション自体を省略）の順でセクションを出力する。front matterには`page_type: "episode"`（`entity_type`ではなくepisodeがmerged knowledge schema上のentityではないことを明示するため）・`episode_id`/`story_id`/`document_id`を追加した。`source_path`は本文Summaryのみに表示し、front matterには含めない（ローカルパス漏洩懸念への配慮）。Location/Organization等の関連entity summaryは今回未実装（characters優先、Phase 2で拡張予定）。
+**実装状況（`feature/episode-page-renderer-expansion`で初回拡張）**: `render_episode_page`（`agents/wiki_generator/renderer.py`）は、Summary・Candidate Counts表（8種、`Wiki_Output_Design.md` §13対応表と同じ順序・ラベル）・Related Characters（`entities.characters`の`evidenceRefs.episodeId`/`sourceCandidates.episodeId`/`extractionRunRefs`キーのいずれかがこのepisodeIdに一致するcharacterを列挙。canonicalIdがあれば`` `CHAR_XXX` ``、unresolvedなら内部idと`unresolved`表記）・Validation（`report.inputResults`をpathで突き合わせられた場合のみinput status/errors件数/warnings件数を表示、見つからない場合はセクション自体を省略）の順でセクションを出力する。front matterには`page_type: "episode"`（`entity_type`ではなくepisodeがmerged knowledge schema上のentityではないことを明示するため）・`episode_id`/`story_id`/`document_id`を追加した。`source_path`は本文Summaryのみに表示し、front matterには含めない（ローカルパス漏洩懸念への配慮）。初回拡張ではCharactersだけを対象とし、Related Locations / Organizationsは後続PRで追加した（§9.5・§9.6参照）。
 
 **Summaryのdefinition list化（`feature/wiki-renderer-readability-improvements`）**: manual visual review 001で「Summary tableが横長すぎる」と指摘されたため、Summaryは`| 項目 | 値 |`のtableから箇条書き（`_render_key_value_list`）へ変更した。Episode ID/Story ID/Document IDはcode表示（`` `EP_TEST_001` ``のようにバッククォート囲み）とし、人間が見て重要なDisplay Title/Story Title/Episode Subtitle/Metadata Statusを先頭に、内部provenance情報（Document ID/Source Path/Extraction Version/Category）を末尾に配置する。値自体はすべて維持しており削除していない。Candidate Counts表（2列のみ、既に狭幅）とValidation表（3列のみ）は変更していない。
 
@@ -257,6 +257,7 @@ Episode pageにRelated Locationsを追加した。`evidenceRefs[].episodeId`、
 Relationship表示と実データ投入は引き続き対象外。
 後続の`codex/story-related-locations`でStory pageにもRelated Locationsを追加した。Story内の全Episodeに関連するLocationを重複排除し、Episode pageと同じ個別ページ適格性・canonical ID重複防止・表示名escape・Unresolved report集約を適用する。Organization・Relationship表示と実データ投入は対象外。
 さらに`codex/story-related-organizations`でStory pageへRelated Organizationsを追加した。Story内Episodeへの直接参照だけを用い、Locationと同じ安全なリンク・非適格分の件数集約を共通helperで適用する。RelationshipからOrganizationを推定する処理、Episode pageのOrganization欄、実データ投入・公開は対象外。
+後続の`codex/episode-related-organizations`でEpisode pageにもRelated Organizationsを追加した。対象Episodeへの`evidenceRefs[].episodeId`・`sourceCandidates[].episodeId`・`extractionRunRefs`キーの直接参照だけを対象に、Story pageと共通の個別ページ適格性・全Organization間のcanonical ID重複防止・表示名escape・未確定分の件数集約を適用する。Relationship由来の推定、実データ投入・公開は対象外。
 
 ## 9.6 Organization page
 

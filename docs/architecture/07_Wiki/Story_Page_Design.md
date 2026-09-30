@@ -126,6 +126,7 @@ Episode pageは残す。役割は以下の通り、Story pageとは明確に分�
 - Episode ID / Public Episode ID確認
 - Candidate counts
 - Related Characters
+- Related Locations / Organizations
 - Validation status
 - Evidence references
 - Debug / review寄りの情報
@@ -133,6 +134,8 @@ Episode pageは残す。役割は以下の通り、Story pageとは明確に分�
 **実装状況（`episode-page-evidence-linking-review`で決定、`episode-page-summary-evidence-linking`で実装）**: Episode pageには、対象Episodeの表示可能なEpisode Summary本文と、その直下の`evidenceRefs`のみを追加する。表示条件は既存Story pageと共通で、`generationStatus: generated`かつ`review.status: reviewed`/`approved`であり、内部/公開ID照合に矛盾があれば安全側で非表示とする。Summaryが欠落・非表示・空本文なら`## Episode Summary` section自体を出さず、placeholderは置かない。Story Summaryの再掲もしない。
 
 `evidenceRefs`はSummary本文の直下に置き、空なら行を出さない。解決済みの参照は既存のStory別Evidence pageの該当anchorへリンクし、公開IDを優先する。解決できない参照は既存Story pageの契約どおり入力IDをbacktickで表示する。公開配布時はpublic-safe projection済みのSummary/Evidence入力を前提とし、既存helperの解決・fallback挙動は変更しない。
+
+**Related Organizations（`codex/episode-related-organizations`で追加）**: 対象Episodeへの直接参照があるOrganizationだけをStory pageと共通の安全条件でリンクする。未確定・canonical ID重複は名前や内部IDを出さず件数とUnresolved report導線へ集約する。Relationshipだけを根拠にEpisodeへの登場を推定しない。Related Locationsと同様にEpisode pageの確認用導線とし、元のevidenceやcanonical値は変更しない。
 
 ## 7.2 Episode pageを完全に廃止しない理由
 

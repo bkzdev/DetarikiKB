@@ -2196,6 +2196,7 @@ def render_episode_page(
     if episode_id:
         lines.extend(_render_related_characters_section(collection, episode_id))
         lines.extend(_render_related_locations_section(collection, [episode_id]))
+        lines.extend(_render_related_organizations_section(collection, [episode_id]))
     lines.extend(_render_validation_section(collection, source_document))
 
     lines.append(
