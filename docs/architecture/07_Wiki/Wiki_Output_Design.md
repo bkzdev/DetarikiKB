@@ -256,6 +256,7 @@ Episode pageにRelated Locationsを追加した。`evidenceRefs[].episodeId`、
 表示名はMarkdown/HTMLをescapeし、リンク順はpage path順に固定する。
 Relationship表示と実データ投入は引き続き対象外。
 後続の`codex/story-related-locations`でStory pageにもRelated Locationsを追加した。Story内の全Episodeに関連するLocationを重複排除し、Episode pageと同じ個別ページ適格性・canonical ID重複防止・表示名escape・Unresolved report集約を適用する。Organization・Relationship表示と実データ投入は対象外。
+さらに`codex/story-related-organizations`でStory pageへRelated Organizationsを追加した。Story内Episodeへの直接参照だけを用い、Locationと同じ安全なリンク・非適格分の件数集約を共通helperで適用する。RelationshipからOrganizationを推定する処理、Episode pageのOrganization欄、実データ投入・公開は対象外。
 
 ## 9.6 Organization page
 

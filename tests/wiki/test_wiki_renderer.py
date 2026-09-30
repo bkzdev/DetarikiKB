@@ -3241,6 +3241,99 @@ def test_story_related_locations_escapes_name_and_explains_no_match(
     assert "関連する場所は記録されていません。" in empty_page
 
 
+def test_story_related_organizations_links_once_and_keeps_review_count(
+    synthetic_collection,
+):
+    collection = deepcopy(synthetic_collection)
+    organization = _synthetic_public_organization()
+    organization["evidenceRefs"][0]["episodeId"] = "EP_TEST_001"
+    organization["sourceCandidates"] = [{"episodeId": "EP_TEST_002"}]
+    unresolved = _synthetic_public_organization(
+        entity_id="ORG_ENTITY_TEST_UNKNOWN", page_eligible=False
+    )
+    unresolved["displayName"] = "Private Organization Name"
+    unresolved["evidenceRefs"][0]["episodeId"] = "EP_TEST_001"
+    collection["entities"]["organizations"] = [organization, unresolved]
+
+    pages = build_pages(collection)
+    section = (
+        pages["stories/TEST_S01_C01.md"]
+        .split("## Related Organizations\n\n", 1)[1]
+        .split("## Review Links", 1)[0]
+    )
+
+    assert (
+        section.count("[Test Organization Alpha](../organizations/ORG_TEST_ALPHA.md)")
+        == 1
+    )
+    assert "organizations/ORG_TEST_ALPHA.md" in pages
+    assert "要確認の組織: 1件" in section
+    assert "[Unresolved report](../reports/unresolved.md)" in section
+    assert "Private Organization Name" not in section
+    assert "ORG_ENTITY_TEST_UNKNOWN" not in section
+
+
+@pytest.mark.parametrize("reference_type", ["evidence", "candidate", "run"])
+def test_story_related_organizations_uses_each_episode_reference_type(
+    synthetic_collection, reference_type
+):
+    collection = deepcopy(synthetic_collection)
+    organization = _synthetic_public_organization()
+    organization["evidenceRefs"][0]["episodeId"] = "EP_TEST_OTHER"
+    if reference_type == "evidence":
+        organization["evidenceRefs"][0]["episodeId"] = "EP_TEST_002"
+    elif reference_type == "candidate":
+        organization["sourceCandidates"] = [{"episodeId": "EP_TEST_002"}]
+    else:
+        organization["extractionRunRefs"] = {"EP_TEST_002": "RUN_TEST_002"}
+    collection["entities"]["organizations"] = [organization]
+
+    page = render_story_page(
+        "TEST_S01_C01", _story_episodes(collection, "TEST_S01_C01"), collection
+    )
+
+    assert "[Test Organization Alpha](../organizations/ORG_TEST_ALPHA.md)" in page
+
+
+def test_story_related_organizations_duplicate_ineligible_canonical_id_blocks_link(
+    synthetic_collection,
+):
+    collection = deepcopy(synthetic_collection)
+    organization = _synthetic_public_organization()
+    organization["evidenceRefs"][0]["episodeId"] = "EP_TEST_001"
+    duplicate = _synthetic_public_organization(entity_id="ORG_ENTITY_TEST_OTHER")
+    duplicate["status"] = "unresolved"
+    duplicate["evidenceRefs"][0]["episodeId"] = "EP_TEST_OTHER"
+    collection["entities"]["organizations"] = [organization, duplicate]
+
+    page = render_story_page(
+        "TEST_S01_C01", _story_episodes(collection, "TEST_S01_C01"), collection
+    )
+
+    assert "要確認の組織: 1件" in page
+    assert "../organizations/ORG_TEST_ALPHA.md" not in page
+    assert "Test Organization Alpha" not in page
+
+
+def test_story_related_organizations_escapes_name_and_explains_no_match(
+    synthetic_collection,
+):
+    collection = deepcopy(synthetic_collection)
+    organization = _synthetic_public_organization()
+    organization["displayName"] = "Test [Org] <tag>"
+    organization["evidenceRefs"][0]["episodeId"] = "EP_TEST_001"
+    collection["entities"]["organizations"] = [organization]
+
+    page = render_story_page(
+        "TEST_S01_C01", _story_episodes(collection, "TEST_S01_C01"), collection
+    )
+    empty_page = render_story_page("TEST_EMPTY_STORY", [], collection)
+
+    assert "[Test \\[Org\\] &lt;tag&gt;](../organizations/ORG_TEST_ALPHA.md)" in page
+    assert "<tag>" not in page
+    assert "関連する組織は記録されていません。" in empty_page
+
+
 def test_render_story_page_related_characters_use_first_episode_order_and_identity():
     """入力episode順やcollection全体順ではなくstory内の初出episode順で並べ、
     resolved characterはcanonicalId単位で1回だけ表示する。"""

@@ -1974,21 +1974,56 @@ def _render_related_characters_section(
 def _render_related_locations_section(
     collection: dict[str, Any], episode_ids: list[str]
 ) -> list[str]:
-    """対象Episode群の場所を重複なく表示し、未確定分はreviewへ誘導する。"""
-    locations = collection.get("entities", {}).get("locations", []) or []
+    return _render_related_entities_section(
+        collection,
+        episode_ids,
+        entity_key="locations",
+        page_path=location_page_path,
+        heading="Related Locations",
+        empty_message="関連する場所は記録されていません。",
+        review_label="要確認の場所",
+    )
+
+
+def _render_related_organizations_section(
+    collection: dict[str, Any], episode_ids: list[str]
+) -> list[str]:
+    return _render_related_entities_section(
+        collection,
+        episode_ids,
+        entity_key="organizations",
+        page_path=organization_page_path,
+        heading="Related Organizations",
+        empty_message="関連する組織は記録されていません。",
+        review_label="要確認の組織",
+    )
+
+
+def _render_related_entities_section(
+    collection: dict[str, Any],
+    episode_ids: list[str],
+    *,
+    entity_key: str,
+    page_path: Callable[[dict[str, Any]], str | None],
+    heading: str,
+    empty_message: str,
+    review_label: str,
+) -> list[str]:
+    """直接Episode参照のあるentityだけを安全にリンクし、残りは件数へ集約する。"""
+    entities = collection.get("entities", {}).get(entity_key, []) or []
     target_episode_ids = set(episode_ids)
     related = [
-        location
-        for location in locations
-        if target_episode_ids.intersection(_entity_episode_ids(location))
+        entity
+        for entity in entities
+        if target_episode_ids.intersection(_entity_episode_ids(entity))
     ]
-    lines = ["## Related Locations", ""]
+    lines = [f"## {heading}", ""]
     if not related:
-        return [*lines, "関連する場所は記録されていません。", ""]
+        return [*lines, empty_message, ""]
 
     canonical_id_counts: dict[str, int] = {}
-    for location in locations:
-        canonical_id = location.get("canonicalId")
+    for entity in entities:
+        canonical_id = entity.get("canonicalId")
         if isinstance(canonical_id, str) and canonical_id:
             canonical_id_counts[canonical_id] = (
                 canonical_id_counts.get(canonical_id, 0) + 1
@@ -1996,20 +2031,20 @@ def _render_related_locations_section(
 
     eligible: dict[str, dict[str, Any]] = {}
     needs_review_count = 0
-    for location in related:
-        path = location_page_path(location)
-        if path is None or canonical_id_counts[location["canonicalId"]] != 1:
+    for entity in related:
+        path = page_path(entity)
+        if path is None or canonical_id_counts[entity["canonicalId"]] != 1:
             needs_review_count += 1
         else:
-            eligible[path] = location
+            eligible[path] = entity
 
-    for path, location in sorted(eligible.items()):
-        name = location.get("displayName") or location["canonicalId"]
+    for path, entity in sorted(eligible.items()):
+        name = entity.get("displayName") or entity["canonicalId"]
         safe_name = _escape_markdown_inline_text(str(name))
         lines.append(f"- [{safe_name}](../{path})")
     if needs_review_count:
         lines.append(
-            f"- 要確認の場所: {needs_review_count}件"
+            f"- {review_label}: {needs_review_count}件"
             "（[Unresolved report](../reports/unresolved.md)）"
         )
     lines.append("")
@@ -2505,7 +2540,7 @@ def render_story_page(
 
     閲覧者向けの入口ページとして、Overview・Story Summary・Episode
     Summaries（episodeごとに区切る）・Episode一覧・Related Characters・
-    Related Locations・Unresolved reportへの導線を表示する。
+    Related Locations・Related Organizations・Unresolved reportへの導線を表示する。
     本文セリフ・raw DECコマンド・
     ローカル絶対パス・extraction JSONの生dumpは出さない。
 
@@ -2570,6 +2605,7 @@ def render_story_page(
     ]
     lines.extend(_render_story_related_characters_section(collection, episode_ids))
     lines.extend(_render_related_locations_section(collection, episode_ids))
+    lines.extend(_render_related_organizations_section(collection, episode_ids))
 
     evidence_link = None
     if evidence_index_lookup is not None:
