@@ -3420,7 +3420,7 @@ def test_story_related_organizations_escapes_name_and_explains_no_match(
     assert "関連する組織は記録されていません。" in empty_page
 
 
-def _item_navigation_pages(collection):
+def _related_navigation_pages(collection):
     episode_page = render_episode_page(collection["sourceDocuments"][0], collection)
     story_page = render_story_page(
         "TEST_S01_C01", _story_episodes(collection, "TEST_S01_C01"), collection
@@ -3490,7 +3490,7 @@ def test_related_items_duplicate_ineligible_canonical_id_blocks_both_links(
     duplicate["extractionRunRefs"] = {}
     collection["entities"]["items"] = [resolved_item, duplicate]
 
-    for page in _item_navigation_pages(collection):
+    for page in _related_navigation_pages(collection):
         assert "要確認のアイテム: 1件" in page
         assert "../items/ITEM_TEST_COMPASS.md" not in page
         assert "Test Compass" not in page
@@ -3504,7 +3504,7 @@ def test_related_items_escape_name_and_explain_no_match(
     item["displayName"] = "Test [Compass] <tag>"
     collection["entities"]["items"] = [item]
 
-    for page in _item_navigation_pages(collection):
+    for page in _related_navigation_pages(collection):
         assert "[Test \\[Compass\\] &lt;tag&gt;](../items/ITEM_TEST_COMPASS.md)" in page
         assert "<tag>" not in page
 
@@ -3515,6 +3515,94 @@ def test_related_items_escape_name_and_explain_no_match(
     )
     for page in (empty_page, empty_episode_page):
         assert "関連するアイテムは記録されていません。" in page
+
+
+def test_related_lore_link_both_pages_and_keep_unresolved_count(
+    synthetic_collection, resolved_lore
+):
+    collection = deepcopy(synthetic_collection)
+    unresolved = deepcopy(resolved_lore)
+    unresolved["id"] = "LORE_ENTITY_TEST_UNKNOWN"
+    unresolved["canonicalId"] = None
+    unresolved["status"] = "unresolved"
+    unresolved["displayName"] = "Private Lore Name"
+    collection["entities"]["lore"] = [resolved_lore, unresolved]
+
+    pages = build_pages(collection)
+
+    assert "lore/LORE_TEST_AETHER.md" in pages
+    for page_path in ("stories/EP_TEST_001.md", "stories/TEST_S01_C01.md"):
+        section = pages[page_path].split("## Related Lore\n\n", 1)[1].split("## ", 1)[0]
+        assert section.count("[Test Aether](../lore/LORE_TEST_AETHER.md)") == 1
+        assert "要確認の用語: 1件" in section
+        assert "[Unresolved report](../reports/unresolved.md)" in section
+        assert "Private Lore Name" not in section
+        assert "LORE_ENTITY_TEST_UNKNOWN" not in section
+
+
+@pytest.mark.parametrize("reference_type", ["evidence", "candidate", "run"])
+def test_related_lore_uses_each_episode_reference_type(
+    synthetic_collection, resolved_lore, reference_type
+):
+    collection = deepcopy(synthetic_collection)
+    lore = deepcopy(resolved_lore)
+    lore["evidenceRefs"][0]["episodeId"] = "EP_TEST_OTHER"
+    lore["sourceCandidates"] = []
+    lore["extractionRunRefs"] = {}
+    if reference_type == "evidence":
+        lore["evidenceRefs"][0]["episodeId"] = "EP_TEST_002"
+    elif reference_type == "candidate":
+        lore["sourceCandidates"] = [{"episodeId": "EP_TEST_002"}]
+    else:
+        lore["extractionRunRefs"] = {"EP_TEST_002": "RUN_TEST_002"}
+    collection["entities"]["lore"] = [lore]
+
+    episode_page = render_episode_page(collection["sourceDocuments"][1], collection)
+    story_page = render_story_page(
+        "TEST_S01_C01", _story_episodes(collection, "TEST_S01_C01"), collection
+    )
+
+    for page in (episode_page, story_page):
+        assert "[Test Aether](../lore/LORE_TEST_AETHER.md)" in page
+
+
+def test_related_lore_duplicate_ineligible_canonical_id_blocks_both_links(
+    synthetic_collection, resolved_lore
+):
+    collection = deepcopy(synthetic_collection)
+    duplicate = deepcopy(resolved_lore)
+    duplicate["id"] = "LORE_ENTITY_TEST_OTHER"
+    duplicate["status"] = "unresolved"
+    duplicate["evidenceRefs"][0]["episodeId"] = "EP_TEST_OTHER"
+    duplicate["sourceCandidates"] = []
+    duplicate["extractionRunRefs"] = {}
+    collection["entities"]["lore"] = [resolved_lore, duplicate]
+
+    for page in _related_navigation_pages(collection):
+        assert "要確認の用語: 1件" in page
+        assert "../lore/LORE_TEST_AETHER.md" not in page
+        assert "Test Aether" not in page
+
+
+def test_related_lore_escape_name_and_explain_no_match(
+    synthetic_collection, resolved_lore
+):
+    collection = deepcopy(synthetic_collection)
+    lore = deepcopy(resolved_lore)
+    lore["displayName"] = "Test [Aether] <tag>"
+    collection["entities"]["lore"] = [lore]
+
+    for page in _related_navigation_pages(collection):
+        assert "[Test \\[Aether\\] &lt;tag&gt;](../lore/LORE_TEST_AETHER.md)" in page
+        assert "<tag>" not in page
+
+    empty_page = render_story_page("TEST_EMPTY_STORY", [], collection)
+    collection["entities"]["lore"] = []
+    empty_episode_page = render_episode_page(
+        collection["sourceDocuments"][0], collection
+    )
+    for page in (empty_page, empty_episode_page):
+        assert "関連する用語は記録されていません。" in page
 
 
 def test_render_story_page_related_characters_use_first_episode_order_and_identity():
