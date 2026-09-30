@@ -2939,6 +2939,92 @@ def test_render_episode_page_related_location_name_is_escaped(
     assert "<tag>" not in page
 
 
+def test_episode_related_organizations_link_eligible_and_count_unresolved(
+    synthetic_collection,
+):
+    collection = deepcopy(synthetic_collection)
+    organization = _synthetic_public_organization()
+    organization["evidenceRefs"][0]["episodeId"] = "EP_TEST_001"
+    unresolved = _synthetic_public_organization(
+        entity_id="ORG_ENTITY_TEST_UNKNOWN", page_eligible=False
+    )
+    unresolved["displayName"] = "Private Organization Name"
+    unresolved["evidenceRefs"][0]["episodeId"] = "EP_TEST_001"
+    collection["entities"]["organizations"] = [organization, unresolved]
+
+    pages = build_pages(collection)
+    section = (
+        pages["stories/EP_TEST_001.md"]
+        .split("## Related Organizations\n\n", 1)[1]
+        .split("## Validation", 1)[0]
+    )
+
+    assert "[Test Organization Alpha](../organizations/ORG_TEST_ALPHA.md)" in section
+    assert "organizations/ORG_TEST_ALPHA.md" in pages
+    assert "要確認の組織: 1件" in section
+    assert "[Unresolved report](../reports/unresolved.md)" in section
+    assert "Private Organization Name" not in section
+    assert "ORG_ENTITY_TEST_UNKNOWN" not in section
+
+
+@pytest.mark.parametrize("reference_type", ["evidence", "candidate", "run"])
+def test_episode_related_organizations_uses_each_episode_reference_type(
+    synthetic_collection, reference_type
+):
+    collection = deepcopy(synthetic_collection)
+    organization = _synthetic_public_organization()
+    organization["evidenceRefs"][0]["episodeId"] = "EP_TEST_OTHER"
+    if reference_type == "evidence":
+        organization["evidenceRefs"][0]["episodeId"] = "EP_TEST_002"
+    elif reference_type == "candidate":
+        organization["sourceCandidates"] = [{"episodeId": "EP_TEST_002"}]
+    else:
+        organization["extractionRunRefs"] = {"EP_TEST_002": "RUN_TEST_002"}
+    collection["entities"]["organizations"] = [organization]
+
+    page = render_episode_page(collection["sourceDocuments"][1], collection)
+
+    assert "[Test Organization Alpha](../organizations/ORG_TEST_ALPHA.md)" in page
+
+
+def test_episode_related_organizations_duplicate_ineligible_id_blocks_link(
+    synthetic_collection,
+):
+    collection = deepcopy(synthetic_collection)
+    organization = _synthetic_public_organization()
+    organization["evidenceRefs"][0]["episodeId"] = "EP_TEST_001"
+    duplicate = _synthetic_public_organization(entity_id="ORG_ENTITY_TEST_OTHER")
+    duplicate["status"] = "unresolved"
+    duplicate["evidenceRefs"][0]["episodeId"] = "EP_TEST_OTHER"
+    collection["entities"]["organizations"] = [organization, duplicate]
+
+    page = render_episode_page(collection["sourceDocuments"][0], collection)
+
+    assert "要確認の組織: 1件" in page
+    assert "../organizations/ORG_TEST_ALPHA.md" not in page
+    assert "Test Organization Alpha" not in page
+
+
+def test_episode_related_organizations_escape_name_and_do_not_infer_relationship(
+    synthetic_collection,
+):
+    collection = deepcopy(synthetic_collection)
+    organization = _synthetic_public_organization()
+    organization["displayName"] = "Test [Org] <tag>"
+    organization["evidenceRefs"][0]["episodeId"] = "EP_TEST_001"
+    collection["entities"]["organizations"] = [organization]
+    page = render_episode_page(collection["sourceDocuments"][0], collection)
+
+    organization["evidenceRefs"][0]["episodeId"] = "EP_TEST_OTHER"
+    collection["entities"]["relationships"] = [_synthetic_public_relationship()]
+    unrelated_page = render_episode_page(collection["sourceDocuments"][0], collection)
+
+    assert "[Test \\[Org\\] &lt;tag&gt;](../organizations/ORG_TEST_ALPHA.md)" in page
+    assert "<tag>" not in page
+    assert "関連する組織は記録されていません。" in unrelated_page
+    assert "../organizations/ORG_TEST_ALPHA.md" not in unrelated_page
+
+
 def test_render_episode_page_validation_section_when_available(synthetic_collection):
     """EP_TEST_002はwarningsが1件あるinputResultを持つ合成fixture。"""
     source_document = synthetic_collection["sourceDocuments"][1]
