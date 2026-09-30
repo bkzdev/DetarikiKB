@@ -3420,6 +3420,103 @@ def test_story_related_organizations_escapes_name_and_explains_no_match(
     assert "関連する組織は記録されていません。" in empty_page
 
 
+def _item_navigation_pages(collection):
+    episode_page = render_episode_page(collection["sourceDocuments"][0], collection)
+    story_page = render_story_page(
+        "TEST_S01_C01", _story_episodes(collection, "TEST_S01_C01"), collection
+    )
+    return episode_page, story_page
+
+
+def test_related_items_link_both_pages_and_keep_unresolved_count(
+    synthetic_collection, resolved_item
+):
+    collection = deepcopy(synthetic_collection)
+    unresolved = deepcopy(resolved_item)
+    unresolved["id"] = "ITEM_ENTITY_TEST_UNKNOWN"
+    unresolved["canonicalId"] = None
+    unresolved["status"] = "unresolved"
+    unresolved["displayName"] = "Private Item Name"
+    collection["entities"]["items"] = [resolved_item, unresolved]
+
+    pages = build_pages(collection)
+
+    assert "items/ITEM_TEST_COMPASS.md" in pages
+    for page_path in ("stories/EP_TEST_001.md", "stories/TEST_S01_C01.md"):
+        page = pages[page_path]
+        section = page.split("## Related Items\n\n", 1)[1].split("## ", 1)[0]
+        assert section.count("[Test Compass](../items/ITEM_TEST_COMPASS.md)") == 1
+        assert "要確認のアイテム: 1件" in section
+        assert "[Unresolved report](../reports/unresolved.md)" in section
+        assert "Private Item Name" not in section
+        assert "ITEM_ENTITY_TEST_UNKNOWN" not in section
+
+
+@pytest.mark.parametrize("reference_type", ["evidence", "candidate", "run"])
+def test_related_items_use_each_episode_reference_type(
+    synthetic_collection, resolved_item, reference_type
+):
+    collection = deepcopy(synthetic_collection)
+    item = deepcopy(resolved_item)
+    item["evidenceRefs"][0]["episodeId"] = "EP_TEST_OTHER"
+    item["sourceCandidates"] = []
+    item["extractionRunRefs"] = {}
+    if reference_type == "evidence":
+        item["evidenceRefs"][0]["episodeId"] = "EP_TEST_002"
+    elif reference_type == "candidate":
+        item["sourceCandidates"] = [{"episodeId": "EP_TEST_002"}]
+    else:
+        item["extractionRunRefs"] = {"EP_TEST_002": "RUN_TEST_002"}
+    collection["entities"]["items"] = [item]
+
+    episode_page = render_episode_page(collection["sourceDocuments"][1], collection)
+    story_page = render_story_page(
+        "TEST_S01_C01", _story_episodes(collection, "TEST_S01_C01"), collection
+    )
+
+    for page in (episode_page, story_page):
+        assert "[Test Compass](../items/ITEM_TEST_COMPASS.md)" in page
+
+
+def test_related_items_duplicate_ineligible_canonical_id_blocks_both_links(
+    synthetic_collection, resolved_item
+):
+    collection = deepcopy(synthetic_collection)
+    duplicate = deepcopy(resolved_item)
+    duplicate["id"] = "ITEM_ENTITY_TEST_OTHER"
+    duplicate["status"] = "unresolved"
+    duplicate["evidenceRefs"][0]["episodeId"] = "EP_TEST_OTHER"
+    duplicate["sourceCandidates"] = []
+    duplicate["extractionRunRefs"] = {}
+    collection["entities"]["items"] = [resolved_item, duplicate]
+
+    for page in _item_navigation_pages(collection):
+        assert "要確認のアイテム: 1件" in page
+        assert "../items/ITEM_TEST_COMPASS.md" not in page
+        assert "Test Compass" not in page
+
+
+def test_related_items_escape_name_and_explain_no_match(
+    synthetic_collection, resolved_item
+):
+    collection = deepcopy(synthetic_collection)
+    item = deepcopy(resolved_item)
+    item["displayName"] = "Test [Compass] <tag>"
+    collection["entities"]["items"] = [item]
+
+    for page in _item_navigation_pages(collection):
+        assert "[Test \\[Compass\\] &lt;tag&gt;](../items/ITEM_TEST_COMPASS.md)" in page
+        assert "<tag>" not in page
+
+    empty_page = render_story_page("TEST_EMPTY_STORY", [], collection)
+    collection["entities"]["items"] = []
+    empty_episode_page = render_episode_page(
+        collection["sourceDocuments"][0], collection
+    )
+    for page in (empty_page, empty_episode_page):
+        assert "関連するアイテムは記録されていません。" in page
+
+
 def test_render_story_page_related_characters_use_first_episode_order_and_identity():
     """入力episode順やcollection全体順ではなくstory内の初出episode順で並べ、
     resolved characterはcanonicalId単位で1回だけ表示する。"""

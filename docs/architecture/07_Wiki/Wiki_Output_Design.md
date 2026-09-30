@@ -184,10 +184,10 @@ Relationship page（独立ページ）は現時点では見送り、Character/Or
 
 ## 9.3 Episode page
 
-- source: 個別`entities.*`の`evidenceRefs[].episodeId`・`sourceCandidates[].episodeId`・`extractionRunRefs`キーのいずれかがこのエピソードに一致するもの（登場キャラクター・場所・組織の索引として）
-- 表示: `episodeId`、登場キャラクター一覧（Character pageへのリンク）、登場場所・組織一覧、`unresolvedEntityCounts`のうちこのエピソード由来分
+- source: 個別`entities.*`の`evidenceRefs[].episodeId`・`sourceCandidates[].episodeId`・`extractionRunRefs`キーのいずれかがこのエピソードに一致するもの（登場キャラクター・場所・組織・アイテムの索引として）
+- 表示: `episodeId`、登場キャラクター一覧（Character pageへのリンク）、登場場所・組織・アイテム一覧、`unresolvedEntityCounts`のうちこのエピソード由来分
 - 表示しないもの: 本文セリフ全文（§4 evidence方針と同じ理由）
-- unresolved時の表示: Characterは名前のみ列挙してリンクしない。Location / Organizationは名前・内部IDをEpisode pageに列挙せず件数とUnresolved report導線を表示する（§9.5・§9.6）。
+- unresolved時の表示: Characterは名前のみ列挙してリンクしない。Location / Organization / Itemは名前・内部IDをEpisode pageに列挙せず件数とUnresolved report導線を表示する（§9.5〜§9.7）。
 - テンプレート名（案）: `templates/wiki/episode.md.j2`
 
 **実装状況（`feature/episode-page-renderer-expansion`で初回拡張）**: `render_episode_page`（`agents/wiki_generator/renderer.py`）は、Summary・Candidate Counts表（8種、`Wiki_Output_Design.md` §13対応表と同じ順序・ラベル）・Related Characters（`entities.characters`の`evidenceRefs.episodeId`/`sourceCandidates.episodeId`/`extractionRunRefs`キーのいずれかがこのepisodeIdに一致するcharacterを列挙。canonicalIdがあれば`` `CHAR_XXX` ``、unresolvedなら内部idと`unresolved`表記）・Validation（`report.inputResults`をpathで突き合わせられた場合のみinput status/errors件数/warnings件数を表示、見つからない場合はセクション自体を省略）の順でセクションを出力する。front matterには`page_type: "episode"`（`entity_type`ではなくepisodeがmerged knowledge schema上のentityではないことを明示するため）・`episode_id`/`story_id`/`document_id`を追加した。`source_path`は本文Summaryのみに表示し、front matterには含めない（ローカルパス漏洩懸念への配慮）。初回拡張ではCharactersだけを対象とし、Related Locations / Organizationsは後続PRで追加した（§9.5・§9.6参照）。
@@ -290,7 +290,7 @@ Evidence、Source Candidates、ConflictsをLocation pageと同じ安全な要約
 未知ID不破棄はLocation pageと共通helperを使う。`items/index.md`は生成対象だけを
 canonical ID順で掲載し、Top pageから導線を設ける。canonical IDを持つ
 `status: conflict`はページ冒頭にwarningを表示する。Episode page側の
-Related Items、Item固有属性・画像、他entity page、実データ投入は対象外とする。
+Item固有属性・画像、他entity page、実データ投入は対象外とする。後続の`codex/related-items-navigation`でEpisode / Story pageにRelated Itemsを追加した。対象Episodeへの直接参照3系統を用い、共通helperの個別ページ適格性・全Item間のcanonical ID重複防止・表示名escape・未確定件数集約を適用する。Item個別ページ生成条件や実データは変更しない。
 `displayName` / `aliases`は改行・制御文字を単一行へ正規化し、Markdown / HTMLの
 構造記号をescapeする。front matterの文字列はJSON互換のYAML scalarとして出力し、
 改行やquoteを構造へ展開しない。この防御はCharacter / Locationにも共通適用する。
