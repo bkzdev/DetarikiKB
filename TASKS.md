@@ -297,7 +297,7 @@
 - **mkdocs-manual-visual-review-002**: ユーザーによる`uv run mkdocs serve -f workspace/wiki_preview/manual_review_002/mkdocs_manual_review.yml -a 127.0.0.1:8125`起動後、`http://127.0.0.1:8125/`でのブラウザ目視確認
 - **wiki-story-index-link-text-real-sample-review**: 現行導線はStory index→Story page→Episode page。release scope全件のtitle/subtitle未投入・metadataStatus全件`pending`のため、実タイトル間のEpisode link text優先順位レビューはconfirmed metadata投入後に行う
 - ~~**speaker-label-normalization-real-sample-review**~~: 実release scopeを読み取り専用で確認し、単独疑問符の検出漏れを修正した（Current Focus参照）。意味判定が必要な役割名等は未確認のまま保持する。
-- Wiki Page Template
+- ~~Wiki Page Template~~: `codex/wiki-template-strategy-record`でv1のPython renderer関数＋共通helper方式を現行実装として記録した。`.j2`候補は初期設計の参考であり、未着手の必須実装ではない。重複や保守負担が実測された場合だけ方式変更を再検討する（`Wiki_Output_Design.md` §12.2）。
 - relationship section renderer、Location/Organization/Item/Lore/Event page等のPhase 2実装（個別ページとEpisode / Story→Location / Organization / Item / Lore / Event導線は完了）
 
 ### Character Dictionary / Profiles
