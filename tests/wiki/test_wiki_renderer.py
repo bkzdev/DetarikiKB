@@ -3605,6 +3605,98 @@ def test_related_lore_escape_name_and_explain_no_match(
         assert "関連する用語は記録されていません。" in page
 
 
+def test_related_events_link_both_pages_and_keep_unresolved_count(
+    synthetic_collection, resolved_event
+):
+    collection = deepcopy(synthetic_collection)
+    unresolved = deepcopy(resolved_event)
+    unresolved["id"] = "EVENT_ENTITY_TEST_UNKNOWN"
+    unresolved["canonicalId"] = None
+    unresolved["status"] = "unresolved"
+    unresolved["displayName"] = "Private Event Name"
+    collection["entities"]["events"] = [resolved_event, unresolved]
+
+    pages = build_pages(collection)
+
+    assert "events/EVENT_TEST_LAUNCH.md" in pages
+    for page_path in ("stories/EP_TEST_001.md", "stories/TEST_S01_C01.md"):
+        section = (
+            pages[page_path].split("## Related Events\n\n", 1)[1].split("## ", 1)[0]
+        )
+        assert section.count("[Test Launch](../events/EVENT_TEST_LAUNCH.md)") == 1
+        assert "要確認の出来事: 1件" in section
+        assert "[Unresolved report](../reports/unresolved.md)" in section
+        assert "Private Event Name" not in section
+        assert "EVENT_ENTITY_TEST_UNKNOWN" not in section
+
+
+@pytest.mark.parametrize("reference_type", ["evidence", "candidate", "run"])
+def test_related_events_use_each_episode_reference_type(
+    synthetic_collection, resolved_event, reference_type
+):
+    collection = deepcopy(synthetic_collection)
+    event = deepcopy(resolved_event)
+    event["evidenceRefs"][0]["episodeId"] = "EP_TEST_OTHER"
+    event["sourceCandidates"] = []
+    event["extractionRunRefs"] = {}
+    if reference_type == "evidence":
+        event["evidenceRefs"][0]["episodeId"] = "EP_TEST_002"
+    elif reference_type == "candidate":
+        event["sourceCandidates"] = [{"episodeId": "EP_TEST_002"}]
+    else:
+        event["extractionRunRefs"] = {"EP_TEST_002": "RUN_TEST_002"}
+    collection["entities"]["events"] = [event]
+
+    episode_page = render_episode_page(collection["sourceDocuments"][1], collection)
+    story_page = render_story_page(
+        "TEST_S01_C01", _story_episodes(collection, "TEST_S01_C01"), collection
+    )
+
+    for page in (episode_page, story_page):
+        assert "[Test Launch](../events/EVENT_TEST_LAUNCH.md)" in page
+
+
+def test_related_events_duplicate_ineligible_canonical_id_blocks_both_links(
+    synthetic_collection, resolved_event
+):
+    collection = deepcopy(synthetic_collection)
+    duplicate = deepcopy(resolved_event)
+    duplicate["id"] = "EVENT_ENTITY_TEST_OTHER"
+    duplicate["status"] = "unresolved"
+    duplicate["evidenceRefs"][0]["episodeId"] = "EP_TEST_OTHER"
+    duplicate["sourceCandidates"] = []
+    duplicate["extractionRunRefs"] = {}
+    collection["entities"]["events"] = [resolved_event, duplicate]
+
+    for page in _related_navigation_pages(collection):
+        assert "要確認の出来事: 1件" in page
+        assert "../events/EVENT_TEST_LAUNCH.md" not in page
+        assert "Test Launch" not in page
+
+
+def test_related_events_escape_name_and_require_direct_episode_reference(
+    synthetic_collection, resolved_event
+):
+    collection = deepcopy(synthetic_collection)
+    event = deepcopy(resolved_event)
+    event["displayName"] = "Test [Launch] <tag>"
+    collection["entities"]["events"] = [event]
+
+    for page in _related_navigation_pages(collection):
+        assert "[Test \\[Launch\\] &lt;tag&gt;](../events/EVENT_TEST_LAUNCH.md)" in page
+        assert "<tag>" not in page
+
+    event["evidenceRefs"][0]["episodeId"] = "EP_TEST_OTHER"
+    event["sourceCandidates"] = []
+    event["extractionRunRefs"] = {}
+    for page in _related_navigation_pages(collection):
+        assert "関連する出来事は記録されていません。" in page
+        assert "../events/EVENT_TEST_LAUNCH.md" not in page
+
+    empty_page = render_story_page("TEST_EMPTY_STORY", [], collection)
+    assert "関連する出来事は記録されていません。" in empty_page
+
+
 def test_render_story_page_related_characters_use_first_episode_order_and_identity():
     """入力episode順やcollection全体順ではなくstory内の初出episode順で並べ、
     resolved characterはcanonicalId単位で1回だけ表示する。"""
