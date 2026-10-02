@@ -90,6 +90,20 @@ def test_design_doc_states_canonical_id_first_url_policy():
     assert "名前ベースslugは原則避ける" in content
 
 
+def test_design_doc_records_current_template_strategy_and_reconsideration_gate():
+    content = _read_design_doc()
+    strategy = content.split("## 12.2 推奨", 1)[1].split("## 12.3", 1)[0]
+    non_goals = content.split("# 16. Non-goals", 1)[1].split("# 17.", 1)[0]
+    summary = content.split("# 17. 採用方針（サマリ）", 1)[1]
+    assert "v1実装後の現況" in strategy
+    assert "ページ種別ごとのPython関数と共通helper" in strategy
+    assert "Jinja2等の`.j2`テンプレートは使用・追加していない" in strategy
+    assert "再検討条件" in strategy
+    assert "MkDocs/Zensical両build" in strategy
+    assert "初版の設計PRでスコープ外" in non_goals
+    assert "v1実装はページ別Python関数と共通helperを採用済み" in summary
+
+
 def test_design_doc_does_not_reference_committed_real_data_examples():
     """実データ由来のIDらしき列挙 (大量の数値ID羅列等) が含まれていないことの
     簡易チェック。合成ID (CHAR_EXAMPLE等) のみで構成されていることを

@@ -515,6 +515,10 @@ site_src/
 
 理由: Jinja2導入は将来的に便利だが、依存追加は実装が具体化してから判断すべきであり、設計段階で決め打ちしない（Non-goals「Wiki生成パイプライン実装」に該当するため、このPRのスコープ外）。
 
+**v1実装後の現況（`codex/wiki-template-strategy-record`）**: 現行のWiki生成は`agents/wiki_generator/renderer.py`のページ種別ごとのPython関数と共通helper、`build_pages`による組み立てを採用している。Jinja2等の`.j2`テンプレートは使用・追加していない。これは現行実装の記録であり、テンプレートエンジンを将来も禁止する判断ではない。既存ページの出力・URL・escape・生成条件を変えず、v1の運用方式を明確にする。
+
+再検討条件は、共通helperへの分割でも解消しにくい表示ロジックの重複、またはページ構成変更時の継続的な保守負担が実測された場合とする。方式を変更するPRでは、全ページ種別の合成fixtureによる出力差分、Markdown/HTML escape、未解決entityの非公開、リンク先のpage適格性、MkDocs/Zensical両buildを検証し、実データ由来の生成物をcommitしない。単なる候補名の存在を理由に`.j2`ファイルや依存を追加しない。
+
 ## 12.3 テンプレート名候補（実装時の参考）
 
 ```text
@@ -531,7 +535,7 @@ templates/wiki/timeline.md.j2
 templates/wiki/unresolved_report.md.j2
 ```
 
-このPRでは`.j2`ファイル本体は追加しない（テンプレートエンジン未確定のため）。
+上記は初期設計時の候補名であり、v1実装のファイル配置ではない。現行では`.j2`ファイル本体を追加していない。
 
 ---
 
@@ -605,7 +609,7 @@ templates/wiki/unresolved_report.md.j2
 
 # 16. Non-goals
 
-本設計書では以下を**スコープ外**とする。
+以下は**初版の設計PRでスコープ外とした事項**であり、後続実装の未完了一覧ではない。現行のテンプレート方式は§12.2、各機能の実装状況は§9を参照する。
 
 - Wiki生成パイプラインの実装（Python。§15のPR群で別途行う）
 - 実データ由来Wikiページ・生成Markdownのcommit
@@ -628,5 +632,5 @@ templates/wiki/unresolved_report.md.j2
 - evidenceRefsは要約と参照情報（evidenceId/episodeId/sceneId/blockId）のみを表示し、元セリフ全文は転載しない
 - `canonicalId`が未確定（`status: unresolved`）のentityは通常ページを生成せず、Unresolved reportへ集約する。URLの安定性を`canonicalId`にのみ依存させる
 - Phase 1（Top/Story index/Episode/Character/Unresolved report）→ Phase 2（Location/Organization/Item/Lore/Event/Relationship section/Timeline）→ Phase 3（AI analysis/Evidence index/Knowledge Graph view）の順で実装する
-- テンプレート方式（Jinja2 / 自作builder）はこのPRでは確定せず、実装PRで判断する
+- 初版ではテンプレート方式を未確定とした。v1実装はページ別Python関数と共通helperを採用済みであり、方式変更は§12.2の条件が実測された場合に再検討する
 - 実データ由来の生成物は当面commitしない。合成fixtureのサンプルのみ`docs/examples/`等に置く
