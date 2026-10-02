@@ -77,6 +77,7 @@ Raw Script (.dec)
 
 - unresolved entityは「まだ確定していないが観測されている」情報であり、破棄はしない（`AI_CONTEXT.md` §13.3 unknown/unresolvedを破棄しない原則と同じ思想）。個別ページの代わりに、Unresolved Report（§7 Phase 1）へ集約する。
 - `report.unresolvedEntityCounts`（`schemas/merged_knowledge_collection.schema.json`）をそのままレポートの数値サマリーとして使える。
+- 同一または異なるentity種別に同じ`canonicalId`が複数存在する場合は、通常ページの生成前にWiki render全体を中止する。個別ページのファイル名衝突による後勝ち上書きや、参照先の曖昧な公開を防ぐため、`status: unresolved`等の非公開entityも重複検査に含める。CLIは終了コード2を返し、既存の出力先は`--clean`指定時も変更しない。入力のmerge report内の重複件数だけには依存せず、render時の実入力から再検査する。
 
 ---
 

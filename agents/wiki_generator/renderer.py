@@ -70,6 +70,11 @@ CharacterProfileIndex = dict[str, CharacterProfile]
 EntityPathResolver = Callable[[dict[str, Any]], str | None]
 EntityPageRenderer = Callable[[dict[str, Any]], str]
 
+
+class DuplicateCanonicalIdError(ValueError):
+    """重複canonicalIdによってWikiのページ経路が曖昧な入力。"""
+
+
 _RELATIONSHIP_DISPLAY_LABELS = {
     "member_of": "所属",
     "affiliated_with": "関係あり（所属未確定）",
@@ -2813,6 +2818,20 @@ def build_pages(
     Story/Episode SummaryのevidenceRefsをそこへリンクする（省略時は
     Evidence pageを生成せず、evidenceRefsはID表示のまま）。
     """
+    # 個別ページはcanonicalIdをファイル名にする。重複があると後勝ちで
+    # ページが上書きされるため、非公開entityも含めて生成前に停止する。
+    seen_canonical_ids: set[str] = set()
+    for entity_key in MERGED_ENTITY_KEYS:
+        for entity in collection.get("entities", {}).get(entity_key, []) or []:
+            canonical_id = entity.get("canonicalId")
+            if not isinstance(canonical_id, str) or not canonical_id:
+                continue
+            if canonical_id in seen_canonical_ids:
+                raise DuplicateCanonicalIdError(
+                    "merged collectionに重複したcanonicalIdがあります"
+                )
+            seen_canonical_ids.add(canonical_id)
+
     characters = collection.get("entities", {}).get("characters", []) or []
     locations = collection.get("entities", {}).get("locations", []) or []
     items = collection.get("entities", {}).get("items", []) or []

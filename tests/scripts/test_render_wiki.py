@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+from copy import deepcopy
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -62,6 +63,41 @@ def test_cli_generates_expected_markdown_files(tmp_path):
     assert (output_dir / "reports" / "unresolved.md").is_file()
     # canonicalIdが無いキャラクターの個別ページは生成されない
     assert not (output_dir / "characters" / "UNRESOLVED_CHAR_TEST_0001.md").exists()
+
+
+def test_cli_duplicate_canonical_id_keeps_existing_output_with_clean(tmp_path):
+    collection = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+    duplicate = deepcopy(collection["entities"]["characters"][0])
+    duplicate["id"] = "CHAR_ENTITY_TEST_OTHER"
+    collection["entities"]["characters"].append(duplicate)
+    input_path = tmp_path / "duplicate.json"
+    input_path.write_text(json.dumps(collection), encoding="utf-8")
+    output_dir = tmp_path / "wiki_out"
+    output_dir.mkdir()
+    existing_page = output_dir / "index.md"
+    existing_page.write_text("existing output", encoding="utf-8")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            "--input",
+            str(input_path),
+            "--output",
+            str(output_dir),
+            "--clean",
+            "--validate",
+            "--quiet",
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 2
+    assert "重複したcanonicalId" in result.stderr
+    assert "CHAR_TEST_RAIN" not in result.stderr
+    assert existing_page.read_text(encoding="utf-8") == "existing output"
+    assert sorted(path.name for path in output_dir.iterdir()) == ["index.md"]
 
 
 def test_cli_accepts_relative_output_directory(tmp_path):

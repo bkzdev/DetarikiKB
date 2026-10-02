@@ -34,6 +34,7 @@ from .paths import (
     story_page_path,
 )
 from .renderer import (
+    DuplicateCanonicalIdError,
     build_pages,
     render_character_index_page,
     render_character_page,
@@ -57,6 +58,7 @@ from .renderer import (
 )
 
 __all__ = [
+    "DuplicateCanonicalIdError",
     "build_front_matter",
     "canonical_timeline_page_path",
     "character_page_path",

@@ -81,8 +81,9 @@ Exit codes:
     1: 入力ファイルが見つからない、またはJSONとして読み込めない
        (--character-profiles/--story-summaries/--evidence-index指定時、
        そのパスが見つからない場合も含む)
-    2: --validate指定時にschema検証、またはcharacter_profiles/
-       story_summaries/evidence_indexの整合性検証に失敗した
+    2: --validate指定時にschema検証、character_profiles/
+       story_summaries/evidence_indexの整合性検証、またはcanonicalIdの
+       重複により生成を中止した
 """
 
 from __future__ import annotations
@@ -110,7 +111,11 @@ from agents.parser.character_profiles import (  # noqa: E402
     load_character_profiles,
     validate_character_profiles,
 )
-from agents.wiki_generator import build_pages, write_pages  # noqa: E402
+from agents.wiki_generator import (  # noqa: E402
+    DuplicateCanonicalIdError,
+    build_pages,
+    write_pages,
+)
 from agents.wiki_generator.evidence_index import (  # noqa: E402
     EvidenceIndexCollection,
     EvidenceIndexLookup,
@@ -556,12 +561,16 @@ def main() -> int:
     if error_code is not None:
         return error_code
 
-    pages = build_pages(
-        collection,
-        character_profiles=character_profiles_index,
-        story_summary_lookup=story_summary_lookup,
-        evidence_index_lookup=evidence_index_lookup,
-    )
+    try:
+        pages = build_pages(
+            collection,
+            character_profiles=character_profiles_index,
+            story_summary_lookup=story_summary_lookup,
+            evidence_index_lookup=evidence_index_lookup,
+        )
+    except DuplicateCanonicalIdError as exc:
+        print(f"[エラー] Wiki生成を中止しました: {exc}", file=sys.stderr)
+        return 2
     output_dir = Path(args.output)
     output_root = output_dir.resolve()
     written = write_pages(pages, output_dir, clean=args.clean)
