@@ -1065,6 +1065,31 @@ def test_build_pages_includes_organization_pages_and_mutual_links(
     )
 
 
+@pytest.mark.parametrize("duplicate_status", ["merged", "unresolved"])
+def test_build_pages_rejects_duplicate_canonical_id_before_rendering(
+    synthetic_collection, duplicate_status
+):
+    collection = deepcopy(synthetic_collection)
+    duplicate = deepcopy(collection["entities"]["characters"][0])
+    duplicate["id"] = "CHAR_ENTITY_TEST_OTHER"
+    duplicate["status"] = duplicate_status
+    collection["entities"]["characters"].append(duplicate)
+
+    with pytest.raises(ValueError, match="重複したcanonicalId"):
+        build_pages(collection)
+
+
+def test_build_pages_rejects_cross_type_duplicate_canonical_id(
+    synthetic_collection, resolved_location
+):
+    collection = deepcopy(synthetic_collection)
+    resolved_location["canonicalId"] = "CHAR_TEST_RAIN"
+    collection["entities"]["locations"] = [resolved_location]
+
+    with pytest.raises(ValueError, match="重複したcanonicalId"):
+        build_pages(collection)
+
+
 def test_render_index_page_links_to_organizations_index(synthetic_collection):
     page = render_index_page(synthetic_collection)
     assert "[Organizations](organizations/index.md)" in page

@@ -4,6 +4,8 @@
 
 各Phaseの設計判断そのもの（マージ4原則、canonical ID方針等）は`docs/architecture/`配下の設計書が正であり、ここでは繰り返さない。
 
+- **Related Events navigation**（PR #328）: Episode / StoryからEvent個別ページへの直接参照に基づく導線を追加し、page適格性・canonical ID重複・未確定分の安全条件を共通化した。
+
 ---
 
 ## Parser / Normalization
