@@ -328,7 +328,10 @@ prefixから推測せず、期待typeのentity IDとして解決でき、かつ�
 場合だけCharacter / Location pageへリンクする。未知・型違い・非公開参照は初出順で
 重複排除し、IDをHTML-safeな非リンクcodeとして保持する。`events/index.md`は生成対象を
 canonical ID順で掲載し、参照数とTop page導線を提供する。Eventのcanonical ID割当・
-episode横断統合、逆参照、実データ投入は対象外とする。
+episode横断統合、逆参照、実データ投入は対象外とする。後続の`codex/related-events-navigation`で
+Episode / Story pageにRelated Eventsを追加した。直接参照3系統だけを用い、共通helperの
+個別ページ適格性・全Event間のcanonical ID重複防止・表示名escape・未確定件数集約を適用する。
+参加者や場所の一致だけではEventとの関係を推定しない。
 
 **entity詳細Summaryの狭幅表示（`codex/wiki-entity-detail-summary-narrow-layout`）**: Location、Organization、Item、Lore、Eventの各個別ページに共通するSummary 2列表を、項目名と値の縦並びへ変更した。Entity ID、Canonical ID、Status、Confidence、Source typesとLocationのScene refs件数は維持し、外部由来の値はMarkdown/HTML-safeに表示する。Aliases、参照、Evidence等の後続section、entityの生成条件、公開入力は変更しない。
 

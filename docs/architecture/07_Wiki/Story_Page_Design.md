@@ -92,7 +92,7 @@ Story pageは、閲覧者が最初に見るストーリー単位ページとす�
 - Episode Summaries（§8参照、当面はplaceholder）
 - Episode list（このstoryに属するepisode一覧、Episode pageへのリンク）
 - Related Characters（このstoryに関係するcharacter一覧）
-- Related Locations / Organizations / Items / Lore（実装済み）
+- Related Locations / Organizations / Items / Lore / Events（実装済み）
 - Unresolved / Special Speaker Labelsへの導線（該当する未解決項目がある場合）
 - Evidence summary（件数・参照情報のみ。**元セリフ全文は出さない**）
 - AI Analysis / Speculationへのリンク（将来、Phase 3、`Wiki_Output_Design.md` §9.17）
@@ -106,7 +106,7 @@ Story pageは、閲覧者が最初に見るストーリー単位ページとす�
 - extraction JSONの生dump
 - AI考察を通常要約と混ぜた内容（`Wiki_Output_Design.md` §3の分離方針を踏襲）
 
-**実装状況（`feature/wiki-story-page-renderer`で初回実装）**: `render_story_page`（`agents/wiki_generator/renderer.py`）を実装した。Story title（`storyTitle`優先、無ければ`publicStoryId`、無ければ`storyId`）・`storyId`/`publicStoryId`（未登録時は「未登録」表示）・category・`metadataStatus`（story内のepisodeで値が異なる場合は`mixed`）・Story Summary/Episode Summaries（placeholder、§8参照）・Episode list（このstoryに属するepisode一覧とEpisode pageへのリンク）・Related Characters・Unresolved reportへの導線を表示する。Related Locations / Organizations / Items / Loreは後続で追加済み。AI Analysisリンクは未実装（中期・長期方針）。
+**実装状況（`feature/wiki-story-page-renderer`で初回実装）**: `render_story_page`（`agents/wiki_generator/renderer.py`）を実装した。Story title（`storyTitle`優先、無ければ`publicStoryId`、無ければ`storyId`）・`storyId`/`publicStoryId`（未登録時は「未登録」表示）・category・`metadataStatus`（story内のepisodeで値が異なる場合は`mixed`）・Story Summary/Episode Summaries（placeholder、§8参照）・Episode list（このstoryに属するepisode一覧とEpisode pageへのリンク）・Related Characters・Unresolved reportへの導線を表示する。Related Locations / Organizations / Items / Lore / Eventsは後続で追加済み。AI Analysisリンクは未実装（中期・長期方針）。
 
 **Related Characters表示の詳細（`codex/story-page-related-characters-refinement`で確定）**: Story内のEpisodeを既存の決定的なEpisode順で走査し、そのCharacterが最初に現れるEpisodeの順を表示順とする。同じEpisode内ではMerged Knowledge Collectionの`entities.characters`順を維持する。Character pageを生成できるresolved entityは`canonicalId`、unresolved entityは内部`id`をidentity keyとして重複排除し、表示名が同じだけの別entityは統合しない。resolvedはCharacter pageへのリンク付きで先に表示する。unresolvedは情報を破棄せず件数へ集約し、内部IDや表示名をStory pageへ列挙せずUnresolved reportへ誘導する。unresolvedだけが存在するStoryを「関連なし」とは表示しない。Episode pageの既存Related Characters表示は変更しない。
 
@@ -117,6 +117,8 @@ Story pageは、閲覧者が最初に見るストーリー単位ページとす�
 **Related Items表示（`codex/related-items-navigation`で追加）**: Story内の全Episodeへの直接参照3系統を使い、Item個別ページの生成条件を満たすものだけを1回リンクする。canonical IDが非適格なItemを含めて重複するときはリンクせず、未確定分とともに件数・Unresolved report導線へ集約する。表示名はescapeし、リンク順はpage path順に固定する。Item属性の推定や実データ投入は行わない。
 
 **Related Lore表示（`codex/related-lore-navigation`で追加）**: Story内の全Episodeへの直接参照3系統を使い、Lore個別ページの生成条件を満たすものだけを1回リンクする。非適格なLoreを含むcanonical ID重複はリンクせず、未確定分とともに件数・Unresolved report導線へ集約する。表示名はescapeし、リンク順はpage path順に固定する。用語の同名候補を統合・再分類せず、既存の`merge_suggestion`警告はLore個別ページに維持する。
+
+**Related Events表示（`codex/related-events-navigation`で追加）**: Story内Episodeへの直接参照3系統からEventを集め、個別ページの生成条件を満たすものだけを1回リンクする。非適格なEventを含むcanonical ID重複はリンクせず、未確定分は件数・Unresolved report導線へ集約する。表示名をescapeし、リンク順をpage path順に固定する。参加者・場所の一致だけでEventとの関係を推定しない。
 
 ---
 
@@ -130,7 +132,7 @@ Episode pageは残す。役割は以下の通り、Story pageとは明確に分�
 - Episode ID / Public Episode ID確認
 - Candidate counts
 - Related Characters
-- Related Locations / Organizations / Items / Lore
+- Related Locations / Organizations / Items / Lore / Events
 - Validation status
 - Evidence references
 - Debug / review寄りの情報
@@ -144,6 +146,8 @@ Episode pageは残す。役割は以下の通り、Story pageとは明確に分�
 **Related Items（`codex/related-items-navigation`で追加）**: 対象Episodeへの直接参照があるItemだけをStory pageと同じ安全条件でリンクする。未確定・canonical ID重複は名前や内部IDを出さず件数とUnresolved report導線へ集約する。Item属性・元のevidence・canonical値は変更しない。
 
 **Related Lore（`codex/related-lore-navigation`で追加）**: 対象Episodeへの直接参照があるLoreだけをStory pageと同じ安全条件でリンクする。未確定・canonical ID重複は名前や内部IDを出さず件数とUnresolved report導線へ集約する。用語の意味判定・同名候補の統合・元のevidenceは変更しない。
+
+**Related Events（`codex/related-events-navigation`で追加）**: 対象Episodeへの直接参照があるEventだけをStory pageと同じ安全条件でリンクする。未確定・canonical ID重複は名前や内部IDを出さず件数とUnresolved report導線へ集約する。Eventの参加者・場所からEpisodeとの関係を推定せず、元のevidenceやcanonical値も変更しない。
 
 ## 7.2 Episode pageを完全に廃止しない理由
 
