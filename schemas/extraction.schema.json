@@ -128,10 +128,12 @@
     },
     "publicStoryId": {
       "type": ["string", "null"],
+      "pattern": "^[A-Z][A-Z0-9_]*$",
       "description": "story_manifest.yaml由来の公開Wiki URL用Story ID (任意、Normalized Story JSONのmetadata.publicStoryIdをそのまま転記。未設定時はstoryIdへfallback、Story_ID_Policy_Decision.md #7)"
     },
     "publicEpisodeId": {
       "type": ["string", "null"],
+      "pattern": "^[A-Z][A-Z0-9_]*$",
       "description": "story_manifest.yaml由来の公開Wiki URL用Episode ID (任意、episodes[].metadata.publicEpisodeIdをそのまま転記。未設定時はepisodeIdへfallback、Story_ID_Policy_Decision.md #7)"
     },
     "hsceneDedup": {
