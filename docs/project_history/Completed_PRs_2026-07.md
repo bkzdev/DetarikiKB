@@ -6,6 +6,7 @@
 
 - **Related Events navigation**（PR #328）: Episode / StoryからEvent個別ページへの直接参照に基づく導線を追加し、page適格性・canonical ID重複・未確定分の安全条件を共通化した。
 - **Wiki canonical ID collision guard**（PR #330）: 全entity種別の重複canonical IDをrender時に再検査し、曖昧な個別ページ生成を出力前に停止するようにした。
+- **Wiki page path collision guard**（PR #331）: Story / Episode等の出力path衝突をOS間で検出し、書込み先の解決後にも再検査して既存出力の上書きを防いだ。
 
 ---
 

@@ -104,7 +104,7 @@ def test_cli_duplicate_canonical_id_keeps_existing_output_with_clean(tmp_path):
 
 @pytest.mark.parametrize(
     ("field", "value"),
-    [("publicEpisodeId", "TEST_S01_C01"), ("publicStoryId", "../index")],
+    [("publicEpisodeId", "TEST_S01_C01")],
 )
 def test_cli_page_path_collision_keeps_existing_output_with_clean(
     tmp_path, field, value
@@ -137,6 +137,43 @@ def test_cli_page_path_collision_keeps_existing_output_with_clean(
     assert result.returncode == 2
     assert "出力経路が重複" in result.stderr
     assert value not in result.stderr
+    assert existing_page.read_text(encoding="utf-8") == "existing output"
+    assert sorted(path.name for path in output_dir.iterdir()) == ["index.md"]
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [("publicStoryId", "../index"), ("publicEpisodeId", r"..\index")],
+)
+def test_cli_invalid_public_id_fails_schema_before_clean(tmp_path, field, value):
+    collection = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+    collection["sourceDocuments"][0][field] = value
+    input_path = tmp_path / "invalid.json"
+    input_path.write_text(json.dumps(collection), encoding="utf-8")
+    output_dir = tmp_path / "wiki_out"
+    output_dir.mkdir()
+    existing_page = output_dir / "index.md"
+    existing_page.write_text("existing output", encoding="utf-8")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            "--input",
+            str(input_path),
+            "--output",
+            str(output_dir),
+            "--clean",
+            "--validate",
+            "--quiet",
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 2
+    assert "schema検証に失敗" in result.stderr
+    assert field in result.stderr
     assert existing_page.read_text(encoding="utf-8") == "existing output"
     assert sorted(path.name for path in output_dir.iterdir()) == ["index.md"]
 
