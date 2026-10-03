@@ -83,7 +83,7 @@ Exit codes:
        そのパスが見つからない場合も含む)
     2: --validate指定時にschema検証、character_profiles/
        story_summaries/evidence_indexの整合性検証、またはcanonicalIdの
-       重複により生成を中止した
+       重複、またはWikiページの出力経路衝突により生成を中止した
 """
 
 from __future__ import annotations
@@ -113,6 +113,7 @@ from agents.parser.character_profiles import (  # noqa: E402
 )
 from agents.wiki_generator import (  # noqa: E402
     DuplicateCanonicalIdError,
+    PagePathCollisionError,
     build_pages,
     write_pages,
 )
@@ -568,12 +569,12 @@ def main() -> int:
             story_summary_lookup=story_summary_lookup,
             evidence_index_lookup=evidence_index_lookup,
         )
-    except DuplicateCanonicalIdError as exc:
+        output_dir = Path(args.output)
+        output_root = output_dir.resolve()
+        written = write_pages(pages, output_dir, clean=args.clean)
+    except (DuplicateCanonicalIdError, PagePathCollisionError) as exc:
         print(f"[エラー] Wiki生成を中止しました: {exc}", file=sys.stderr)
         return 2
-    output_dir = Path(args.output)
-    output_root = output_dir.resolve()
-    written = write_pages(pages, output_dir, clean=args.clean)
 
     if not args.quiet:
         print(f"[wiki] {len(written)} 件のMarkdownを生成しました: {output_dir}")

@@ -15,6 +15,8 @@ from copy import deepcopy
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 from scripts import render_wiki as render_wiki_script
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
@@ -96,6 +98,45 @@ def test_cli_duplicate_canonical_id_keeps_existing_output_with_clean(tmp_path):
     assert result.returncode == 2
     assert "重複したcanonicalId" in result.stderr
     assert "CHAR_TEST_RAIN" not in result.stderr
+    assert existing_page.read_text(encoding="utf-8") == "existing output"
+    assert sorted(path.name for path in output_dir.iterdir()) == ["index.md"]
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [("publicEpisodeId", "TEST_S01_C01"), ("publicStoryId", "../index")],
+)
+def test_cli_page_path_collision_keeps_existing_output_with_clean(
+    tmp_path, field, value
+):
+    collection = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+    collection["sourceDocuments"][0][field] = value
+    input_path = tmp_path / "collision.json"
+    input_path.write_text(json.dumps(collection), encoding="utf-8")
+    output_dir = tmp_path / "wiki_out"
+    output_dir.mkdir()
+    existing_page = output_dir / "index.md"
+    existing_page.write_text("existing output", encoding="utf-8")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            "--input",
+            str(input_path),
+            "--output",
+            str(output_dir),
+            "--clean",
+            "--validate",
+            "--quiet",
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 2
+    assert "出力経路が重複" in result.stderr
+    assert value not in result.stderr
     assert existing_page.read_text(encoding="utf-8") == "existing output"
     assert sorted(path.name for path in output_dir.iterdir()) == ["index.md"]
 

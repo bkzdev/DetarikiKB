@@ -25,9 +25,11 @@ Unresolved report page を実装する
 
 from __future__ import annotations
 
+import posixpath
 import re
 import shutil
 from collections.abc import Callable
+from functools import partial
 from html import escape as escape_html
 from pathlib import Path
 from typing import Any
@@ -73,6 +75,10 @@ EntityPageRenderer = Callable[[dict[str, Any]], str]
 
 class DuplicateCanonicalIdError(ValueError):
     """重複canonicalIdによってWikiのページ経路が曖昧な入力。"""
+
+
+class PagePathCollisionError(ValueError):
+    """異なるWikiページが同じ出力経路を要求した入力。"""
 
 
 _RELATIONSHIP_DISPLAY_LABELS = {
@@ -1897,6 +1903,23 @@ def _build_entity_detail_pages(
     return pages
 
 
+def _add_pages_without_collision(
+    pages: dict[str, str], page_paths: set[str], new_pages: dict[str, str]
+) -> None:
+    """大文字小文字を区別しない出力先でも後勝ち上書きを防ぐ。"""
+    for path, page in new_pages.items():
+        key = _page_path_key(path)
+        if key in page_paths:
+            raise PagePathCollisionError("Wikiページの出力経路が重複しています")
+        page_paths.add(key)
+        pages[path] = page
+
+
+def _page_path_key(path: str) -> str:
+    """Windows/POSIXの区切りと相対要素を正規化した比較キー。"""
+    return posixpath.normpath(path.replace("\\", "/")).casefold()
+
+
 # sourceDocuments[].candidateCounts / report.candidateCountsのキー ->
 # 表示ラベル (Wiki_Output_Design.md §13対応表と同じ8種、順序も揃える)。
 _CANDIDATE_COUNT_LABELS: tuple[tuple[str, str], ...] = (
@@ -2793,6 +2816,21 @@ def render_evidence_page(story_id: str, entries: list[EvidenceIndexEntry]) -> st
     return "\n".join(lines).rstrip() + "\n"
 
 
+def _reject_duplicate_canonical_ids(collection: dict[str, Any]) -> None:
+    """非公開entityも含めてcanonical IDの一意性を再検査する。"""
+    seen_canonical_ids: set[str] = set()
+    for entity_key in MERGED_ENTITY_KEYS:
+        for entity in collection.get("entities", {}).get(entity_key, []) or []:
+            canonical_id = entity.get("canonicalId")
+            if not isinstance(canonical_id, str) or not canonical_id:
+                continue
+            if canonical_id in seen_canonical_ids:
+                raise DuplicateCanonicalIdError(
+                    "merged collectionに重複したcanonicalIdがあります"
+                )
+            seen_canonical_ids.add(canonical_id)
+
+
 def build_pages(
     collection: dict[str, Any],
     character_profiles: CharacterProfileIndex | None = None,
@@ -2818,19 +2856,7 @@ def build_pages(
     Story/Episode SummaryのevidenceRefsをそこへリンクする（省略時は
     Evidence pageを生成せず、evidenceRefsはID表示のまま）。
     """
-    # 個別ページはcanonicalIdをファイル名にする。重複があると後勝ちで
-    # ページが上書きされるため、非公開entityも含めて生成前に停止する。
-    seen_canonical_ids: set[str] = set()
-    for entity_key in MERGED_ENTITY_KEYS:
-        for entity in collection.get("entities", {}).get(entity_key, []) or []:
-            canonical_id = entity.get("canonicalId")
-            if not isinstance(canonical_id, str) or not canonical_id:
-                continue
-            if canonical_id in seen_canonical_ids:
-                raise DuplicateCanonicalIdError(
-                    "merged collectionに重複したcanonicalIdがあります"
-                )
-            seen_canonical_ids.add(canonical_id)
+    _reject_duplicate_canonical_ids(collection)
 
     characters = collection.get("entities", {}).get("characters", []) or []
     locations = collection.get("entities", {}).get("locations", []) or []
@@ -2855,30 +2881,40 @@ def build_pages(
         "events/index.md": render_event_index_page(events),
         "reports/unresolved.md": render_unresolved_report(collection),
     }
+    page_paths = {_page_path_key(path) for path in pages}
+    add_pages = partial(_add_pages_without_collision, pages, page_paths)
 
     for story_id, episodes in _group_source_documents_by_story(source_documents):
         sorted_episodes = _sorted_story_episodes(episodes)
         public_story_id = _resolve_group_public_story_id(sorted_episodes)
         path = story_page_path(story_id, public_story_id)
-        pages[path] = render_story_page(
-            story_id,
-            sorted_episodes,
-            collection,
-            story_summary_lookup,
-            evidence_index_lookup,
+        add_pages(
+            {
+                path: render_story_page(
+                    story_id,
+                    sorted_episodes,
+                    collection,
+                    story_summary_lookup,
+                    evidence_index_lookup,
+                )
+            }
         )
 
     for source_document in source_documents:
         path = episode_page_path(source_document)
         if path is not None:
-            pages[path] = render_episode_page(
-                source_document,
-                collection,
-                story_summary_lookup,
-                evidence_index_lookup,
+            add_pages(
+                {
+                    path: render_episode_page(
+                        source_document,
+                        collection,
+                        story_summary_lookup,
+                        evidence_index_lookup,
+                    )
+                }
             )
 
-    pages.update(
+    add_pages(
         _build_entity_detail_pages(
             characters,
             character_page_path,
@@ -2887,14 +2923,14 @@ def build_pages(
             ),
         )
     )
-    pages.update(
+    add_pages(
         _build_entity_detail_pages(
             locations,
             location_page_path,
             lambda entity: render_location_page(entity, source_documents),
         )
     )
-    pages.update(
+    add_pages(
         _build_entity_detail_pages(
             organizations,
             organization_page_path,
@@ -2903,21 +2939,21 @@ def build_pages(
             ),
         )
     )
-    pages.update(
+    add_pages(
         _build_entity_detail_pages(
             items,
             item_page_path,
             lambda entity: render_item_page(entity, source_documents),
         )
     )
-    pages.update(
+    add_pages(
         _build_entity_detail_pages(
             lore_entities,
             lore_page_path,
             lambda entity: render_lore_page(entity, source_documents),
         )
     )
-    pages.update(
+    add_pages(
         _build_entity_detail_pages(
             events,
             event_page_path,
@@ -2931,7 +2967,7 @@ def build_pages(
         for story_id, entries in evidence_index_lookup.by_story_id.items():
             evidence_public_story_id = resolve_group_public_story_id(entries)
             path = evidence_page_path(story_id, evidence_public_story_id)
-            pages[path] = render_evidence_page(story_id, entries)
+            add_pages({path: render_evidence_page(story_id, entries)})
 
     return pages
 
@@ -2949,11 +2985,16 @@ def write_pages(
     output_path = Path(output_dir)
     output_root = output_path.resolve()
     resolved_pages: list[tuple[Path, str]] = []
+    resolved_paths: set[str] = set()
     for relative_path, content in pages.items():
         path = Path(relative_path)
         full_path = (output_root / path).resolve()
         if path.is_absolute() or not full_path.is_relative_to(output_root):
             raise ValueError(f"output path must stay under output_dir: {relative_path}")
+        resolved_key = str(full_path).casefold()
+        if resolved_key in resolved_paths:
+            raise PagePathCollisionError("Wikiページの出力経路が重複しています")
+        resolved_paths.add(resolved_key)
         resolved_pages.append((full_path, content))
 
     if clean and output_path.exists():
