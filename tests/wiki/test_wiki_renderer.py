@@ -1090,6 +1090,42 @@ def test_build_pages_rejects_cross_type_duplicate_canonical_id(
         build_pages(collection)
 
 
+@pytest.mark.parametrize(
+    "collision",
+    [
+        "story_story",
+        "episode_episode",
+        "story_episode",
+        "index_story",
+        "index_entity",
+        "normalized_alias",
+        "windows_alias",
+    ],
+)
+def test_build_pages_rejects_page_path_collisions(synthetic_collection, collision):
+    collection = deepcopy(synthetic_collection)
+    documents = collection["sourceDocuments"]
+    if collision == "story_story":
+        for document in documents:
+            if document["storyId"] == "TEST_S01_C01":
+                document["publicStoryId"] = "PUBLIC_TEST_STORY_001"
+    elif collision == "episode_episode":
+        documents[1]["publicEpisodeId"] = "EP_TEST_001"
+    elif collision == "story_episode":
+        documents[0]["publicEpisodeId"] = "TEST_S01_C01"
+    elif collision == "index_story":
+        documents[0]["publicStoryId"] = "INDEX"
+    elif collision == "normalized_alias":
+        documents[0]["publicStoryId"] = "../index"
+    elif collision == "windows_alias":
+        documents[0]["publicStoryId"] = r"..\index"
+    else:
+        collection["entities"]["characters"][0]["canonicalId"] = "INDEX"
+
+    with pytest.raises(ValueError, match="出力経路が重複"):
+        build_pages(collection)
+
+
 def test_render_index_page_links_to_organizations_index(synthetic_collection):
     page = render_index_page(synthetic_collection)
     assert "[Organizations](organizations/index.md)" in page
@@ -3947,6 +3983,19 @@ def test_write_pages_rejects_output_path_outside_root_before_writing(tmp_path):
 
     assert not (output_dir / "index.md").exists()
     assert not (tmp_path / "outside.md").exists()
+
+
+def test_write_pages_rejects_resolved_path_collision_before_clean(tmp_path):
+    output_dir = tmp_path / "site"
+    output_dir.mkdir()
+    existing_page = output_dir / "index.md"
+    existing_page.write_text("existing output", encoding="utf-8")
+    pages = {"index.md": "first", "stories/../index.md": "second"}
+
+    with pytest.raises(ValueError, match="出力経路が重複"):
+        write_pages(pages, output_dir, clean=True)
+
+    assert existing_page.read_text(encoding="utf-8") == "existing output"
 
 
 def test_write_pages_clean_removes_existing_output(synthetic_collection, tmp_path):

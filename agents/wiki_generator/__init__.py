@@ -35,6 +35,7 @@ from .paths import (
 )
 from .renderer import (
     DuplicateCanonicalIdError,
+    PagePathCollisionError,
     build_pages,
     render_character_index_page,
     render_character_page,
@@ -59,6 +60,7 @@ from .renderer import (
 
 __all__ = [
     "DuplicateCanonicalIdError",
+    "PagePathCollisionError",
     "build_front_matter",
     "canonical_timeline_page_path",
     "character_page_path",

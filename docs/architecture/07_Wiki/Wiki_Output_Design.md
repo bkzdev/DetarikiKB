@@ -580,6 +580,8 @@ templates/wiki/unresolved_report.md.j2
 一致しないentityは個別ページ化せずUnresolved reportへ保持する。`write_pages`も全出力pathを
 書込み前に解決し、output root外を指すpathが1件でもあれば何も書かず失敗する。
 
+Story・Episode・Evidence・entity個別ページの出力pathが既存indexを含む別ページと重複する場合、`build_pages`は両OSの区切り文字と`..`を正規化したcase-insensitiveなpathで上書きを阻止する。`write_pages`も書込み先の解決後に全pathの重複を再検査し、symlink等で同一ファイルを指す場合を含めて書込み前に停止する。`render_wiki.py`は終了コード2を返し、`--clean`指定時も既存の出力先を変更しない。公開IDを自動修正・付与するものではない。
+
 **関連（`feature/story-id-policy-real-sample-review`で追加）**: Story/EpisodeのURL（`stories/{episodeId}.md`）は、EVENTカテゴリの場合raw配置由来の長い`episodeId`（`EVT_{sourceKey}_E{episode}`）をそのまま使うため、公開Wiki化前に見直す余地がある。実データサンプルを踏まえたレビューは`docs/architecture/05_Parser/Story_ID_Policy_Review.md`を参照（本PRではURL/file pathは変更していない）。
 
 **方針決定（`feature/story-id-policy-design-decision`で追加）**: 上記レビューを踏まえた採用方針を`docs/architecture/05_Parser/Story_ID_Policy_Decision.md`で決定した。現行URL（`stories/{episodeId}.md`）は当面維持し、将来公開URL用に`publicStoryId`/`publicEpisodeId`が導入された場合のみ、renderer/paths.pyの段階移行を検討する（本PRでもURL/file pathは変更していない）。
