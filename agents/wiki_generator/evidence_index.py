@@ -565,7 +565,7 @@ def _validate_entry_ids_and_type(label: str, entry: EvidenceIndexEntry) -> list[
     issues: list[str] = []
     if not entry.evidence_id:
         issues.append("entries: evidenceIdが空です")
-    elif not ID_PATTERN.match(entry.evidence_id):
+    elif not ID_PATTERN.fullmatch(entry.evidence_id):
         issues.append(f"{label}: evidenceIdの形式が不正です")
 
     if entry.evidence_type not in VALID_EVIDENCE_TYPES:

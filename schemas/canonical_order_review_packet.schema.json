@@ -56,7 +56,7 @@
       "additionalProperties": false,
       "properties": {
         "reviewStoryKey": { "const": "story-0001" },
-        "storyId": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+        "storyId": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*(?![\\s\\S])" },
         "manifestStoryIndex": { "type": "integer", "minimum": 1 },
         "category": {
           "type": "string",
@@ -121,7 +121,7 @@
           "type": "string",
           "pattern": "^episode-[0-9]{4}$"
         },
-        "episodeId": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+        "episodeId": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*(?![\\s\\S])" },
         "manifestEpisodeIndex": { "type": "integer", "minimum": 1 },
         "episodeNumber": { "type": "integer", "minimum": 1 },
         "currentCanonicalOrder": { "type": ["integer", "null"] },

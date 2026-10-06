@@ -42,12 +42,12 @@
       "properties": {
         "storyId": {
           "type": "string",
-          "pattern": "^[A-Z][A-Z0-9_]*$",
+          "pattern": "^[A-Z][A-Z0-9_]*(?![\\s\\S])",
           "description": "Identifier_Specification.md準拠のStory ID (例: EVT_250626_DANCER, MAIN_S01_C02)"
         },
         "publicStoryId": {
           "oneOf": [
-            { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+            { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*(?![\\s\\S])" },
             { "type": "null" }
           ],
           "description": "Public-facing stable story ID intended for future Wiki URLs. Optional; when absent, storyId remains the fallback. (Story_ID_Policy_Decision.md #7)"
@@ -121,12 +121,12 @@
       "properties": {
         "episodeId": {
           "type": "string",
-          "pattern": "^[A-Z][A-Z0-9_]*$",
+          "pattern": "^[A-Z][A-Z0-9_]*(?![\\s\\S])",
           "description": "Identifier_Specification.md準拠のEpisode ID (例: EVT_250626_DANCER_E01)"
         },
         "publicEpisodeId": {
           "oneOf": [
-            { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+            { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*(?![\\s\\S])" },
             { "type": "null" }
           ],
           "description": "Public-facing stable episode ID intended for future Wiki URLs. Optional; when absent, episodeId remains the fallback. (Story_ID_Policy_Decision.md #7)"

@@ -59,8 +59,8 @@ nodeのallowlistは次の4 fieldだけである。
 
 | field | 必須 | 条件 |
 |---|---|---|
-| `publicStoryId` | yes | `^[A-Z][A-Z0-9_]*$` |
-| `publicEpisodeId` | yes | `^[A-Z][A-Z0-9_]*$` |
+| `publicStoryId` | yes | `^[A-Z][A-Z0-9_]*(?![\s\S])` |
+| `publicEpisodeId` | yes | `^[A-Z][A-Z0-9_]*(?![\s\S])` |
 | `storyLabel` | yes | 1〜200文字、改行なし |
 | `episodeLabel` | yes | 1〜200文字、改行なし |
 

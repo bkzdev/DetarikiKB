@@ -41,7 +41,7 @@ Path: `docs/architecture/05_Parser/Story_ID_Policy_Review.md`
 - `sourceKey`抽出: `EVENT/csl_script_event_{sourceKey}_export/`ディレクトリ名の正規表現一致（`_EXPORT_DIRECTORY_PATTERN`）、ファイル名側`CAB-csl_script_event_{sourceKey}-episode{N}.dec`との一致確認あり（不一致ファイルは候補から除外、`Story_Manifest_Design.md` §7）
 - title/subtitle: 候補生成時は常に`null`、`metadataStatus: pending`固定。人間確認後に`story_manifest.yaml`へ反映する運用（未実施、`Story_Manifest_Design.md` §11.7）
 - manifestの役割: raw配置⇔正規ID⇔title/subtitleの対応表。`storyId`/`episodeId`自体の生成ロジックは`agents/parser/story_manifest_candidates.py`側にあり、manifestは「候補として記録された結果」を保持するのみ（IDの再割り当て機構は無い）
-- schema上の制約: `schemas/story_manifest.schema.json`の`storyId`/`episodeId`パターンは`^[A-Z][A-Z0-9_]*$`のみで、**長さ上限は無い**
+- schema上の制約: `schemas/story_manifest.schema.json`の`storyId`/`episodeId`パターンは`^[A-Z][A-Z0-9_]*(?![\s\S])`のみで、**長さ上限は無い**
 
 ## 3.3 RAID
 
@@ -232,7 +232,7 @@ MAINの既存`MAIN_S{season}_C{chapter}_E{episode}`形式は変更不要とい�
 このPRでは実施しないが、将来案B/C/Dのいずれかへ移行する場合に影響する範囲を記録しておく。
 
 - `agents/parser/story_manifest_candidates.py`（storyId/episodeId生成ロジック）
-- `schemas/story_manifest.schema.json`（IDパターン自体は`^[A-Z][A-Z0-9_]*$`のままで対応可能、変更不要な見込み）
+- `schemas/story_manifest.schema.json`（IDパターン自体は`^[A-Z][A-Z0-9_]*(?![\s\S])`のままで対応可能、変更不要な見込み）
 - `agents/wiki_generator/paths.py`（`episode_page_path`が返すファイル名がstoryId/episodeIdに依存）
 - 既存の合成fixture（`tests/fixtures/wiki/synthetic_merged_collection.json`等）のepisodeId命名は、テスト用の固定値であり実運用のID方式とは独立しているため、**移行の影響を受けない**（このPRでも変更していない）
 - 実データ由来の`story_manifest.yaml`が既に人間確認・confirmed化されている場合、そのID変更は`Identifier_Specification.md` §2.1「一度割り当てたIDは原則として変更しない」という安定性原則との兼ね合いを個別に検討する必要がある（本PR時点ではconfirmed化された実データが無いため、影響は無い）

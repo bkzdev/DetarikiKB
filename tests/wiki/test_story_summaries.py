@@ -234,6 +234,27 @@ def test_validate_rejects_invalid_story_id():
     assert any("形式が不正です" in issue for issue in issues)
 
 
+@pytest.mark.parametrize("field", ["story_id", "public_story_id"])
+def test_validate_rejects_story_id_with_trailing_newline(field):
+    issues = validate_story_summary_document(_document(**{field: "EVT_TEST_A\n"}))
+    assert any("形式が不正です" in issue for issue in issues)
+
+
+def test_validate_rejects_episode_id_and_evidence_ref_with_trailing_newline():
+    document = _document(
+        episode_summaries=[
+            EpisodeSummaryEntry(
+                episode_id="EVT_TEST_A_E01\n",
+                text="合成要約",
+                evidence_refs=["EVT_TEST_A_E01_DLG0001\n"],
+            )
+        ]
+    )
+    issues = validate_story_summary_document(document)
+    assert any("episodeIdの形式が不正です" in issue for issue in issues)
+    assert any("evidenceRefの形式が不正です" in issue for issue in issues)
+
+
 def test_validate_rejects_empty_story_id():
     issues = validate_story_summary_document(_document(story_id=""))
     assert any("storyIdが空です" in issue for issue in issues)
