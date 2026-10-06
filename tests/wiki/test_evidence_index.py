@@ -237,6 +237,13 @@ def test_validate_rejects_invalid_evidence_id():
     assert any("形式が不正です" in issue for issue in issues)
 
 
+def test_validate_rejects_evidence_id_with_trailing_newline():
+    issues = validate_evidence_index_document(
+        _document(entries=[_entry(evidence_id="EVT_TEST_A_E01_DLG0001\n")])
+    )
+    assert any("evidenceIdの形式が不正です" in issue for issue in issues)
+
+
 def test_validate_rejects_empty_evidence_id():
     issues = validate_evidence_index_document(
         _document(entries=[_entry(evidence_id="")])

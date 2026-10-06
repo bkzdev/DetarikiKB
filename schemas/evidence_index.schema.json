@@ -55,10 +55,10 @@
       "required": ["storyId"],
       "additionalProperties": false,
       "properties": {
-        "storyId": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+        "storyId": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*(?![\\s\\S])" },
         "episodeId": {
           "oneOf": [
-            { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+            { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*(?![\\s\\S])" },
             { "type": "null" }
           ]
         }
@@ -72,7 +72,7 @@
       "properties": {
         "evidenceId": {
           "type": "string",
-          "pattern": "^[A-Z][A-Z0-9_]*$",
+          "pattern": "^[A-Z][A-Z0-9_]*(?![\\s\\S])",
           "description": "Block ID優先、粗い場合はScene/Episode/Story ID (Identifier_Specification.md §8)"
         },
         "evidenceType": {
@@ -93,40 +93,40 @@
         },
         "storyId": {
           "type": "string",
-          "pattern": "^[A-Z][A-Z0-9_]*$"
+          "pattern": "^[A-Z][A-Z0-9_]*(?![\\s\\S])"
         },
         "publicStoryId": {
           "oneOf": [
-            { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+            { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*(?![\\s\\S])" },
             { "type": "null" }
           ]
         },
         "episodeId": {
           "type": "string",
-          "pattern": "^[A-Z][A-Z0-9_]*$"
+          "pattern": "^[A-Z][A-Z0-9_]*(?![\\s\\S])"
         },
         "publicEpisodeId": {
           "oneOf": [
-            { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+            { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*(?![\\s\\S])" },
             { "type": "null" }
           ]
         },
         "publicEvidenceId": {
           "oneOf": [
-            { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+            { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*(?![\\s\\S])" },
             { "type": "null" }
           ],
           "description": "Public-safe evidence identifier used for Wiki anchors and public Summary evidenceRefs (docs/architecture/06_AI/Evidence_Index_Public_ID_Policy.md). Optional for now; evidenceId remains required as the internal trace ID. Must not contain sourceKey-derived internal storyId/episodeId/blockId fragments."
         },
         "sceneId": {
           "oneOf": [
-            { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+            { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*(?![\\s\\S])" },
             { "type": "null" }
           ]
         },
         "blockId": {
           "oneOf": [
-            { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+            { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*(?![\\s\\S])" },
             { "type": "null" }
           ]
         },
@@ -161,7 +161,7 @@
       "properties": {
         "speakerId": {
           "oneOf": [
-            { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+            { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*(?![\\s\\S])" },
             { "type": "null" }
           ]
         },
@@ -194,7 +194,7 @@
         },
         "id": {
           "type": "string",
-          "pattern": "^[A-Z][A-Z0-9_]*$"
+          "pattern": "^[A-Z][A-Z0-9_]*(?![\\s\\S])"
         },
         "displayName": {
           "oneOf": [{ "type": "string" }, { "type": "null" }]
@@ -222,11 +222,11 @@
       "required": ["storyId", "summaryType"],
       "additionalProperties": false,
       "properties": {
-        "storyId": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+        "storyId": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*(?![\\s\\S])" },
         "summaryType": { "type": "string", "enum": ["story", "episode"] },
         "episodeId": {
           "oneOf": [
-            { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+            { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*(?![\\s\\S])" },
             { "type": "null" }
           ]
         }

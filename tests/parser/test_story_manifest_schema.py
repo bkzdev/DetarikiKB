@@ -448,6 +448,15 @@ def test_rejects_public_story_id_lowercase():
     assert _validate(_document(story)) != []
 
 
+@pytest.mark.parametrize("field", ["publicStoryId", "publicEpisodeId"])
+@pytest.mark.parametrize("terminator", ["\n", "\r\n", "\u2028", "\u2029"])
+def test_rejects_public_id_with_trailing_line_terminator(field, terminator):
+    story = _synthetic_story()
+    target = story if field == "publicStoryId" else story["episodes"][0]
+    target[field] = f"PUBLIC_TEST_001{terminator}"
+    assert _validate(_document(story)) != []
+
+
 def test_template_still_validates_without_public_id_values():
     """templateはpublicStoryId/publicEpisodeIdをnullとして含むが、
     schema検証を通ることを確認する。"""

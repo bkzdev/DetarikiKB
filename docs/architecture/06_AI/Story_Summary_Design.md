@@ -302,7 +302,7 @@ notes: null
 - `evidenceRefs`を持たせても、元セリフ全文は保存しない（`evidenceRefs`は根拠の**参照**であり、根拠テキストの**引用**ではない）
 - `evidenceRefs`はSummaryの根拠確認用であり、将来のEvidence index（`Wiki_Output_Design.md` §9.16、未実装）との連携を見込む。連携方式（Evidence indexからSummaryへの逆引き等）は本文書では設計しない
 
-**実装状況（`feature/story-summary-schema-implementation`で実施）**: `schemas/story_summary.schema.json`の`EvidenceRef`定義で形式検証（`^[A-Z][A-Z0-9_]*$`）を実装した。Block/Scene/Episode/Story IDいずれの粒度も許可する（`Identifier_Specification.md` §8の段階的fallbackを妨げないよう、suffix別のenum制約はかけない）。
+**実装状況（`feature/story-summary-schema-implementation`で実施）**: `schemas/story_summary.schema.json`の`EvidenceRef`定義で形式検証（`^[A-Z][A-Z0-9_]*(?![\s\S])`）を実装した。Block/Scene/Episode/Story IDいずれの粒度も許可する（`Identifier_Specification.md` §8の段階的fallbackを妨げないよう、suffix別のenum制約はかけない）。
 
 **Story pageへの表示方針・実装状況（`feature/story-summary-evidence-display`で実施）**:
 

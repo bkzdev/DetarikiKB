@@ -45,7 +45,7 @@
     },
     "PublicId": {
       "type": "string",
-      "pattern": "^[A-Z][A-Z0-9_]*$"
+      "pattern": "^[A-Z][A-Z0-9_]*(?![\\s\\S])"
     },
     "PublicEpisodeNode": {
       "type": "object",

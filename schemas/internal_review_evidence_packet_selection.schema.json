@@ -12,7 +12,7 @@
       "type": "array",
       "minItems": 1,
       "uniqueItems": true,
-      "items": { "type": "string", "maxLength": 256, "pattern": "^[A-Z][A-Z0-9_]*$" }
+      "items": { "type": "string", "maxLength": 256, "pattern": "^[A-Z][A-Z0-9_]*(?![\\s\\S])" }
     }
   }
 }

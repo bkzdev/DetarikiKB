@@ -582,7 +582,7 @@ templates/wiki/unresolved_report.md.j2
 
 Story・Episode・Evidence・entity個別ページの出力pathが既存indexを含む別ページと重複する場合、`build_pages`は両OSの区切り文字と`..`を正規化したcase-insensitiveなpathで上書きを阻止する。`write_pages`も書込み先の解決後に全pathの重複を再検査し、symlink等で同一ファイルを指す場合を含めて書込み前に停止する。`render_wiki.py`は終了コード2を返し、`--clean`指定時も既存の出力先を変更しない。公開IDを自動修正・付与するものではない。
 
-`--validate`指定時は、Merged Collectionの`sourceDocuments[].publicStoryId` / `publicEpisodeId`にもmanifestと同じ`^[A-Z][A-Z0-9_]*$`形式を適用する。値がnullまたは未設定なら従来の内部ID fallbackを維持し、不正な非null値は出力前にschema errorとする。
+`--validate`指定時は、Merged Collectionの`sourceDocuments[].publicStoryId` / `publicEpisodeId`にもmanifestと同じ`^[A-Z][A-Z0-9_]*(?![\s\S])`形式を適用する。末尾改行を含む不正な非null値は出力前にschema errorとし、値がnullまたは未設定なら従来の内部ID fallbackを維持する。
 
 **関連（`feature/story-id-policy-real-sample-review`で追加）**: Story/EpisodeのURL（`stories/{episodeId}.md`）は、EVENTカテゴリの場合raw配置由来の長い`episodeId`（`EVT_{sourceKey}_E{episode}`）をそのまま使うため、公開Wiki化前に見直す余地がある。実データサンプルを踏まえたレビューは`docs/architecture/05_Parser/Story_ID_Policy_Review.md`を参照（本PRではURL/file pathは変更していない）。
 

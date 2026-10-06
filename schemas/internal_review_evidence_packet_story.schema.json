@@ -13,8 +13,8 @@
     "entries": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/Entry" } }
   },
   "definitions": {
-    "InternalId": { "type": "string", "maxLength": 256, "pattern": "^[A-Z][A-Z0-9_]*$" },
-    "PublicId": { "type": "string", "maxLength": 256, "pattern": "^[A-Z][A-Z0-9_]*$" },
+    "InternalId": { "type": "string", "maxLength": 256, "pattern": "^[A-Z][A-Z0-9_]*(?![\\s\\S])" },
+    "PublicId": { "type": "string", "maxLength": 256, "pattern": "^[A-Z][A-Z0-9_]*(?![\\s\\S])" },
     "NullableInternalId": { "oneOf": [{ "$ref": "#/definitions/InternalId" }, { "type": "null" }] },
     "NullablePublicId": { "oneOf": [{ "$ref": "#/definitions/PublicId" }, { "type": "null" }] },
     "NullableSpeakerLabel": { "oneOf": [{ "type": "string", "maxLength": 500 }, { "type": "null" }] },

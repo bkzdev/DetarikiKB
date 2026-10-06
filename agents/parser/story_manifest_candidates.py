@@ -111,7 +111,7 @@ _DIRECTION_SUFFIX_PATTERNS = [
     re.compile(r"^position$", re.IGNORECASE),
 ]
 
-# storyId/episodeIdがschemaのpattern (^[A-Z][A-Z0-9_]*$) を満たすかの確認用
+# storyId/episodeIdがschemaと同じ文字種を完全一致で満たすかの確認用
 # (characterIdはCHARACTER_ID_PATTERNでハイフンを許容するが、storyId側は許容しない)。
 _STORY_ID_SAFE_PATTERN = re.compile(r"^[A-Z][A-Z0-9_]*$")
 _SOURCE_KEY_SAFE_PATTERN = re.compile(r"^[A-Za-z0-9_]+$")
@@ -1017,7 +1017,7 @@ def build_character_story_manifest_candidates(
 
         character_id = entry.character_id
         romaji = character_id[len("CHAR_") :]
-        if not _STORY_ID_SAFE_PATTERN.match(f"CHAR_MAIN_{romaji}"):
+        if not _STORY_ID_SAFE_PATTERN.fullmatch(f"CHAR_MAIN_{romaji}"):
             report.append(
                 {
                     "issueType": "invalid_story_id",

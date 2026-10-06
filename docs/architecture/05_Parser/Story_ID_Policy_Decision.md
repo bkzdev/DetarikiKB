@@ -260,7 +260,7 @@ sourceKeyは概ね17〜20文字（`{YYMMDD}_{slug}`形式）、URLは36〜39文�
 
 ## 10.3 実装状況（`feature/story-manifest-public-id-fields-design`で実施）
 
-§7.2で採用した`publicStoryId`/`publicEpisodeId`を`schemas/story_manifest.schema.json`（story-level/episode-levelの任意フィールド、既存`storyId`/`episodeId`と同じ`^[A-Z][A-Z0-9_]*$`パターン、null許容）・`agents/parser/story_manifest.py`（`StoryManifestStory.public_story_id`/`StoryManifestEpisode.public_episode_id`）へ追加した。`scripts/normalize_story.py`は`source.manifest.publicStoryId`/`source.manifest.publicEpisodeId`としてtraceability目的でのみNormalized Story JSONへ転記する。**`storyId`/`episodeId`生成ロジック・URL/file path・`agents/wiki_generator/renderer.py`/`paths.py`は変更していない。** category別の合成例は`Story_Manifest_Design.md` §13.2を参照。
+§7.2で採用した`publicStoryId`/`publicEpisodeId`を`schemas/story_manifest.schema.json`（story-level/episode-levelの任意フィールド、既存`storyId`/`episodeId`と同じ`^[A-Z][A-Z0-9_]*(?![\s\S])`パターン、null許容）・`agents/parser/story_manifest.py`（`StoryManifestStory.public_story_id`/`StoryManifestEpisode.public_episode_id`）へ追加した。`scripts/normalize_story.py`は`source.manifest.publicStoryId`/`source.manifest.publicEpisodeId`としてtraceability目的でのみNormalized Story JSONへ転記する。**`storyId`/`episodeId`生成ロジック・URL/file path・`agents/wiki_generator/renderer.py`/`paths.py`は変更していない。** category別の合成例は`Story_Manifest_Design.md` §13.2を参照。
 
 ## 10.4 実装状況（`feature/story-manifest-public-id-renderer-switch`で実施）
 

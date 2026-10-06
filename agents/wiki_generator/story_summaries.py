@@ -412,7 +412,7 @@ def get_displayable_episode_summary(
 def _validate_evidence_refs(label: str, evidence_refs: list[str]) -> list[str]:
     issues: list[str] = []
     for ref in evidence_refs:
-        if not isinstance(ref, str) or not EVIDENCE_REF_PATTERN.match(ref):
+        if not isinstance(ref, str) or not EVIDENCE_REF_PATTERN.fullmatch(ref):
             issues.append(f"{label}: evidenceRefの形式が不正です ('{ref}')")
     return issues
 
@@ -453,7 +453,7 @@ def _validate_single_episode_summary_entry(entry: EpisodeSummaryEntry) -> list[s
     issues: list[str] = []
     if not entry.episode_id:
         issues.append("episodeSummaries: episodeIdが空です")
-    elif not STORY_ID_PATTERN.match(entry.episode_id):
+    elif not STORY_ID_PATTERN.fullmatch(entry.episode_id):
         issues.append(f"{label}: episodeIdの形式が不正です")
     if not entry.text:
         issues.append(f"{label}: textが空です")
@@ -514,10 +514,10 @@ def validate_story_summary_document(document: StorySummaryDocument) -> list[str]
 
     if not document.story_id:
         issues.append("storyIdが空です")
-    elif not STORY_ID_PATTERN.match(document.story_id):
+    elif not STORY_ID_PATTERN.fullmatch(document.story_id):
         issues.append(f"storyId '{document.story_id}': 形式が不正です")
 
-    if document.public_story_id and not STORY_ID_PATTERN.match(
+    if document.public_story_id and not STORY_ID_PATTERN.fullmatch(
         document.public_story_id
     ):
         issues.append(f"publicStoryId '{document.public_story_id}': 形式が不正です")

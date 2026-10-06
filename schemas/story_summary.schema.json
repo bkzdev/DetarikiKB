@@ -29,12 +29,12 @@
     },
     "storyId": {
       "type": "string",
-      "pattern": "^[A-Z][A-Z0-9_]*$",
+      "pattern": "^[A-Z][A-Z0-9_]*(?![\\s\\S])",
       "description": "対象Story ID"
     },
     "publicStoryId": {
       "oneOf": [
-        { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+        { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*(?![\\s\\S])" },
         { "type": "null" }
       ],
       "description": "公開Wiki URL用ID (story_manifest.yamlのpublicStoryIdと対応)"
@@ -107,12 +107,12 @@
       "properties": {
         "episodeId": {
           "type": "string",
-          "pattern": "^[A-Z][A-Z0-9_]*$",
+          "pattern": "^[A-Z][A-Z0-9_]*(?![\\s\\S])",
           "description": "対象Episode ID"
         },
         "publicEpisodeId": {
           "oneOf": [
-            { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+            { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*(?![\\s\\S])" },
             { "type": "null" }
           ],
           "description": "公開Wiki URL用ID (story_manifest.yamlのpublicEpisodeIdと対応)"
@@ -145,7 +145,7 @@
 
     "EvidenceRef": {
       "type": "string",
-      "pattern": "^[A-Z][A-Z0-9_]*$",
+      "pattern": "^[A-Z][A-Z0-9_]*(?![\\s\\S])",
       "description": "Normalized Story JSON/Extraction ResultのevidenceId (Block ID優先、粗い場合はScene/Episode/Story ID、Identifier_Specification.md §8)。raw textやraw pathではなくIDのみを許可する"
     },
 

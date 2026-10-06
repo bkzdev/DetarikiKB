@@ -83,7 +83,19 @@ def test_public_id_valid_values_are_preserved(schema_case, field, value):
 
 @pytest.mark.parametrize("field", PUBLIC_ID_FIELDS)
 @pytest.mark.parametrize(
-    "value", ["", "../index", r"..\index", "public_test", "PUBLIC-TEST", "PUBLIC TEST"]
+    "value",
+    [
+        "",
+        "../index",
+        r"..\index",
+        "public_test",
+        "PUBLIC-TEST",
+        "PUBLIC TEST",
+        "PUBLIC_TEST\n",
+        "PUBLIC_TEST\r\n",
+        "PUBLIC_TEST\u2028",
+        "PUBLIC_TEST\u2029",
+    ],
 )
 def test_public_id_invalid_values_are_rejected(schema_case, field, value):
     validator, document, locations = schema_case

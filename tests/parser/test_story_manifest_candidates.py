@@ -711,6 +711,19 @@ def test_build_character_story_manifest_candidates_generates_main_extra_hs(tmp_p
         assert story["sourceKey"] == CHARACTER_SOURCE_ID
 
 
+def test_character_story_id_rejects_trailing_newline_in_dictionary_id(tmp_path):
+    export_dir = _make_character_export_dir(tmp_path)
+    _make_character_file(export_dir, CHARACTER_SOURCE_ID, "episode1")
+
+    candidates, report = build_character_story_manifest_candidates(
+        tmp_path, [_confirmed_entry(character_id="CHAR_SYNTH_TEST\n")]
+    )
+
+    assert candidates == []
+    assert len(report) == 1
+    assert report[0]["issueType"] == "invalid_story_id"
+
+
 def test_build_character_story_manifest_candidates_generates_date_story(tmp_path):
     export_dir = _make_character_date_export_dir(tmp_path)
     _make_character_date_file(export_dir, CHARACTER_SOURCE_ID, "Surprise_1")

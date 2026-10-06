@@ -242,7 +242,7 @@ EVT_YYYYMMDD_NNN_E01_MONO0001
   - `sceneId`/`blockId`/`referencedBy`/document-level`generatedFrom`は出力しない（`referencedBy.summaries.storyId`/`referencedBy.candidates.candidateId`は現行schemaでは内部ID/内部参照キーのままであり、公開向けの代替フィールドが存在しないため、本PRのスコープでは安全側に倒して除去する。将来`referencedBy`を公開ID中心に再設計する場合は別PRで扱う）
   - `speaker`は`resolutionStatus: resolved`のentryのみ保持し、`unresolved`/`ambiguous`/`unknown`（「不明人物」等のplaceholder表示を含みうる）は保持しない
   - `notes`/`relatedEntities`はそのまま保持する（`relatedEntities`はcanonical character/location等の辞書IDであり、sourceKey由来の内部trace IDではないため）。ただし§6.9のexposure scanが最終防波堤として機能する
-  - `publicEvidenceId`を持たないentry（`--policy`対象外のevidenceType、既定では`stage_direction`等）はpublic-safe出力から除外する。schema上`evidenceId`はrequiredかつ`^[A-Z][A-Z0-9_]*$`のpattern一致必須のため、値を持たないentryをそのまま出力に含めることができないという技術的制約に加え、そもそも`stage_direction`はPublic promotion対象外という既存方針（`Evidence_Index_Promotion_Policy.md` §3/§4.2）とも整合する
+  - `publicEvidenceId`を持たないentry（`--policy`対象外のevidenceType、既定では`stage_direction`等）はpublic-safe出力から除外する。schema上`evidenceId`はrequiredかつ`^[A-Z][A-Z0-9_]*(?![\s\S])`のpattern一致必須のため、値を持たないentryをそのまま出力に含めることができないという技術的制約に加え、そもそも`stage_direction`はPublic promotion対象外という既存方針（`Evidence_Index_Promotion_Policy.md` §3/§4.2）とも整合する
 - **出力ファイル名方針**: public-safe modeの出力ファイル名は`{publicStoryId}.yaml`（1 document = 1 publicStoryId）とする。1つの入力document内に複数の異なるpublicStoryIdが混在する場合、または複数の入力ファイルが同じpublicStoryIdへ解決される場合（出力ファイル名の衝突）は、いずれもblocking errorとする。**推測によるファイル分割・自動マージは行わない**
 - **sourceKey由来ID exposure scan（§6.9で詳述）**: public-safe出力の直列化文字列に対し、入力entryのstoryId/episodeId/evidenceId/sceneId/blockIdの値のうち、対応する公開ID値と異なり4文字以上のものが残っていないかをscanし、検出した場合はblocking errorにする
 - **publicEpisodeId欠落の扱い**: compatible modeと同様、public-safe modeでもentryの`publicEpisodeId`欠落はblocking errorのままとする。**自動補完・推測は行わない**（次PR候補`evidence-index-public-episode-id-assignment`、§12 Next参照）
@@ -301,7 +301,7 @@ Public Evidence Indexでも、Normalized Story JSON/Extraction Resultとの照�
 
 ## 8.1 現状
 
-Story Summary/Episode Summaryの`evidenceRefs`（`schemas/story_summary.schema.json`、`EVIDENCE_REF_PATTERN`）は、内部`evidenceId`と同じID形式（`^[A-Z][A-Z0-9_]*$`）を参照する設計になっている。reviewed/approvedなSummaryが内部`evidenceId`を参照している場合、Public Evidence Indexが`publicEvidenceId`中心に切り替わると、そのままではリンクできなくなる。
+Story Summary/Episode Summaryの`evidenceRefs`（`schemas/story_summary.schema.json`、`EVIDENCE_REF_PATTERN`）は、内部`evidenceId`と同じID形式（`^[A-Z][A-Z0-9_]*(?![\s\S])`）を参照する設計になっている。reviewed/approvedなSummaryが内部`evidenceId`を参照している場合、Public Evidence Indexが`publicEvidenceId`中心に切り替わると、そのままではリンクできなくなる。
 
 ## 8.2 検討事項
 
@@ -383,7 +383,7 @@ evidenceRefs:
 
 ## 10.3 実装状況（`feature/evidence-index-public-id-schema-design`で実施）
 
-`schemas/evidence_index.schema.json`の`EvidenceIndexEntry`定義に`publicEvidenceId`をoptional（`oneOf: [pattern string, null]`、既存`publicStoryId`/`publicEpisodeId`と同じパターン`^[A-Z][A-Z0-9_]*$`）として追加した。`evidenceId`/`storyId`/`episodeId`は引き続きrequiredのまま変更していない。`agents/wiki_generator/evidence_index.py`の`EvidenceIndexEntry`dataclassと`_parse_entry`にも`public_evidence_id`（デフォルト`None`）を追加し、loaderが新フィールドを読み込めるようにした（`agents/wiki_generator/evidence_index.py`は本PRのNon-goals対象外の最小限の追加的変更、renderer/paths.py/promotion scriptは変更していない）。schema tests・loader testsを追加し、既存fixture（`tests/fixtures/evidence_index/valid_evidence_index.yaml`）に合成`publicEvidenceId`を1件追加した。
+`schemas/evidence_index.schema.json`の`EvidenceIndexEntry`定義に`publicEvidenceId`をoptional（`oneOf: [pattern string, null]`、既存`publicStoryId`/`publicEpisodeId`と同じパターン`^[A-Z][A-Z0-9_]*(?![\s\S])`）として追加した。`evidenceId`/`storyId`/`episodeId`は引き続きrequiredのまま変更していない。`agents/wiki_generator/evidence_index.py`の`EvidenceIndexEntry`dataclassと`_parse_entry`にも`public_evidence_id`（デフォルト`None`）を追加し、loaderが新フィールドを読み込めるようにした（`agents/wiki_generator/evidence_index.py`は本PRのNon-goals対象外の最小限の追加的変更、renderer/paths.py/promotion scriptは変更していない）。schema tests・loader testsを追加し、既存fixture（`tests/fixtures/evidence_index/valid_evidence_index.yaml`）に合成`publicEvidenceId`を1件追加した。
 
 ## 10.4 publicStoryId / publicEpisodeId required化タイミング（整理）
 

@@ -340,7 +340,7 @@ episodes:
     publicEpisodeId: "EVENT_042_990101_E01"
 ```
 
-- 両フィールドとも`oneOf: [string(パターン`^[A-Z][A-Z0-9_]*$`), null]`でnull許容・**必須ではない**。既存の`storyId`/`episodeId`と同じ文字種制約（大文字英数字とアンダースコアのみ、空白・スラッシュ・パス区切り文字禁止）を使い、`title`/`subtitle`由来の日本語URL・表記揺れを持ち込まない（`Story_ID_Policy_Decision.md` §8.1の非採用理由をそのまま踏襲）
+- 両フィールドとも`oneOf: [string(パターン`^[A-Z][A-Z0-9_]*(?![\s\S])`), null]`でnull許容・**必須ではない**。既存の`storyId`/`episodeId`と同じ文字種制約（大文字英数字とアンダースコアのみ、空白・スラッシュ・パス区切り文字・末尾改行禁止）を使い、`title`/`subtitle`由来の日本語URL・表記揺れを持ち込まない（`Story_ID_Policy_Decision.md` §8.1の非採用理由をそのまま踏襲）
 - この形式制約はNormalized Storyのmetadata、Episode Extractionのtop-level、Merged Collectionの`sourceDocuments[]`でも同じ任意・null許容fieldとして検証する。転記経路で不正な公開IDを受け入れず、`--validate`付きWiki生成前に検出する。採番・確定主体は変えない。
 - **役割分離**: `sourceKey`/`rawPath`/`sourceFileName`はraw traceability専用、`storyId`/`episodeId`は内部参照キー（既存のmerged knowledge collection等での相互参照用、当面維持）、`publicStoryId`/`publicEpisodeId`は将来の公開Wiki URL専用という3分離を、PR #70/#71の設計方針通りmanifest schema上で明文化した
 - **fallback方針**: `publicStoryId`/`publicEpisodeId`が未設定（null、またはキー自体が無い）の場合、公開URL用途では既存の`storyId`/`episodeId`へfallbackする。**このPRではfallback判定をrenderer/paths.pyへ実装しない**（設計・schema・manifest loaderでの読み込みまでが本PRのスコープ、§18参照）

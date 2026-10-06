@@ -67,11 +67,11 @@ Path: `docs/architecture/06_AI/Story_Summary_Generation_Plan.md`
 
 `schemas/story_summary.schema.json`は以下の構造になっている（§1参照、実装済み）。
 
-- ドキュメント直下の`storyId`が**required**（内部Story ID、sourceKey由来を含みうる、`pattern: ^[A-Z][A-Z0-9_]*$`）
+- ドキュメント直下の`storyId`が**required**（内部Story ID、sourceKey由来を含みうる、`pattern: ^[A-Z][A-Z0-9_]*(?![\s\S])`）
 - `publicStoryId`は**optional**（`oneOf: [pattern string, null]`）
 - 保存ファイル名は`knowledge/summaries/stories/{storyId}.yaml`（`Story_Summary_Design.md` §5.2、内部`storyId`をファイル名にそのまま使う設計）
 - `episodeSummaries[].episodeId`が**required**（内部Episode ID）、`publicEpisodeId`は**optional**
-- `evidenceRefs`は`EvidenceRef`パターン（`^[A-Z][A-Z0-9_]*$`）で、現状は内部`evidenceId`（Block ID）を参照する設計（`Story_Summary_Design.md` §9）
+- `evidenceRefs`は`EvidenceRef`パターン（`^[A-Z][A-Z0-9_]*(?![\s\S])`）で、現状は内部`evidenceId`（Block ID）を参照する設計（`Story_Summary_Design.md` §9）
 
 これは、Evidence Indexが`evidence-index-promotion-first-reviewed-sample`で発見した問題（`Evidence_Index_Public_ID_Policy.md` §2）と**完全に同型**である。
 
@@ -142,7 +142,7 @@ Evidence Indexの段階的アプローチ（`publicEvidenceId`のoptional追加�
 1. **現状**: `publicStoryId`/`publicEpisodeId`は既にoptionalとして実装済み（`story-summary-schema-implementation`で対応済み、追加のschema変更は不要）
 2. **Compatible projection相当**: 既存schemaのまま、`storyId`/`episodeId`は維持しつつ`publicStoryId`/`publicEpisodeId`を確実に埋める運用（schema変更なし、実装のみで対応可能）
 3. **Public-safe projection相当**: `storyId`/`episodeId`の**値**を公開ID値へ置換する運用（Evidence Indexと同様、fieldの必須性自体は変更しない設計を軸に検討する。schema上の破壊的変更を避けるため）
-4. **evidenceRefsのpattern**: `EvidenceRef`定義（`^[A-Z][A-Z0-9_]*$`）は`publicEvidenceId`の形式（`{publicEpisodeId}_{PREFIX}{sequence:04d}`）とも互換であるため、**pattern自体の変更は不要と見込まれる**（実装PR側で最終確認する）
+4. **evidenceRefsのpattern**: `EvidenceRef`定義（`^[A-Z][A-Z0-9_]*(?![\s\S])`）は`publicEvidenceId`の形式（`{publicEpisodeId}_{PREFIX}{sequence:04d}`）とも互換であるため、**pattern自体の変更は不要と見込まれる**（実装PR側で最終確認する）
 5. **required化のタイミング**: `publicStoryId`/`publicEpisodeId`のrequired化は、Evidence Indexと同様「Public promotion-readyな運用上の期待値」に留め、schema上のrequired制約への格上げは、Public版schemaを分離するタイミング（Evidence Index `Evidence_Index_Public_ID_Policy.md` §10.2と同じ判断軸）まで見送ることを提案する
 
 **本PRでは上記のいずれのschema変更も実施しない**（§10 Non-goals）。実装が必要になった時点で、対応する実装フェーズ（§9）のPRで判断する。

@@ -13,6 +13,7 @@ Story_Summary_Design.md・Evidence_Index_Public_ID_Policy.md）・TASKS.mdから
 いないことも確認する。
 """
 
+import json
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
@@ -298,10 +299,10 @@ def test_projection_design_doc_references_existing_schema_file():
     storyId/publicStoryId双方のpatternが一致していることを確認する
     (docの記述と実装のずれを検知するための軽い整合性チェック)。"""
     assert STORY_SUMMARY_SCHEMA_PATH.is_file()
-    schema_content = STORY_SUMMARY_SCHEMA_PATH.read_text(encoding="utf-8")
-    assert '"storyId"' in schema_content
-    assert '"publicStoryId"' in schema_content
-    assert '"^[A-Z][A-Z0-9_]*$"' in schema_content
+    schema = json.loads(STORY_SUMMARY_SCHEMA_PATH.read_text(encoding="utf-8"))
+    story_pattern = schema["properties"]["storyId"]["pattern"]
+    public_story_pattern = schema["properties"]["publicStoryId"]["oneOf"][0]["pattern"]
+    assert story_pattern == public_story_pattern
 
 
 def test_projection_design_doc_references_existing_scripts():

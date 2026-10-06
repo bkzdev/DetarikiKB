@@ -143,7 +143,11 @@ def test_cli_page_path_collision_keeps_existing_output_with_clean(
 
 @pytest.mark.parametrize(
     ("field", "value"),
-    [("publicStoryId", "../index"), ("publicEpisodeId", r"..\index")],
+    [
+        ("publicStoryId", "../index"),
+        ("publicEpisodeId", r"..\index"),
+        ("publicStoryId", "PUBLIC_TEST\n"),
+    ],
 )
 def test_cli_invalid_public_id_fails_schema_before_clean(tmp_path, field, value):
     collection = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
