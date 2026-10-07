@@ -10,9 +10,9 @@
     "documentType": { "const": "public_rollback_record" },
     "classification": { "const": "public" },
     "commitAllowed": { "const": true },
-    "sourceSha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
-    "treeSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "sourceSha": { "type": "string", "pattern": "^[0-9a-f]{40}(?![\\s\\S])" },
+    "treeSha256": { "type": "string", "pattern": "^[0-9a-f]{64}(?![\\s\\S])" },
     "runId": { "type": "integer", "minimum": 1 },
-    "publicUrl": { "type": "string", "pattern": "^https://[^\\s]+/$" }
+    "publicUrl": { "type": "string", "pattern": "^https://[^\\s]+/(?![\\s\\S])" }
   }
 }

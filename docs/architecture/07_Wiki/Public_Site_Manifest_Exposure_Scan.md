@@ -34,6 +34,8 @@ manifestには次を保持する。
 
 manifest自身はtree digestへ含めず、循環参照を避ける。reviewer、private mapping、internal input digest、local path、検出値、HTML断片は保持しない。
 
+source revision・digest・generator version・route・file pathはschemaで文字列の完全終端まで検証する。末尾のLF / CRやUnicode行終端文字を含む値は、見かけ上のprefixが正しくても無効とする。build結果の形式を変えず、改変されたmanifestの受入れだけをfail-closedにする。
+
 ---
 
 # 3. Site tree gate

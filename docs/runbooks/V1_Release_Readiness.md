@@ -36,6 +36,8 @@ main CI / Public Build成功run、既知正常rollback先を1 recordへ束縛す
 照合する。既知rollback runもproduction workflow、source SHA、成功状態を同じAPIで照合する。
 list検索結果や手入力の成功表明だけでは通さない。
 
+recordのsource SHA・digest・rollback/public URL、およびdetached public site manifestのversion・route・file pathは完全終端で形式検証し、末尾改行付きの値を許可しない。schemaのこの検証はproduction承認やrollback実行を意味しない。
+
 ## 3. Milestone依存gate
 
 | Milestone | v1判定前の確認 | 証跡 |

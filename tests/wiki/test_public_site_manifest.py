@@ -333,6 +333,24 @@ def test_manifest_validator_rejects_digest_order_and_authorization_changes(
     assert validate_public_site_manifest(manifest) == ("public-site-manifest-invalid",)
 
 
+@pytest.mark.parametrize(
+    "path",
+    [
+        ("sourceRevision", "value"),
+        ("lockSha256",),
+        ("generator", "version"),
+    ],
+)
+def test_manifest_validator_rejects_trailing_newline_in_release_fields(tmp_path, path):
+    manifest = _build(_site(tmp_path / "site"))
+    target = manifest
+    for key in path[:-1]:
+        target = target[key]
+    target[path[-1]] += "\n"
+
+    assert validate_public_site_manifest(manifest) == ("public-site-manifest-invalid",)
+
+
 def test_manifest_validator_rejects_route_and_count_mismatch(tmp_path) -> None:
     manifest = _build(_site(tmp_path / "site"))
     manifest["output"]["routes"] = ["/"]
