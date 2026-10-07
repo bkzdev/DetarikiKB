@@ -31,7 +31,7 @@
       "required": ["algorithm", "value"],
       "properties": {
         "algorithm": { "const": "sha1" },
-        "value": { "type": "string", "pattern": "^[0-9a-f]{40}$" }
+        "value": { "type": "string", "pattern": "^[0-9a-f]{40}(?![\\s\\S])" }
       }
     },
     "lockSha256": { "$ref": "#/definitions/Sha256" },
@@ -42,7 +42,7 @@
       "required": ["name", "version", "configSha256"],
       "properties": {
         "name": { "enum": ["mkdocs-material", "zensical"] },
-        "version": { "type": "string", "pattern": "^[0-9A-Za-z][0-9A-Za-z.+_-]{0,39}$" },
+        "version": { "type": "string", "pattern": "^[0-9A-Za-z][0-9A-Za-z.+_-]{0,39}(?![\\s\\S])" },
         "configSha256": { "$ref": "#/definitions/Sha256" }
       }
     },
@@ -81,7 +81,7 @@
           "minItems": 1,
           "uniqueItems": true,
           "contains": { "const": "/" },
-          "items": { "type": "string", "pattern": "^/.*$" }
+          "items": { "type": "string", "pattern": "^/[^\\r\\n\\u2028\\u2029]*(?![\\s\\S])" }
         },
         "files": {
           "type": "array",
@@ -92,7 +92,7 @@
             "additionalProperties": false,
             "required": ["path", "sha256", "sizeBytes", "mediaType", "scanProfile"],
             "properties": {
-              "path": { "type": "string", "pattern": "^(?!/)(?!.*(?:^|/)[.][.](?:/|$)).+$" },
+              "path": { "type": "string", "pattern": "^(?!/)(?!.*(?:^|/)[.][.](?:/|$))[^\\r\\n\\u2028\\u2029]+(?![\\s\\S])" },
               "sha256": { "$ref": "#/definitions/Sha256" },
               "sizeBytes": { "type": "integer", "minimum": 0 },
               "mediaType": { "type": "string", "minLength": 1 },
@@ -105,6 +105,6 @@
     }
   },
   "definitions": {
-    "Sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+    "Sha256": { "type": "string", "pattern": "^[0-9a-f]{64}(?![\\s\\S])" }
   }
 }

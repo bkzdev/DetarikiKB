@@ -8,6 +8,7 @@
 - **Wiki canonical ID collision guard**（PR #330）: 全entity種別の重複canonical IDをrender時に再検査し、曖昧な個別ページ生成を出力前に停止するようにした。
 - **Wiki page path collision guard**（PR #331）: Story / Episode等の出力path衝突をOS間で検出し、書込み先の解決後にも再検査して既存出力の上書きを防いだ。
 - **Public ID pipeline schema parity**（PR #332）: manifestの公開ID形式をNormalized Story・Extraction・Merged Collectionの転記fieldへ適用し、任意・null許容を維持したまま不正値を拒否した。
+- **Shared ID strict end anchoring**（PR #333）: 11 schema・37箇所の共有ID形式を完全終端判定へ揃え、末尾改行付きIDを拒否した。直接呼ぶPython validatorも完全一致へ変更した。
 
 ---
 

@@ -90,7 +90,7 @@
             "sourceSha": { "$ref": "#/definitions/sha1" },
             "treeSha256": { "$ref": "#/definitions/sha256" },
             "runUrl": { "$ref": "#/definitions/runUrl" },
-            "publicUrl": { "type": "string", "pattern": "^https://[^\\s]+$" }
+            "publicUrl": { "type": "string", "pattern": "^https://[^\\s]+(?![\\s\\S])" }
           }
         }
       }
@@ -98,10 +98,10 @@
     "finalDecision": { "const": "pending" }
   },
   "definitions": {
-    "sha1": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
-    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "sha1": { "type": "string", "pattern": "^[0-9a-f]{40}(?![\\s\\S])" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}(?![\\s\\S])" },
     "count": { "type": "integer", "minimum": 0 },
-    "runUrl": { "type": "string", "pattern": "^https://github\\.com/[^/]+/[^/]+/actions/runs/[0-9]+$" },
+    "runUrl": { "type": "string", "pattern": "^https://github\\.com/[^/]+/[^/]+/actions/runs/[0-9]+(?![\\s\\S])" },
     "workflowEvidence": {
       "type": "object", "additionalProperties": false,
       "required": ["workflow", "headSha", "conclusion", "runUrl"],
