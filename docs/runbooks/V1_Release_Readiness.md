@@ -38,6 +38,8 @@ list検索結果や手入力の成功表明だけでは通さない。
 
 recordのsource SHA・digest・rollback/public URL、およびdetached public site manifestのversion・route・file pathは完全終端で形式検証し、末尾改行付きの値を許可しない。schemaのこの検証はproduction承認やrollback実行を意味しない。
 
+M2→M3→M4の匿名release-scope reportもsource revisionと入力digestを完全終端で形式検証する。末尾LF / CRやUnicode行終端文字が付いた値は、正しいSHAのprefixを含んでも無効とする。既存のreport内容・digest連鎖・release判定は変更しない。
+
 ## 3. Milestone依存gate
 
 | Milestone | v1判定前の確認 | 証跡 |

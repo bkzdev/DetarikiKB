@@ -20,7 +20,7 @@
     "schemaVersion": { "const": "0.1" },
     "documentType": { "const": "release_scope_curation_readiness_report" },
     "status": { "const": "complete" },
-    "sourceRevision": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "sourceRevision": { "type": "string", "pattern": "^[0-9a-f]{40}(?![\\s\\S])" },
     "inputDigests": {
       "type": "object",
       "additionalProperties": false,
@@ -186,7 +186,7 @@
       }
     },
     "count": { "type": "integer", "minimum": 0 },
-    "digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "digest": { "type": "string", "pattern": "^[0-9a-f]{64}(?![\\s\\S])" },
     "stateCounts": {
       "type": "object",
       "additionalProperties": { "$ref": "#/definitions/count" }

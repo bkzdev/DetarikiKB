@@ -9,6 +9,7 @@
 - **Wiki page path collision guard**（PR #331）: Story / Episode等の出力path衝突をOS間で検出し、書込み先の解決後にも再検査して既存出力の上書きを防いだ。
 - **Public ID pipeline schema parity**（PR #332）: manifestの公開ID形式をNormalized Story・Extraction・Merged Collectionの転記fieldへ適用し、任意・null許容を維持したまま不正値を拒否した。
 - **Shared ID strict end anchoring**（PR #333）: 11 schema・37箇所の共有ID形式を完全終端判定へ揃え、末尾改行付きIDを拒否した。直接呼ぶPython validatorも完全一致へ変更した。
+- **Public release schema strict end anchoring**（PR #334）: public site manifest・rollback record・v1 release candidate recordのdigest / version / URL / pathを完全終端で検証し、末尾改行を拒否した。
 
 ---
 
