@@ -41,7 +41,7 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 200,
-      "pattern": "^[^\\r\\n]+$"
+      "pattern": "^[^\\r\\n\\u2028\\u2029]+(?![\\s\\S])"
     },
     "PublicId": {
       "type": "string",
@@ -113,7 +113,7 @@
       "properties": {
         "componentKey": {
           "type": "string",
-          "pattern": "^component-[0-9]{4}$"
+          "pattern": "^component-[0-9]{4}(?![\\s\\S])"
         },
         "nodes": {
           "type": "array",
