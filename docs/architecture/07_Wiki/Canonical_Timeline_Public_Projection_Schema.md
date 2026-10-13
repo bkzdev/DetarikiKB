@@ -68,6 +68,8 @@ public IDはPublic ID Registryまたは同等の人間確認済みpublic source�
 
 labelは公開許可済みmetadataだけを入力にしなければならない。schemaは型・長さ・改行禁止を保証するが、文字列の由来や本文断片を判定できない。後続preflightでallowlisted metadataとの一致、禁止marker、内部ID、URL / path等のexposure検査を必須にする。
 
+schemaのlabelと`componentKey`は文字列の完全終端まで検証する。labelではCR / LFに加えUnicode行終端文字U+2028 / U+2029も改行として拒否し、末尾だけに付いた場合も許可しない。既存の公開label値やcomponent採番は変更しない。
+
 ---
 
 # 5. Public relation

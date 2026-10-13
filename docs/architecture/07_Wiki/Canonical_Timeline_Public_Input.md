@@ -44,6 +44,8 @@ rootは次だけを許可し、全objectを`additionalProperties: false`とす�
 
 `pushReview`にはreviewer名、自由記述、internal input digest、path、URLを保持しない。payloadも引き続き`publishStatus: projection_candidate`であり、unknown / conflictの個別情報、provenance、Evidence、internal IDを含まない。
 
+`payloadSha256`、`pushReview.reviewedAt`、local review / preflight recordのdigest・review時刻は、schemaで文字列の完全終端まで検証する。正しい値の末尾にLF / CR等が付いた入力を受け入れない。これは既存のhuman review・promotion・deploy gateを代替しない。
+
 ---
 
 # 4. Local review record

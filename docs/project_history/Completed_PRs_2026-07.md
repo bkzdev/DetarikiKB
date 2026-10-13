@@ -10,6 +10,7 @@
 - **Public ID pipeline schema parity**（PR #332）: manifestの公開ID形式をNormalized Story・Extraction・Merged Collectionの転記fieldへ適用し、任意・null許容を維持したまま不正値を拒否した。
 - **Shared ID strict end anchoring**（PR #333）: 11 schema・37箇所の共有ID形式を完全終端判定へ揃え、末尾改行付きIDを拒否した。直接呼ぶPython validatorも完全一致へ変更した。
 - **Public release schema strict end anchoring**（PR #334）: public site manifest・rollback record・v1 release candidate recordのdigest / version / URL / pathを完全終端で検証し、末尾改行を拒否した。
+- **Release-scope report strict end anchoring**（PR #335）: M2→M3→M4の匿名report 3 schemaでsource revision・digestの末尾改行を拒否し、release証跡の形式契約を統一した。
 
 ---
 
